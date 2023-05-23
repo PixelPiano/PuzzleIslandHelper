@@ -1,0 +1,25 @@
+# Sample Entity
+entities.PuzzleIslandHelper/SampleEntity.placements.name.normal=Sample Entity (PuzzleIslandHelper)
+entities.PuzzleIslandHelper/SampleEntity.attributes.description.sampleProperty=A sample property for your entity.
+
+# Sample Trigger
+triggers.PuzzleIslandHelper/SampleTrigger.placements.name.normal=Sample Trigger (PuzzleIslandHelper)
+triggers.PuzzleIslandHelper/SampleTrigger.attributes.description.sampleProperty=A sample property for your trigger.
+
+# Digital Grid Effect
+style.effects.PuzzleIslandHelper/DigitalGrid.name=Digital Grid
+style.effects.PuzzleIslandHelper/DigitalGrid.description.color=The color of the grid's lines.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.horizontalLineHeight=The height of the horizontal (left-to-right) lines.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.verticalLineWidth=The width of the vertical (top-to-bottom) lines.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.rateX=How much the grid will move on the X-axis each frame.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.rateY=How much the grid will move on the Y-axis each frame.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.xSpacing=The width between each vertical line.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.ySpacing=The height between each horizontal line.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.moving=If the grid moves every frame (true) or is locked in place (false).
+style.effects.PuzzleIslandHelper/DigitalGrid.description.verticalLineAngle=The angle of the vertical lines.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.horizontalLineAngle=The angle of the horizontal lines.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.blur=If the grid has a gaussian blur effect added to it or not.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.glitch=If the grid has a glitch effect added to it or not.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.opacity=The opacity of the grid (a value from 0.0 to 1.0)
+style.effects.PuzzleIslandHelper/DigitalGrid.description.verticalLines=Toggles vertical lines on and off.
+style.effects.PuzzleIslandHelper/DigitalGrid.description.horizontalLines=Toggles horizontal lines on and off.

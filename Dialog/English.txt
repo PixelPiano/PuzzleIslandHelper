@@ -1,0 +1,42 @@
+SAMPLE_DIALOG_TEXT= Some sample text for your mod.
+TODO= To do:{n}- Talk with village leader about expanding available research bounds.{n}- Conduct tests on temple fluids without getting burnt.{n}- Fix broken stabilizer in sector 2.{n}- Laundry.
+
+UNKNOWN= Unrecognized file extension, file not readable
+INVALID= Invalid icon type
+RAM= !!!!!!!!!DOWNLOAD FREE RAM HERE FOR FREE FREE!!!!!!!!!
+FOLDER= Folder data here
+
+ACCESS= Access Module required for transport. Approval from doctor and lead scientist required before proceeding. Lead scientist not responsible for damage dealt to personal effects and/or persons from this point forth.
+
+ACCESSDENIED= Access Module not detected. Unable to launch transport system.
+
+PICO= Pico data here
+SUS= Amogu
+INFO= Info data here
+JUSTATEXT= OH GREAT GOOGLY MOOGLY
+TEST= AAAAAAAAAAA
+
+TEXT1= To do:{n}- Talk with village leader about expanding available research bounds.{n}- 	 Conduct tests on temple fluids without getting burnt.{n}- Fix broken stabilizer in 	 sector 2.{n}- Laundry.
+
+TEXT2= 20XX/05/10{n}This will be the first record of my existence here. My crew and I were making our way to our place of work when the world around us went dark. Our driver mentioned the steering wheel was uncontrollable for a second or two during this time.{n} We came to soon after, finding ourselves in the seemingly endless boughs of rock corriders this place holds. None of us are particularly atheletic, so navigating through this labyrinth was an ordeal.
+
+TEXT3= Luckily, we still had many supplies in our vehicle. As we made our way through these twisting caves, the ground beneath one of us gave way and half of us tumbled into a newly opened up route. We made sure everyone was safe, and then decided to look around for anything we could use to hoist ourselves out.
+
+TEXT4= We were looking for materials to build an escape route. We instead found a civilization.{n}Ok, well, maybe not a "civilization", more of a village, but if I had said "village" it wouldn't have sounded as cool.
+
+INFO1= This device is to be used only by laboratory personnel. Please report any unauthorized individuals operating laboratory devices to the village leader. If you don't know whether you qualify as laboratory personnel, then you do not.
+
+NT1= To do.txt
+NT2= Log1A.txt
+NT3= Log1B.txt
+NT4= Log1C.txt
+
+NACCESS= Key Terminal.exe
+NRAM= VERY REAL OPPORTUNITY FOR SPACE UNLIMITED.exe
+
+NI1= Notice.info
+
+NU1= LiquidConv.bat
+NU2= EmployeeWorthEstimate.lst
+NU3= SectorSurv.cam
+

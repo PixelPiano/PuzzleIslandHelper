@@ -1,0 +1,5 @@
+# Sample Entity
+placements.entities.PuzzleIslandHelper/SampleEntity.tooltips.sampleProperty=A sample property for your entity.
+
+# Sample Trigger
+placements.triggers.PuzzleIslandHelper/SampleTrigger.tooltips.sampleProperty=A sample property for your trigger.
