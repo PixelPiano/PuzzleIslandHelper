@@ -24,14 +24,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float flashMax;
         private float opacity = 0f;
         private float fadeOpacity = 1f;
+        private float blendAmount;
+        private float fadeDuration;
         private bool fading = false;
+        private bool outlineSprites;
 
         private string effectString = "";
         private string audio = "";
         private string id = "";
 
-        private Rectangle bounds;
         private Color color;
+        private Color color2;
+        private Color customColor;
         private Color flashColor;
 
         private bool inFlashRoutine = false;
@@ -43,6 +47,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool speaking = false;
         private bool inSpeakingRoutine = false;
         private bool usesAudio = true;
+        private bool fadeInOut;
 
         private Level l;
         private Player player;
@@ -72,10 +77,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public DecalEffectController(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
+            outlineSprites = data.Bool("outlineSprites");
+            fadeDuration = data.Float("colorFadeDuration", 1);
+            fadeInOut = data.Bool("colorFadeInOut");
+            blendAmount = data.Float("colorBlendAmount", 1);
             id = data.Attr("targetGroupID");
             effectString = data.Attr("gfxEffect");
             shouldFlash = data.Bool("flashOnCollide");
-            color = data.HexColor("color", Color.SpringGreen);
+            color = data.HexColor("color", Color.White);
+            color2 = data.HexColor("color2", Color.Green);
+            customColor = color;
             flashColor = data.HexColor("flashColor", Color.White);
             flashMax = data.Float("flashLimit", 0.5f);
             shouldGlitch = data.Bool("glitch");
@@ -84,29 +95,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            Logger.Log(LogLevel.Warn, "PuzzleLog", "setting up");
             entityList = scene.Tracker.GetEntities<DecalEffectTarget>();
-            Logger.Log(LogLevel.Warn, "PuzzleLog", "setup done");
-            for (int i = 0; i < entityList.Count; i++)
-            {
-                Logger.Log(LogLevel.Warn, "PuzzleLog", "" + entityList[i]);
-            }
+
             foreach (DecalEffectTarget entity in entityList)
             {
-                Logger.Log(LogLevel.Warn, "PuzzleLog", $"Entity id: {entity.id}, controller id: {id} ");
                 if (entity.id == id)
                 {
-                    Add(entity.sprite);
+                    //Add(entity.sprite);
                     entity.sprite.Visible = false;
                     entity.sprite.Play("idle");
-                    Logger.Log(LogLevel.Warn, "PuzzleLog", "Entity: " + entity.ToString());
-                    Logger.Log(LogLevel.Warn, "PuzzleLog", "Entity.Sprite: " + entity.sprite.ToString());
-                    //boundsList.Add(entity.bounds);
                 }
-                else
+            }
+            if (fadeInOut)
+            {
+                Tween colorTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, fadeDuration);
+                colorTween.OnUpdate = (Tween t) =>
                 {
-                    Logger.Log(LogLevel.Warn, "PuzzleLog", "no id found!");
-                }
+                    customColor = Color.Lerp(color, color2, blendAmount * t.Eased);
+                };
+                Add(colorTween);
+                colorTween.Start();
             }
         }
         public override void Added(Scene scene)
@@ -124,8 +132,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            player = Scene.Tracker.GetEntity<Player>();
-            if (Scene is not Level || player == null)
+            if (Scene is not Level)
             {
                 return;
             }
@@ -139,7 +146,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (entity.id == id)
                 {
+                    Depth = entity.Depth;
                     entity.sprite.RenderPosition = entity.Position;
+                    if (outlineSprites)
+                    {
+                        entity.sprite.DrawSimpleOutline();
+                    }
                     entity.sprite.Render();
                 }
             }
@@ -154,7 +166,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (entity.id == id)
                 {
+                    Depth = entity.Depth;
                     entity.sprite.RenderPosition = entity.Position;
+                    if (outlineSprites)
+                    {
+                        entity.sprite.DrawSimpleOutline();
+                    }
                     entity.sprite.Render();
                 }
             }
@@ -199,10 +216,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Gameplay);
             GameplayRenderer.Begin();
-            Draw.SpriteBatch.Draw(SpriteTarget, l.Camera.Position, color * fadeOpacity);
+            Draw.SpriteBatch.Draw(SpriteTarget, l.Camera.Position, customColor * fadeOpacity);
             if (fading || !inFlashRoutine)
             {
-                Draw.SpriteBatch.Draw(ColorFix, l.Camera.Position, color * 0.25f);
+                Draw.SpriteBatch.Draw(ColorFix, l.Camera.Position, customColor * 0.25f);
             }
             if (inFlashRoutine)
             {
@@ -218,6 +235,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             l = Scene as Level;
+
             if (!string.IsNullOrEmpty(audio) && speaking && !inSpeakingRoutine)
             {
                 Add(new Coroutine(SoundWaves(), true));
@@ -226,19 +244,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             player = Scene.Tracker.GetEntity<Player>();
 
             //check if the player is touching any of the target decals' bounds
-
-            foreach (DecalEffectTarget entity in entityList)
+            if (player is not null)
             {
-                if (entity.id == id)
+                foreach (DecalEffectTarget entity in entityList)
                 {
-                    if (player.CollideRect(entity.bounds))
+                    if (entity.id == id)
                     {
-                        playerTouching = true;
-                        break;
-                    }
-                    else
-                    {
-                        playerTouching = false;
+                        if (player.CollideRect(entity.bounds))
+                        {
+                            playerTouching = true;
+                            break;
+                        }
+                        else
+                        {
+                            playerTouching = false;
+                        }
                     }
                 }
             }

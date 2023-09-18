@@ -11,12 +11,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class Stool : Actor
     {
-        /*        public bool Respawning = false;
-                public bool Respawned = false;*/
         private float holdTimer = 0;
+        private string flag;
         public Vector2 prevPosition = Vector2.Zero;
         public bool MoveStool = false;
         public bool IsHeld = false;
+        private bool Inverted;
+        private EntityID id;
+        public bool FlagState
+        {
+            get
+            {
+                if(SceneAs<Level>() is not null)
+                {
+                    Level level = SceneAs<Level>();
+                    if (Inverted)
+                    {
+                        return !level.Session.GetFlag(flag);
+                    }
+                    else
+                    {
+                        return level.Session.GetFlag(flag);
+                    }
+                }
+                return false;
+
+            }
+        }
         private static bool InRefill = false;
         private bool PlatformState = false;
         private bool inRoutine = false;
@@ -37,6 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Sprite sprite;
         public Holdable Hold;
         public HoldableCollider hitSeeker;
+        private Hitbox HoldingHitbox;
         private JumpThru platform;
         public VertexLight Light;
         private Color orig_Color = Color.White;
@@ -47,9 +69,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Level l;
 
         private Coroutine routine;
-
         public Entity GetRider()
         {
+            foreach (Stool entity in base.Scene.Tracker.GetEntities<Stool>())
+            {
+                if (entity.IsRiding(platform))
+                {
+                    return entity;
+                }
+            }
             foreach (Actor entity in base.Scene.Tracker.GetEntities<Actor>())
             {
                 if (entity.IsRiding(platform))
@@ -85,9 +113,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             DashesHeld = 0;
         }
 
-        public Stool(EntityData data, Vector2 offset)
+        public Stool(EntityData data, Vector2 offset, EntityID id)
         : base(data.Position + offset)
         {
+            this.id = id;
+            Inverted = data.Bool("inverted");
+            flag = data.Attr("flag");
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/stool/"));
             sprite.AddLoop("down", "stoolext", 0.1f, 0);
             sprite.AddLoop("up", "stoolext", 0.1f, 8);
@@ -118,10 +149,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             onCollideV = OnCollideV;
             LiftSpeedGraceTime = 0.1f;
             Add(Light = new VertexLight(Collider.Center, Color.White, 0.7f, 32, 64));
-            Tag = Tags.TransitionUpdate;
             Add(new MirrorReflection());
+            HoldingHitbox = new Hitbox(sprite.Width - 8, sprite.Height, (-sprite.Width * StoolJustify.X) + 2, (-sprite.Height * StoolJustify.Y));
+            Collider = HoldingHitbox;
         }
-
+        private void OnPickup()
+        {
+            MoveStool = false;
+            Hold.SlowRun = PlatformState;
+            Speed = Vector2.Zero;
+            AddTag(Tags.Persistent);
+            platform.AddTag(Tags.Persistent);
+            SceneAs<Level>().Session.DoNotLoad.Add(id);
+        }
+        public void OnRelease(Vector2 force)
+        {
+            MoveStool = false;
+            holdTimer = 0.5f;
+            RemoveTag(Tags.Persistent);
+            if (SceneAs<Level>().Session.DoNotLoad.Contains(id))
+            {
+                SceneAs<Level>().Session.DoNotLoad.Remove(id);
+            }
+            platform.RemoveTag(Tags.Persistent);
+            if (force.X != 0f && force.Y == 0f)
+            {
+                force.Y = -0.4f;
+            }
+            Speed = force * 200f;
+            if (Speed != Vector2.Zero)
+            {
+                noGravityTimer = 0.1f;
+            }
+        }
         private IEnumerator ChangeState(Player player)
         {
             inRoutine = true;
@@ -135,6 +195,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 sprite.Play("extDown");
                 Audio.Play("event:/PianoBoy/stoolLower", Position);
+                
             }
             for (float i = 0; i < 1; i += 0.1f)
             {
@@ -155,7 +216,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         }
                         else
                         {
-                            if(rider as Stool is not null)
+                            if (rider as Stool is not null)
                             {
                                 Launched(rider as Stool);
                             }
@@ -220,13 +281,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Audio.Play("event:/PianoBoy/stool_hit_side", Position);
             Speed.X *= -0.4f;
         }
-        private void OnPickup()
-        {
-            MoveStool = false;
-            Hold.SlowRun = PlatformState;
-            Speed = Vector2.Zero;
-            AddTag(Tags.Persistent);
-        }
         public void Swat(HoldableCollider hc, int dir)
         {
             if (Hold.IsHeld && hitSeeker == null)
@@ -239,12 +293,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public void Launched(Stool stool)
         {
-            if (stool.Speed.Y >= 0f)
-            {
-               stool.Speed.X *= 0.5f;
-               stool.Speed.Y = -200f;
-               stool.noGravityTimer = 0.3f;
-            }
+                stool.Speed.X *= 0.5f;
+                stool.Speed.Y = -200f;
+                stool.noGravityTimer = 0.3f;
 
         }
         public bool HitSpring(Spring spring)
@@ -307,26 +358,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return false;
         }
-        public void OnRelease(Vector2 force)
-        {
-            MoveStool = false;
-            holdTimer = 0.5f;
-            RemoveTag(Tags.Persistent);
-            if (force.X != 0f && force.Y == 0f)
-            {
-                force.Y = -0.4f;
-            }
-            Speed = force * 200f;
-            if (Speed != Vector2.Zero)
-            {
-                noGravityTimer = 0.1f;
-            }
-        }
         #endregion
         public override void Added(Scene scene)
         {
             base.Added(scene);
             scene.Add(platform = new JumpThru(Position - new Vector2(sprite.Width * StoolJustify.X, sprite.Height * StoolJustify.Y) + Vector2.UnitY * (sprite.Height - 10), (int)sprite.Width, false));
+            //platform.OnDashCollide = OnDashed;
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
             platform.OnDashCollide = OnDashed;
         }
         public static void Load()
@@ -366,22 +407,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            /*            if (Respawning)
+            if (!string.IsNullOrEmpty(flag) && !FlagState)
             {
-                Hold.PickupCollider = null;
-                return;
+                RemoveSelf();
+                platform.RemoveSelf();
             }
-            if (Respawned)
-            {
-                Hold.PickupCollider = new Hitbox(sprite.Width, sprite.Height, -sprite.Width * StoolJustify.X, -sprite.Height * StoolJustify.Y);
-                Respawned = false;
-            }*/
             Hold.CheckAgainstColliders();
             sprite.SetColor(refillColor);
             orig_Color = refillColor;
             if (holdTimer > 0f)
             {
-                sprite.SetColor(Color.Lerp(orig_Color,Color.Black,0.3f));
+                sprite.SetColor(Color.Lerp(orig_Color, Color.Black, 0.3f));
                 holdTimer -= Engine.DeltaTime;
             }
             else
@@ -389,6 +425,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 sprite.SetColor(orig_Color);
             }
             Collider.Position = Hold.PickupCollider.Position = PlatformState ? _platPos : _platPos + Vector2.UnitY * 10;
+            Collider.Position.X = Hold.PickupCollider.Position.X + 4;
             Collider.Height = Hold.PickupCollider.Height = PlatformState ? sprite.Height : 10;
             player = Scene.Tracker.GetEntity<Player>();
             StateAdjustment = PlatformState ? 0 : sprite.Height - 10;
@@ -401,6 +438,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return;
             }
+
             Depth = player.Depth + 1;
             l = Scene as Level;
             #region Copied
@@ -511,5 +549,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             #endregion
 
         }
+
     }
 }

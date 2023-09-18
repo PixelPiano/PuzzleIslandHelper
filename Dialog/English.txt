@@ -1,4 +1,44 @@
-SAMPLE_DIALOG_TEXT= Some sample text for your mod.
+# Inline Text Commands:
+# {~}wavy text{/~}
+# {!}impact text{/!}
+# {>> x}changes speed at which characters are displayed{>>}
+# {# 000000}this text is black{#} (uses HEX color values)
+# {+MENU_BEGIN} inserts the dialog from the MENU_BEGIN value (in English, "CLIMB")
+# {n} creates a newline, without a page break
+# {0.5} creates a 0.5 second pause
+# {big}this text is large{/big}
+# Gameplay Control Commands (should never change)
+# {trigger x} this triggers an in-game event
+# {anchor} controls the visual position of the textbox in-game
+
+#Cutscenes
+CalidusTest= 
+	[Calidus right stern]
+	And when we DO get to the computer...
+	What exactly do you propose we do?	 
+	
+
+
+#Filenames
+PICO= Pico data here
+SUS= Amogu
+INFO= Info data here
+JUSTATEXT= OH GREAT GOOGLY MOOGLY
+TEST= AAAAAAAAAAA
+
+
+NT1= To do.txt
+NT2= Log1A.txt
+NT3= Log1B.txt
+NT4= Log1C.txt
+NI1= Notice.info
+NU1= LiquidConv.bat
+NU2= EmployeeWorthEstimate.lst
+NU3= SectorSurv.cam
+
+NDESTRUCT= DARP.exe
+NMEMORY= MStorage.exe
+
 TODO= To do:{n}- Talk with village leader about expanding available research bounds.{n}- Conduct tests on temple fluids without getting burnt.{n}- Fix broken stabilizer in sector 2.{n}- Laundry.
 
 UNKNOWN= Unrecognized file extension, file not readable
@@ -8,35 +48,46 @@ FOLDER= Folder data here
 
 ACCESS= Access Module required for transport. Approval from doctor and lead scientist required before proceeding. Lead scientist not responsible for damage dealt to personal effects and/or persons from this point forth.
 
+DESTRUCT= Level 5 clearance required to use program.
+
+DESTRUCTDENIED= Level 5 clearance not detected. Access denied.
+
 ACCESSDENIED= Access Module not detected. Unable to launch transport system.
 
-PICO= Pico data here
-SUS= Amogu
-INFO= Info data here
-JUSTATEXT= OH GREAT GOOGLY MOOGLY
-TEST= AAAAAAAAAAA
 
 TEXT1= To do:{n}- Talk with village leader about expanding available research bounds.{n}- 	 Conduct tests on temple fluids without getting burnt.{n}- Fix broken stabilizer in 	 sector 2.{n}- Laundry.
 
-TEXT2= 20XX/05/10{n}This will be the first record of my existence here. My crew and I were making our way to our place of work when the world around us went dark. Our driver mentioned the steering wheel was uncontrollable for a second or two during this time.{n} We came to soon after, finding ourselves in the seemingly endless boughs of rock corriders this place holds. None of us are particularly atheletic, so navigating through this labyrinth was an ordeal.
+TEXT2= 20XX/05/10{n}This will be the first record of my existence here. I was making my way from my home to the laboratory I'm stationed at when suddenly, without warning, everything went dark. {n} I came to soon after, finding myself in the seemingly endless boughs of rock corriders this place holds. Now, I'm not  particularly atheletic, so navigating through this labyrinth was and still is an ordeal.
 
-TEXT3= Luckily, we still had many supplies in our vehicle. As we made our way through these twisting caves, the ground beneath one of us gave way and half of us tumbled into a newly opened up route. We made sure everyone was safe, and then decided to look around for anything we could use to hoist ourselves out.
+TEXT3= Luckily, I had stocked up on supplies, as we needed rations and materials for various experiments, and I was tasked with procuring them. If push comes to shove, I'll have to dip into those. As I made my way through these twisting caves, the ground beneath me gave way I tumbled into a newly opened up route. I made sure I hadn't broken anything, and then decided to look around for anything I could use to hoist myself out.
 
-TEXT4= We were looking for materials to build an escape route. We instead found a civilization.{n}Ok, well, maybe not a "civilization", more of a village, but if I had said "village" it wouldn't have sounded as cool.
+TEXT4= I was looking for materials to build an escape route. Instead, I found a civilization.{n}Ok, well, maybe not a "civilization", more of a village, but if I had said "village" it wouldn't have sounded as cool.
+
+TEXT5= The village was covered in blues and purples, with multiple sections being used to residence. There was a schoolhouse below the bridge, and just a little further, an industrial area. They were wary of me at first, but one of them who seemed to have high authority took one look at me and welcomed me with open arms.
+
+EXAMPLETEXTT= This is some example text for an extended version of FancyText. {n}It just created a new line by detecting an "n" surrounded by curly braces.{n1}And now it's created a new segment by detecting an "n" and a subsequent number after it.{n2}The number after the "n" corresponds to the number of new lines it should add.{n}Currently, dashing progresses the text to the next segment.
+
+TEXT6= We asked the Villagers how long they'd lived here for, to which we got varied answers.{n1}Some arrived here mere days or weeks before we did, and others have been living here for as long as they can remember.{n2}How they've managed to stay alive, not to mention sane all this time is a mystery to me.
+
+TEXT7= Some of the Villagers seemed peculiar to me. I can't tell what it is about them but their presence feels different than the others, it's strange. Of course, I haven't brought it up around them because that would be rude, but it does make me wonder...
+
+TEXT8= This Temple is fascinating. With the Villagers' help and knowledge, I've been able to go on brief expeditions, and I can hardly believe what I've seen. I saw numerous environments, from a desert to a lush forest, to a cave system filled with crystals and gems. Upon "entering" these environments, the temperature, humidity, light, and air quality change in an instant, and go back to normal upon exit. This couldn't possibly exist given the laws of nature earth follows. Just where am I really?
+
+TEXT9= I saw something very troubling today during an expedition. We were making our way through a previously unexplored sector and I noticed something in the distance. A swing set. Not just that, a whole empty playground. The one from my elementary years... I must be seeing things. Remind myself to look into gas masks during future experiments with temple fluid.
+
+TEXT10= I thought it was just the gas making me see things, but I couldn't leave this up to chance. However, when I tried to follow the same path back, I found the path had been blocked by some rock formations that didn't exist the first time around. Confused, I decided to head back, but when I turned around the whole temple shook and I heard a terrible scratchy, high-pitched sound in my ears. I closed my eyes and covered my ears until I was sure the sound had quieted, and when I opened my eyes, instead of seeing the same old dull grey rock, I saw a grassy plain, filled with flowers. 
+
+TEXT11= I have a hypothesis. This temple can make a carbon copy of environments from around the globe. How it chooses which areas to replicate, I'm not sure, but if I can figure out how it's doing this and make it out... It could change the course of history. Think about it, no more storage problems! We could replicate neighborhoods or small plots of land, there would be no need for construction! Need some way to regulate it, however. Regardless, I'd no doubt be set for life.
+
+
 
 INFO1= This device is to be used only by laboratory personnel. Please report any unauthorized individuals operating laboratory devices to the village leader. If you don't know whether you qualify as laboratory personnel, then you do not.
 
-NT1= To do.txt
-NT2= Log1A.txt
-NT3= Log1B.txt
-NT4= Log1C.txt
+SCHOOLNOTEHINT=Due to some of the residents getting a bit... handsy with the school supplies, (doctor's gonna have a time) the village leader and I have elected to make a secluded storage underneath the school. I've let the school teacher know not to disclose this place's location - or allude to it's purpose to avoid more incidents. 
+
+
+NSNH=SchoolUpdate.txt
 
 NACCESS= Key Terminal.exe
 NRAM= VERY REAL OPPORTUNITY FOR SPACE UNLIMITED.exe
-
-NI1= Notice.info
-
-NU1= LiquidConv.bat
-NU2= EmployeeWorthEstimate.lst
-NU3= SectorSurv.cam
 

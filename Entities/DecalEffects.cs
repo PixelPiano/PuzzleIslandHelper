@@ -24,6 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float fadeOpacity = 1f;
         private int fadeDistance = 45;
         private bool fading = false;
+        private bool addLight = true;
 
         private string effectString = "";
         private string audio = "";
@@ -92,13 +93,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             color = data.HexColor("color", Color.SpringGreen);
             flashColor = data.HexColor("flashColor", Color.White);
             flashMax = data.Float("flashLimit", 0.5f);
-
+            if (data.Bool("addLight", true))
+            {
+                Add(new VertexLight(Center, color, 1, (int)Width, (int)Width + 4));
+            }
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
             sprite.Play("idle");
             effect = EffectFromString(effectString);
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            player = (scene as Level).Tracker.GetEntity<Player>();
         }
         private Effect EffectFromString(string str)
         {
@@ -110,8 +119,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            player = Scene.Tracker.GetEntity<Player>();
-            if (Scene is not Level || player == null)
+            if (Scene is not Level)
             {
                 return;
             }

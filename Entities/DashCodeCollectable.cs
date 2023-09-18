@@ -14,6 +14,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [TrackedAs(typeof(HeartGem))]
     public class DashCodeCollectable : Entity
     {
+        private bool OnlyFlag;
+
         public EntityID ID;
 
         private Sprite sprite;
@@ -48,19 +50,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private bool collected;
 
-        private string flag;
+        public string flag;
 
         private bool flagDebug;
 
         private string spawnedFlag = "";
 
-        private string collectedFlag = "";
+        public string collectedFlag = "";
 
         private bool inBounds = false;
 
         private bool usesBounds;
 
         private Player player;
+
+        public bool isHeart;
 
         private float xBound;
 
@@ -102,9 +106,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
         }
-        public DashCodeCollectable(EntityData data, Vector2 offset, EntityID id)
-        : base(data.Position + offset)
+        public DashCodeCollectable(Vector2 position, bool isHeart):
+            base(position)
         {
+            this.isHeart = isHeart;
+        }
+        public DashCodeCollectable(EntityData data, Vector2 offset, EntityID id)
+        : this(data.Position + offset, data.Attr("sprite", "objects/PuzzleIslandHelper/dashCodeCollectable/miniHeart").Contains("miniHeart"))
+        {
+            OnlyFlag        = data.Bool("noCollectable");
             flagDebug       = data.Bool("flagDebug", true);
             canRespawn      = data.Bool("canRespawn");
             usesBounds      = data.Bool("usesBounds");
@@ -113,8 +123,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             code            = data.Attr("code").Split(',').Select(Convert.ToString).ToArray();
             audio           = data.Attr("event", "event:/new_content/game/10_farewell/glitch_short");
             spriteName      = data.Attr("sprite", "objects/PuzzleIslandHelper/dashCodeCollectable/miniHeart");
-
-
             yBound          = data.Height;
             xBound          = data.Width;
             dataNode        = data.Nodes[0];
@@ -197,7 +205,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
             if (bounceSfxDelay <= 0f)
             {
-                Audio.Play("event:/game/general/crystalheart_bounce", Position);
+                Audio.Play("event:/game/general/crystalheart_bounce", heart.Position);
                 bounceSfxDelay = 0.1f;
             }
         }
@@ -208,7 +216,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             heart.Collidable = false;
             Session session = SceneAs<Level>().Session;
             level.Shake();
-            SoundEmitter.Play(collectSound, this);
+            SoundEmitter.Play(collectSound, heart);
             Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
 
             for (int i = 0; i < 10; i++)
@@ -227,7 +235,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             { 
                 SceneAs<Level>().Session.SetFlag(flag, true);
             }
+            if (!PianoModule.SaveData.CollectedIDs.Contains(this))
+            {
+                PianoModule.SaveData.CollectedIDs.Add(this);
+            }
             heart.RemoveSelf();
+
             yield return null;
         }
         public IEnumerator WaitBeforeRemoveRoutine() 
@@ -244,10 +257,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (effectsAdded)
             {
-                sfx = Audio.Play(audio);
-                (Scene as Level).Flash(Color.Red, drawPlayerOver: true);
+                sfx = Audio.Play(audio,heart.Position);
+                (Scene as Level).Flash(Color.White, drawPlayerOver: true);
             }
-            
+            if (OnlyFlag)
+            {
+                SceneAs<Level>().Session.SetFlag(flag);
+                return;
+            }
 
             heart.Add(sprite = new Sprite(GFX.Game, spriteName));
             sprite.AddLoop("idle", "", 0.08f);

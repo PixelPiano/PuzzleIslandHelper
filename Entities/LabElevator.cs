@@ -36,6 +36,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private Entity front;
 
+        private StoolPickupBarrier Barrier;
+
         private SoundSource sfx = new SoundSource("event:/PianoBoy/ElevatorMusic");
 
 
@@ -68,12 +70,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                         new Hitbox(4, 3, 35, -37)); //how to summon a demon*/
             Collider = new Hitbox(48, 8, 0, 0);
 
-
             Depth = -10500;
             Add(new LightOcclude());
         }
         private void Interact(Player player)
         {
+            if(player.Holding != null)
+            {
+                return;
+            }
             Coroutine move = new Coroutine(MoveElevator());
             move.RemoveOnComplete = true;
             Add(move);
@@ -115,6 +120,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             talk.Enabled = !moving;
+            Barrier.Position = Position - Vector2.UnitY * Barrier.Height;
             if (backGlass != null)
             {
                 back.Position = Position;
@@ -147,7 +153,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 ResetPlatforms(endPosition.Y);
             }
-
+            scene.Add(Barrier = new StoolPickupBarrier(Position, (int)Width, (int)frontGlass.Height, 1, false, true, false));
+            Barrier.Depth = 9001;
         }
         private void ResetPlatforms(float value)
         {
@@ -170,6 +177,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 //talk.Enabled = false;
                 moving = true;
+                Barrier.State = true;
+                yield return null;
+                while (Barrier.Opacity < 1)
+                {
+                    Barrier.Opacity += Engine.DeltaTime;
+                    yield return null;
+                }
+                Barrier.Opacity = 1;
+                yield return Engine.DeltaTime * 2;
                 if (SceneAs<Level>().Session.GetFlag(flag))
                 {
                     while (Position.Y < endPosition.Y)
@@ -195,6 +211,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     MoveToX(startPosition.X);
                     SceneAs<Level>().Session.SetFlag(flag, true);
                 }
+                Barrier.State = false;
+                yield return null;
+                while (Barrier.Opacity > 0)
+                {
+                    Barrier.Opacity -= Engine.DeltaTime;
+                    yield return null;
+                }
+                Barrier.Opacity = 0;
+                yield return Engine.DeltaTime * 2;
                 moving = false;
                 //talk.Enabled = true;
             }

@@ -19,6 +19,7 @@ digitalEffect.placements =
             line4="00ff40",
             lineFlicker = true,
             backFlicker = true,
+            leaveOutHair = true
         }
     }
 }

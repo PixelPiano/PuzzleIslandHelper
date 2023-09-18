@@ -1,14 +1,22 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 // PuzzleIslandHelper.BinarySwitch
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/BinarySwitch")]
     public class BinarySwitch : Solid
     {
-
+        /* TODO:
+         * Make lights turn white when puzzle complete, then fade to gray
+         * Implement room layout placements
+         * Add sounds for wrong answers, correct answers (mini, main, full), and button presses
+         * 
+         */
         private Player player;
         private Sprite[] sprites = new Sprite[6];
         private Sprite[] lights = new Sprite[5];
@@ -21,7 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool PressingButton = false;
         private bool FadingLight = false;
         private readonly float lightY = -48;
-        private int[,] placements = {
+        private readonly int[,] placements = {
                                     {0,0,0,0,0},
                                     {0,0,0,0,1},
                                     {0,0,0,1,0},
@@ -38,75 +46,185 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                     {0,1,1,0,1},
                                     {0,1,1,1,0},
                                     {0,1,1,1,1},
-                                    {1,0,0,0,0},};
+                                    {1,0,0,0,0}};
+
+        private readonly int[,] placements1 = { {0,0,1,1,1},
+                                                {0,1,1,0,1},
+                                                {1,1,1,0,0}};
+
+        private readonly int[,] placements2 = { {0,1,0,0,1},
+                                                {0,1,0,1,0},
+                                                {0,1,0,1,0}};
+
+        private readonly int[,] placements3 = { {0,0,0,0,1},
+                                                {1,0,0,1,1},
+                                                {0,1,1,0,0}};
+
+        private readonly int[,] placements4 = { {1,1,0,1,1},
+                                                {1,0,1,1,1},
+                                                {1,1,0,0,0}};
+
+        private readonly int[,] placements5 = { {0,1,1,1,1},
+                                                {0,0,1,0,1},
+                                                {1,0,0,0,0}}; //room layout puzzle
+        private static int miniProgress;
+        private static int Progress;
+        private Sprite[] minis = new Sprite[3];
+        private Sprite[] mains = new Sprite[4];
+        private Color[] miniProgressCol = { Color.White, Color.White, Color.White };
+        private Color[] ProgressCol = { Color.White, Color.White, Color.White };
+        private int[,] selectedPlacement;
+
         private bool PuzzleClear = false;
         private int level = 0;
         private bool clearingLevel = false;
         private bool EndRoutine = false;
-        private bool VerifyState()
+        private int version;
+        private int[] GetRow(int[,] array)
         {
-            int lightState = 0;
-            for (int i = 0; i < 5; i++)
+            int[] result = new int[array.GetLength(0)];
+            for(int i = 0; i<result.Length; i++)
             {
-                lightState = lightOn[i] ? 1 : 0;
-                if (lightState != placements[level, i])
+                result[i] = array[0, i];
+            }
+            return result;
+        }
+        private int[,] CopyFrom(int[,] from)
+        {
+            int[,] result = new int[3, 5];
+            for(int i = 0; i<3; i++)
+            {
+                for(int j = 0; j<5; j++)
                 {
-                    level = 0;
-                    return false;
+                    result[i, j] = from[i, j];
                 }
             }
+            return result;
+
+        }
+        private void CheckForSwitchLevel()
+        {
+            int[] answerState = new int[5];
+            for (int i = 0; i < 5; i++)
+            {
+                answerState[i] = lightOn[i] ? 1 : 0;
+            }
+            bool[] result = new bool[4];
+            for(int i = 0; i<4; i++)
+            {
+                result[i] = true;
+            }
+            for (int j = 0; j < 5; j++)
+            {
+                if (answerState[j] != placements1[0, j])
+                {
+                    result[0] = false;
+                }
+                if (answerState[j] != placements2[0, j])
+                {
+                    result[1] = false;
+                }
+                if (answerState[j] != placements3[0, j])
+                {
+                    result[2] = false;
+                }
+                if (answerState[j] != placements4[0, j])
+                {
+                    result[3] = false;
+                }
+            }
+            for(int i = 0; i<4; i++)
+            {
+                if (result[i])
+                {
+                    version = i + 1;
+                    switch (version)
+                    {
+                        case 1:
+                            selectedPlacement = CopyFrom(placements1);
+                            break;
+
+                        case 2:
+                            selectedPlacement = CopyFrom(placements2);
+                            break;
+
+                        case 3:
+                            selectedPlacement = CopyFrom(placements3);
+                            break;
+
+                        case 4:
+                            selectedPlacement = CopyFrom(placements4);
+                            break;
+                    }
+                    break;
+                }
+            }
+
+        }
+        private bool VerifyState()
+        {
+            CheckForSwitchLevel();
+            bool empty = true;
+            for (int i = 0; i<5; i++)
+            {
+                if (lightOn[i])
+                {
+                    empty = false;
+                    break;
+                }
+            }
+            if (empty)
+            {
+                return false;
+            }
+            for (int i = 0; i < 5; i++)
+            {
+                int lightState = lightOn[i] ? 1 : 0;
+                if (lightState != selectedPlacement[level, i]) //if entry is invalid
+                {
+                    level = 0;
+                    ResetMinis();
+                    return false;
+                }
+
+            }
+            miniProgressCol[level] = Color.LimeGreen;
             level++;
-            if(level == 17)
+            if (level == 3)
+            {
+                ProgressCol[Progress] = Color.LimeGreen;
+                Progress++;
+                level = 0;
+                ResetMinis();
+            }
+            if (Progress == 3)
             {
                 PuzzleClear = true;
             }
             return true;
         }
-       /* private IEnumerator LevelColor(bool state)
+        private void ResetMinis()
         {
-            while (clearingLevel)
+            miniProgress = 0;
+            for (int i = 0; i < 3; i++)
             {
-                yield return null;
+                miniProgressCol[i] = Color.White;
             }
-            Color[] colors = new Color[17];
-            for (int i = 0; i < 17; i++)
-            {
-                colors[i] = levels[i].Color;
-            }
-            if (state)
-            {
-                for (float j = 0; j <= 1; j += 0.2f)
-                {
-                    levels[level].SetColor(Color.Lerp(Color.White, Color.LimeGreen, j));
-                    yield return null;
-                }
-            }
-            else
-            {
-                for (float j = 0; j <= 1; j += 0.2f)
-                {
-                    for (int i = 0; i < 17; i++)
-                    {
-                        levels[i].SetColor(Color.Lerp(colors[i], Color.Red, j));
-                    }
-                    yield return null;
-                }
-                yield return 0.5f;
-                for (float j = 0; j <= 1; j += 0.2f)
-                {
-                    for (int i = 0; i < 17; i++)
-                    {
-                        levels[i].SetColor(Color.Lerp(Color.Red, Color.White, j));
-                    }
-                    yield return null;
-                }
-            }
-        }*/
+        }
         private IEnumerator LevelClear()
         {
             clearingLevel = true;
-            Color endColor = VerifyState() ? Color.LimeGreen : Color.Red;
+            bool state = VerifyState();
+            Color endColor = state ? Color.LimeGreen : Color.Red;
             Color[] _colors = new Color[5];
+            for (int i = 0; i < 3; i++)
+            {
+                minis[i].SetColor(miniProgressCol[i]);
+            }
+            for (int i = 0; i < ProgressCol.Length; i++)
+            {
+                mains[i].SetColor(ProgressCol[i]);
+            }
             for (int j = 0; j < 5; j++)
             {
                 _colors[j] = lights[j].Color;
@@ -126,8 +244,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             for (int i = 0; i < 5; i++)
             {
-                lights[i].Color = _colors[i];
+                lights[i].Color = Color.White;
+                lightOn[i] = false;
+                yield return 0.02f;
             }
+
             clearingLevel = false;
             yield return null;
         }
@@ -146,7 +267,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     for (float i = 0; i < 1; i += 0.5f)
                     {
                         lights[j].SetColor(Color.Lerp(Color.White, endColor, i));
-                        yield return Engine.DeltaTime/2f;
+                        yield return Engine.DeltaTime / 2f;
                     }
                     for (float i = 0; i < 1; i += 0.5f)
                     {
@@ -177,10 +298,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 sprites[i].Position.X = (sprites[i].Width + spacing) * i;
                 lights[i].Position.X = (sprites[i].Width + spacing + 1) * i;
                 lights[i].Position.Y = lightY;
-                lights[i].Position.X -= 6;
+                lights[i].Position.X -= 4;
                 lights[i].Play("idle");
                 sprites[i].Play("idle");
                 list.Add(new Hitbox(sprites[i].Width, sprites[i].Height, sprites[i].Position.X, 0));
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                Add(minis[i] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));
+                minis[i].AddLoop("idle", "levelLight", 1f);
+                minis[i].Position.Y = lights[0].Position.Y - 16;
+                minis[i].Position.X = lights[2].Position.X + 3 + ((minis[i].Width + 1) * i);
+                minis[i].Play("idle");
+
+                Add(mains[i] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));
+                mains[i].AddLoop("idle", "mainLevelLight", 1f);
+                mains[i].Position.Y = minis[0].Position.Y + 5;
+                mains[i].Position.X = minis[0].Position.X - 8 + ((mains[i].Width + 2) * i);
+                mains[i].Play("idle");
             }
             Add(sprites[5] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));
             sprites[5].AddLoop("idle", "buttonSubmit", 0.1f);
@@ -188,31 +323,58 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprites[5].Play("idle");
             list.Add(new Hitbox(sprites[5].Width, sprites[5].Height, sprites[5].Position.X, 0));
             Collider = list;
-/*            int _i = 0;
-            for (int i = 0; i < 17; i++)
-            {
-                if(i == 8)
-                {
-                    _i = 1;
-                }
-                Add(levels[i] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));
-                levels[i].AddLoop("idle", "levelLight", 0.1f);
-                levels[i].Position.X = sprites[5].Position.X + ((levels[i].Width + 1) * _i);
-                levels[i].Position.Y = i > 8 ? -38 : -43;
-                levels[i].Position.X -= i > 8 ? levels[i].Width + 1 : 0;
-                levels[i].Play("idle");
-                _i++;
-            }*/
+            /*            int _i = 0;
+                        for (int i = 0; i < 17; i++)
+                        {
+                            if(i == 8)
+                            {
+                                _i = 1;
+                            }
+                            Add(levels[i] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));
+                            levels[i].AddLoop("idle", "levelLight", 0.1f);
+                            levels[i].Position.X = sprites[5].Position.X + ((levels[i].Width + 1) * _i);
+                            levels[i].Position.Y = i > 8 ? -38 : -43;
+                            levels[i].Position.X -= i > 8 ? levels[i].Width + 1 : 0;
+                            levels[i].Play("idle");
+                            _i++;
+                        }*/
         }
         public BinarySwitch(EntityData data, Vector2 offset)
         : base(data.Position + offset, 5 * 20, 9, false)
         {
+            version = data.Int("version");
             Depth = 1;
             OnDashCollide = OnDashed;
+            selectedPlacement = placements;
+            if (version != 0)
+            {
+                selectedPlacement = new int[3, 5];
+            }
+            else
+            {
+                selectedPlacement = new int[17, 5];
+            }
+            /*switch (version)
+            {
+
+                case 1:
+                    placements1.CopyTo(selectedPlacement, 0);
+                    //selectedPlacement = placements1;
+                    break;
+                case 2:
+                    selectedPlacement = placements2;
+                    break;
+                case 3:
+                    selectedPlacement = placements3;
+                    break;
+                case 4:
+                    selectedPlacement = placements4;
+                    break;
+            }*/
         }
         private void ResetLights()
         {
-            for(int i=0; i<5; i++)
+            for (int i = 0; i < 5; i++)
             {
                 lights[i].SetColor(Color.White);
                 lightOn[i] = false;

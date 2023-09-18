@@ -1,7 +1,6 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Globalization;
 using FMOD.Studio;
 
 // PuzzleIslandHelper.Waveform

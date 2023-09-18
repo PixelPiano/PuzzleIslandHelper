@@ -24,7 +24,8 @@ dashCodeCollectable.placements =
             canRespawn = true,
             flagDebug = true,
             usesBounds = true,
-            visibleBounds = true
+            visibleBounds = true,
+            noCollectable = false
 
         }
     }

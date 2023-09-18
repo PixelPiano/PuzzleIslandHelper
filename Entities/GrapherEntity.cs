@@ -2,81 +2,96 @@ using System;
 using Microsoft.Xna.Framework;
 using Monocle;
 using Celeste.Mod.Entities;
+using static MonoMod.InlineRT.MonoModRule;
 // PuzzleIslandHelper.GrapherEntity
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/GrapherEntity")]
     public class GrapherEntity : Entity
     {
-        public static float timeMod = 0.2f;
-        public static float piMod = 32;
-        public static float step = (float)Math.PI / piMod;
-        public static bool State = false; //overall visibility override
-        public static string ColorGradeName = "PianoBoy/inverted";
-        public static float k = 0;
-        public static float lineWidth = 1f;
-        public static float size = 10f; 
+        public float timeMod = 0.2f;
+        public float piMod = 32;
+        public float step;
+        public bool State = false; //overall visibility override
+        public string ColorGradeName = "PianoBoy/inverted";
+        public float k = 0;
+        public float lineWidth = 1f;
+        public static float size = 10f;
         public static bool sizeMult = true;
-        public static string luaColor = "ffffff";
-        public static float colorAlpha = 1.0f;
-        public static Player player;
-        private static float tempK = k;
-        private static Vector2 st;
-        private static Vector2 end;
-        public static Color color = Calc.HexToColor(luaColor);
-
-        public GrapherEntity(EntityData data, Vector2 offset)
-            : base(data.Position + offset)
+        public string luaColor = "ffffff";
+        public float colorAlpha = 1.0f;
+        public Player player;
+        private float tempK;
+        private Vector2 st;
+        private Vector2 end;
+        public Color color;
+        public static float Alpha;
+        public GrapherEntity(Vector2 position)
+            : this(position,0.2f,"PianoBoy/Inverted",0,0,0.3f,Color.Black)
         {
-            timeMod = data.Float("timeMod",0.2f);
-            ColorGradeName = data.Attr("Colorgrade", "PianoBoy/inverted");
-            lineWidth = data.Float("lineWidth", 1f);
-            size = data.Float("size", 10f);
-            luaColor = data.Attr("color", "ffffff");
-            colorAlpha = data.Float("opacity", 1.0f);
-            color = Calc.HexToColor(luaColor);
+            State = false;
+        }
+        public GrapherEntity(Vector2 position, float timeMod, string colorgrade, float lineWidth, float size, float alpha, Color color)
+        : base(position)
+        {
+            this.timeMod = timeMod;
+            step = (float)Math.PI / piMod;
+            tempK = k;
+            ColorGradeName = colorgrade;
+            this.lineWidth = lineWidth;
+            GrapherEntity.size = size;
+            colorAlpha = alpha;
+            this.color = color;
+        }
+        public GrapherEntity(EntityData data, Vector2 offset)
+            : this(data.Position + offset, data.Float("timeMod", 0.2f),
+                  data.Attr("Colorgrade", "PianoBoy/inverted"),
+                  data.Float("lineWidth", 1f),
+                  data.Float("size", 10f),
+                  data.Float("opacity", 1.0f),
+                  data.HexColor("color"))
+        {
         }
         public override void Update()
         {
+            base.Update();
             if (State)
             {
                 tempK = k + Engine.DeltaTime * timeMod;
             }
-            //k += Engine.DeltaTime * timeMod;
-            base.Update();
         }
         public override void Render()
         {
+            base.Render();
             if (State)
             {
                 k = tempK;
-                Vector2 playerCenter = player.Position - new Vector2(1, (player.Height / 2f)+1);
+                Vector2 playerCenter = player.Position - new Vector2(1, (player.Height / 2f) + 1);
                 Vector2 prevValue = Vector2.Zero;
                 float theta = step;
                 Vector2 currentValue = Vector2.Zero;
                 st = prevValue + playerCenter;
                 end = currentValue + playerCenter;
-                  for (; theta <= (float)Math.PI * 4f; theta += step)
-                    {
-                        yieldPointFromFunction(theta, k, ref currentValue);
-                        st = prevValue + playerCenter;
-                        end = currentValue + playerCenter;
-                        Draw.Line(st, end, Color.White * colorAlpha, lineWidth);
-                        prevValue = currentValue;
-                    }
+                for (; theta <= (float)Math.PI * 4f; theta += step)
+                {
+                    yieldPointFromFunction(theta, k, ref currentValue);
+                    st = prevValue + playerCenter;
+                    end = currentValue + playerCenter;
+                    Draw.Line(st, end, Color.White * colorAlpha * Alpha, lineWidth);
+                    prevValue = currentValue;
+                }
             }
-            base.Render();
         }
         public override void Awake(Scene scene)
         {
-            player = Scene.Tracker.GetEntity<Player>();
             base.Awake(scene);
+            player = Scene.Tracker.GetEntity<Player>();
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
         }
-        private static void yieldPointFromFunction(float theta, float k, ref Vector2 currentValue) 
+        private static void yieldPointFromFunction(float theta, float k, ref Vector2 currentValue)
         {
             if (size <= 10 && sizeMult)
             {

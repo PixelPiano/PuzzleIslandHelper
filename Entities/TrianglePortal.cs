@@ -7,10 +7,12 @@ using System.Collections.Generic;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/TrianglePortal")]
+    [Tracked]
     public class TrianglePortal : Entity
     {
         //for the love of god do not use this entity in your map
         #region BasicVariables
+        private bool First;
         private float rectColorRate = 0;
         private float innerFlashRate = 0;
         private float rate = 0.002f;
@@ -22,15 +24,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool usesFlags = false;
         private string[] lightFlags = new string[3];
         private bool[] lightBools = new bool[3];
-        private bool portalState = false;
+        public bool portalState = false;
         private string flag;
-        private Color hairColor = Color.White;
-        //look im not proud of my crappy variable systems either
 
         private Color firstColor;
         private Color secondColor;
         private Color thirdColor;
-        private Color color = Color.White;
         private Color[] colors = new Color[15];
 
         private Vector2 lightRenderA;
@@ -50,8 +49,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Level l;
         private Player player;
 
-        private Coroutine lightRoutine;
-        private Coroutine rotateRoutine;
+
 
         private static VirtualRenderTarget _PortalMask;
         private static VirtualRenderTarget _PortalObject;
@@ -128,6 +126,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         : base(data.Position + offset)
         {
             Tag = Tags.TransitionUpdate;
+            First = data.Bool("first");
             for (int i = 0; i < 3; i++)
             {
                 lightFlags[i] = data.Attr($"light{i + 1}flag");
@@ -136,7 +135,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             flag = data.Attr("flag");
             usesFlags = data.Bool("usesFlags", false);
             portalState = !usesFlags;
-            color = data.HexColor("color", Color.Green);
             Collider = new Hitbox(data.Width, data.Height);
             Add(new BeforeRenderHook(BeforeRender));
         }
@@ -185,6 +183,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             EasyRendering.DrawToObject(Debug, DrawInside, l);
             EasyRendering.MaskToObject(PortalObject, PortalMask, DrawInside);
 
+        }
+        public override void Render()
+        {
+            base.Render();
+            player = Scene.Tracker.GetEntity<Player>();
+            if (player == null || Scene as Level == null || SceneAs<Level>().Session.GetFlag(flag))
+            {
+                return;
+            }
+            l = Scene as Level;
+            if (portalState)
+            {
+                Draw.SpriteBatch.Draw(ParticleObject, l.Camera.Position, Color.White);
+                Draw.SpriteBatch.Draw(PortalObject, l.Camera.Position, Color.White);
+                float firstThick = 4;
+                float secondThick = 1.5f;
+                angle1 = Calc.Angle(lightRenderA, lightRenderB);
+                angle2 = Calc.Angle(lightRenderB, lightRenderC);
+                angle3 = Calc.Angle(lightRenderC, lightRenderA);
+                Draw.Line(lightRenderA, lightRenderB, firstColor * randomColors[0], firstThick);
+                Draw.Line(lightRenderB, lightRenderC, firstColor * randomColors[1], firstThick);
+                Draw.Line(lightRenderC, lightRenderA, firstColor * randomColors[2], firstThick);
+
+                Draw.Line(lightRenderA, lightRenderB, secondColor * randomColors[3], secondThick);
+                Draw.Line(lightRenderB, lightRenderC, secondColor * randomColors[4], secondThick);
+                Draw.Line(lightRenderC, lightRenderA, secondColor * randomColors[5], secondThick);
+
+                Draw.Line(lightRenderA, lightRenderB, thirdColor * randomColors[6], 1);
+                Draw.Line(lightRenderB, lightRenderC, thirdColor * randomColors[7], 1);
+                Draw.Line(lightRenderC, lightRenderA, thirdColor * randomColors[8], 1);
+            }
         }
         public override void Added(Scene scene)
         {
@@ -268,10 +297,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                Add(lightRoutine = new Coroutine(fadeLight(), false));
-                Add(rotateRoutine = new Coroutine(RotationLerp(), false));
+                Add(new Coroutine(fadeLight(), false));
+                Add(new Coroutine(RotationLerp(), false));
             }
-            //for when you need slightly similar logic in similar things but loops won't work
+            //for when you need slightly similar logic in similar things but loops won't work 
         }
         public override void Awake(Scene scene)
         {
@@ -284,37 +313,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 block.forceChange = false;
             }
             scene.Add(system = new ParticleSystem(Depth + 1, 1000));
-        }
-        public override void Render()
-        {
-            base.Render();
-            player = Scene.Tracker.GetEntity<Player>();
-            if (player == null || Scene as Level == null || SceneAs<Level>().Session.GetFlag(flag))
-            {
-                return;
-            }
-            l = Scene as Level;
-            if (portalState)
-            {
-                Draw.SpriteBatch.Draw(ParticleObject, l.Camera.Position, Color.White);
-                Draw.SpriteBatch.Draw(PortalObject, l.Camera.Position, Color.White);
-                float firstThick = 4;
-                float secondThick = 1.5f;
-                angle1 = Calc.Angle(lightRenderA, lightRenderB);
-                angle2 = Calc.Angle(lightRenderB, lightRenderC);
-                angle3 = Calc.Angle(lightRenderC, lightRenderA);
-                Draw.Line(lightRenderA, lightRenderB, firstColor * randomColors[0], firstThick);
-                Draw.Line(lightRenderB, lightRenderC, firstColor * randomColors[1], firstThick);
-                Draw.Line(lightRenderC, lightRenderA, firstColor * randomColors[2], firstThick);
-
-                Draw.Line(lightRenderA, lightRenderB, secondColor * randomColors[3], secondThick);
-                Draw.Line(lightRenderB, lightRenderC, secondColor * randomColors[4], secondThick);
-                Draw.Line(lightRenderC, lightRenderA, secondColor * randomColors[5], secondThick);
-
-                Draw.Line(lightRenderA, lightRenderB, thirdColor * randomColors[6], 1);
-                Draw.Line(lightRenderB, lightRenderC, thirdColor * randomColors[7], 1);
-                Draw.Line(lightRenderC, lightRenderA, thirdColor * randomColors[8], 1);
-            }
         }
         public override void Update()
         {
@@ -340,7 +338,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (CollideCheck(player) && !inEvent && !EventComplete && portalState)
             {
                 SceneAs<Level>().Session.SetFlag("TimerEvent");
-                Add(new Coroutine(EndingEvent(), true));
+                if (First)
+                {
+                    if (!SceneAs<Level>().Session.GetFlag("StartingPortalEnd"))
+                    {
+                        Add(new Coroutine(StartingEvent(), true));
+                    }
+                }
+                else
+                {
+                    Add(new Coroutine(EndingEvent(), true));
+                }
             }
             for (int i = 1; i < innerTriangle.Length + 1; i++)
             {
@@ -438,6 +446,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             SceneAs<Level>().Session.SetFlag(flag);
             SceneAs<Level>().Session.SetFlag("BigGlitching",false);
             SceneAs<Level>().Session.SetFlag("GlitchCutsceneEnd");
+            PianoModule.SaveData.Escaped = true;
             yield return null;
         }
         private IEnumerator fadeLight()
@@ -477,7 +486,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
             }
         }
-        private IEnumerator EndingEvent()
+        private IEnumerator StartingEvent()
         {
             if (SceneAs<Level>().Session.GetFlag(flag))
             {
@@ -523,6 +532,58 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
             }
             player.Visible = false;
+            yield return 2f;
+
+            SceneAs<Level>().Session.SetFlag("StartingPortalEnd");
+            inEvent = false;
+            EventComplete = true;
+        }
+        private IEnumerator EndingEvent()
+        {
+            if (SceneAs<Level>().Session.GetFlag(flag))
+            {
+                yield break;
+            }
+            //maddie get out of there oh no she cant hear us she's eating binary too loudly
+            inEvent = true;
+            player = Scene.Tracker.GetEntity<Player>();
+            Vector2 _position = player.Position;
+            player.DummyGravity = true;
+            for (float i = 0; i < 1; i += 0.01f)
+            {
+                player.Speed.Y = 5;
+                player.MoveToX(Calc.LerpClamp(_position.X, Center.X, i));
+                player.MoveToY(Calc.LerpClamp(_position.Y, Center.Y + 16, i));
+                yield return null;
+            }
+            Add(new Coroutine(HoldPosition(), true));
+            Add(new Coroutine(RotateCutscene(), true));
+            yield return 1f;
+            SceneAs<Level>().Session.SetFlag("startWaiting");
+            while (!scaleStart)
+            {
+                yield return null;
+            }
+
+            for (float i = 0; i < 1; i += 0.08f)
+            {
+                player.Sprite.Scale.X = Calc.LerpClamp(1, 2f, i);
+                yield return null;
+            }
+            for (float i = 0; i < 1; i += 0.1f)
+            {
+
+                player.Sprite.Scale.X = Calc.LerpClamp(2, 0, i);
+                player.Sprite.Scale.Y = Calc.LerpClamp(1, 0, i);
+                yield return null;
+            }
+            for (int i = 0; i < 16; i++)
+            {
+                PoofParticles();
+                player.Visible = false;
+                DigitalEffect.ForceStop = true;
+                yield return null;
+            }
             yield return 1f;
 
             Add(new Coroutine(GlitchCutscene(), true));

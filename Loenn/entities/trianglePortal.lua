@@ -16,7 +16,9 @@ trianglePortal.placements = {
         light1flag="portalLight1",
         light2flag="portalLight2",
         light3flag="portalLight3",
-        usesFlags = false
+        usesFlags = false,
+        room="1",
+        first = true
     }
 }
 

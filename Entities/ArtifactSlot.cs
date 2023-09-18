@@ -7,7 +7,8 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/ArtifactSlot")]
-    public class ArtifactSlot : Entity
+    [Tracked]
+    public class ArtifactSlot : Actor
     {
 
         private int mode;
@@ -89,7 +90,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 particlesBG.Depth = -10500;
                 for (int i = 0; i < 120; i += 30)
                 {
-                    particlesBG.Emit(Sparks, 2, Center + new Vector2(9, 16), Vector2.One * 7f, MathHelper.Pi / 2);
+                    particlesBG.Emit(Sparks, 2, Center , Vector2.One * 7f, MathHelper.Pi / 2);
                 }
             }
             else
@@ -97,7 +98,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 particlesBG.Depth = Depth + 1;
                 for (int i = 0; i < 360; i += 30)
                 {
-                    particlesBG.Emit(Download, 1, Center + new Vector2(9, 9), Vector2.One * 2f, i * (MathHelper.Pi / 180f));
+                    particlesBG.Emit(Download, 1, Center - Vector2.UnitY * 9, Vector2.One * 2f, i * (MathHelper.Pi / 180f));
                 }
             }
         
@@ -115,6 +116,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprite.AddLoop("dead", "artifactHolderDead", 0.1f);
             start = true;
             Position += new Vector2(0, 1);
+            Collider = new Hitbox(sprite.Width, sprite.Height);
+            //Add(new StaticMover());
         }
         public IEnumerator toSlot()
         {
@@ -304,7 +307,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             SceneAs<Level>().Session.SetFlag("digiRumble", true);
             //rumble and shake
             SceneAs<Level>().Session.SetFlag("cutsceneProceed", true);
-            if (mode == 2)
+            if (mode == 99)
             {
                 while (SceneAs<Level>().Session.GetFlag("inSlot2") != true)
                 {
@@ -401,6 +404,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void Interact(Player player)
         {
+            PianoModule.SaveData.HasArtifact = true;
             artifact.Position = player.Position;
             Coroutine coroutine = new(toSlot(), true)
             {

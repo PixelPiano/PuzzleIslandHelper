@@ -1,3 +1,4 @@
+using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -18,7 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static float BarHeight = 16;
         private int timer = 0;
         public static bool DoneLoading = false;
-        public static bool HasArtifact = false;
+        public static bool HasArtifact;
         private Sprite Warning;
         public static bool Invalid = false;
         private int InvalidCount = 0;
@@ -65,6 +66,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            HasArtifact = PianoModule.SaveData.HasArtifact;
             if (startTimer2)
             {
                 timer2 -= Engine.DeltaTime;

@@ -11,8 +11,11 @@ stoolPickupBarrier.placements =
         name = "Stool Pickup Barrier",
         data =
         {
+            lineThickness = 1,
+            affectIcons = false,
             width = 16,
             height = 16,
+            moveObjectsToEdge = false
         }
     }
 

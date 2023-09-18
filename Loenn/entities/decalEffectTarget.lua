@@ -2,7 +2,7 @@ local drawableSprite = require("structs.drawable_sprite")
 
 local decalEffectTarget = {}
 
-decalEffectTarget.justification = { 0, 0 }
+--decalEffectTarget.justification = { 0, 0 }
 
 decalEffectTarget.name = "PuzzleIslandHelper/DecalEffectTarget"
 function decalEffectTarget.depth(room, entity)
@@ -15,6 +15,8 @@ decalEffectTarget.placements = {
         decalPath = "1-forsakencity/flag",
         depth = 1,
         groupId = "decalEffectGroup_1",
+        scaleX = 1,
+        scaleY = 1
     }
 }
 function decalEffectTarget.texture(room, entity)

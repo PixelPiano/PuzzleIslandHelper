@@ -1,7 +1,6 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -19,46 +18,67 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             // Fonts.paths is private static and never instantiated besides in the static constructor, so we only need to get the reference to it once.
             fontPaths = (Dictionary<string, List<string>>)typeof(Fonts).GetField("paths", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
         }
-        
+
         private Alarm alarm;
         private string text;
         private Player player;
         private static float limit = 120f;
         private static float remaining;
+        private static bool isReturning;
         private float staticTime = 0;
         private Level l;
         private bool RoutineRan = false;
         private bool Randomizing = false;
         private Color color = Color.White;
         private const string fontName = "alarm clock";
-
-        public EscapeTimer(EntityData data, Vector2 offset)
+        private EntityID id;
+        public EscapeTimer(EntityData data, Vector2 offset, EntityID id)
             : base(data.Position + offset)
         {
-            //Tag = Tags.TransitionUpdate;
+            this.id = id;
             Tag |= TagsExt.SubHUD;
             Tag |= Tags.Global;
             Depth = -1000001;
-            
+            if (!isReturning)
+            {
+                remaining = data.Float("startFrom", 120f);
+                limit = remaining;
+            }
         }
-        public override void Added(Scene scene)
+        private void SceneCheck(Scene scene)
         {
-            base.Added(scene);
+            bool flag = (scene as Level).Session.GetFlag("cameFromDigi");
+            bool flag2 = (scene as Level).Session.Level.Contains("digiEscape");
+            bool flag3 = PianoModule.SaveData.Escaped;
+            bool flag4 = SaveData.Instance.DebugMode;
+
+            if ((!flag && !flag4) || !flag2 || (flag3 && !flag4))
+            {
+                Tag -= Tags.Global;
+                RemoveSelf();
+            }
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            (scene as Level).Session.DoNotLoad.Add(id);
             RoutineRan = false;
             SceneAs<Level>().Session.SetFlag("BigGlitching", false);
             alarm = Alarm.Set(this, remaining, delegate
             {
                 if (!SceneAs<Level>().Session.GetFlag("TimerEvent"))
                 {
-                    if (player != null)
-                    {
-                        player.Die(Vector2.One);
-                    }
+                    player?.Die(Vector2.One);
                 }
                 alarm.RemoveSelf();
             });
             SetText();
             ensureCustomFontIsLoaded();
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            SceneCheck(scene);
         }
         public static void Load()
         {
@@ -77,20 +97,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            
             player = Scene.Tracker.GetEntity<Player>();
             if (player == null)
             {
-                #region timer debugging
-                //remaining = limit;
-
-                if (!RoutineRan)
-                {
-                    Add(new Coroutine(TimeRoutine(false), true));
-                }
-                #endregion
                 return;
             }
-
+            //isReturning = SceneAs<Level>().Session.GetFlag("leftFirstRoom");
             if (!SceneAs<Level>().Session.GetFlag("TimerEvent"))
             {
                 SetText();
@@ -107,7 +120,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 RemoveSelf();
             }
         }
-       
+
         private IEnumerator TimeRoutine(bool ending)
         {
             RoutineRan = true;
@@ -156,7 +169,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Draw.Rect(-1, 0, 460, 190, Color.Red);
                 Draw.Rect(-1, 0, 450, 180, Color.Black);
-                Fonts.Get(fontName).Draw(180f, text, new Vector2(30, 25), Vector2.Zero, Vector2.One * 1f, color*0.5f);
+                Fonts.Get(fontName).Draw(180f, text, new Vector2(30, 25), Vector2.Zero, Vector2.One * 1f, color * 0.5f);
                 Fonts.Get(fontName).Draw(180f, text, new Vector2(40, 20), Vector2.Zero, Vector2.One * 1f, color);
             }
             else
@@ -171,7 +184,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         X = Calc.Random.Range(0, l.Camera.Right - text.Length * 10);
                         Y = Calc.Random.Range(0, l.Camera.Bottom);
                         rand = Calc.Random.Range(1f, 4f);
-                        Fonts.Get(fontName).Draw(180f, text, new Vector2(X-10, Y+25), Vector2.Zero, Vector2.One * rand, color * 0.5f);
+                        Fonts.Get(fontName).Draw(180f, text, new Vector2(X - 10, Y + 25), Vector2.Zero, Vector2.One * rand, color * 0.5f);
                         Fonts.Get(fontName).Draw(180f, text, new Vector2(X, Y), Vector2.Zero, Vector2.One * rand, Color.White);
                     }
                 }

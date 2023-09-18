@@ -38,6 +38,7 @@ movingJelly.placements = {
             color = "00FF00",
             dragPlayerAlong = false,
             playerCanInfluence = false,
+            disableAudio = false
         }
     }
 }

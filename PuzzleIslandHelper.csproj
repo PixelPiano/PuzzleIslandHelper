@@ -20,6 +20,11 @@
         <Reference Private="false" />
     </ItemDefinitionGroup>
     <ItemGroup>
+      <Compile Remove="Loenn\NewFolder\**" />
+      <EmbeddedResource Remove="Loenn\NewFolder\**" />
+      <None Remove="Loenn\NewFolder\**" />
+    </ItemGroup>
+    <ItemGroup>
       <Compile Remove="Entities\ffffCassetteBlock.cs" />
     </ItemGroup>
 
@@ -32,19 +37,38 @@
             <Private>false</Private>
         </Reference>
         <Reference Include="Celeste">
-          <HintPath>..\..\Celeste.exe</HintPath>
+          <HintPath>..\..\legacyRef\Celeste.exe</HintPath>
+        </Reference>
+        <Reference Include="CherryHelper">
+          <HintPath>libs\CherryHelper.dll</HintPath>
         </Reference>
         <Reference Include="CommunalHelper">
           <HintPath>libs\CommunalHelper.dll</HintPath>
         </Reference>
-        <Reference Include="FNA">
-          <HintPath>libs\FNA.dll</HintPath>
+        <Reference Include="ExtendedVariantMode">
+          <HintPath>libs\ExtendedVariantMode.dll</HintPath>
+        </Reference>
+        <Reference Include="FancyTileEntities">
+          <HintPath>libs\FancyTileEntities.dll</HintPath>
+        </Reference>
+        <Reference Include="FrostTempleHelper">
+          <HintPath>libs\FrostTempleHelper.dll</HintPath>
         </Reference>
         <Reference Include="MonoMod">
           <HintPath>..\..\MonoMod.exe</HintPath>
         </Reference>
+        <Reference Include="PandorasBox">
+          <HintPath>libs\PandorasBox.dll</HintPath>
+        </Reference>
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
+        <Reference Include="PresentationCore" />
+        <Reference Include="toybox">
+          <HintPath>libs\toybox.dll</HintPath>
+        </Reference>
+        <Reference Include="VivHelper">
+          <HintPath>libs\VivHelper.dll</HintPath>
+        </Reference>
     </ItemGroup>
-
     <Choose>
         <When Condition="'$(CelesteType)' == 'FNA'">
             <ItemGroup>

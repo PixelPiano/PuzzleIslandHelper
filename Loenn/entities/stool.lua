@@ -12,6 +12,8 @@ stool.placements =
         name = "Stool",
         data = 
         {
+            flag = "",
+            inverted = false
         }
     }
 }

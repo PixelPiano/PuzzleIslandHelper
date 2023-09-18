@@ -21,28 +21,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 "ram",
                 "pico",
                 "sus",
-                "info"
+                "info",
+                "destruct",
+                "memory"
             };
         public static readonly List<string> TextDictionary = new List<string>
             {
                 "text",
                 "info",
                 "invalid",
-                "unknown"
+                "unknown",
             };
         public static readonly List<string> StaticText = new List<string>
             {
                 "invalid",
                 "unknown",
                 "ram",
-                "access"
+                "access",
+                "destruct"
             };
         public bool Open = false;
         private Color color = Color.White;
-        public ComputerIcon(string name, string textID, [Optional] string lowerText)
+        public ComputerIcon(string name, string textID, [Optional] string lowerText, bool destruct = false)
         {
             Depth = Interface.BaseDepth - 1;
-            Name = dictionary.Contains(name) ? name : "invalid";
+            if (!destruct)
+            {
+                Name = dictionary.Contains(name) ? name : "invalid";
+            }
+            else
+            {
+                Name = "destruct";
+            }
             Text = SetID(textID);
             if (!string.IsNullOrEmpty(lowerText))
             {
@@ -52,6 +62,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite.AddLoop("idle", Name, 0.1f);
             Sprite.SetColor(color);
             Collider = new Hitbox(Sprite.Width, Sprite.Height);
+        }
+        public ComputerIcon(string textId)
+        {
+
         }
         public bool IsDynamicText()
         {

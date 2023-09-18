@@ -1,13 +1,10 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
-using System.Xml.Linq;
+
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

@@ -121,8 +121,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            Player player = Scene.Tracker.GetEntity<Player>();
-            if (Scene is not Level l || player == null)
+            if (Scene is not Level l)
             {
                 return;
             }
@@ -211,6 +210,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             Level scene = Scene as Level;
             Player player = Scene.Tracker.GetEntity<Player>();
+            if(player is null)
+            {
+                return;
+            }
             playerNear = ((player.Position.X < Position.X + bubble.Width + activateDistance.X
             && player.Position.X > Position.X - activateDistance.X) || activateDistance.X < 0)
             && ((player.Position.Y < Position.Y + bubble.Height + activateDistance.Y

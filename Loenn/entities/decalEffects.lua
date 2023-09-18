@@ -24,6 +24,7 @@ decalEffects.placements = {
         depth = 1,
         gfxEffect = "None",
         usesAudio = true,
+        addLight = true
     }
 }
 function decalEffects.texture(room, entity)

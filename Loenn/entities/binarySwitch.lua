@@ -11,7 +11,10 @@ binarySwitch.placements =
 {
     {
         name = "Binary Switch",
-        data = {}
+        data = {
+        binaryPuzzle = false,
+        version = 1
+        }
     }
 }
 

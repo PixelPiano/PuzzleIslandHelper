@@ -1,6 +1,6 @@
 - Name: PuzzleIslandHelper
-  Version: 0.1.0
+  Version: 0.1.7
   DLL: bin/PuzzleIslandHelper.dll
   Dependencies:
     - Name: Everest
-      Version: 1.2781.0
+      Version: 1.4030.0

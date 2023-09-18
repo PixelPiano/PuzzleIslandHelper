@@ -52,27 +52,49 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             ReferenceStencil = 1,
             DepthBufferEnable = false,
         };
-        public PuzzleSpotlight(EntityData data, Vector2 offset)
-          : base(data.Position + offset)
+        public PuzzleSpotlight(Vector2 position)
+         : this(position,false,"PianoBoy/Inverted",0,"spotlightFlag",0,0,0,0,0,0,false,false)
         {
-            flag = data.Attr("flag","spotlightFlag");
-            second = data.Bool("secondDesign", false);
-            ColorGradeName = data.Attr("Colorgrade", "PianoBoy/inverted");
-            State = data.Bool("startingState");
-            Radius = data.Float("centerRadius", 30);
+        }
+        public PuzzleSpotlight(Vector2 position, bool state, string colorGradeName, float radius, string flag, float beamLength, float beamWidth, float beamCount, float rotateRate, float gapLength, float offsetRate, bool hasGaps, bool offset, bool secondDesign = false)
+        : base(position)
+        {
+            State = state;
+            ColorGradeName = colorGradeName;
+            Radius = radius;
+            this.flag = flag;
+            BeamLength = beamLength;
+            BeamWidth = beamWidth;
+            BeamCount = beamCount;
+            RotateRate = rotateRate;
+            GapLength = gapLength;
+            this.offsetRate = offsetRate;
+            this.hasGaps = hasGaps;
+            this.offset = offset;
+            second = secondDesign;
             _Radius = Radius;
-            BeamLength = data.Float("beamLength", 320);
-            BeamWidth = data.Float("beamWidth", 5);
-            BeamCount = data.Int("beams", 4);
-            RotateRate = data.Float("rotationRate", 0);
-            GapLength = data.Float("gapLength", 0);
-            offsetRate = data.Float("offsetRate", 0);
-            hasGaps = data.Bool("segmentedBeams", true);
-            this.offset = data.Bool("hasOffset", false);
             if (second)
             {
                 ColorGradeName = "PuzzleIslandHelper/test";
             }
+        }
+
+        public PuzzleSpotlight(EntityData data, Vector2 offset)
+          : this(data.Position + offset,
+                data.Bool("startingState"),
+                data.Attr("Colorgrade"),
+                data.Float("centerRadius", 30),
+                data.Attr("flag", "spotlightFlag"),
+                data.Float("beamLength", 320),
+                data.Float("beamWidth", 5),
+                data.Int("beams", 4),
+                data.Float("rotationRate", 0),
+                data.Float("gapLength", 0),
+                data.Float("offsetRate", 0),
+                data.Bool("segmentedBeams", true),
+                data.Bool("hasOffset", false),
+                data.Bool("secondDesign", false))
+        {
         }
         public override void Update()
         {
@@ -170,12 +192,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             // Start rendering to our stencil
             Engine.Graphics.GraphicsDevice.SetRenderTarget(stencil);
-            Engine.Graphics.GraphicsDevice.Clear(
-                ClearOptions.Target | ClearOptions.Stencil,
-                Color.Transparent,
-                0, 
-                0
-            );
+            Engine.Graphics.GraphicsDevice.Clear( ClearOptions.Target | ClearOptions.Stencil ,Color.Transparent, 0, 0);
 
             // Start the stencil spritebatch
             Draw.SpriteBatch.Begin(

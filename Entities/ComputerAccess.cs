@@ -92,6 +92,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            if((scene as Level).Session.GetFlag("artifactObtained"))
+            {
+                RemoveSelf();
+            }
             moveCamera = false;
             canZoom = false;
             beforeZoomSequence = false;
@@ -108,6 +112,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
 
             base.Update();
+            if(Scene as Level is not null)
+            {
+                if (SceneAs<Level>().Session.GetFlag("obtainedArtifact"))
+                {
+                    return;
+                }
+            }
+            else
+            {
+                return;
+            }
+
+
             //Visible = false;
             Coroutine coroutine = new Coroutine(toPlayer(), true);
             player = Scene.Tracker.GetEntity<Player>();

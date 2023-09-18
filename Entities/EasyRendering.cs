@@ -11,6 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
 {
     public class EasyRendering : Entity
     {
+
         //All methods assume Draw.SpriteBatch.End() was called beforehand
         public static readonly BlendState AlphaMaskBlendState = new()
         {
@@ -34,9 +35,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             timer += Engine.DeltaTime;
             seed = Calc.Random.NextFloat();
         }
+        public static bool TryBegin()
+        {
+            try
+            {
+                Draw.SpriteBatch.Begin();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        public static bool TryEnd()
+        {
+            try
+            {
+                Draw.SpriteBatch.End();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
         public static VirtualRenderTarget ObjectToObject(VirtualRenderTarget output, VirtualRenderTarget drawing, Level l)
         {
-            Draw.SpriteBatch.End();
             Engine.Graphics.GraphicsDevice.SetRenderTarget(output);
             Draw.SpriteBatch.Begin();
             Draw.SpriteBatch.Draw(drawing, Vector2.Zero, Color.White);
@@ -93,11 +117,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             Draw.SpriteBatch.End();
             return RenderTarget;
         }
-        public static VirtualRenderTarget SetRenderMask(VirtualRenderTarget RenderTarget, Action drawing, Level l)
+        public static VirtualRenderTarget SetRenderMask(VirtualRenderTarget RenderTarget, Action drawing, Level l, bool useIdentity = false)
         {
             Engine.Graphics.GraphicsDevice.SetRenderTarget(RenderTarget);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, l.Camera.Matrix);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, useIdentity ? Matrix.Identity : l.Camera.Matrix);
             drawing.Invoke();
             Draw.SpriteBatch.End();
             return RenderTarget;
@@ -151,10 +175,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
         /// <summary>  
         /// Draws whatever is in the draw method to the obj target
         /// </summary>  
-        public static VirtualRenderTarget DrawToObject(VirtualRenderTarget obj, Action drawing, Level l)
+        public static VirtualRenderTarget DrawToObject(VirtualRenderTarget obj, Action drawing, Level l, bool clear = false, bool useIdentity = false)
         {
             Engine.Graphics.GraphicsDevice.SetRenderTarget(obj);
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, l.Camera.Matrix);
+            if (clear)
+            {
+                Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+            }
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, useIdentity ? Matrix.Identity : l.Camera.Matrix);
+            drawing.Invoke();
+            Draw.SpriteBatch.End();
+            return obj;
+        }
+        public static VirtualRenderTarget DrawToObject(VirtualRenderTarget obj, Action drawing, Level l, BlendState blendState, bool clear = false, bool useIdentity = false)
+        {
+            BlendState blend = blendState == null ? BlendState.AlphaBlend : blendState;
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(obj);
+            if (clear)
+            {
+                Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+            }
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, useIdentity ? Matrix.Identity : l.Camera.Matrix);
             drawing.Invoke();
             Draw.SpriteBatch.End();
             return obj;

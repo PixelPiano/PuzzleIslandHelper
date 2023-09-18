@@ -41,7 +41,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                       VirtualContent.CreateRenderTarget("DigitalGrid", 320, 180);
 
         public DigitalGrid(float lineWidth, float lineHeight, float ratex, float ratey, int xSpacing, int ySpacing,
-                            String color, bool movingEnabled, float diagY, float diagX,
+                            string color, bool movingEnabled, float diagY, float diagX,
                             float opacity, bool verticalLines, bool horizontalLines, bool blur,bool glitch)
         {
             this.color = Calc.HexToColor(color) * opacity;
@@ -77,7 +77,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             currentY = 0;
             currentX = 0;
         }
-
+        
         public override void Update(Scene scene)
         {
             base.Update(scene);

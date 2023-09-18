@@ -1,3 +1,4 @@
+using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
@@ -9,11 +10,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class TextWindow : Entity
     {
         #region Variables
-        private bool SwitchAccess = false;
+        private bool SwitchAccess
+        {
+            get
+            {
+                return CurrentID.ToUpper() == "ACCESS" || CurrentID.ToUpper() == "ACCESSDENIED";
+            }
+        }
         private static readonly Dictionary<string, List<string>> fontPaths;
+        private FancyText.Text activeText;
+        private static string fontName = "alarm clock";
         public static bool Drawing = false;
         public static string CurrentID = "";
-        private static string fontName = "alarm clock";
         static TextWindow()
         {
             // Fonts.paths is private static and never instantiated besides in the static constructor, so we only need to get the reference to it once.
@@ -21,7 +29,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
 
         private Level l;
-        private FancyText.Text activeText;
         public List<FancyText.Node> Nodes => activeText.Nodes;
 
         public static Vector2 TextPosition;
@@ -42,9 +49,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             l = Scene as Level;
 
-            SwitchAccess = CurrentID.ToUpper() == "ACCESS" || CurrentID.ToUpper() == "ACCESSDENIED";
-            CurrentID = SwitchAccess ? !LoadSequence.HasArtifact && Interface.Loading ? "ACCESSDENIED" : "ACCESS" : CurrentID;
-
+            //change text on special cases
+            if (SwitchAccess)
+            {
+                CurrentID = !LoadSequence.HasArtifact && Interface.Loading ? "ACCESSDENIED" : "ACCESS";
+            }
+            //if the text is being drawn
             if (Drawing)
             {
                 if (SwitchAccess && LoadSequence.HasArtifact && Interface.Loading)

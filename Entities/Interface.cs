@@ -1,13 +1,11 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
+using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel.Design.Serialization;
-using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -18,6 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         #region Variables
         private string roomName;
+        private TransitionManager chooser;
         private float timer = 0;
         public static bool NightMode = true;
         public static bool LeftClicked
@@ -51,6 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Entity Power;
         private Stool stool;
         private LoadSequence loadSequence;
+        private MemoryWindowContent memContent;
         private readonly ComputerIcon[] Icons;
         private Window window;
         private Level l;
@@ -58,6 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Sprite Machine;
         private Entity MachineEntity;
         private Coroutine accessRoutine;
+        private Coroutine destructRoutine;
         public static bool MouseOnBounds = false;
 
         public static Vector2 MousePosition
@@ -93,6 +94,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private static bool Closing = false;
         private bool AccessEnding = false;
+        private bool DestructEnding = false;
         private int DesktopInstance = 0;
         private bool GlitchPlayer = false;
         private float MaxGlitchRange = 0.2f;
@@ -113,21 +115,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            player = Scene.Tracker.GetEntity<Player>();
-            if (Scene as Level is null || player is null || RemovePlayer || !GlitchPlayer)
-            {
-                return;
-            }
             Draw.SpriteBatch.Draw(PlayerObject, l.Camera.Position, Color.White);
         }
         private void BeforeRender()
         {
-            player = Scene.Tracker.GetEntity<Player>();
-            if (Scene as Level is null || player is null || RemovePlayer)
+            if (!GlitchPlayer || player is null)
             {
                 return;
             }
-            l = Scene as Level;
             EasyRendering.SetRenderMask(PlayerMask, player, l);
             EasyRendering.DrawToObject(PlayerObject, Drawing, l);
             EasyRendering.MaskToObject(PlayerObject, PlayerMask);
@@ -135,23 +130,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void Drawing()
         {
-            //player.Render();
+            player.Render();
             Draw.Rect(l.Bounds, PlayerTransitionColor);
         }
         private IEnumerator Transition()
         {
-
             //player effects
-            yield return 0.5f;
-            GlitchPlayer = true;
-            yield return 2f;
-            RemovePlayer = true;
-            yield return 1f;
-
-            //teleport to room
-            TeleportTo(Scene, player, roomName, Player.IntroTypes.None);
+            SceneAs<Level>().Add(new TransitionManager(TransitionManager.Type.BeamMeUp, roomName));
+            TransitionManager.Finished = false;
+            while (!TransitionManager.Finished)
+            {
+                yield return null;
+            }
             yield return null;
-
         }
         public Interface(EntityData data, Vector2 offset)
             : base(data.Position + offset)
@@ -167,21 +158,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     break;
 
                 case 1:
-                    iconNames = new string[] { "text", "text","text", "info", "access" };
-                    textIDs = new string[] { "TEXT1", "TEXT2","TEXT4", "INFO1", "ACCESS" };
-                    iconText = new string[] { "NT1", "NT2","NT4", "NI1", "NACCESS" };
+                    iconNames = new string[] { "text", "text", "text", "info", "access" };
+                    textIDs = new string[] { "TEXT1", "TEXT2", "TEXT4", "INFO1", "ACCESS" };
+                    iconText = new string[] { "NT1", "NT2", "NT4", "NI1", "NACCESS" };
                     break;
 
                 case 2:
-                    iconNames = new string[] { "unknown", "unknown", "text", "ram", "access" };
-                    textIDs = new string[] { "TEXT3", "ACCESS" };
-                    iconText = new string[] { "NU1", "NU2", "NT3", "NRAM", "NACCESS" };
+                    iconNames = new string[] { "unknown", "unknown", "text", "ram", "text", "access" };
+                    textIDs = new string[] { "TEXT3", "SCHOOLNOTEHINT", "ACCESS" };
+                    iconText = new string[] { "NU1", "NU2", "NT3", "NRAM", "NSNH", "NACCESS" };
                     break;
 
                 case 3:
                     iconNames = new string[] { "unknown", "text", "access" };
                     textIDs = new string[] { "TEXT4", "ACCESS" };
                     iconText = new string[] { "NU3", "NT4", "NACCESS" };
+                    break;
+                case 4:
+                    iconNames = new string[] { "destruct" };
+                    textIDs = new string[] { "DESTRUCT" };
+                    iconText = new string[] { "NDESTRUCT" };
+                    break;
+                case 5:
+                    iconNames = new string[] { "memory" };
+                    textIDs = new string[] { };
+                    iconText = new string[] { "NMEMORY" };
                     break;
             }
             Machine = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/");
@@ -195,6 +196,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            l = scene as Level;
             scene.Add(MachineEntity = new Entity(Position));
             scene.Add(NightDay = new Entity());
             NightDay.Add(SunMoon = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/icons/"));
@@ -231,8 +233,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             cursorSprite.Visible = false;
             #endregion
 
+
+
+            scene.Add(window = new Window(Position));
+            scene.Add(loadSequence = new LoadSequence(window.Depth - 1, window.Position));
+            scene.Add(memContent = new MemoryWindowContent(window.Depth - 1, window.Position));
+            Depth = BaseDepth;
+            Power.Depth = BaseDepth - 1;
+            NightDay.Depth = Power.Depth;
+            Monitor.Depth = BaseDepth;
+            cursor.Depth = BaseDepth - 6;
+            Border.Depth = BaseDepth - 7;
+            Machine.Play("idle");
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            player = Scene.Tracker.GetEntity<Player>();
             #region Icon Setup
             int textIndex = 0;
+            if ((scene as Level).Tracker.GetEntities<Interface>().Count > 1)
+            {
+                RemoveSelf();
+            }
+            if (iconNames.Length > Icons.Length)
+            {
+                RemoveSelf();
+            }
             for (int i = 0; i < Icons.Length; i++)
             {
                 bool increment = false;
@@ -254,16 +281,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             #endregion
-
-            scene.Add(window = new Window(Position));
-            scene.Add(loadSequence = new LoadSequence(window.Depth - 1, window.Position));
-            Depth = BaseDepth;
-            Power.Depth = BaseDepth - 1;
-            NightDay.Depth = Power.Depth;
-            Monitor.Depth = BaseDepth;
-            cursor.Depth = BaseDepth - 6;
-            Border.Depth = BaseDepth - 7;
-            Machine.Play("idle");
         }
         public override void Update()
         {
@@ -278,16 +295,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Collider = new Hitbox(8, 10, Monitor.Position.X - Position.X + MousePosition.X / 6, Monitor.Position.Y - Position.Y + MousePosition.Y / 6);
 
-            #region Scene and Player check
-            player = Scene.Tracker.GetEntity<Player>();
-            if (Scene as Level == null || player == null)
+            #region Player check
+            if (player == null)
             {
                 return;
             }
             MachineEntity.Depth = player.Depth + 2;
-            l = Scene as Level;
-            player.Visible = !GlitchPlayer;
-            player.Light.Visible = true;
+            //player.Visible = !GlitchPlayer;
+            //player.Light.Visible = true;
             #endregion
             if (GlitchPlayer)
             {
@@ -325,12 +340,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             //start a specified sequence
                             switch (CurrentIconName)
                             {
-                                case "pico":
-                                    //Pico.StartPico or whatever you do that starts up pico
-                                    RemoveWindow(button);
-                                    break;
                                 case "access":
-                                    //Don't change position of next two lines trust me
                                     loadSequence.ButtonPressed = true;
                                     Loading = true;
                                     if (!AccessEnding)
@@ -415,7 +425,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             scene.Remove(Power, window);
             scene.Remove(Icons);
-            player = scene.Tracker.GetEntity<Player>();
 
             if (player != null)
             {
@@ -478,6 +487,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     accessRoutine.RemoveSelf();
                     AccessEnding = false;
                 }
+                if (DestructEnding)
+                {
+                    destructRoutine.RemoveSelf();
+                    DestructEnding = false;
+                }
                 if (!DraggingWindow)
                 {
                     //remove button collider, stop drawing window, and allow user to click icons again
@@ -514,8 +528,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             MonitorSprite.SetColor(startColor);
             Monitor.Position = new Vector2(l.Camera.Position.X, l.Camera.Position.Y);
             Border.Position = SceneAs<Level>().Camera.CameraToScreen(Monitor.Position) + Vector2.One;
-            NightDay.Collider = new Hitbox(SunMoon.Width*2, SunMoon.Height*2);
-            //NightDay.Position = Monitor.Position + new Vector2(MonitorSprite.Width-4, MonitorSprite.Height) - new Vector2(-SunMoon.Width, SunMoon.Height * 2 - 8) + Vector2.UnitY * 2;
+            NightDay.Collider = new Hitbox(SunMoon.Width * 2, SunMoon.Height * 2);
+            //NightDay.Position = Border.Position + new Vector2(MonitorSprite.Width-4, MonitorSprite.Height) - new Vector2(-SunMoon.Width, SunMoon.Height * 2 - 8) + Vector2.UnitY * 2;
             if (NightMode)
             {
                 SunMoon.Play("moon");
@@ -524,7 +538,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 SunMoon.Play("sun");
             }
-            //set middle of screen and cursor bounds based on Monitor position
+            //set middle of screen and cursor bounds based on Border position
             CursorMiddle = new Vector2(Monitor.Position.X + Monitor.Width / 2, Monitor.Position.Y + Monitor.Height / 2);
             CursorBoundsA = new Vector2(16, 10) * 6;
             CursorBoundsB = new Vector2((MonitorSprite.Width - 11 - (cursorSprite.Width / 6)) * 6, (MonitorSprite.Height - 9 - (cursorSprite.Height / 6)) * 6);
@@ -534,6 +548,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             PowerSprite.Play("idle");
             NightDay.Position = Power.Position + Vector2.UnitY * (SunMoon.Height - 8) + (Vector2.UnitX * (MonitorSprite.Width - (SunMoon.Width * 3)));
             loadSequence.Position = window.Position;
+            memContent.Position = window.Position;
             #region Set Icon Positions
 
             Vector2 iconPosition = Monitor.Position + new Vector2(18, 12);
@@ -569,9 +584,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             player.StateMachine.State = 11; //Disable player movement
         }
+
         private IEnumerator AccessRoutine(WindowButton button)
         {
-            if (!LoadSequence.HasArtifact)
+            if (!PianoModule.SaveData.HasArtifact)
             {
                 yield break;
             }
@@ -792,8 +808,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 };
             }
         }
-        private class Cursor : Entity
+        [Tracked]
+        public class Cursor : Entity
         {
+
             public Cursor()
             {
                 Tag = TagsExt.SubHUD;

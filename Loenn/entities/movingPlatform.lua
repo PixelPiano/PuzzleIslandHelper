@@ -7,14 +7,15 @@ movingPlatform.justification = { 0, 0 }
 movingPlatform.name = "PuzzleIslandHelper/MovingPlatform"
 movingPlatform.nodeLimits = {1,1}
 movingPlatform.nodeLineRenderType = "line"
+movingPlatform.nodeVisibility = "always"
 movingPlatform.minimumSize = {8,8}
-movingPlatform.depth = 0
+movingPlatform.depth = -8501
 local methods = {"Linear","Sine","Cube","Bounce","Elastic","Expo","Quad","Quint"}
 local detect = {"Position","Start","Destination"}
 local move =  {"OnPlayerNear","OnFlag","OnTouched","OnRiding","BackAndForth","OnDashed"}
 local directions = {"In","Out","InOut"}
 movingPlatform.fieldOrder = {
-    "x","y","width","height","flag","moveTime","detectRadiusX","detectRadiusY","playerDetectArea","moveMethod","ease","easeDirection","tiletype","outlineColor","canReturn","invertOnPlayerDetect"
+    "x","y","width","height","flag","volume","moveTime","detectRadiusX","detectRadiusY","playerDetectArea","moveMethod","ease","easeDirection","tiletype","outlineColor","canReturn","invertOnPlayerDetect","outlineDestination","isForPIPuzzle"
 }
 movingPlatform.placements =
 {
@@ -34,7 +35,12 @@ movingPlatform.placements =
         detectRadiusX = 40,
         detectRadiusY = 40,
         playerDetectArea = "Destination",
-        invertOnPlayerDetect = false
+        invertOnPlayerDetect = false,
+        outlineDestination = true,
+        cameraLookAhead = true,
+        gentleMode = false,
+        isForPIPuzzle = false,
+        volume = 1
         
     }
 }

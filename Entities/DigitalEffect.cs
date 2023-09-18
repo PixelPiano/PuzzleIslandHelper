@@ -10,56 +10,64 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class DigitalEffect : Entity
     {
-
+        #region Variables
         public static bool RenderCondition;
 
-        private Color background; //color of the background
+        private Player player;
+        private Color[] HairColor = {Calc.HexToColor("0FD4F1"),
+                                     Calc.HexToColor("00a807"),
+                                     Calc.HexToColor("99ffd3"),
+                                     Calc.HexToColor("7040FF"),
+                                     Calc.HexToColor("CF40FF"),
+                                     Calc.HexToColor("FF0080")};
+
+        private Color background;
 
         private Color[] lines = new Color[4];
 
         private Color[] lineCache = new Color[4];
 
-        private Color tempBack; //copies the value from background
+        private Color tempBack;
 
         private float[] addToY = new float[4];
 
-        private float maxY; //holds the original height of the rectangle since the height can be changed if the player ducks
+        private float maxY; 
 
-        private float rate = 0.2f; //speed of the lines
+        private float rate = 0.2f;
 
-        private int opacityCounter; //tracks the current entry the code reads from line/backgroundFrameOpacity
+        private int opacityCounter; 
 
-        private readonly float lineOpacity = 0.5f; //opacity the line is set to if current entry in lineFrameOpacity is 0
+        private readonly float lineOpacity = 0.5f; 
 
-        private readonly float backOpacity = 0.9f; //opacity the background is set to if current entry in...
-                                                   //...backgroundFrameOpacity is 0
+        private readonly float backOpacity = 0.9f; 
         private readonly float lineOpacity2 = 0.2f;
 
         private readonly float backOpacity2 = 0.8f;
+
 
         private bool backFlicker;
 
         private bool lineFlicker;
 
-        private float currentLineOpacity; //current opacity of the line
+        private float currentLineOpacity;
 
-        private float currentBackOpacity; //current opacity of the background
+        private float currentBackOpacity;
 
-        private readonly int opacityBuffer = 8; //how many frames to wait before incrementing opacityCounter
+        private readonly int opacityBuffer = 8; 
 
-        private int opacityBufferCounter; //tracks if the code should increment opacityCounter
+        private int opacityBufferCounter;
 
         private int[] lineFrameOpacity = new int[] { 1, 0, 0, 1, 1, 0, 1, 0, 1, 1,
                                                 1, 1, 0, 1, 1, 0, 0, 0, 1, 0,
                                                 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1 };
-        //sequence of opacity changes for the lines
+  
 
         private int[] backgroundFrameOpacity = new int[] { 1, 1, 0, 1, 1, 1, 1, 0, 1, 1,
                                                       1, 1, 0, 1, 1, 1, 1, 1, 0, 1,
                                                       1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1 };
-        //sequence of opacity changes for the background
+    
 
-        private bool start; //check if it's the first time code has run
+        private bool start; 
 
         private static VirtualRenderTarget _MaskRenderTarget;
         private static VirtualRenderTarget _ObjectRenderTarget;
@@ -69,27 +77,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public static VirtualRenderTarget ObjectRenderTarget => _ObjectRenderTarget ??=
                       VirtualContent.CreateRenderTarget("DigitalObject", 320, 180);
+        private bool LeaveOutHair;
 
-
-        public static void Load()
-        {
-            RenderCondition = true;
-        }
-        public DigitalEffect(EntityData data, Vector2 offset)
-          : base(data.Position + offset)
-        {
-            RenderCondition = true;
-            background = Calc.HexToColor(data.Attr("background", "008502"));
-            lines[0] = Calc.HexToColor(data.Attr("line", "75D166"));
-            lines[1] = Calc.HexToColor(data.Attr("line2", "00FF00"));
-            lines[2] = Calc.HexToColor(data.Attr("line3", "3DBE28"));
-            lines[3] = Calc.HexToColor(data.Attr("line4", "00FF40"));
-            backFlicker = data.Bool("backgroundFlicker", true);
-            lineFlicker = data.Bool("lineFlicker", true);
-            tempBack = background;
-            lines.CopyTo(lineCache, 0);
-;           Depth = -1;
-        }
+        private EntityID id;
 
         public static readonly BlendState AlphaMaskBlendState = new()
         {
@@ -100,12 +90,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             AlphaBlendFunction = BlendFunction.Add,
             AlphaDestinationBlend = Blend.SourceColor
         };
+        #endregion
+        public static bool ForceStop;
+        public DigitalEffect(EntityData data, Vector2 offset, EntityID id)
+          : base(data.Position + offset)
+        {
+            Tag |= Tags.TransitionUpdate;
+            this.id = id;
+            LeaveOutHair = data.Bool("leaveOutHair", true);
+            RenderCondition = true;
+            background = Calc.HexToColor("008801");
+            lines[0] = Calc.HexToColor("00FF00");
+            lines[1] = Calc.HexToColor("00E800");
+            lines[2] = Calc.HexToColor("00FF00");
+            lines[3] = Calc.HexToColor("07ED07");
+            backFlicker = data.Bool("backgroundFlicker", true);
+            lineFlicker = data.Bool("lineFlicker", true);
+            tempBack = background;
+            lines.CopyTo(lineCache, 0);
+            Depth = -1;
+            start = true;
+            maxY = 10;
+            opacityCounter = 0;
+            currentLineOpacity = 1f;
+            currentBackOpacity = 1f;
+            opacityBufferCounter = 1;
+        }
 
         public override void Render()
         {
             base.Render();
-            RenderCondition = false;
-            if (Scene is not Level l)
+            if (Scene is not Level l || ForceStop)
             {
                 return;
             }
@@ -113,7 +128,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Player player = Scene.Tracker.GetEntity<Player>();
 
             if (player == null) { return; }
-
+            if (LeaveOutHair && !l.Transitioning)
+            {
+                RenderCondition = false;
+            }
             float rectX = player.X - (player.Width / 2) - 18;
             float rectY = player.Y - player.Height - 22;
             float rectWidth = player.Width + 40;
@@ -144,7 +162,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             // note the custom AlphaMaskBlendState to ignore *source* alpha and *destination* colour
 
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-            
+
             GameplayRenderer.Begin();
 
             if (player.Facing == Facings.Right) { rectX -= 1; }
@@ -197,7 +215,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             float[] lineY = new float[4];
 
-            for (int i = 0; i<4; i++)
+            for (int i = 0; i < 4; i++)
             {
                 addToY[i] %= maxY;
                 lineY[i] = rectY + rectHeight + addToY[i];
@@ -238,11 +256,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.Draw(ObjectRenderTarget, l.Camera.Position, Color.White);
             RenderCondition = true;
         }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            ForceStop = false;
+        }
         public override void Update()
         {
             base.Update();
-            background = tempBack * currentBackOpacity;
-            for(int i =0; i < 4; i++)
+            if (Scene as Level is null)
+            {
+                return;
+            }
+
+            Visible = SceneAs<Level>().Session.Level.Contains("digi");
+            background = Color.Lerp(Color.LightGreen, tempBack,currentBackOpacity);
+            for (int i = 0; i < 4; i++)
             {
                 lines[i] = lineCache[i] * currentLineOpacity;
                 addToY[i] -= rate;
@@ -253,25 +282,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 opacityCounter++;
             }
             opacityBufferCounter++;
-
-
         }
-
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            start = true;
-            maxY = 10;
-            opacityCounter = 0;
-            currentLineOpacity = 1f;
-            currentBackOpacity = 1f;
-            opacityBufferCounter = 1;
-        }
-
         public static void Unload()
         {
             _MaskRenderTarget?.Dispose();
             _ObjectRenderTarget?.Dispose();
+        }
+        public static void Load()
+        {
+            RenderCondition = true;
         }
     }
 }

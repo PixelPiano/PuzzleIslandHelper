@@ -11,7 +11,9 @@ escapeTimer.placements =
 {
     {
         name = "Escape Timer",
-        data = {}
+        data = {
+        startFrom = 120
+        }
     }
 }
 

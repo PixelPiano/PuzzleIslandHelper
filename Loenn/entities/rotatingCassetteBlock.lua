@@ -1,4 +1,4 @@
-local communalHelper = require("mods").requireFromPlugin("libraries.communal_helper")
+local communalHelper = require("mods").requireFromPlugin("libraries.communal_helper", "CommunalHelper")
 
 local rotatingCassetteBlock = {}
 
@@ -24,7 +24,7 @@ rotatingCassetteBlock.fieldInformation = {
 rotatingCassetteBlock.placements = {}
 for i = 1, 4 do
     rotatingCassetteBlock.placements[i] = {
-        name = string.format("cassette_block_%s", i - 1),
+        name = string.format("rotating_cassette_block_%s", i - 1),
         data = {
             index = i - 1,
             tempo = 1.0,
