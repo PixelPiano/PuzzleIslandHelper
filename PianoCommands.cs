@@ -9,6 +9,22 @@ using System.Collections.Generic;
 
 public class PianoCommands
 {
+    [Command("pi_codetester_state", "Sets the state of the artifact code tester machine")]
+    private static void TesterState(bool state = true)
+    {
+        if (!state)
+        {
+            ArtifactTester.Verified = new bool[8];
+        }
+        else
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                ArtifactTester.Verified[i] = true;
+            }
+        }
+        PianoModule.SaveData.HasArtifact = state;
+    }
     [Command("pi_escapestate", "Gives or takes away Level 5 clearance from the player")]
     private static void EscapeState(bool state = true)
     {
@@ -19,12 +35,12 @@ public class PianoCommands
     {
         PianoModule.SaveData.HasClearance = state;
     }
-    [Command("pi_printcollect","Displays how many Puzzle Island collectables the player has")]
+    [Command("pi_printcollect", "Displays how many Puzzle Island collectables the player has")]
     private static void PrintCollectables()
     {
         int hearts = 0;
         int blocks = 0;
-        foreach(DashCodeCollectable entity in PianoModule.SaveData.CollectedIDs)
+        foreach (DashCodeCollectable entity in PianoModule.SaveData.CollectedIDs)
         {
             if (entity.isHeart)
             {
@@ -41,7 +57,7 @@ public class PianoCommands
     [Command("pi_collect", "Gives the player x amount of Puzzle Island collectables you CHEATER :3")]
     private static void GiveCollectable(int amount, bool heart = true)
     {
-        for(int i = 0; i<amount; i++)
+        for (int i = 0; i < amount; i++)
         {
             PianoModule.SaveData.CollectedIDs.Add(new DashCodeCollectable(Vector2.Zero, heart));
         }

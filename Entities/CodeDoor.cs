@@ -24,6 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public CodeDoor(EntityData data, Vector2 offset)
             : base(data.Position + offset, 8, 48, false)
         {
+            Tag |= Tags.TransitionUpdate;
             flag = data.Attr("flag");
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/machineDoor/"));
             doorSprite.AddLoop("idle", "codeIdle", 0.1f);

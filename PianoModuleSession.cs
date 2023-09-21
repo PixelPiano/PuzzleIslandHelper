@@ -6,6 +6,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public string CurrentPrompt { get; set; }
         public List<FadeWarpKey.KeyData> Keys { get; set; } = new();
         public Dictionary<string, List<LightsIcon.LightsIconData>> IconDictionary { get; set; } = new();
         public List<EntityID> DoorIds { get; set; } = new();

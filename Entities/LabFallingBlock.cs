@@ -431,15 +431,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void EmitDebris()
         {
-            Vector2 Default;
-            if (player is null)
-            {
-                Default = Center;
-            }
-            else
-            {
-                Default = player.Center;
-            }
+            Vector2 Default = player is null ? Center : player.Center;
             Vector2 BlastLocation = Falling ? new Vector2(Center.X - Width, AABB.Y - Height) : Default;
             for (int i = 0; i < Width / 16f; i++)
             {
@@ -613,14 +605,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             RealHeight = array.Length * 8;
         }
-        public static string? ReadModAsset(string filename)
+        public static string ReadModAsset(string filename)
         {
-            if (Everest.Content.TryGet(filename, out var asset))
-            {
-                return ReadModAsset(asset);
-            }
-
-            return null;
+            return Everest.Content.TryGet(filename, out var asset) ? ReadModAsset(asset) : null;
         }
         public static string ReadModAsset(ModAsset asset)
         {

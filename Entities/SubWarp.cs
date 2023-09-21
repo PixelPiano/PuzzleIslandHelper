@@ -101,10 +101,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return 0.2f;
             if (Room != thisLevel)
             {
+                int dashes = player.Dashes;
                 TeleportTo(this, SceneAs<Level>(), SceneAs<Level>().Tracker.GetEntity<Player>(), Room);
                 TalkWait = 0.8f;
                 yield return null;
-                TeleportCleanup(SceneAs<Level>(), SceneAs<Level>().Tracker.GetEntity<Player>());
+                player = SceneAs<Level>().Tracker.GetEntity<Player>();
+                TeleportCleanup(SceneAs<Level>(), player);
+                player.Dashes = dashes;
             }
 
             Glitch.Value = 0.9f;

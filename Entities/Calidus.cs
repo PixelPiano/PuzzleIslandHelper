@@ -500,15 +500,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     Vector2 Rotated = RotatePoint(Vector2.Zero, EyeSprite.Center, (Calc.Angle(Center, LookTarget) + 90).ToDeg());
                     EyeDirection = Vector2.Normalize(Rotated - EyeSprite.Center);
-                    if (!EyeInstant)
-                    {
-                        EyeSprite.Position = Calc.Approach(EyeSprite.Position, Rotated + EyeOffset, LookSpeed);
-
-                    }
-                    else
-                    {
-                        EyeSprite.Position = Rotated + EyeOffset;
-                    }
+                    EyeSprite.Position = !EyeInstant ? Calc.Approach(EyeSprite.Position, Rotated + EyeOffset, LookSpeed) : Rotated + EyeOffset;
                     //Rotate the eye position around the entity's center
 
                 }

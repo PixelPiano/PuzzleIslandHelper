@@ -10,6 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
     public class PianoModuleSaveData : EverestModuleSaveData 
     {
         public bool HasInvert;
+        
         public bool HasArtifact;
         public bool HasClearance;
         public bool Escaped;

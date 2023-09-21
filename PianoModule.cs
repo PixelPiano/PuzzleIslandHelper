@@ -104,7 +104,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
             DigitalOverlay.Load();
             FluidMachine.Load();
             PotionFluid.Load();
-            //FrostHelperImports.LoadIfNeeded();
         }
         public override void Unload()
         {

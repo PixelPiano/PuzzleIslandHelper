@@ -32,7 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 if (Opacity <= 0)
                 {
                     RandomColor = new Color(Calc.Random.Range(100, 255), Calc.Random.Range(100, 255), Calc.Random.Range(100, 255));
-                    RandomLimit = Calc.Random.Range(0.2f, 0.6f);
+                    RandomLimit = Calc.Random.Range(0.4f, 0.7f);
                     Decrement = false;
                 }
                 Opacity += Decrement ? -Calc.Approach(0, 1, Engine.DeltaTime * 0.1f) : Calc.Approach(0, 1, Engine.DeltaTime * 0.1f);
