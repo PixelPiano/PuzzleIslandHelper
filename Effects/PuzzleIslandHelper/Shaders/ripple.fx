@@ -39,9 +39,7 @@ float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 	float z = 1.0 + 0.5*sin((r+Time*Speed)/0.013);
 	
 	float4 col = SAMPLE_TEXTURE(text,  uv * z);
-	float pulse = 1 + PulseRate(2,10);
-	float4 realCol = float4(col.r / pulse ,col.g / pulse,col.b / pulse,0);
-	return realCol * 0.5 * PulseRate(2);
+return col;
 }
 
 void SpriteVertexShader(inout float4 color: COLOR0,

@@ -682,7 +682,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 ThrowTimeDelay -= Engine.DeltaTime;
             }
-            /*            player.Sprite.Rate = Effect == PotionEffects.Sticky && PlayerOnTop ? PianoModule.Session.PotionSpeedMult.X == Slowed ? 0.4f : PianoModule.Session.PotionSpeedMult.X == Slower ? 0.2f : 0 : 1;
+            /*            player.Border.Rate = Effect == PotionEffects.Sticky && PlayerOnTop ? PianoModule.Session.PotionSpeedMult.X == Slowed ? 0.4f : PianoModule.Session.PotionSpeedMult.X == Slower ? 0.2f : 0 : 1;
                         PianoModule.Session.PotionJumpMult = Effect == PotionEffects.Sticky && PlayerOnTop ? 0.4f : 1;*/
 
             if (Broken)

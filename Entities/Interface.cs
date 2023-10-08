@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -101,6 +102,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool RemovePlayer = false;
         private float ColorLerpRate = 0;
         #endregion
+        private bool Interacted;
+        private float SavedAlpha;
+        private string filename = "ModFiles/PuzzleIslandHelper/InterfacePresets";
         private static VirtualRenderTarget _PlayerObject;
         public static VirtualRenderTarget PlayerObject => _PlayerObject ??= VirtualContent.CreateRenderTarget("PlayerObject", 320, 180);
 
@@ -111,7 +115,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private static VirtualRenderTarget _Light;
         public static VirtualRenderTarget Light => _Light ??= VirtualContent.CreateRenderTarget("Light", 320, 180);
 
+        public static string ReadModAsset(string filename)
+        {
+            return Everest.Content.TryGet(filename, out var asset) ? ReadModAsset(asset) : null;
+        }
+        public static string ReadModAsset(ModAsset asset)
+        {
+            using var reader = new StreamReader(asset.Stream);
 
+            return reader.ReadToEnd();
+        }
+        private void AddRandom()
+        {
+            string content = Everest.Content.TryGet(filename, out var asset) ? ReadModAsset(asset) : null;
+            string[] array = content.Split('\n');
+            string toAdd = "";
+            foreach (string s in array)
+            {
+                if (string.IsNullOrWhiteSpace(s))
+                {
+                    if (!string.IsNullOrWhiteSpace(toAdd))
+                    {
+                        //toAdd = toAdd.Replace('1', TileType);
+                        //RandomList.Add(toAdd);
+                    }
+                    toAdd = "";
+                    continue;
+                }
+                //RealWidth = s.Length * 8;
+                toAdd += s + '\n';
+            }
+            //RealHeight = array.Length * 8;
+        }
         public override void Render()
         {
             base.Render();
@@ -184,10 +219,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     textIDs = new string[] { };
                     iconText = new string[] { "NMEMORY" };
                     break;
+                case 6:
+                    iconNames = new string[] { "text", "text", "access" };
+                    textIDs = new string[] { "3kb", "CryForHelp", "ACCESS" };
+                    iconText = new string[] { "N3kb", "NCryForHelp", "NACCESS" };
+                    break;
+
             }
             Machine = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/");
             Machine.FlipX = data.Bool("flipX");
             Machine.AddLoop("idle", "interface", 0.1f);
+            Machine.AddLoop("noPower", "interfaceNoPower", 0.1f);
+
             float talkX = Machine.FlipX ? 8 : 0;
             Add(new TalkComponent(new Rectangle(0, 0, (int)Machine.Width, (int)Machine.Height - 8), new Vector2(19.5f + talkX, 0), Interact));
             Icons = new ComputerIcon[iconNames.Length];
@@ -238,13 +281,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             scene.Add(window = new Window(Position));
             scene.Add(loadSequence = new LoadSequence(window.Depth - 1, window.Position));
             scene.Add(memContent = new MemoryWindowContent(window.Depth - 1, window.Position));
+
             Depth = BaseDepth;
             Power.Depth = BaseDepth - 1;
             NightDay.Depth = Power.Depth;
             Monitor.Depth = BaseDepth;
             cursor.Depth = BaseDepth - 6;
             Border.Depth = BaseDepth - 7;
-            Machine.Play("idle");
+            if (PianoModule.Session.RestoredPower)
+            {
+                Machine.Play("idle");
+            }
+            else
+            {
+                Machine.Play("noPower");
+                Machine.OnLastFrame = (string s) =>
+                {
+                    if(s == "noPower" && PianoModule.Session.RestoredPower)
+                    {
+                        Machine.Play("idle");
+                    }
+                };
+            }
         }
         public override void Awake(Scene scene)
         {
@@ -376,7 +434,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     cursorSprite.Play("pressed"); //play the "click" animation
                     if (!Window.Drawing)
                     {
-                        OnClicked(); //if Window isn't being drawn, run OnClicked
+                        OnClicked(); //if Target isn't being drawn, run OnClicked
                     }
                     if (window != null) //if the window is valid...
                     {
@@ -426,9 +484,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             scene.Remove(Power, window);
             scene.Remove(Icons);
 
-            if (player != null)
+            if (player != null && Interacted)
             {
-                player.Light.Alpha = 1;
+                player.Light.Alpha = SavedAlpha;
             }
             base.Removed(scene);
         }
@@ -512,7 +570,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         CurrentIconName = Icons[i].Name;
                         IconText.CurrentIcon = Icons[i];
                         CanClickIcons = false;
-                        window.Name = Icons[i].Name; //send the type of window to draw to Window.cs
+                        window.Name = Icons[i].Name; //send the type of window to draw to Target.cs
                         TextWindow.CurrentID = Icons[i].GetID();
                         Window.Drawing = true;
                         return;
@@ -524,6 +582,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void Interact(Player player)
         {
+            if (!PianoModule.Session.RestoredPower)
+            {
+                //play click sound
+
+                return;
+            }
+            Interacted = true;
+            SavedAlpha = player.Light.Alpha;
             intoIdle = false;
             MonitorSprite.SetColor(startColor);
             Monitor.Position = new Vector2(l.Camera.Position.X, l.Camera.Position.Y);
@@ -579,7 +645,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             MonitorSprite.Play("boot");
             BorderSprite.Play("fadeIn");
 
-            //Screen collider
+            //ScreenCoords collider
             Collider = new Hitbox(8, 10, Monitor.Position.X - Position.X + MousePosition.X / 6, Monitor.Position.Y - Position.Y + MousePosition.Y / 6);
 
             player.StateMachine.State = 11; //Disable player movement

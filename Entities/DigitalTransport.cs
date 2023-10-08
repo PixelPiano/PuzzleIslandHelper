@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using ExtendedVariants.Variants;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -27,9 +28,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float Thickness = 4;
         private float GreenY;
         private float ColorMod;
+        private float ParticleOpacity;
         private float WireEnd;
+        private bool Emit;
         public bool Receiving;
-
+        private ParticleType GreenSparks = new ParticleType
+        {
+            Size = 1,
+            Color = Color.LightGreen,
+            Color2 = Color.LawnGreen,
+            DirectionRange = 30f.ToRad(),
+            ColorMode = ParticleType.ColorModes.Choose,
+            FadeMode = ParticleType.FadeModes.Linear,
+        };
+        private ParticleSystem system;
         public BloomPoint Bloom;
         private DigitalTransport Target;
         private readonly VirtualRenderTarget Content = VirtualContent.CreateRenderTarget("WireTravel", 320, 180);
@@ -50,7 +62,41 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(talk = new TalkComponent(new Rectangle(0, 0, (int)Width, (int)Height * 3), Vector2.UnitX * Width / 2, Interact));
             Add(new BeforeRenderHook(BeforeRender));
         }
+        private void GreenSparksParticles()
+        {
+            int amount = 1;
+            GreenSparks.Color = Color.LightGreen * ParticleOpacity;
+            GreenSparks.Color2 = Color.LawnGreen * ParticleOpacity;
+            Vector2 Pos = new Vector2(Position.X + 4, GreenY);
+            GreenSparks.LifeMin = 0.5f;
+            GreenSparks.LifeMax = 1.3f;
+            GreenSparks.SpeedMin = 5;
+            GreenSparks.SpeedMax = 10;
+            for (int i = 0; i < amount; i++)
+            {
+                GreenSparks.Direction = 150f.ToRad();
+                system.Emit(GreenSparks, Pos);
+                GreenSparks.Direction = 30f.ToRad();
+                system.Emit(GreenSparks, Pos + Vector2.UnitX * 4);
+            }
+            GreenSparks.LifeMin = 0.7f;
+            GreenSparks.LifeMax = 0.7f;
+            GreenSparks.SpeedMin = 30;
+            GreenSparks.SpeedMax = 30;
+            for (int i = 0; i < amount; i++)
+            {
+                Vector2 offset = new Vector2(4, 4);
+                GreenSparks.Direction = 180f.ToRad();
+                system.Emit(GreenSparks, Pos + Vector2.UnitY * offset.Y);
+                system.Emit(GreenSparks, Pos - Vector2.UnitY * offset.Y);
+                system.Emit(GreenSparks, Pos);
+                GreenSparks.Direction = 0f.ToRad();
+                system.Emit(GreenSparks, Pos + offset);
+                system.Emit(GreenSparks, Pos + new Vector2(offset.X, -offset.Y));
+                system.Emit(GreenSparks, Pos);
+            }
 
+        }
         public override void Update()
         {
             base.Update();
@@ -59,8 +105,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Added(scene);
             level = scene as Level;
-            Add(Bloom = new BloomPoint(1,30));
-            
+            Add(Bloom = new BloomPoint(1, 30));
+            scene.Add(system = new ParticleSystem(Depth + 1, 500));
             Vector2 start = Position + Vector2.UnitX * sprite.Width;
             Vector2? EndPos = DoRaycast(level.SolidTiles.Grid, start, new Vector2(start.X, level.Bounds.Top));
 
@@ -120,13 +166,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 EndTimer = 0.1f
             };
         }
-
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            Drawing();
+        }
         private void Drawing()
         {
             Vector2 start = new Vector2(Position.X, GreenY);
-            Draw.Line(start, start + Vector2.UnitX * sprite.Width, Color.Lerp(Color.Green, Color.White, ColorMod), Thickness);
+            Draw.Line(start, start + Vector2.UnitX * sprite.Width, Color.Green, Thickness);
             Vector2 middle = start;
-            Draw.Line(middle, middle + Vector2.UnitX * sprite.Width, Color.Lerp(Color.LightGreen, Color.White, ColorMod), Thickness / 2);
+            Draw.Line(middle, middle + Vector2.UnitX * sprite.Width, Color.LimeGreen, Thickness / 2);
         }
         private void DrawWires()
         {
@@ -169,16 +219,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             else
             {
                 Thickness = maxHeight;
-                GreenY = WireEnd - maxHeight/2;
-                target = Position.Y + 4;
+                GreenY = WireEnd - maxHeight / 2;
+                target = Position.Y - 8;
                 targetThick = 4;
             }
             float origThick = Thickness;
             float orig = GreenY;
             WireTime = true;
-
+            bool emit = true;
             for (float i = 0; i < 1; i += Engine.DeltaTime)
             {
+                if (emit)
+                {
+                    GreenSparksParticles();
+                }
+                if (Entering)
+                {
+                    ParticleOpacity = i + 0.1f;
+                }
+                else
+                {
+                    ParticleOpacity = 1;
+                }
+                emit = !emit;
                 GreenY = Calc.LerpClamp(orig, target, Ease.QuintIn(i));
                 Thickness = Calc.LerpClamp(origThick, targetThick, Ease.QuintIn(i));
                 yield return null;

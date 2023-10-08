@@ -15,7 +15,7 @@ local detect = {"Position","Start","Destination"}
 local move =  {"OnPlayerNear","OnFlag","OnTouched","OnRiding","BackAndForth","OnDashed"}
 local directions = {"In","Out","InOut"}
 movingPlatform.fieldOrder = {
-    "x","y","width","height","flag","volume","moveTime","detectRadiusX","detectRadiusY","playerDetectArea","moveMethod","ease","easeDirection","tiletype","outlineColor","canReturn","invertOnPlayerDetect","outlineDestination","isForPIPuzzle"
+    "x","y","width","height","flag","stopFlag","volume","moveTime","detectRadiusX","detectRadiusY","playerDetectArea","moveMethod","ease","easeDirection","tiletype","outlineColor","canReturn","invertOnPlayerDetect","outlineDestination","isForPIPuzzle"
 }
 movingPlatform.placements =
 {
@@ -24,6 +24,7 @@ movingPlatform.placements =
     {
         outlineColor = "000000",
         moveMethod = "OnFlag",
+        stopFlag="",
         flag = "moving_platform",
         tiletype = "3",
         width = 8,

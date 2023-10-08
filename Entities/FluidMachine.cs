@@ -272,7 +272,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private static bool ShouldContinue()
         {
-            if(Engine.Scene.Tracker.GetEntity<FluidMachine>() == null)
+            if(Engine.Scene is null)
+            {
+                return false;
+            }
+            if(Engine.Scene.Tracker.GetEntity<FluidMachine>() is null)
             {
                 return false;
             }

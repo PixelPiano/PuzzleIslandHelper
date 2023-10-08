@@ -3,12 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using Celeste.Mod.CherryHelper;
-using FMOD.Studio;
-using System;
-using Microsoft.Xna.Framework.Audio;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
-using System.Collections.Generic;
-using System.Linq;
 // PuzzleIslandHelper.MovingPlatform
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -22,6 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool ForPuzzle;
         private int BlocksInLevel;
         private string flag;
+        private string emergencyFlag;
         private bool OrigFlagState;
 
         private float moveTime;
@@ -193,12 +189,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
         #endregion
-
-
-        private List<ExpandingRect> Rects = new();
         public MovingPlatform(EntityData data, Vector2 offset)
           : base(data.Position + offset, data.Width, data.Height, safe: false)
         {
+            emergencyFlag = data.Attr("stopFlag");
             Data = data;
             Offset = offset;
             Gentle = data.Bool("gentleMode");
@@ -407,36 +401,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Trigger.Position = Position;
                     Trigger.LerpStrength = Vector2.One * Calc.LerpClamp(0, 1.5f, t.Eased);
                 }
-
-                speed = prevPosition - Position;
-                prevPosition = Position;
-                Vector2 Lerp = Vector2.Lerp(start, node, t.Eased);
-                MoveTo(Lerp);
-            };
-            tween.OnComplete = delegate (Tween t)
-            {
-
-                if (affectCamera && !cameraRemoved)
+                if (SceneAs<Level>().Session.GetFlag(emergencyFlag) && !string.IsNullOrEmpty(emergencyFlag))
                 {
-                    Trigger.Position = node;
-                    Trigger.Active = false;
-                }
-                if (!Gentle || ForPuzzle)
-                {
-                    ImpactSfx();
+                    tween.Stop();
+                    Arrive(true);
                 }
                 else
                 {
-                    Add(new Coroutine(ExpandingRects()));
+                    speed = prevPosition - Position;
+                    prevPosition = Position;
+                    Vector2 Lerp = Vector2.Lerp(start, node, t.Eased);
+                    MoveTo(Lerp);
                 }
-                Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
-                ArriveParticles();
-
-                if (!canReturn && affectCamera && !cameraRemoved)
-                {
-                    Trigger.Active = false;
-                    cameraRemoved = true;
-                }
+            };
+            tween.OnComplete = delegate (Tween t)
+            {
+                Arrive(false);
             };
 
             Add(tween);
@@ -464,6 +444,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(new Coroutine(Sequence(start)));
             }
             yield return null;
+        }
+        private void Arrive(bool forced)
+        {
+            if (affectCamera && !cameraRemoved)
+            {
+                if (!forced)
+                {
+                    Trigger.Position = node;
+                }
+                Trigger.Active = false;
+            }
+            if (!Gentle || ForPuzzle)
+            {
+                ImpactSfx();
+            }
+            else
+            {
+                Add(new Coroutine(ExpandingRects()));
+            }
+            Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
+            ArriveParticles();
+
+            if (!canReturn && affectCamera && !cameraRemoved)
+            {
+                Trigger.Active = false;
+                cameraRemoved = true;
+            }
         }
         public override void OnShake(Vector2 amount)
         {
@@ -513,7 +520,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (impact)
                 {
-                    Audio.Play("event:/PianoBoy/movingPlatformImpact", BottomCenter, "VolumeAdjust",0.7f);
+                    Audio.Play("event:/PianoBoy/movingPlatformImpact", BottomCenter, "VolumeAdjust", 0.7f);
                 }
                 yield break;
             }

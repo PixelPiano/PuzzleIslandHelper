@@ -26,7 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float SpaceProgress;
         private int Lines;
         private int Rate = 15;
-        private Effect Shader;
+        public static Effect Shader;
         private int GlowBuffer = 4;
         private int glowBuf = 4;
         private bool[] flags = new bool[8];
@@ -196,27 +196,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Glow.Color = Color.Lerp(color1, color2, Calc.Random.Range(0f, 1f)) * Calc.Random.Range(0.2f + addition, 0.5f + addition);
             }
         }
-        private Effect TryGetEffect(string id)
-        {
-            id = id.Replace('\\', '/');
-
-            if (Everest.Content.TryGet($"Effects/PuzzleIslandHelper/Shaders/{id}.cso", out var effectAsset, true))
-            {
-                try
-                {
-                    Effect effect = new Effect(Engine.Graphics.GraphicsDevice, effectAsset.Data);
-                    return effect;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Failed to load the shader " + id);
-                    Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Exception: \n" + ex.ToString());
-                }
-            }
-
-            return null;
-        }
-
 
         private void BeforeRender()
         {
@@ -235,17 +214,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             EasyRendering.MaskToObject(ScreenContent, Mask);
             Shader.ApplyStandardParameters(level);
         }
-        private void DrawScreenContent()
-        {
-            for (int i = 0; i < 8; i++)
-            {
-                Boxes[i].Render();
-            }
-            if (Prompt is not null && !Completed)
-            {
-                Prompt.Render();
-            }
-        }
+     
         public override void Render()
         {
             base.Render();
@@ -259,6 +228,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             GameplayRenderer.Begin();
             Draw.SpriteBatch.Draw(ScreenContent, level.Camera.Position, Color.White);
             Glow.Render();
+        }
+          private void DrawScreenContent()
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                Boxes[i].Render();
+            }
+            if (Prompt is not null && !Completed)
+            {
+                Prompt.Render();
+            }
         }
         private void DrawContent()
         {
@@ -305,7 +285,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            Shader = TryGetEffect("static");
             Add(new Coroutine(WaitThenGlitch()));
             player = Scene.Tracker.GetEntity<Player>();
             CodesUsed = CheckFlags();
@@ -378,31 +357,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             SpaceProgress %= Spacing;
             HandleGlow();
             CodesUsed = CheckFlags();
-        }
-    }
-    public static class Ext
-    {
-        public static Effect ApplyStandardParameters(this Effect effect, Level level)
-        {
-            var parameters = effect.Parameters;
-            Matrix? camera = level.Camera.Matrix;
-            parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
-            parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
-            parameters["CamPos"]?.SetValue(level.Camera.Position);
-            parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
-            parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
-
-            Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
-
-            Matrix projection = Matrix.CreateOrthographicOffCenter(0, viewport.Width, viewport.Height, 0, 0, 1);
-            // from communal helper
-            Matrix halfPixelOffset = Matrix.Identity;
-
-            parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
-
-            parameters["ViewMatrix"]?.SetValue(camera ?? Matrix.Identity);
-
-            return effect;
         }
     }
 }

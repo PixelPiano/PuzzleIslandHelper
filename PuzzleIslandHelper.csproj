@@ -20,23 +20,19 @@
         <Reference Private="false" />
     </ItemDefinitionGroup>
     <ItemGroup>
-      <Compile Remove="Loenn\NewFolder\**" />
-      <EmbeddedResource Remove="Loenn\NewFolder\**" />
-      <None Remove="Loenn\NewFolder\**" />
-    </ItemGroup>
-    <ItemGroup>
       <Compile Remove="Entities\ffffCassetteBlock.cs" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="MonoMod.RuntimeDetour" Version="22.01.04.03" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>
         <Reference Include="$(CelestePrefix)\MMHOOK_Celeste.dll">
             <Private>false</Private>
         </Reference>
-        <Reference Include="Celeste">
+        <Reference Include="Celeste" Publicize="True">
           <HintPath>..\..\legacyRef\Celeste.exe</HintPath>
         </Reference>
         <Reference Include="CherryHelper">
@@ -57,16 +53,12 @@
         <Reference Include="MonoMod">
           <HintPath>..\..\MonoMod.exe</HintPath>
         </Reference>
-        <Reference Include="PandorasBox">
-          <HintPath>libs\PandorasBox.dll</HintPath>
-        </Reference>
-        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
         <Reference Include="PresentationCore" />
-        <Reference Include="toybox">
-          <HintPath>libs\toybox.dll</HintPath>
-        </Reference>
         <Reference Include="VivHelper">
           <HintPath>libs\VivHelper.dll</HintPath>
+        </Reference>
+        <Reference Include="XaphanHelper">
+          <HintPath>libs\XaphanHelper.dll</HintPath>
         </Reference>
     </ItemGroup>
     <Choose>

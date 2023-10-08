@@ -1,3 +1,4 @@
+using Celeste.Mod.Backdrops;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -5,6 +6,7 @@ using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {
+    [CustomBackdrop("PuzzleIslandHelper/BgTilesColorgrade")]
     public class BgTilesColorgrade : Backdrop
     {
         private static string Colorgrade = "oldsite";
@@ -15,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private float RandomLimit = 1;
         public BgTilesColorgrade(string colorgrade)
         {
-            Colorgrade = colorgrade;
+            Colorgrade = "none";
             _Colorgrade = colorgrade;
             RandomColor = new Color(Calc.Random.Range(0, 255), Calc.Random.Range(0, 255), Calc.Random.Range(0, 255));
         }
@@ -42,13 +44,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 Colorgrade = "none";
                 (scene as Level).BgTiles.Tiles.Color = Color.White;
-
             }
         }
         private static void BgRender(On.Monocle.TileGrid.orig_Render orig, TileGrid self)
         {
             
-            if (self.Entity is BackgroundTiles)
+            if (self.Entity is BackgroundTiles && Colorgrade !="none")
             {
                 Effect colorGradeEffect = GFX.FxColorGrading;
                 colorGradeEffect.CurrentTechnique = colorGradeEffect.Techniques["ColorGradeSingle"];
@@ -75,8 +76,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                                        null,
                                        (self.Scene as Level).GameplayRenderer.Camera.Matrix);
                 Engine.Graphics.GraphicsDevice.Textures[1] = texture;
-
-
             }
             else
             {

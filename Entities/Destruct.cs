@@ -398,7 +398,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             MonitorSprite.Play("boot");
             BorderSprite.Play("fadeIn");
 
-            //Screen collider
+            //ScreenCoords collider
             Collider = new Hitbox(8, 10, Monitor.Position.X - Position.X + MousePosition.X / 6, Monitor.Position.Y - Position.Y + MousePosition.Y / 6);
 
             player.StateMachine.State = 11; //Disable player movement

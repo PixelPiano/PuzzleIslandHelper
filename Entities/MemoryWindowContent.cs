@@ -20,6 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             this.Position = Position;
             this.Depth = Depth - 1;
+            
 
         }
         public override void Update()
@@ -67,6 +68,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Added(scene);
             scene.Add(Dial = new Entity());
             Dial.Depth = Depth - 1;
+            Dial.Visible = false;
             Sprite sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/");
             sprite.AddLoop("idle", "dial", 0.1f);
             Dial.Add(sprite);

@@ -371,6 +371,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             SetBounds(BaseEntity.Center, NodeEntity.Center, CollisionCheck);
             Collider = new Hitbox(8, 8);
+             if (RespectCollision)
+            {
+                Vector2? Ray = DoRaycast(scene, TopBound, BottomBound);
+                if (Ray is not null && !SceneAs<Level>().Transitioning)
+                {
+                    End = Ray.Value;
+                }
+                else
+                {
+                    End = NodeEntity.Position;
+                }
+            }
+            else
+            {
+                End = NodeEntity.Position;
+            }
             #endregion
         }
 

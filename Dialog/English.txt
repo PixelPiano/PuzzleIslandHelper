@@ -10,12 +10,29 @@
 # Gameplay Control Commands (should never change)
 # {trigger x} this triggers an in-game event
 # {anchor} controls the visual position of the textbox in-game
-
+#------------------------
 #Cutscenes
+#------------------------
 CalidusTest= 
 	[Calidus right stern]
 	And when we DO get to the computer...
 	What exactly do you propose we do?	 
+#First Encounter with Calidus
+Ca1 = [MADELINE right sad]
+	What the heck? Both paths lead to...
+	Well, they both lead somewhere, but this place won't let me pass!
+	[Madeline right distracted]
+	But why..?
+Ca2 = [Calidus left obscured]
+	This is a convenient location, isn't it?
+Ca3 = [Madeline right surprised]
+	Who said that?!
+Ca4 = [Calidus left obscured]
+	Both paths inexplicably lead to nowhere,
+	and the paths above and below you have mysteriously disappeared.
+Ca5 = [Madeline right normal]
+	Who are you?
+Ca6 = [Calidus left normal] My name is Calidus.
 	
 
 
@@ -35,6 +52,17 @@ NI1= Notice.info
 NU1= LiquidConv.bat
 NU2= EmployeeWorthEstimate.lst
 NU3= SectorSurv.cam
+
+3kb= Hopefully this makes it throu235 Y743OT344B52$%#$$%2439G723924334592T432{n}V4TB24#tb$#@tB49Y7TY293GV{n}TG3@tGV32849GVH34P5PT{n}GUO32HO3TOUHVI3U42T34@5B@#$%b#@$v%yg#@4O8og%@$#{n}f@#h$y%f@$#ho%fh@$#f%@#hf%h$#o%g{n}h@oto4h3558 8.Empty() at line 54
+N>3kb= 92#@$H#@##)D@
+
+N3kb= $&^**#*(T&$
+
+CryForHelp= No^ mu&h spa#@ avail. Tra4p(d on&ot$er s]de, \et a@cV$*ss .nd (nt*>r on ap^.
+P@s& t$s". ;nly we c{an st5_op i^t.
+
+
+NCryForHelp= H3$@_&s
 
 NDESTRUCT= DARP.exe
 NMEMORY= MStorage.exe

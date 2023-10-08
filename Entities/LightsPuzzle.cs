@@ -7,18 +7,8 @@ using System.Collections.Generic;
 using FMOD.Studio;
 using FMOD;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
-/*
-* TODO: 
-*       Sfx:
-*       Lever (moving), 
-*       Button(clicking),
-*       Machine(rattling,whirring,shutters opening/closing)
-*       
-* Tracked Pattern should be: 1 -> Front
-*                            2 -> Right
-*                            3 -> Back
-*                            4 -> Left
-*/
+using System.Linq;
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
 
@@ -48,46 +38,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class LightsPuzzle : Entity
     {
         public static LightsIcon[] Icons = new LightsIcon[4];
-        private Sprite Machine;
-        private Sprite LeftLight;
-        private Sprite RightLight;
-        private Sprite square;
         private Player player;
-        private Sprite State;
+        private readonly Color[] Answers = { Color.White, Color.White, Color.White, Color.White };
+        private List<WindowDecal> Windows = new();
         private string flag;
         private bool GotSolution
         {
             get
             {
-                return NodePositionsCorrect && LightPositionsCorrect && AllNodesUsed;
-            }
-        }
-
-        private bool HitButton; //TODO ADD BUTTON TO HIT 
-        private bool NodePositionsCorrect
-        {
-            get
-            {
-                bool result = true;
-                if (Icons.Length != 4)
-                {
-                    result = false;
-                }
-                for (int i = 0; i < 4; i++)
-                {
-                    if (IconHolder.SetColors[i] != SequenceColor[i])
-                    {
-                        result = false;
-                    }
-                }
-                return result && IconHolder.LeverState;
+                return LightPositionsCorrect && AllNodesUsed;
             }
         }
         private bool LightPositionsCorrect
         {
             get
             {
-                return square.Color == IconHolder.SetColors[0] && RightLight.Color == IconHolder.SetColors[1] && LeftLight.Color == IconHolder.SetColors[3];
+                return Answers[0] == IconHolder.SetColors[0] && Answers[1] == IconHolder.SetColors[1] && Answers[2] == IconHolder.SetColors[2] && Answers[3] == IconHolder.SetColors[3];
             }
         }
         private bool AllNodesUsed
@@ -105,79 +71,63 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return result && IconHolder.LeverState;
             }
         }
-        private static int CurrentNode = 0;
-        private static int LeftNode = 3;
-        private static int RightNode = 1;
-        private static int BackNode = 2;
-        public static Color[] NodeColor = new Color[4];
         public static Color[] SequenceColor = new Color[4];
-        private VertexLight VertexLight;
-        public static bool ButtonRoutine = false;
-        public static int[] SequenceHeld = new int[4];
-        private bool inSequence;
-        public static bool doneSequence;
+        public bool doneSequence;
         public LightsPuzzle(EntityData data, Vector2 offset)
             : base(data.Position + offset)
         {
+            Depth = 2;
             Tag = Tags.TransitionUpdate;
 
             flag = data.Attr("flagOnComplete");
-            Add(square = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
-            square.AddLoop("idle", "square", 1f);
-            Add(LeftLight = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
-            LeftLight.AddLoop("on", "sideLight", 0.1f);
-            LeftLight.AddLoop("off", "lightClose", 1, 1);
-            LeftLight.Add("open", "lightOpen", 0.1f, "on");
-            LeftLight.Add("close", "lightClose", 0.1f, "off");
-            Add(RightLight = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
-            RightLight.AddLoop("on", "sideLight", 0.1f);
-            RightLight.AddLoop("off", "lightClose", 1, 1);
-            RightLight.Add("open", "lightOpen", 0.1f, "on");
-            RightLight.Add("close", "lightClose", 0.1f, "off");
-            RightLight.FlipX = true;
-            Add(Machine = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
-            Machine.AddLoop("idle", "machine", 1f);
-            Machine.AddLoop("closed", "shut", 1, 1);
-            Machine.Add("open", "open", 0.1f, "idle");
-            Machine.Add("shut", "shut", 0.1f, "closed");
-
-            Add(State = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
-            State.AddLoop("idle", "machineState", 10f);
-
-            State.Position.X -= 1;
-            Collider = new Hitbox(Machine.Width, Machine.Height);
-            square.Play("idle");
-            LeftLight.Play("on");
-            RightLight.Play("on");
-            Machine.Play("idle");
-            State.Play("idle");
-            Add(VertexLight = new VertexLight(new Vector2(Machine.Width / 2, Machine.Height / 2), Color.White, 0.8f, 3, 30));
         }
         public void Reset()
         {
-            square.Color = Color.White;
-            RightLight.Color = Color.White;
-            LeftLight.Color = Color.White;
-            VertexLight.Color = Color.White;
+            for (int i = 0; i < 4; i++)
+            {
+                Windows[i].Color = Color.White;
+            }
         }
         private IEnumerator Sequence()
         {
-            inSequence = true;
             doneSequence = true;
             yield return null;
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            NodeColor = LightMachineInfo.PreviousColors;
-            LeftLight.Position = Machine.Position - Vector2.UnitX * LeftLight.Width;
-            RightLight.Position = Machine.Position + Vector2.UnitX * Machine.Width;
-            LeftLight.Position.Y = RightLight.Position.Y -= 2;
 
-            VertexLight.Color = IconHolder.SetColors[CurrentNode];
-            square.SetColor(IconHolder.SetColors[CurrentNode]);
-            LeftLight.SetColor(IconHolder.SetColors[LeftNode]);
-            RightLight.SetColor(IconHolder.SetColors[RightNode]);
+            foreach (WindowDecal window in (scene as Level).Tracker.GetEntities<WindowDecal>())
+            {
+                if (window.CustomTag == "lightPuzzle")
+                {
+                    Windows.Add(window);
+                    Console.WriteLine("Added");
+                }
+            }
+            Windows.OrderBy(window => window.Position.X);
+            for (int i = 0; i < Windows.Count; i++)
+            {
+                if (i < LightMachineInfo.PreviousColors.Length)
+                {
+                    //Windows[i].Color = LightMachineInfo.PreviousColors[i];
+                }
+            }
+            foreach (WindowDecal window in Windows)
+            {
+                Console.WriteLine(window.Color);
+            }
+            player = Scene.Tracker.GetEntity<Player>();
+
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            foreach (WindowDecal window in Windows)
+            {
+                window.Render();
+                Draw.Rect(window.Collider, Color.Green);
+            }
         }
         public static void SetSequence()
         {
@@ -185,7 +135,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (SequenceColor[i] != null)
                 {
-                    SequenceColor[i] = Color.Black;
+                    SequenceColor[i] = Color.White;
                 }
 
             }
@@ -212,134 +162,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
 
-        private bool SolutionDetected()
-        {
-            bool result = true;
-            for (int i = 0; i < 4; i++)
-            {
-                if (!IconHolder.NodeUsed[i])
-                {
-                    result = false;
-                }
-                if (Icons[i].OccupiedNode - 1 != i)
-                {
-                    result = false;
-                }
-                if (SequenceColor[i] != IconHolder.SetColors[i])
-                {
-                    result = false;
-                }
-            }
-            return result;
-        }
-        private IEnumerator ShakeMachine()
-        {
-            Vector2 rPos = RightLight.Position;
-            Vector2 lPos = LeftLight.Position;
-            Vector2 cPos = Machine.Position;
-            Vector2 sPos = square.Position;
-            Vector2 aPos = State.Position;
-            Vector2 random;
-
-            for (int i = 0; i < 4; i++)
-            {
-                random = Calc.Random.Range(-Vector2.UnitX, Vector2.UnitX) * 1.5f;
-                State.Position = aPos + random;
-                RightLight.Position = rPos + random;
-                LeftLight.Position = lPos + random;
-                Machine.Position = cPos + random;
-                square.Position = sPos + random;
-                yield return null;
-                yield return null;
-            }
-            State.Position = aPos;
-            RightLight.Position = rPos;
-            LeftLight.Position = lPos;
-            Machine.Position = cPos;
-            square.Position = sPos;
-            yield return null;
-        }
         public override void Update()
         {
             base.Update();
-            State.SetAnimationFrame(IconHolder.CurrentState);
             if (doneSequence)
             {
                 return;
             }
-            LeftLight.Position.X = Machine.Position.X - LeftLight.Width;
-            RightLight.Position.X = Machine.Position.X + Machine.Width;
-            player = Scene.Tracker.GetEntity<Player>();
-            if (player is null || Scene as Level is null) { return; }
-            Depth = player.Depth + 2;
-            VertexLight.Color = IconHolder.SetColors[CurrentNode];
-            square.SetColor(IconHolder.SetColors[CurrentNode]);
-            LeftLight.SetColor(IconHolder.SetColors[LeftNode]);
-            RightLight.SetColor(IconHolder.SetColors[RightNode]);
+            UpdateColors();
 
             if (GotSolution)
             {
-                //Machine.Color = Color.DarkBlue;
                 Add(new Coroutine(Sequence()));
                 SceneAs<Level>().Session.SetFlag("lightPuzzleComplete");
             }
 
         }
-        public static void UpdateColors()
+        public void UpdateColors()
         {
-            CurrentNode++;
-            RightNode++;
-            LeftNode++;
-            BackNode++;
-            BackNode %= 4;
-            CurrentNode %= 4;
-            RightNode %= 4;
-            LeftNode %= 4;
-        }
-        private IEnumerator RotateNode()
-        {
-            ButtonRoutine = false;
-            Machine.Play("shut");
-            LeftLight.Play("close");
-            RightLight.Play("close");
-            int div = 1;
-            while (Machine.CurrentAnimationID == "shut" || RightLight.CurrentAnimationID == "close" || LeftLight.CurrentAnimationID == "close")
+            for (int i = 0; i < 4; i++)
             {
-                VertexLight.Alpha = 0.8f / div;
-                div++;
-                yield return null;
+                Windows[i].Color = IconHolder.SetColors[i];
             }
-            VertexLight.Alpha = 0;
-
-            CurrentNode++;
-            RightNode++;
-            LeftNode++;
-            BackNode++;
-            BackNode %= 4;
-            CurrentNode %= 4;
-            RightNode %= 4;
-            LeftNode %= 4;
-
-            VertexLight.Color = NodeColor[CurrentNode];
-            square.SetColor(NodeColor[CurrentNode]);
-            LeftLight.SetColor(NodeColor[LeftNode]);
-            RightLight.SetColor(NodeColor[RightNode]);
-            Add(new Coroutine(ShakeMachine()));
-            yield return 0.2f;
-            Machine.Play("open");
-            LeftLight.Play("open");
-            RightLight.Play("open");
-            VertexLight.Alpha = 0.8f;
-            if (GotSolution)
-            {
-                Machine.Color = Color.DarkBlue;
-            }
-            /*
-                        if (SolutionDetected())
-                        {
-
-                        }*/
-            yield return null;
         }
     }
 
@@ -354,16 +198,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static bool[] NodeUsed = new bool[4];
 
         public static bool PulledLever = false;
-        //private Sprite Panel;
-        //private Sprite Display;
-        private Sprite leverSprite;
-        private Sprite buttonSprite;
-        //private Sprite State;
-        private Entity Button;
-        private Entity Lever;
-        private Sprite Machine;
         public static int CurrentState;
-        public static Color[] SetColors = {Color.White,Color.White,Color.White,Color.White};
+        public static Color[] SetColors = { Color.White, Color.White, Color.White, Color.White };
 
         public static bool LeverState = false;
 
@@ -372,71 +208,54 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             for (int i = 0; i < 4; i++)
             {
-                Collider collider = new Hitbox(12, 12, 34 + (i * 15), 21);
+                Collider collider = new Hitbox(12, 12, 20 + (i * 15), 21);
                 ColliderList.Add(collider);
                 Nodes[i] = ColliderList.colliders[i].Position + new Vector2(collider.Width / 2, collider.Height);
             }
-            /*Add(Panel = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
-            Panel.AddLoop("idle", "panel", 1f);
-
-            Add(Display = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
-            Display.AddLoop("idle", "display", 1f);
-
-            Add(State = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
-            State.AddLoop("idle", "state", 10f);*/
-
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
-            sprite.AddLoop("idle", "mainModule", 10f);
-            sprite.Play("idle");
-           // sprite.Position -= new Vector2(sprite.Width/2,sprite.Height/2);
-            sprite.SetAnimationFrame(CurrentState);
+            sprite.AddLoop("leverUp", "mainModule", 0.1f, 0);
+            sprite.AddLoop("leverDown", "mainModule", 0.1f, 6);
+            sprite.Add("flipDown", "mainModule", 0.1f, "leverDown");
+            sprite.Add("flipUp", "mainModuleReverse", 0.1f, "leverUp");
+            sprite.Add("stuck", "mainModuleStuck", 0.1f, "leverDown");
+            sprite.Play("leverDown");
             Depth = 2;
         }
 
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            scene.Add(Lever = new Entity(Position), Button = new Entity(Position));
-            Lever.Add(leverSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
-            Button.Add(buttonSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chandelier/"));
 
-            leverSprite.AddLoop("idleUp", "lever", 1f, 0);
-            leverSprite.AddLoop("idleDown", "lever", 1f, 6);
-            leverSprite.Add("down", "lever", 0.1f, "idleDown");
-            leverSprite.Add("up", "leverReverse", 0.1f, "idleUp");
 
-            buttonSprite.AddLoop("idle", "button", 1f, 0);
-            buttonSprite.Add("clicked", "buttonClicked", 0.2f, "idle");
-
-            Lever.Depth = Button.Depth = Depth;
-            Lever.Add(new VertexLight(new Vector2(3, 9), Color.White, 1, 0, (int)leverSprite.Height));
-            Button.Add(new VertexLight(new Vector2(2, 2), Color.White, 1, 0, (int)buttonSprite.Height));
-
-            Lever.Collider = new Hitbox(leverSprite.Width, leverSprite.Height);
-            leverSprite.Play(LeverState ? "idleUp" : "idleDown");
-            buttonSprite.Play("idle");
-
-            Rectangle lRect = new Rectangle(0, (int)(leverSprite.Height), (int)leverSprite.Width + 8, 4);
-            Lever.Add(new TalkComponent(lRect, new Vector2(leverSprite.Width / 2 - 0.5f, -7), LeverInteract));
-            Lever.Collider = null;
+            int x, y, width, height;
+            x = 8;
+            y = 22;
+            width = 7;
+            height = 21;
+            Add(new VertexLight(new Vector2(x + 3, y + 4), Color.White, 0.5f, 5, 10));
+            Rectangle lRect = new Rectangle(x, y, width, height);
+            Add(new TalkComponent(lRect, new Vector2(x + width / 2 - 0.5f, y - 7), LeverInteract));
             Rectangle bRect = new Rectangle(-3, 9, 8, 4);
-            Button.Add(new TalkComponent(bRect, new Vector2(2, -4), ButtonInteract));
-            Lever.Position = Position + new Vector2(14, 19);
-            Button.Position = Position + new Vector2(5, 27);
-
-
         }
         private void LeverInteract(Player player)
         {
-            if (leverSprite.CurrentAnimationID == "idleUp")
+            if (PianoModule.Session.RestoredPower)
             {
-                leverSprite.Play("down");
-                LeverState = false;
+                if (sprite.CurrentAnimationID == "leverUp")
+                {
+                    sprite.Play("flipDown");
+                    LeverState = false;
+                }
+                else
+                {
+                    sprite.Play("flipUp");
+                    LeverState = true;
+                }
             }
             else
             {
-                leverSprite.Play("up");
-                LeverState = true;
+                sprite.Play("stuck");
+                LeverState = false;
             }
             foreach (LightsIcon icon in SceneAs<Level>().Tracker.GetEntities<LightsIcon>())
             {
@@ -448,16 +267,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-        private void ButtonInteract(Player player)
-        {
-            //LightsPuzzle.ButtonRoutine = true;
-            LightsPuzzle.UpdateColors();
-            CurrentState++;
-            CurrentState %= 4;
-        }
         public void Reset()
         {
-            foreach(LightsIcon icon in icons)
+            foreach (LightsIcon icon in icons)
             {
                 icon.IsSet = false;
             }
@@ -466,9 +278,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 SetColors[i] = Color.White;
             }
 
-            if (leverSprite.CurrentAnimationID == "idleUp")
+            if (sprite.CurrentAnimationID == "leverUp")
             {
-                leverSprite.Play("down");
+                sprite.Play("flipDown");
                 LeverState = false;
             }
             foreach (LightsIcon icon in SceneAs<Level>().Tracker.GetEntities<LightsIcon>())
@@ -485,7 +297,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            //SetOnGround();
             Collider = ColliderList;
             int num = 0;
             foreach (LightsIcon icon in scene.Tracker.GetEntities<LightsIcon>())
@@ -502,12 +313,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if (Scene as Level is null)
-            {
-                return;
-            }
-            sprite.SetAnimationFrame(CurrentState);
-            Lever.Depth = Button.Depth = Depth;
             CheckColliders();
         }
 
@@ -529,7 +334,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (LeverState)
             {
-                foreach (LightsIcon icon in Scene.Tracker.GetEntities<LightsIcon>())
+                foreach (LightsIcon icon in Scene.Tracker.GetEntities<LightsIcon>().Cast<LightsIcon>())
                 {
                     if (CollideCheck(icon) && !icon.Hold.IsHeld)
                     {
@@ -601,8 +406,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 Position.Y -= 8;
                 Position.X += 20 - (sprite.Width / 2) - 8;
-                Lever.Position = Position - new Vector2(16, -1);
-                Button.Position = Lever.Position - new Vector2(8, -8f);
             }
         }
     }
@@ -613,6 +416,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class LightsIcon : Actor
     {
         public Color Color;
+        private float TimePassed;
         private Hitbox HoldingHitbox;
         private Hitbox IdleHitbox;
         private bool isSet;
@@ -706,13 +510,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             id = data.SavedID;
         }
 
-        public LightsIcon(Vector2 position) : base(position) {}
+        public LightsIcon(Vector2 position) : base(position) { }
         #region Hook
 
         private static void LightsIconLoad(Level level, Player.IntroTypes intro, bool fromLoader)
         {
             Dictionary<string, List<LightsIconData>> dict = PianoModule.Session.IconDictionary;
-            if (dict.TryGetValue(level.Session.Level, out var datas)) 
+            if (dict.TryGetValue(level.Session.Level, out var datas))
             {
                 foreach (LightsIconData data in datas)
                 {
@@ -783,9 +587,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(Hold = new Holdable(0.5f));
 
             #region Hold
- 
-            HoldingHitbox = new Hitbox(sprite.Width -4, sprite.Height, 2-sprite.Width * Justify.X, -sprite.Height * Justify.Y);
-            IdleHitbox = new Hitbox(sprite.Width, sprite.Height, -sprite.Width * Justify.X,-sprite.Height * Justify.Y);
+
+            HoldingHitbox = new Hitbox(sprite.Width - 4, sprite.Height, 2 - sprite.Width * Justify.X, -sprite.Height * Justify.Y);
+            IdleHitbox = new Hitbox(sprite.Width, sprite.Height, -sprite.Width * Justify.X, -sprite.Height * Justify.Y);
             Collider = IdleHitbox;
             Hold.PickupCollider = new Hitbox(sprite.Width, sprite.Height, -sprite.Width * Justify.X, -sprite.Height * Justify.Y);
             Hold.SpeedSetter = delegate (Vector2 speed)
@@ -815,10 +619,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitY * Math.Sign(Speed.Y));
             }
-            if (Speed.Y > 0f)
+            if (Speed.Y > 0f && TimePassed > 1)
             {
                 if (hardVerticalHitSoundCooldown <= 0f)
                 {
+
                     Audio.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", Calc.ClampedMap(Speed.Y, 0f, 200f));
                     hardVerticalHitSoundCooldown = 0.5f;
                 }
@@ -901,6 +706,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            Level level = Scene as Level;
+            if (!PianoModule.Session.RestoredPower && level is not null)
+            {
+                if (level.Session.Level.Contains("ruinsLab"))
+                {
+                    Light.Alpha = 0.3f;
+                }
+                else
+                {
+                    Light.Alpha = 1;
+                }
+            }
+            else
+            {
+                Light.Alpha = 1;
+            }
+            TimePassed += Engine.DeltaTime;
             Collided = CollideCheck<ResetHoldableTrigger>();
             Hold.CheckAgainstColliders();
             player = Scene.Tracker.GetEntity<Player>();

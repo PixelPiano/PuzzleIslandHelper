@@ -111,7 +111,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             l = Scene as Level;
-            //Draw.Circle(Position, 30, Color.Red, 1, 20);
+            //Draw.CircleTexture(Position, 30, Color.Red, 1, 20);
             Draw.SpriteBatch.End();
             #region Sprite 1
             Engine.Graphics.GraphicsDevice.SetRenderTarget(OvalObject);

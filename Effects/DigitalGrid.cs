@@ -1,10 +1,12 @@
 using System;
+using Celeste.Mod.Backdrops;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {
+    [CustomBackdrop("PuzzleIslandHelper/DigitalOverlay")]
     public class DigitalGrid : Backdrop
     {
         private float SpacingY;
@@ -42,7 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
         public DigitalGrid(float lineWidth, float lineHeight, float ratex, float ratey, int xSpacing, int ySpacing,
                             string color, bool movingEnabled, float diagY, float diagX,
-                            float opacity, bool verticalLines, bool horizontalLines, bool blur,bool glitch)
+                            float opacity, bool verticalLines, bool horizontalLines, bool blur, bool glitch)
         {
             this.color = Calc.HexToColor(color) * opacity;
             Opacity = opacity;
@@ -51,7 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             amplitude = Calc.Random.Range(1f, 7f);
             amount = Calc.Random.Range(0.01f, 0.5f);
             usesGlitch = glitch;
-            if (blur) { effect = GFX.FxGaussianBlur; }  
+            if (blur) { effect = GFX.FxGaussianBlur; }
             else { effect = null; }
             LineWidth = lineWidth;
             LineHeight = lineHeight;
@@ -77,12 +79,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             currentY = 0;
             currentX = 0;
         }
-        
+
         public override void Update(Scene scene)
         {
             base.Update(scene);
             timer += Engine.DeltaTime;
-            if (scene.OnInterval(2/60f))
+            if (scene.OnInterval(2 / 60f))
             {
                 seed = Calc.Random.NextFloat();
             }
@@ -101,7 +103,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         }
         public override void Render(Scene scene)
         {
-            if((!HorizontalLines && !VerticalLines) || Opacity == 0)
+            if ((!HorizontalLines && !VerticalLines) || Opacity == 0)
             {
                 return;
             }
@@ -118,7 +120,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 {
                     Draw.Line(level.Bounds.Left - compensation.X,
                               currentY + renderOffsetY,
-                              level.Bounds.Right+compensation.X,
+                              level.Bounds.Right + compensation.X,
                               currentY + renderOffsetY - DiagonalOffsetX,
                               color, LineHeight);
 
@@ -133,7 +135,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                     Draw.Line(currentX + renderOffsetX,
                               level.Bounds.Top - compensation.Y,
                               currentX + renderOffsetX + DiagonalOffsetY,
-                              level.Bounds.Bottom+compensation.Y,
+                              level.Bounds.Bottom + compensation.Y,
                               color, LineWidth);
 
                     currentX += SpacingX;
@@ -150,11 +152,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             }
             Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Level);
 
-            Distort.Render(GridRenderTarget, (RenderTarget2D)GameplayBuffers.Displacement, true);     
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, 
-                                   BlendState.AlphaBlend,  
-                                   SamplerState.PointWrap, 
-                                   DepthStencilState.None, 
+            Distort.Render(GridRenderTarget, (RenderTarget2D)GameplayBuffers.Displacement, true);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred,
+                                   BlendState.AlphaBlend,
+                                   SamplerState.PointWrap,
+                                   DepthStencilState.None,
                                    RasterizerState.CullNone,
                                    effect,
                                    level.Camera.Matrix);

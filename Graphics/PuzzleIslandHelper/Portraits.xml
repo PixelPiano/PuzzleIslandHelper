@@ -5,6 +5,7 @@
     <Center />
   <sfxs>
 		<normal index="1"/>
+    <obscured index="1"/>
 		<happy index="11"/>
     <angry index="8"/>
     <stern index="7"/>
@@ -14,6 +15,9 @@
 
     <Loop id="idle_angry" path="angry" delay="0.1" frames="0"/>
     <Loop id="talk_angry" path="angry" delay="0.1" frames="0"/>
+
+    <Loop id="idle_obscured" path="obscured" delay="0.1" frames="0"/>
+    <Loop id="talk_obscured" path="obscured" delay="0.1" frames="0"/>
 
     <Loop id="idle_happy" path="happy" delay="0.1" frames="0"/>
     <Loop id="talk_happy" path="happy" delay="0.1" frames="0"/>

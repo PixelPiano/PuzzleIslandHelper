@@ -3,7 +3,7 @@ interface.justification = { 0, 0 }
 
 interface.name = "PuzzleIslandHelper/Interface"
 
-interface.depth = -8500
+interface.depth = 0
 
 interface.texture = "objects/PuzzleIslandHelper/interface/interface00"
 

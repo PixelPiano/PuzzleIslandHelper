@@ -1,11 +1,16 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public bool RestoredPower { get; set; }     
+        public Dictionary<EntityID, LHLData> BrokenLamps { get; set; } = new Dictionary<EntityID, LHLData>();
+        public Effect MonitorShader { get; set; }
+        public int GlitchBlocks { get; set; }
         public string CurrentPrompt { get; set; }
         public List<FadeWarpKey.KeyData> Keys { get; set; } = new();
         public Dictionary<string, List<LightsIcon.LightsIconData>> IconDictionary { get; set; } = new();
@@ -22,6 +27,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public Vector2 PotionSpeedMult = Vector2.One;
 
         public List<Vector2> PotionTiles { get; set; } = new();
-        public Dictionary<FluidBottle.Side, List<Vector2>> Tiles = new(); 
+        public Dictionary<FluidBottle.Side, List<Vector2>> Tiles = new();
     }
 }

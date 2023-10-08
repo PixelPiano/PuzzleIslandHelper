@@ -1,7 +1,9 @@
+using Celeste.Mod.Backdrops;
 using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
-{
+{    
+    [CustomBackdrop("PuzzleIslandHelper/ColorgradeOverlay")]
     public class ColorgradeOverlay : Backdrop
     {
         private string flag;

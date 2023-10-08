@@ -20,7 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Player player;
         private Sprite[] sprites = new Sprite[6];
         private Sprite[] lights = new Sprite[5];
-        //private Sprite[] levels = new Sprite[17];
+        //private Border[] levels = new Border[17];
         private bool[] lightOn = new bool[5];
         private float spacing = 2f;
         private bool buttonValid = false;
@@ -330,7 +330,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             {
                                 _i = 1;
                             }
-                            Add(levels[i] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));
+                            Add(levels[i] = new Border(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));
                             levels[i].AddLoop("idle", "levelLight", 0.1f);
                             levels[i].Position.X = sprites[5].Position.X + ((levels[i].Width + 1) * _i);
                             levels[i].Position.Y = i > 8 ? -38 : -43;

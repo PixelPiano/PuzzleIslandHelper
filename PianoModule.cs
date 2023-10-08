@@ -25,6 +25,14 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             Instance = this;
         }
+        public override void LoadContent(bool firstLoad)
+        {
+            base.LoadContent(firstLoad);
+
+            BlockGlitch.Shader = ShaderHelper.TryGetEffect("jitter");
+            MonitorDecalGroup.Shader = ShaderHelper.TryGetEffect("monitorDecal");
+            ArtifactTester.Shader = ShaderHelper.TryGetEffect("static");
+        }
         private void PlayerHair_Render(On.Celeste.PlayerHair.orig_Render orig, PlayerHair self)
         {
             if (DigitalEffect.RenderCondition) orig(self);
@@ -76,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 return new ColorgradeOverlay(child.Attr("colorgradeFlag"),
                                              child.Attr("colorgradeWhenTrue", "oldsite"),
-                                             child.Attr("colorgradeWhenFalse", "none"),
+                                             child.Attr("colorgradeWhenFalse", "default"),
                                              child.AttrBool("fadeOnFlagSwitch"),
                                              child.AttrFloat("timeModWhenTrue"),
                                              child.AttrFloat("timeModWhenFalse"));
@@ -84,6 +92,14 @@ namespace Celeste.Mod.PuzzleIslandHelper
             if (child.Name.Equals("PuzzleIslandHelper/BgTilesColorgrade", StringComparison.OrdinalIgnoreCase))
             {
                 return new BgTilesColorgrade(child.Attr("colorgrade"));
+            }
+            if (child.Name.Equals("PuzzleIslandHelper/ParallaxWindow", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ParallaxWindow(child.Attr("flag"));
+            }
+            if (child.Name.Equals("PuzzleIslandHelper/BlockGlitch", StringComparison.OrdinalIgnoreCase))
+            {
+                return new BlockGlitch();
             }
             return null;
         }
@@ -102,8 +118,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
             InvertOverlay.Load();
             BgTilesColorgrade.Load();
             DigitalOverlay.Load();
-            FluidMachine.Load();
+            //FluidMachine.Load();
             PotionFluid.Load();
+            BlockGlitch.Load();
+            MonitorDecalGroup.Load();
+            DeadRefill.Load();
+            // LabHangingLamp.Load();
         }
         public override void Unload()
         {
@@ -117,9 +137,13 @@ namespace Celeste.Mod.PuzzleIslandHelper
             InvertOverlay.Unload();
             BgTilesColorgrade.Unload();
             DigitalOverlay.Unload();
-            FluidMachine.Unload();
+            //FluidMachine.Unload();
             FluidBottle.Unload();
             PotionFluid.Unload();
+            BlockGlitch.Unload();
+            MonitorDecalGroup.Unload();
+            DeadRefill.Unload();
+            // LabHangingLamp.Unload();
         }
 
         public override void Initialize()

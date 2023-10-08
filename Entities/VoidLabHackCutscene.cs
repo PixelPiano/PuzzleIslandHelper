@@ -64,7 +64,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
              * F: Can't ever be too secure.
              * M: So I just do the same thing I did with the other computers?
              * C: If by "do the same thing" you mean click the Access Module icon, then yes.
-             * C: Unfortunately we haven't had the chance to forget text files detailing our pre-computated lives on this one.
+             * C: Unfortunately we haven't had the chance to delete text files detailing our pre-computated lives on this one.
              * M: Bummer.
              * 
              */

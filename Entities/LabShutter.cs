@@ -4,13 +4,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections;
-using System.Collections.Generic;
-using VivHelper.Colliders;
-using System.IO;
-using System;
-using System.Linq;
-using IL.Celeste;
-using Celeste.Mod.ArphimigonHelper;
 
 // PuzzleIslandHelper.LabShutter
 namespace Celeste.Mod.PuzzleIslandHelper.Entities

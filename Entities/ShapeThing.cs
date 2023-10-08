@@ -126,6 +126,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             List<Line3D> result = new();
             Dictionary<Vector3, bool> dict = new();
+            List<bool> Conditions;
+            List<Vector3> Vectors;
             foreach (Vector3 v in list)
             {
                 try
@@ -137,20 +139,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     continue;
                 }
             }
-            foreach (KeyValuePair<Vector3, bool> pair in dict)
+            Vectors = dict.Keys.ToList();
+            Conditions = dict.Values.ToList();
+            for(int i = 0; i<Vectors.Count; i++)
             {
-                if (!pair.Value)
+                if (!Conditions[i])
                 {
-                    foreach (KeyValuePair<Vector3, bool> pair2 in dict)
+                    for(int j = 0; j<Vectors.Count; j++)
                     {
-                        if (!pair2.Value && pair2.Key != pair.Key)
+                        if(!Conditions[j] && Vectors[i] != Vectors[j])
                         {
-                            result.Add(new Line3D(pair.Key, pair2.Key));
+                            result.Add(new Line3D(Vectors[i],Vectors[j]));
                         }
                     }
-
                 }
-                dict[pair.Key] = true;
+                Conditions[i] = true;
             }
             return result;
         }
@@ -373,9 +376,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (RandomizeLimit)
                 {
                     NumPoints = Calc.Random.Range(1, 9);
-                    if(RandomPoints.Count < NumPoints)
+                    if (RandomPoints.Count < NumPoints)
                     {
-                        while(RandomPoints.Count != NumPoints)
+                        while (RandomPoints.Count != NumPoints)
                         {
                             RandomPoints.Add(Vector3.Zero);
                         }

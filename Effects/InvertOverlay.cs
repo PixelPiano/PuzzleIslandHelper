@@ -1,24 +1,28 @@
+using Celeste.Mod.Backdrops;
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System.ComponentModel;
 using System.Reflection;
-using System.Runtime.Remoting.Metadata.W3cXsd2001;
-using System.Threading;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {
+    [CustomBackdrop("PuzzleIslandHelper/InvertOverlay")]
     public class InvertOverlay : Backdrop
     {
         private string flag;
+        private float savedTimerate;
         public static float WaitTime;
-        private static bool previousState;
+        private bool previousState;
         public static bool State;
         private static float OnTime;
         private int LastTimelinePosition;
         public EventInstance invertAudio;
         private bool MusicGlitchCutscene;
+        private bool Transitioning;
+        private bool WasTransitioning;
         private int LoopCount;
         private int Timer;
         private int Last;
@@ -28,7 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private static PropertyInfo engineDeltaTimeProp = typeof(Engine).GetProperty("DeltaTime");
         private static float baseTimeRate = 1f;
 
-        private static float playerTimeRate = 1f;
+        public static float playerTimeRate = 1f;
         private float SavedVolume;
         private float Pitch;
         private Player player;
@@ -45,6 +49,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
             OnTime = timeMod;
             button = (VirtualButton)typeof(Input).GetField("Dash").GetValue(null);
+
         }
         private bool CheckScene(Scene scene)
         {
@@ -59,20 +64,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 Reset(scene);
                 return false;
             }
-            if ((scene as Level).Transitioning)
+            Transitioning = (scene as Level).Transitioning;
+            if (Transitioning)
             {
+                if (!WasTransitioning)
+                {
+                    savedTimerate = Engine.TimeRate;
+                }
+                WasTransitioning = true;
                 Engine.TimeRate = 1;
             }
-            else if (IsVisible(scene as Level) && (scene as Level).Session.GetFlag("invertOverlay"))
+            else if (WasTransitioning)
             {
-                if (State)
-                {
-                    Engine.TimeRate = OnTime;
-                }
-                else
-                {
-                    Engine.TimeRate = 1;
-                }
+                WasTransitioning = false;
+                Engine.TimeRate = savedTimerate;
             }
             return true;
         }
@@ -94,9 +99,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             else
             {
                 holdTimer = 0f;
+                Engine.TimeRate = 1;
             }
             previousState = State;
-            State = (button.Check && holdTimer >= WaitTime) || (EnforceState && ForcedState);
+            State = ((button.Check && holdTimer >= WaitTime) || (EnforceState && ForcedState));
             (scene as Level).Session.SetFlag(flag, State);
             if (!CheckScene(scene))
             {
@@ -134,7 +140,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                         Audio.CurrentMusicEventInstance?.getTimelinePosition(out LastTimelinePosition);
                     }
 
-                    Engine.TimeRate = State ? OnTime : 1;
+                    Engine.TimeRate = State ? OnTime : Engine.TimeRate;
                     if (State)
                     {
                         Audio.CurrentMusicEventInstance?.setPaused(true);
@@ -195,16 +201,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         }
         private static void Transition(Level level, LevelData data, Vector2 dir)
         {
+
             Engine.TimeRate = State ? OnTime : 1;
         }
         private static void PlayerUpdate(On.Celeste.Player.orig_Update orig, Player self)
         {
-
             float deltaTime = Engine.DeltaTime;
             engineDeltaTimeProp.SetValue(null, Engine.RawDeltaTime * Engine.TimeRateB * baseTimeRate * playerTimeRate, null);
             orig.Invoke(self);
             engineDeltaTimeProp.SetValue(null, deltaTime, null);
-
 
         }
         private void MusicGlitch(int loops)
