@@ -31,15 +31,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private float[] addToY = new float[4];
 
-        private float maxY; 
+        private float maxY;
 
         private float rate = 0.2f;
 
-        private int opacityCounter; 
+        private int opacityCounter;
 
-        private readonly float lineOpacity = 0.5f; 
+        private readonly float lineOpacity = 0.5f;
 
-        private readonly float backOpacity = 0.9f; 
+        private readonly float backOpacity = 0.9f;
         private readonly float lineOpacity2 = 0.2f;
 
         private readonly float backOpacity2 = 0.8f;
@@ -53,21 +53,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private float currentBackOpacity;
 
-        private readonly int opacityBuffer = 8; 
+        private readonly int opacityBuffer = 8;
 
         private int opacityBufferCounter;
 
         private int[] lineFrameOpacity = new int[] { 1, 0, 0, 1, 1, 0, 1, 0, 1, 1,
                                                 1, 1, 0, 1, 1, 0, 0, 0, 1, 0,
                                                 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1 };
-  
+
 
         private int[] backgroundFrameOpacity = new int[] { 1, 1, 0, 1, 1, 1, 1, 0, 1, 1,
                                                       1, 1, 0, 1, 1, 1, 1, 1, 0, 1,
                                                       1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1 };
-    
 
-        private bool start; 
+
+        private bool start;
 
         private static VirtualRenderTarget _MaskRenderTarget;
         private static VirtualRenderTarget _ObjectRenderTarget;
@@ -270,7 +270,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
             Visible = SceneAs<Level>().Session.Level.Contains("digi");
-            background = Color.Lerp(Color.LightGreen, tempBack,currentBackOpacity);
+            background = Color.Lerp(Color.LightGreen, tempBack, currentBackOpacity);
             for (int i = 0; i < 4; i++)
             {
                 lines[i] = lineCache[i] * currentLineOpacity;

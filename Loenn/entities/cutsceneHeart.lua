@@ -4,6 +4,7 @@ local cutsceneHeart= {}
 cutsceneHeart.justification = {0,0}
 cutsceneHeart.name = "PuzzleIslandHelper/CutsceneHeart"
 cutsceneHeart.depth = 1
+local spriteNames = {"blue","green","red","tetris"}
 cutsceneHeart.placements =
 {
     {
@@ -16,6 +17,14 @@ cutsceneHeart.placements =
             flag = "greenMiniHeart",
             teleportsPlayer=true
         }
+    }
+}
+cutsceneHeart.fieldInformation =
+{
+    sprite =
+    {
+        options = spriteNames,
+        editable = false
     }
 }
 function cutsceneHeart.texture(room, entity)

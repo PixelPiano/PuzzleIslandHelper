@@ -1,11 +1,13 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using static MonoMod.InlineRT.MonoModRule;
 
 // PuzzleIslandHelper.LabElevator
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -27,29 +29,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Image backGlass;
         private Image frontGlass;
         private Sprite buttonPanel;
+        public Dictionary<int, float> Floors = new();
         private Entity back;
         private Entity front;
         private StoolPickupBarrier Barrier;
-        private SoundSource sfx = new SoundSource("event:/PianoBoy/ElevatorMusic");
+        private SoundSource click;
         private Sprite hover;
         private InvisibleBarrier barrierOne;
         private InvisibleBarrier barrierTwo;
         private InvisibleBarrier barrierThree;
-
-        private int Floors;
+        private static int Clicks;
+        private float animBuffer;
+        public string ElevatorID;
         private int CurrentFloor;
         private List<float> FloorAltitude = new();
-        private Player player;
         public LabElevator(EntityData data, Vector2 offset)
             : base(data.Position + offset, 48, 6, false)
         {
+            ElevatorID = data.Attr("elevatorID");
             counter = 0;
             hover = new Sprite(GFX.Gui, "PuzzleIslandHelper/hover/");
             hover.AddLoop("idle", "digital", 0.1f, 9);
             hover.Add("intro", "digital", 0.07f, "idle");
 
             Tag |= Tags.TransitionUpdate;
-            Floors = data.Nodes.Length;
+            //Floors = data.Nodes.Length;
             List<Vector2> list = new();
             list = data.NodesWithPosition(offset).ToList();
             list.Add(Position);
@@ -64,8 +68,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite sprite = new Sprite(GFX.Gui, "PuzzleIslandHelper/hover/");
             sprite.AddLoop("idle", "digitalC", 0.1f);
             MTexture texture = GFX.Gui["PuzzleIslandHelper/hover/digitalC"];
-            Add(upButton = new DotX3(12, -8, 8, 8, new Vector2(23.5f - 6, -10f), InteractUp));
-            Add(downButton = new DotX3(28, -8, 8, 8, new Vector2(23.5f + 7, -10f), InteractDown));
+            Add(upButton = new DotX3(8, -8, 12, 8, new Vector2(18, -10f), InteractUp));
+            Add(downButton = new DotX3(32, -8, 12, 8, new Vector2(31, -10f), InteractDown));
             upButton.PlayerMustBeFacing = false;
             downButton.PlayerMustBeFacing = false;
             flag = data.Attr("flag");
@@ -74,8 +78,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             moveSpeed = data.Float("moveSpeed");
             moveTime = data.Float("moveTime");
             jitterAmount = data.Float("jitterAmount");
-            Add(sfx);
-            sfx.Pause();
+            Add(click = new SoundSource());
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/labElevator/"));
             doorSprite.AddLoop("idle", "idle", 0.1f);
             doorSprite.Rate = 1.5f;
@@ -91,6 +94,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             //play click sound
+            click.Position = (-Vector2.UnitY * buttonPanel.Height) + new Vector2(up ? 18 : 31, 40);
+            click.UpdateSfxPosition();
+            click.Play("event:/PianoBoy/Machines/ButtonPressC");
+            PianoModule.Session.ButtonsPressed++;
+            Clicks++;
+
+            if (Clicks > 25 && !PianoModule.Session.RestoredPower)
+            {
+                PianoModule.Session.ThisTimeForSure = true;
+            }
+
             if (!PianoModule.Session.RestoredPower)
             {
                 return;
@@ -99,6 +113,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void InteractDown(Player player)
         {
+
             buttonPanel.Play("downPress");
             Interact(player, false);
         }
@@ -113,12 +128,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (counter == 5)
             {
                 counter = 1;
-            }
-            //if (state)
-            if (counter == 1)
-            {
                 MoveToX(Position.X + jitterAmount);
             }
+            //if (state)
             //else
             if (counter == 3)
             {
@@ -127,20 +139,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void SetStartingPosition(Scene scene)
         {
+            if (!PianoModule.Session.RestoredPower)
+            {
+                float initialPosition = TryGetFloorLevel(1);
+                ResetPlatforms(initialPosition);
+                return;
+            }
             Player player = (scene as Level).Tracker.GetEntity<Player>();
             float closest = 100000;
             int index = 0;
-            for (int i = 0; i < FloorAltitude.Count; i++)
+            for (int i = 0; i < Floors.Count; i++)
             {
-                if (MathHelper.Distance(FloorAltitude[i], player.Position.Y) < MathHelper.Distance(closest, player.Position.Y))
+                if (MathHelper.Distance(Floors[i], player.Position.Y) < MathHelper.Distance(closest, player.Position.Y))
                 {
-                    closest = FloorAltitude[i];
+                    closest = Floors[i];
                     index = i;
                 }
             }
             CurrentFloor = index;
             ResetPlatforms(closest);
-            //Position.Y = closest;
         }
         public override void Added(Scene scene)
         {
@@ -153,6 +170,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            animBuffer += Engine.DeltaTime;
             upButton.Enabled = !moving;
             downButton.Enabled = !moving;
             Barrier.Position = Position - Vector2.UnitY * Barrier.Height;
@@ -165,9 +183,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 front.Position = Position;
             }
         }
+        private int TryGetFloor(int floor)
+        {
+            return Floors.ContainsKey(floor) ? floor : CurrentFloor;
+        }
+        private float TryGetFloorLevel(int floor)
+        {
+            return Floors.ContainsKey(floor) ? Floors[floor] : Position.Y;
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+
+
+            //Floors = data.Nodes.Length;
+            List<ElevatorLevel> list = new();
+            foreach (ElevatorLevel floor in scene.Tracker.GetEntities<ElevatorLevel>())
+            {
+                if (ElevatorID == floor.ElevatorID)
+                {
+                    if (!Floors.ContainsKey(floor.Floor))
+                    {
+                        Floors.Add(floor.Floor, floor.Position.Y);
+                    }
+                }
+            }
+            list = list.OrderBy(item => item.Floor).ToList();
+            Floors.OrderBy(item => item.Key).ToList();
+
+
+            foreach (ElevatorLevel v in list)
+            {
+                FloorAltitude.Add(v.Y);
+            }
+            CurrentFloor = TryGetFloor(1);
             scene.Add(back = new Entity(Position));
 
 
@@ -184,22 +233,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             back.Add(backGlass);
             buttonPanel = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/LabElevator/");
             buttonPanel.AddLoop("idle", "interact", 0.1f);
-            buttonPanel.Add("upPress", "interactUp", 0.6f, "idle");
-            buttonPanel.Add("downPress", "interactDown", 0.6f, "idle");
+            buttonPanel.Add("upPress", "interactUp", 0.2f, "idle");
+            buttonPanel.Add("downPress", "interactDown", 0.2f, "idle");
             buttonPanel.Y -= buttonPanel.Height;
             buttonPanel.Play("idle");
+
+            buttonPanel.OnChange = (string s1, string s2) =>
+                {
+                    animBuffer = 0;
+                };
             back.Add(buttonPanel);
             front.Add(frontGlass);
             doorSprite.Play("idle");
-
-            /*            if (SceneAs<Level>().Session.GetFlag(flag))
-                        {
-                            ResetPlatforms(startPosition.Y);
-                        }
-                        else
-                        {
-                            ResetPlatforms(endPosition.Y);
-                        }*/
             scene.Add(Barrier = new StoolPickupBarrier(Position, (int)Width, (int)frontGlass.Height, 1, false, true, false));
             Barrier.Tag = Tag;
             Barrier.Depth = 9001;
@@ -235,8 +280,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Barrier.Opacity = 1;
                 yield return Engine.DeltaTime * 2;
 
-                bool AtEdge = up ? CurrentFloor - 1 < 0 : CurrentFloor + 1 >= FloorAltitude.Count;
-                float Altitude = AtEdge ? Position.Y : up ? FloorAltitude[CurrentFloor - 1] : FloorAltitude[CurrentFloor + 1];
+                bool AtEdge = up ? CurrentFloor - 1 < 0 : CurrentFloor + 1 >= Floors.Count;
+                float Altitude = AtEdge ? Position.Y : up ? Floors[CurrentFloor - 1] : Floors[CurrentFloor + 1];
 
                 if (!AtEdge)
                 {

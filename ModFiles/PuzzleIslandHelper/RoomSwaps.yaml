@@ -1,0 +1,5 @@
+Sets:
+    - OgRoom: 'room1'
+      SecondRoom: 'room2'
+      flag: 'swapRooms'
+  

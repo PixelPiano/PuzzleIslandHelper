@@ -258,7 +258,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Speed = Vector2.Zero;
             }
-            offset = tiles.Position;
+            offset = newTiles.Position;
             timer = moving && timer > 0 ? timer - Engine.DeltaTime : 0;
             switch (detectMode)
             {
@@ -293,7 +293,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (Valid && !moving && !(MoveMeth == MoveMethod.OnDashed))
             {
-                Add(new Coroutine(Sequence()));
+                Add(new Coroutine(FallSequence()));
             }
             */
         }

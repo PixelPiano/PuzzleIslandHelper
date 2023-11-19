@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -39,7 +40,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             flag3 = data.Attr("flagThree");
 
             Add(Lights);
-            Add(Talk = new TalkComponent(new Rectangle(0,0,(int)Panel.Width,(int)Panel.Height),new Vector2(Panel.Width/2,0),Interact));
+            Add(Talk = new DotX3(0,0,Panel.Width,Panel.Height,new Vector2(Panel.Width/2,0),Interact));
         }
         private int GetSetFlags(Level level)
         {
@@ -77,6 +78,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private void Interact(Player player)
         {
             //play click sound
+            Audio.Play("event:/PianoBoy/Machines/ButtonPressA",Position + Panel.Position);
             if(State == 3)
             {
                 Lights.Visible = false;

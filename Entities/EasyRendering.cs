@@ -4,8 +4,8 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Runtime.InteropServices;
-using Color = Microsoft.Xna.Framework.Color;
 using FrostHelper.ModIntegration;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's namespace
 {
@@ -28,7 +28,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             Console.WriteLine("Creating RenderTarget \"" + Name + "\"");
             return VirtualContent.CreateRenderTarget(Name, Width, Height);
         }
-        public static VirtualRenderTarget SimpleApply(this VirtualRenderTarget target,RenderTarget2D source, Effect eff)
+        public static VirtualRenderTarget SimpleApply(this VirtualRenderTarget target, RenderTarget2D source, Effect eff)
         {
             eff.ApplyStandardParameters();
             Engine.Instance.GraphicsDevice.SetRenderTarget(target);
@@ -92,6 +92,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             obj.MaskToObject(MaskRenderTarget);
             return obj;
         }
+        /// <summary>  
+        /// Returns a render target with masked content
+        /// </summary>  
+        public static VirtualRenderTarget DrawThenMask(this VirtualRenderTarget obj, Action MaskDraw, Action Drawing, Matrix matrix, Effect effect = null)
+        {
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(MaskRenderTarget);
+            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+            MaskRenderTarget.SetRenderMask(MaskDraw, matrix);
+            obj.DrawToObject(Drawing, matrix, true, effect);
+
+            obj.MaskToObject(MaskRenderTarget);
+            return obj;
+        }
         public static VirtualRenderTarget SetRenderMask(this VirtualRenderTarget RenderTarget, Action action, Matrix matrix)
         {
             Engine.Graphics.GraphicsDevice.SetRenderTarget(RenderTarget);
@@ -130,7 +143,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
     }
     public class EasyRendering : Entity
     {
-
+        public override void Render()
+        {
+            base.Render();
+        }
         //All methods assume Draw.SpriteBatch.End() was called beforehand
         public static readonly BlendState AlphaMaskBlendState = new()
         {
@@ -182,7 +198,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             Draw.SpriteBatch.Draw(obj, l.Camera.Position, col);
         }
         /// <summary>  
-        /// Draws a sprite to the specified target  
+        /// Draws a Texture to the specified target  
         /// </summary>  
         public static VirtualRenderTarget SetRenderMask(VirtualRenderTarget RenderTarget, Sprite sprite, Level l)
         {

@@ -6,7 +6,7 @@ colorgradeOverlay.defaultData =
 {
    colorgradeFlag = "colorgrade_overlay",
    colorgradeWhenTrue = "golden",
-   colorgradeWhenFalse = "default",
+   colorgradeWhenFalse = "none",
    fadeOnFlagSwitch = true,
    timeModWhenTrue = 0.5,
    timeModWhenFalse = 1

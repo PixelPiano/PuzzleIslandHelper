@@ -10,12 +10,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [TrackedAs(typeof(Cobweb))]
     public class FloatingCobweb : Cobweb
     {
-        private DynamicData cD;
+        private DynamicData cobwebData;
         private Color fColor;
         private string hex;
         public FloatingCobweb(EntityData data, Vector2 offset) : base(data, offset)
         {
-            cD = DynamicData.For(this);
+            cobwebData = DynamicData.For(this);
             hex = data.Attr("color");
             fColor = Calc.HexToColor(hex);
         }
@@ -28,12 +28,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 areaData.CobwebColor = OverrideColors;
             }
-            cD.Set("color", fColor);
-            cD.Set("edge",Color.Lerp(cD.Get<Color>("color"), Calc.HexToColor("0f0e17"), 0.2f));
+            
+            cobwebData.Set("color", fColor);
+            
+            cobwebData.Set("edge",Color.Lerp(cobwebData.Get<Color>("color"), Calc.HexToColor("0f0e17"), 0.2f));
             areaData.CobwebColor = cobwebColor;
         }
 
-        [MonoModLinkTo("Celeste.Entity", "System.Void Added(Monocle.Scene)")] //Tells the entity to use Celeste.Entity's Added instead of Celeste.Cobweb's Added 
+        [MonoModLinkTo("Celeste.Entity", "System.Void BeenAdded(Monocle.Scene)")] //Tells the entity to use Celeste.Entity's BeenAdded instead of Celeste.Cobweb's BeenAdded 
         public void base_Added(Scene scene)
         {
         }

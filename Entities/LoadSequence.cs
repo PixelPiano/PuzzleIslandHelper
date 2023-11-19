@@ -84,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
 
-            //Reset the sprite animation if button is pressed right after the window is drawn
+            //Reset the Texture animation if button is pressed right after the window is drawn
             if (!Initialize && ButtonPressed)
             {
                 startTimer2 = false;
@@ -156,7 +156,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Render();
             if (Window.Drawing)
             {
-                //Draw border again to cover up part of sprite
+                //Draw border again to cover up part of Texture
                 Draw.HollowRect(Window.DrawPosition, (int)Window.CaseWidth, (int)Window.CaseHeight, Color.Gray);
 
                 //If player has item and Interface is in loading sequence

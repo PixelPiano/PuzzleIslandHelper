@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Windows.Media.Imaging;
 using System.Xml;
 using Celeste.Mod;
+using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
 
@@ -13,15 +15,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     /*
      * This literally only adds a color parameter to the draw calls and nothing else. I'm not experienced enough to know how to do this better
+     * 
+     * just kidding this is now future me, i have added an offset feature because i am a gremlin HHEE HEE HOO HOO HA
      */
     public class FancyTextExt
     {
         public class Node
         {
         }
-
         public class Char : Node
         {
+            public Vector2 Offset;
+
             public int Index;
 
             public Vector2 LastPosition;
@@ -56,6 +61,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             public bool IsPunctuation;
 
+            public float Width;
+
             public void Draw(PixelFont font, float baseSize, Vector2 position, Vector2 scale, float alpha, Color color)
             {
                 Color _color = Color;
@@ -76,14 +83,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 PixelFontSize pixelFontSize = font.Get(baseSize * Math.Max(vector.X, vector.Y));
                 PixelFontCharacter pixelFontCharacter = pixelFontSize.Get(Character);
                 vector *= baseSize / pixelFontSize.Size;
-                position.X += Position * scale.X;
+                position.X += (Position) * scale.X;
+                position += Offset * scale;
                 zero += (Shake ? (new Vector2(-1 + Calc.Random.Next(3), -1 + Calc.Random.Next(3)) * 2f) : Vector2.Zero);
                 zero += (Wave ? new Vector2(0f, (float)Math.Sin((float)Index * 0.25f + Engine.Scene.RawTimeActive * 8f) * 4f) : Vector2.Zero);
                 zero.X += pixelFontCharacter.XOffset;
                 zero.Y += (float)pixelFontCharacter.YOffset + (-8f * (1f - Fade) + YOffset * Fade);
                 pixelFontCharacter.Texture.Draw(position + zero * vector, Vector2.Zero, color * Fade * alpha, vector, Rotation);
+
                 LastPosition = position + zero * vector;
-                }
+            }
         }
 
         public class Portrait : Node
@@ -160,7 +169,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public class Text
         {
+
             public List<Node> Nodes;
+
+
 
             public int Lines;
 
@@ -177,6 +189,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public int GetCharactersOnPage(int start)
             {
                 int num = 0;
+
                 for (int i = start; i < Count; i++)
                 {
                     if (Nodes[i] is Char)
@@ -225,6 +238,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 int num2 = 0;
                 float num3 = 0f;
                 float num4 = 0f;
+
                 PixelFontSize pixelFontSize = Font.Get(BaseSize);
                 for (int i = start; i < num; i++)
                 {
@@ -264,17 +278,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         position.Y += (float)pixelFontSize.LineHeight * num3 * scale.Y;
                         num3 = 0f;
                     }
-
                     if (Nodes[j] is Char)
                     {
                         Char @char = Nodes[j] as Char;
+
                         @char.Draw(Font, BaseSize, position, scale, alpha, color);
                         num3 = Math.Max(num3, @char.Scale);
                     }
                 }
             }
 
-            public void DrawJustifyPerLine(Vector2 position, Vector2 justify, Vector2 scale, float alpha, Color color, int start = 0, int end = int.MaxValue)
+            public void DrawJustifyPerLine(Vector2 position, Vector2 justify, Vector2 scale, float alpha, Color color, Vector2 offset, int start = 0, int end = int.MaxValue)
             {
                 int num = Math.Min(Nodes.Count, end);
                 float num2 = 0f;
@@ -321,7 +335,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         Char @char = Nodes[j] as Char;
                         Vector2 vector = -justify * new Vector2(@char.LineWidth, num3 * (float)pixelFontSize.LineHeight) * scale;
-                        @char.Draw(Font, BaseSize, position + vector, scale, alpha, color);
+                        @char.Draw(Font, BaseSize, position + vector + offset, scale, alpha, color);
                         num2 = Math.Max(num2, @char.Scale);
                     }
                 }
@@ -360,7 +374,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private int currentPage;
 
-        private float currentPosition;
+        public float currentPosition;
 
         private Color currentColor;
 
@@ -378,12 +392,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private int currentCharIndex;
 
-        public static Text Parse(string text, int maxLineWidth, int linesPerPage, float startFade = 1f, Color? defaultColor = null, Language language = null)
+        private Vector2 offset;
+        private Vector2 currentOffset = Vector2.Zero;
+
+        private bool useOffset;
+        public static Text Parse(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade = 1f, Color? defaultColor = null, Language language = null)
         {
-            return new FancyTextExt(text, maxLineWidth, linesPerPage, startFade, defaultColor.HasValue ? defaultColor.Value : DefaultColor, language).Parse();
+            return new FancyTextExt(text, maxLineWidth, linesPerPage, offset, startFade, defaultColor.HasValue ? defaultColor.Value : DefaultColor, language).Parse();
         }
 
-        private FancyTextExt(string text, int maxLineWidth, int linesPerPage, float startFade, Color defaultColor, Language language)
+        private FancyTextExt(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade, Color defaultColor, Language language)
         {
             this.text = text;
             this.maxLineWidth = maxLineWidth;
@@ -397,6 +415,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             this.language = language;
             group.Nodes = new List<Node>();
+            this.offset = offset;
             group.Font = (font = Fonts.Get(language.FontFace));
             group.BaseSize = language.FontFaceSize;
             size = font.Get(group.BaseSize);
@@ -487,7 +506,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                         continue;
                     }
-                    if (text[0] == 'n' && text!="n")
+                    if (text[0] == 'n' && text != "n")
                     {
                         int loops = text[1] - '0';
                         AddNewSegment(loops);
@@ -524,7 +543,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                 continue;
                             }
                     }
-
                     if (text.Equals("/>>"))
                     {
                         currentDelay = 0.01f;
@@ -658,6 +676,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         continue;
                     }
 
+                    if (text.Contains("offset:"))
+                    {
+                        string[] values = text.Substring(text.IndexOf(':') + 1).Split(',');
+                        float x = 0, y = 0;
+                        if (values.Length > 0)
+                        {
+                            x = float.Parse(values[0], CultureInfo.InvariantCulture);
+                        }
+                        if (values.Length > 1)
+                        {
+                            y = float.Parse(values[1], CultureInfo.InvariantCulture);
+                        }
+                        currentOffset = new Vector2(x, y);
+                    }
+                    if (text.Equals("/offset"))
+                    {
+                        currentOffset = Vector2.Zero;
+                        continue;
+                    }
                     if (text.Equals("*"))
                     {
                         currentShake = true;
@@ -669,7 +706,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         currentShake = false;
                         continue;
                     }
-
+                    if (text.Equals("mtRight"))
+                    {
+                        currentOffset.X = offset.X;
+                        continue;
+                    }
+                    if (text.Equals("/mtRight"))
+                    {
+                        currentOffset.X = 0;
+                        useOffset = false;
+                        continue;
+                    }
                     if (text.Equals("~"))
                     {
                         currentWave = true;
@@ -830,9 +877,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private void AddNewSegment(int lines = 1)
         {
             CalcLineWidth();
-            currentLine+=lines;
+            currentLine += lines;
             currentPosition = 0f;
-            group.Lines+=lines;
+            group.Lines += lines;
             if (currentLine > linesPerPage)
             {
                 group.Pages++;
@@ -842,7 +889,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-
                 group.Nodes.Add(new NewSegment(lines));
             }
         }
@@ -915,7 +961,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Shake = currentShake,
                     Impact = currentImpact,
                     Wave = currentWave,
-                    IsPunctuation = (Contains(language.CommaCharacters, word[i]) || Contains(language.PeriodCharacters, word[i]))
+                    IsPunctuation = (Contains(language.CommaCharacters, word[i]) || Contains(language.PeriodCharacters, word[i])),
+                    Offset = currentOffset
                 });
                 currentPosition += (float)pixelFontCharacter.XAdvance * currentScale;
                 if (i < word.Length - 1 && pixelFontCharacter.Kerning.TryGetValue(word[i], out var value))

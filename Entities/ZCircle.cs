@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/ZCircle")]
     [Tracked]
-    public class ZCircle : Entity
+    public class JuiceCleaner : Entity
     {
         public struct DepthPoint
         {
@@ -82,8 +82,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float Eased = 1;
         private float Mult = 1;
 
-        public ZCircle(EntityData data, Vector2 offset) : this(data.Position + offset, data.Float("size"), data.Int("depth"), data.Int("points")) { }
-        public ZCircle(Vector2 Position, float size, int baseDepth, int points) : base(Position)
+        public JuiceCleaner(EntityData data, Vector2 offset) : this(data.Position + offset, data.Float("size"), data.Int("depth"), data.Int("points")) { }
+        public JuiceCleaner(Vector2 Position, float size, int baseDepth, int points) : base(Position)
         {
             Size = size;
             BaseDepth = baseDepth;

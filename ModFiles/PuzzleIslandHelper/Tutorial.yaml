@@ -1,0 +1,42 @@
+Stages:
+  Tutorial A: 
+    Nodes: 
+      - t0, c 
+      - c1, c3
+    Rows: 2
+    Columns: 2
+    GoalX: 1
+    GoalY: 2
+    Direction: up
+  Tutorial B:
+    Nodes:
+      - l, l, l
+      - c2, l, c1
+    Rows: 2
+    Columns: 3
+    GoalX: 2
+    GoalY: 2
+    Direction: up
+  Tutorial C:
+    Nodes:
+      - l, n, l
+      - c2, l, c1
+    Rows: 2
+    Columns: 3
+    GoalX: 2
+    GoalY: 0
+    Direction: down
+  Tutorial D:
+    Nodes:
+      - l(still), c2(danger), c1
+      - c3, c1,         c2
+    Rows: 2
+    Columns: 3
+    GoalX: 3
+    GoalY: 1
+    Direction: left
+StageSequence:
+    - Tutorial A
+    - Tutorial B
+    - Tutorial C
+    - Tutorial D

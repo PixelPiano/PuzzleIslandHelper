@@ -213,7 +213,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator dragPlayer()
         {
-            if (CurrentDirection() != Direction.None) gliderData.Get<Sprite>("sprite").Rotation = arrowSprite.Rotation;
+            if (CurrentDirection() != Direction.None)
+            {
+                if (gliderData.Get<Sprite>("Texutre") is not null)
+                {
+                    gliderData.Get<Sprite>("Texture").Rotation = arrowSprite.Rotation;
+                }
+            }
             Player player = Scene.Tracker.GetEntity<Player>();
             float increment = 0f;
             Vector2 temp = Position;
@@ -293,7 +299,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             IsHorizontal = ((directionA == Direction.Left || directionA == Direction.Right) && flag)
                             || ((directionB == Direction.Left || directionB == Direction.Right) && !flag);
             flag = SceneAs<Level>().Session.GetFlag(sFlag);
-            isOpen = (string)gliderData.Get("sprite.CurrentAnimationID") != "fall" && (string)gliderData.Get("sprite.CurrentAnimationID") != "fallLoop" ? false : true;
+            isOpen = (string)gliderData.Get("Texture.CurrentAnimationID") != "fall" && (string)gliderData.Get("Texture.CurrentAnimationID") != "fallLoop" ? false : true;
 
             if (!inRoutine && wasThrown && !isHeld)
             {
@@ -472,8 +478,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                gliderData.Get<Sprite>("sprite").Scale.Y = Calc.Approach(gliderData.Get<Sprite>("sprite").Scale.Y, Vector2.One.Y, Engine.DeltaTime * 2f);
-                gliderData.Get<Sprite>("sprite").Scale.X = Calc.Approach(gliderData.Get<Sprite>("sprite").Scale.X, (float)Math.Sign(gliderData.Get<Sprite>("sprite").Scale.X) * Vector2.One.X, Engine.DeltaTime * 2f);
+                gliderData.Get<Sprite>("Texture").Scale.Y = Calc.Approach(gliderData.Get<Sprite>("Texture").Scale.Y, Vector2.One.Y, Engine.DeltaTime * 2f);
+                gliderData.Get<Sprite>("Texture").Scale.X = Calc.Approach(gliderData.Get<Sprite>("Texture").Scale.X, (float)Math.Sign(gliderData.Get<Sprite>("Texture").Scale.X) * Vector2.One.X, Engine.DeltaTime * 2f);
                 for (int i = 0; i < 360; i += 30)
                 {
                     particlesBG.Emit(ArrowLoad, 2, new Vector2(arrow.Center.X + Width / 2, arrow.Center.Y + 4), Vector2.One * 2f, i * (MathHelper.Pi / 180f));

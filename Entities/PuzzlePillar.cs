@@ -27,7 +27,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             OnDashCollide = OnDash;
             entity = new Entity(Position);
             entity.Depth = Depth - 1;
-            spriteType = data.Attr("sprite");
+            spriteType = data.Attr("Texture");
             entity.Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/puzzlePillar/"));
             sprite.AddLoop("idle", "crack" + spriteType, 0.1f);
             sprite.Position.Y += 8;
@@ -68,8 +68,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Awake(scene);
             // get some variables from the parent class.
             DynData<ExitBlock> self = new DynData<ExitBlock>(this);
-            tiles = self.Get<TileGrid>("tiles");
-            cutout = self.Get<EffectCutout>("cutout");
+            tiles = self.Get<TileGrid>("newTiles");
+            cutout = self.Get<EffectCutout>("newCutout");
             cutout.Alpha = 1;
         }
 

@@ -1,13 +1,21 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Monocle;
 using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
-        public bool RestoredPower { get; set; }     
+        public EntityID ActiveTransition {get; set;}
+        public BubbleParticleSystem BubbleSystem { get; set; }
+        public float MaxDarkness = 0.5f;
+        public float MinDarkness = 0.05f;
+        public bool ThisTimeForSure { get; set; }
+        public int ButtonsPressed { get; set; }
+        public bool RestoredPower { get; set; }
         public Dictionary<EntityID, LHLData> BrokenLamps { get; set; } = new Dictionary<EntityID, LHLData>();
         public Effect MonitorShader { get; set; }
         public int GlitchBlocks { get; set; }

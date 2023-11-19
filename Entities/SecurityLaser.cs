@@ -249,7 +249,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             #region Finished
             GunState = data.Bool("gunState");
             Timer = data.Float("timer", 1);
-            timeDelay = data.Float("timeDelay", 0);
+            timeDelay = data.Float("WaitTime", 0);
             RespectCollision = data.Bool("respectCollisions", true);
             crossedFlag = data.Attr("flagOnCrossed");
             crossedFlagState = data.Bool("flagOnCrossedState");

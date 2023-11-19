@@ -273,24 +273,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator ExpandingRects()
         {
-            if (ForPuzzle)
-            {
-                yield break;
-            }
-            int spacingMax = 8;
-            Vector2 pos = Position;
-            Color baseColor = Color.Purple;
-            for (int i = 0; i < 4; i++)
-            {
-                ExpandingRect a = new ExpandingRect(pos, Width, Height, baseColor, 5);
-                SceneAs<Level>().Add(a);
+            //expanding rectangles are in fact very annoying and dumb
+            yield break;
+            /*            if (ForPuzzle)
+                        {
+                            yield break;
+                        }
+                        int spacingMax = 8;
+                        Vector2 pos = Position;
+                        Color baseColor = Color.Purple;
+                        for (int i = 0; i < 4; i++)
+                        {
+                            ExpandingRect a = new ExpandingRect(pos, Width, Height, baseColor, 1);
+                            SceneAs<Level>().Add(a);
 
-                for (int j = 0; j < spacingMax; j++)
-                {
-                    yield return null;
-                }
-            }
-            yield return null;
+                            for (int j = 0; j < spacingMax; j++)
+                            {
+                                yield return null;
+                            }
+                        }
+                        yield return null;*/
         }
         public override void Update()
         {
@@ -318,10 +320,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             offset = tiles.Position;
             if (Gentle)
             {
-                foreach (ExpandingRect r in Scene.Tracker.GetEntities<ExpandingRect>())
-                {
-                    r.offset = offset;
-                }
+                /*                foreach (ExpandingRect r in Scene.Tracker.GetEntities<ExpandingRect>())
+                                {
+                                    r.offset = offset;
+                                }*/
+                //no
             }
             timer = moving && timer > 0 ? timer - Engine.DeltaTime : 0;
             switch (detectMode)
@@ -455,11 +458,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 Trigger.Active = false;
             }
-            if (!Gentle || ForPuzzle)
+            if (!ForPuzzle)
             {
                 ImpactSfx();
             }
-            else
+            if (Gentle && !ForPuzzle)
             {
                 Add(new Coroutine(ExpandingRects()));
             }
@@ -482,12 +485,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void DrawRect(float x, float y, float width, float height, int thickness)
         {
-            if (!Gentle)
+            for (int i = 0; i < thickness; i++)
             {
-                for (int i = 0; i < thickness; i++)
-                {
-                    Draw.HollowRect(x + offset.X - i, y + offset.Y - i, width + i * 2, height + i * 2, outlineColor * timer);
-                }
+                Draw.HollowRect(x + offset.X - i, y + offset.Y - i, width + i * 2, height + i * 2, outlineColor * timer);
             }
         }
         public override void Render()
@@ -663,6 +663,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public int CurrentThickness = 1;
         private double Percent;
         public Vector2 offset;
+        private float Rate = 0.5f;
         public ExpandingRect(Vector2 position, float width, float height, Color color, int maxThickness)
         {
             X = position.X;
@@ -690,10 +691,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Update();
             if (Percent < 1f)
             {
-                X--;
-                Y--;
-                Collider.Width += 2;
-                Collider.Height += 2;
+                X -= Rate;
+                Y -= Rate;
+                Collider.Width += Rate * 2;
+                Collider.Height += Rate * 2;
 
                 Percent += Engine.DeltaTime;
                 CurrentThickness = (int)(MaxThickness * (1 - Percent));

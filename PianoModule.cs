@@ -7,6 +7,8 @@ using MonoMod.ModInterop;
 using System;
 using MonoMod.Utils;
 using System.Collections.Generic;
+using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
+using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -21,17 +23,43 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override Type SessionType => typeof(PianoModuleSession);
         public static PianoModuleSession Session => (PianoModuleSession)Instance._Session;
 
+
+        public static StageData StageData { get; set; }
         public PianoModule()
         {
             Instance = this;
+        }
+        public override void PrepareMapDataProcessors(MapDataFixup context)
+        {
+            base.PrepareMapDataProcessors(context);
+
+            context.Add<PianoMapDataProcessor>();
         }
         public override void LoadContent(bool firstLoad)
         {
             base.LoadContent(firstLoad);
 
+
+            PipeSpout.StreamSpritesheet = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streams"];
+            PipeSpout.DissolveTextures[0] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve00"];
+            PipeSpout.DissolveTextures[1] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve01"];
+            PipeSpout.DissolveTextures[2] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve02"];
+            PipeSpout.DissolveTextures[3] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve03"];
+            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/Tutorial", out var asset)
+                && asset.TryDeserialize(out StageData myData))
+            {
+                StageData = myData;
+                foreach (KeyValuePair<string, GeneratorStage> pair in StageData.Stages)
+                {
+                    StageData.Stages[pair.Key].ParseData();
+                }
+            }
+
             BlockGlitch.Shader = ShaderHelper.TryGetEffect("jitter");
             MonitorDecalGroup.Shader = ShaderHelper.TryGetEffect("monitorDecal");
             ArtifactTester.Shader = ShaderHelper.TryGetEffect("static");
+            LCDParallax.Shader = ShaderHelper.TryGetEffect("lcd");
+            LCDParallax.MaskShader = ShaderHelper.TryGetEffect("sineLines");
         }
         private void PlayerHair_Render(On.Celeste.PlayerHair.orig_Render orig, PlayerHair self)
         {
@@ -84,7 +112,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 return new ColorgradeOverlay(child.Attr("colorgradeFlag"),
                                              child.Attr("colorgradeWhenTrue", "oldsite"),
-                                             child.Attr("colorgradeWhenFalse", "default"),
+                                             child.Attr("colorgradeWhenFalse", "none"),
                                              child.AttrBool("fadeOnFlagSwitch"),
                                              child.AttrFloat("timeModWhenTrue"),
                                              child.AttrFloat("timeModWhenFalse"));
@@ -100,6 +128,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
             if (child.Name.Equals("PuzzleIslandHelper/BlockGlitch", StringComparison.OrdinalIgnoreCase))
             {
                 return new BlockGlitch();
+            }
+            if (child.Name.Equals("PuzzleIslandHelper/LCDParallax", StringComparison.OrdinalIgnoreCase))
+            {
+                return new LCDParallax(child);
             }
             return null;
         }
@@ -123,12 +155,18 @@ namespace Celeste.Mod.PuzzleIslandHelper
             BlockGlitch.Load();
             MonitorDecalGroup.Load();
             DeadRefill.Load();
-            // LabHangingLamp.Load();
+            LabTubeLight.Load();
+            StageData.Load();
+            RenderHelper.Load();
+            DebugEater.Load();
+            LCDParallax.Load();
+            //TileseedHelper.Load();
         }
         public override void Unload()
         {
             Everest.Events.Level.OnLoadBackdrop -= Level_OnLoadBackdrop;
             On.Celeste.PlayerHair.Render -= PlayerHair_Render;
+            LabTubeLight.Unload();
             Stool.Unload();
             PuzzleSpotlight.Unload();
             MovingJelly.Unload();
@@ -143,7 +181,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
             BlockGlitch.Unload();
             MonitorDecalGroup.Unload();
             DeadRefill.Unload();
-            // LabHangingLamp.Unload();
+            StageData.Unload();
+            RenderHelper.Unload();
+            DebugEater.Unload();
+            LCDParallax.Unload();
+            //TileseedHelper.Unload();
         }
 
         public override void Initialize()

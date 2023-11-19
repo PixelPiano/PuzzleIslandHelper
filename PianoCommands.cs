@@ -3,12 +3,29 @@ using Celeste;
 using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
 
 public class PianoCommands
 {
+    [Command("pi_generator", "turns the generator on/off")]
+    private static void Generator(bool state = true)
+    {
+        LabGeneratorPuzzle.Completed = state;
+        LabGenerator.Laser = state;
+        if (!state)
+        {
+            LabGeneratorPuzzle.PuzzlesCompleted = 0;
+            PianoModule.StageData.Reset();
+        }
+    }
+    [Command("pi_labpower", "Sets the power state of the lab in Puzzle Island")]
+    private static void LabPower(bool state = true)
+    {
+        PianoModule.Session.RestoredPower = state;
+    }
     [Command("pi_codetester_state", "Sets the state of the artifact code tester machine")]
     private static void TesterState(bool state = true)
     {
@@ -29,11 +46,6 @@ public class PianoCommands
     private static void EscapeState(bool state = true)
     {
         PianoModule.SaveData.Escaped = state;
-    }
-    [Command("pi_setclearance", "Gives or takes away Level 5 clearance from the player")]
-    private static void Clearance(bool state = true)
-    {
-        PianoModule.SaveData.HasClearance = state;
     }
     [Command("pi_printcollect", "Displays how many Puzzle Island collectables the player has")]
     private static void PrintCollectables()
@@ -88,7 +100,7 @@ public class PianoCommands
         }
         PianoModule.SaveData.CollectedIDs.Clear();
     }
-    [Command("pi_art", "Gives or takes away Puzzle Island artifact")]
+    [Command("pi_arti", "Gives or takes away Puzzle Island artifact")]
     private static void SetArtifact(bool state = true)
     {
         PianoModule.SaveData.HasArtifact = state;
@@ -198,6 +210,15 @@ public class PianoCommands
         InvertOverlay.WaitTime = time;
         PianoModule.Session.InvertWaitTime = time;
 
+    }
+    [Command("pi_monitor", "Turns monitors on or off")]
+    private static void SetMonitor(bool state)
+    {
+        SetInvert(state);
+        if (state)
+        {
+            PianoModule.SaveData.ChainedMonitorsActivated.Clear();
+        }
     }
     [Command("pi_setinvert", "Gives or takes away the invert ability")]
     private static void SetInvert(bool state)

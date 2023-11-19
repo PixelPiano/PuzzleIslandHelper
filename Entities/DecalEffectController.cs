@@ -101,7 +101,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (entity.id == id)
                 {
-                    //Add(entity.sprite);
+                    //Add(entity.Texture);
                     entity.sprite.Visible = false;
                     entity.sprite.Play("idle");
                 }

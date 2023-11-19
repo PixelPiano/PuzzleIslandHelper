@@ -4,6 +4,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.ComponentModel;
 using System.Reflection;
 
@@ -38,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private Player player;
         public static bool ForcedState;
         public static bool EnforceState;
-
+        private string prevColorGrade;
 
         private float holdTimer;
         private VirtualButton button;
@@ -49,8 +50,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
             OnTime = timeMod;
             button = (VirtualButton)typeof(Input).GetField("Dash").GetValue(null);
-
         }
+
         private bool CheckScene(Scene scene)
         {
             player = (scene as Level).Tracker.GetEntity<Player>();
@@ -111,7 +112,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
 
             /*            #region GlitchMusic
-                        if (MusicGlitchCutscene && !State)
+                        if (MusicGlitchCutscene && !Laser)
                         {
                             Audio.CurrentMusicEventInstance?.setPitch(Pitch - 0.1f);
                             Audio.MusicVolume = 0.5f;
@@ -133,7 +134,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 if (previousState != State)
                 {
 
-                    (scene as Level).SnapColorGrade(State || (EnforceState && ForcedState) ? "PianoBoy/Inverted" : "default");
+                    (scene as Level).SnapColorGrade(State || (EnforceState && ForcedState) ? "PianoBoy/Inverted" : "none");
 
                     if (State)
                     {
@@ -191,6 +192,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         internal static void Load()
         {
             WaitTime = 1.5f;
+            EnforceState = false;
+            ForcedState = false;
             Everest.Events.Level.OnTransitionTo += Transition;
             On.Celeste.Player.Update += PlayerUpdate;
         }
@@ -263,7 +266,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 invertAudio.stop(STOP_MODE.IMMEDIATE);
             }
-            (scene as Level).SnapColorGrade("default");
+            (scene as Level).SnapColorGrade("none");
             (scene as Level).Session.SetFlag(flag, false);
             Audio.CurrentMusicEventInstance?.setPaused(false);
             State = false;
@@ -308,9 +311,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             Audio.CurrentMusicEventInstance.setTimelinePosition(position);
             yield return null;
         }
-        public override void Added(Scene scene)
+        public override void BeenAdded(Scene scene)
         {
-            base.Added(scene);
+            base.BeenAdded(scene);
             routine = new Coroutine(DistortMusic(loops));
             Add(routine);
             Activated = true;

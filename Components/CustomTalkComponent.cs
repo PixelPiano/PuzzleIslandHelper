@@ -47,18 +47,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     CanHover = true;
                     break;
             }
-            if (type == SpecialType.DotDotDot)
-            {
-                sprite = new Sprite(GFX.Gui, "PuzzleIslandHelper/hover/");
-                sprite.AddLoop("idle", "digitalC", 0.5f);
-                Anim = "idle";
-                UsesSprite = true;
-                Delay = 0.5f;
-                Muted = false;
-                Loop = true;
-                VisibleFromDistance = false;
-                CanHover = false;
-            }
         }
         internal CustomTalkComponent(float x, float y, float width, float height, Vector2 drawAt, Action<Player> onTalk, bool DotDotDot)
         : base(new Rectangle((int)x, (int)y, (int)width, (int)height), drawAt, onTalk, null)
@@ -123,7 +111,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 Entity.Scene.Add(UI = new CustomTalkComponentUI(this));
             }
 
-            Player entity = base.Scene.Tracker.GetEntity<Player>();
+            Player entity = Scene.Tracker.GetEntity<Player>();
             bool flag = disableDelay < 0.05f && entity != null && entity.CollideRect(new Rectangle((int)(base.Entity.X + (float)Bounds.X), (int)(base.Entity.Y + (float)Bounds.Y), Bounds.Width, Bounds.Height)) && entity.OnGround() && entity.Bottom < base.Entity.Y + (float)Bounds.Bottom + 4f && entity.StateMachine.State == 0 && (!PlayerMustBeFacing || Math.Abs(entity.X - base.Entity.X) <= 16f || entity.Facing == (Facings)Math.Sign(base.Entity.X - entity.X)) && (PlayerOver == null || PlayerOver == this);
             if (flag)
             {
@@ -167,7 +155,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             }
 
             UI.Highlighted = flag && hoverTimer > 0.1f;
-            base.Update();
         }
         public class CustomTalkComponentUI : TalkComponentUI
         {
@@ -231,17 +218,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     }
                     fromHighlight = true;
                     MTexture CurrentTexture = Handler.UsesSprite ? Handler.sprite.GetFrame(Handler.sprite.CurrentAnimationID, CurrentFrame) : Handler.Texture;
+
+
                     CurrentTexture.DrawJustified(vector2, new Vector2(0.5f, 1f), color * alpha, (1f - wiggler.Value * 0.5f));
                     if (buffer >= Handler.Delay && Handler.UsesSprite)
                     {
                         if (Handler.Loop)
                         {
-                            CurrentFrame = (CurrentFrame + 1) % Handler.sprite.CurrentAnimationTotalFrames - 1;
+                            int newFrame = (CurrentFrame + 1) % (Handler.sprite.CurrentAnimationTotalFrames - 1);
+                            CurrentFrame = newFrame;
                         }
                         else
                         {
                             CurrentFrame = Calc.Clamp(CurrentFrame + 1, 0, Handler.sprite.CurrentAnimationTotalFrames - 1);
                         }
+
                         buffer = 0;
                     }
                 }

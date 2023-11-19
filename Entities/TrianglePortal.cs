@@ -55,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private static VirtualRenderTarget _PortalObject;
         private static VirtualRenderTarget _ParticleObject;
         private static VirtualRenderTarget _Debug;
-        public static VirtualRenderTarget Debug => _Debug ??= VirtualContent.CreateRenderTarget("Debug", 320, 180);
+        public static VirtualRenderTarget Debug => _Debug ??= VirtualContent.CreateRenderTarget("Target", 320, 180);
 
         public static VirtualRenderTarget PortalMask => _PortalMask ??= VirtualContent.CreateRenderTarget("PortalMask", 320, 180);
         public static VirtualRenderTarget PortalObject => _PortalObject ??= VirtualContent.CreateRenderTarget("PortalObject", 320, 180);

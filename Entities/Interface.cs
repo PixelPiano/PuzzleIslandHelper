@@ -452,7 +452,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     DraggingWindow = false;
                     SetDragOffset = false;
-                    cursorSprite.Play("idle"); //revert cursor sprite if not being clicked
+                    cursorSprite.Play("idle"); //revert cursor Texture if not being clicked
                 }
                 if (DraggingWindow)
                 {
@@ -639,7 +639,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     iconPosition += new Vector2(Icons[i].Width + spacing.X, 0);
                 }
             }
-            whirringSfx = Audio.Play("event:/PianoBoy/interface/Whirring", Position, "Computer State", 0);
+            whirringSfx = Audio.Play("event:/PianoBoy/interface/Whirring", Position, "Computer Laser", 0);
             #endregion
             BorderSprite.Visible = true;
             MonitorSprite.Play("boot");
@@ -763,7 +763,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Icons[j].Sprite.Visible = false;
             }
-            whirringSfx.setParameterValue("Computer State", 1);
+            whirringSfx.setParameterValue("Computer Laser", 1);
             MonitorSprite.Play("turnOff");
             Color _color = BorderSprite.Color;
             while (MonitorSprite.CurrentAnimationID == "turnOff")

@@ -13,10 +13,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class CustomFlagExitBlock : ExitBlock
     {
-        private TileGrid tiles;
+        private TileGrid newTiles;
         public bool forceChange = false;
         public bool forceState = false;
-        private EffectCutout cutout;
+        private EffectCutout newCutout;
         private readonly string flag;
         private readonly bool inverted;
         private readonly bool playSound;
@@ -60,13 +60,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             // get some variables from the parent class.
             DynData<ExitBlock> self = new DynData<ExitBlock>(this);
-            tiles = self.Get<TileGrid>("tiles");
-            cutout = self.Get<EffectCutout>("cutout");
+            newTiles = self.Get<TileGrid>("newTiles");
+            newCutout = self.Get<EffectCutout>("newCutout");
 
             // hide the block if the flag is initially inactive.
             if (SceneAs<Level>().Session.GetFlag(flag) == inverted)
             {
-                cutout.Alpha = tiles.Alpha = 0f;
+                newCutout.Alpha = newTiles.Alpha = 0f;
                 Collidable = false;
             }
         }
@@ -95,7 +95,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
             // fade the block in or out depending on its enabled status.
-            cutout.Alpha = tiles.Alpha = Calc.Approach(tiles.Alpha, Collidable ? 1f : 0f, instant ? 1f : Engine.DeltaTime);
+            newCutout.Alpha = newTiles.Alpha = Calc.Approach(newTiles.Alpha, Collidable ? 1f : 0f, instant ? 1f : Engine.DeltaTime);
         }
         private IEnumerator GlitchIncrement(bool state)
         {
@@ -112,7 +112,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
             }
             inRoutine = false;
-            tiles.Visible = state;
+            newTiles.Visible = state;
         }
         public override void Render()
         {

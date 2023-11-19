@@ -2,6 +2,8 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System.Collections;
+using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -9,22 +11,146 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [TrackedAs(typeof(Water))]
     public class CustomWater : Water
     {
-        private string displacementState;
-
-        private bool invertFlag;
+        private string flag;
+        private bool inverted;
+        public bool State
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(flag))
+                {
+                    return true;
+                }
+                bool flagState = SceneAs<Level>().Session.GetFlag(flag);
+                return inverted ? !flagState : flagState;
+            }
+        }
 
         public CustomWater(EntityData data, Vector2 offset)
-            : base(data.Position + offset, data.Bool("topSurface",true), data.Bool("hasBottom"), data.Width, data.Height)
+            : base(data.Position + offset, data.Bool("topSurface", true), data.Bool("hasBottom"), data.Width, data.Height)
         {
             Get<DisplacementRenderHook>().RenderDisplacement = RenderDisplacementFlagged;
-            displacementState = data.Attr("displacementFlag");
-            invertFlag = data.Bool("invertFlag");
+            inverted = data.Bool("inverted");
+            flag = data.Attr("flag");
         }
-       
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            CheckState();
+        }
 
+        public override void Update()
+        {
+            if (!CheckState())
+            {
+                return;
+            }
+            foreach (Surface surface in Surfaces)
+            {
+                surface.Update();
+            }
+
+            foreach (WaterInteraction component in base.Scene.Tracker.GetComponents<WaterInteraction>())
+            {
+                Rectangle bounds = component.Bounds;
+                bool flag = contains.Contains(component);
+                bool flag2 = CollideRect(bounds);
+                if (flag != flag2)
+                {
+                    if ((float)bounds.Center.Y <= base.Center.Y && TopSurface != null)
+                    {
+                        TopSurface.DoRipple(bounds.Center.ToVector2(), 1f);
+                    }
+                    else if ((float)bounds.Center.Y > base.Center.Y && BottomSurface != null)
+                    {
+                        BottomSurface.DoRipple(bounds.Center.ToVector2(), 1f);
+                    }
+
+                    bool flag3 = component.IsDashing();
+                    int num = (((float)bounds.Center.Y < base.Center.Y && !base.Scene.CollideCheck<Solid>(bounds)) ? 1 : 0);
+                    if (flag)
+                    {
+                        if (flag3)
+                        {
+                            Audio.Play("event:/char/madeline/water_dash_out", bounds.Center.ToVector2(), "deep", num);
+                        }
+                        else
+                        {
+                            Audio.Play("event:/char/madeline/water_out", bounds.Center.ToVector2(), "deep", num);
+                        }
+
+                        component.DrippingTimer = 2f;
+                    }
+                    else
+                    {
+                        if (flag3 && num == 1)
+                        {
+                            Audio.Play("event:/char/madeline/water_dash_in", bounds.Center.ToVector2(), "deep", num);
+                        }
+                        else
+                        {
+                            Audio.Play("event:/char/madeline/water_in", bounds.Center.ToVector2(), "deep", num);
+                        }
+
+                        component.DrippingTimer = 0f;
+                    }
+
+                    if (flag)
+                    {
+                        contains.Remove(component);
+                    }
+                    else
+                    {
+                        contains.Add(component);
+                    }
+                }
+
+                if (BottomSurface == null)
+                {
+                    continue;
+                }
+
+                Entity entity = component.Entity;
+                if (!(entity is Player))
+                {
+                    continue;
+                }
+
+                if (flag2 && entity.Y > base.Bottom - 8f)
+                {
+                    if (playerBottomTension == null)
+                    {
+                        playerBottomTension = BottomSurface.SetTension(entity.Position, 0f);
+                    }
+
+                    playerBottomTension.Position = BottomSurface.GetPointAlong(entity.Position);
+                    playerBottomTension.Strength = Calc.ClampedMap(entity.Y, base.Bottom - 8f, base.Bottom + 4f);
+                }
+                else if (playerBottomTension != null)
+                {
+                    BottomSurface.RemoveTension(playerBottomTension);
+                    playerBottomTension = null;
+                }
+            }
+        }
+        private bool CheckState()
+        {
+            bool output = State;
+            if (output)
+            {
+                Visible = true;
+                Collidable = true;
+            }
+            else
+            {
+                Visible = false;
+                Collidable = false;
+            }
+            return output;
+        }
         public void RenderDisplacementFlagged()
         {
-            if (SceneAs<Level>().Session.GetFlag(displacementState))
+            if (State)
             {
                 RenderDisplacement();
             }

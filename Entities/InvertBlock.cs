@@ -180,7 +180,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
 
             #region DrawToObject
-            // EasyRendering.DrawToObject(InvertTiles, tiles.Render, l,true);
+            // EasyRendering.DrawToObject(InvertTiles, newTiles.Render, l,true);
             Engine.Graphics.GraphicsDevice.SetRenderTarget(InvertTiles);
             Engine.Graphics.GraphicsDevice.Clear(State ? Color.White : Color.Transparent);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, State ? Inverter : BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);

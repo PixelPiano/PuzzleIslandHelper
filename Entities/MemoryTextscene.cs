@@ -1,13 +1,11 @@
 using Celeste.Mod.Entities;
-using ExtendedVariants.Variants.Vanilla;
+using FMOD;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -15,220 +13,73 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class MemoryTextscene : Entity
     {
+        private const int XOffset = 1920 / 16;
+        private const int MaxLineWidth = 1920 / 2 - XOffset;
+        private const string fontName = "pixelary";
+
         private static readonly Dictionary<string, List<string>> fontPaths;
         static MemoryTextscene()
         {
-            // Fonts.paths is private static and never instantiated besides in the static constructor, so we only need to get the reference to it once.
             fontPaths = (Dictionary<string, List<string>>)typeof(Fonts).GetField("paths", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
         }
-        private string text;
-        private Vector2 LastPosition;
-        private bool Waiting;
-        private bool Continue;
-        private Entity ArrowEntity;
-        private Sprite Arrow;
-        private float ArrowColorLerp;
-        private Level level;
-        private float SolidOpacity;
-        private Vector2 ArrowPosition;
-        private float TextOpacity = 1;
-        private FancyTextExt.Text activeText;
-        private const string fontName = "alarm clock";
-        private const int XOffset = 1920 / 16;
-        private const int MaxLineWidth = 1920 - (XOffset * 2);
 
+        private int CurrentLine = 1;
+        private int CurrentSegment;
         private int CurrentNode;
-        private readonly VirtualRenderTarget Target = VirtualContent.CreateRenderTarget("MemoryTextscene", 1920, 1080);
-        public MemoryTextscene(Vector2 Position)
-            : base(Position)
+        private int CurrentID;
+
+
+        private float SolidOpacity;
+        private float TextOpacity = 1;
+        private float LineSpace;
+        private float SegmentSpace;
+        private float _timer;
+        private const float _timerLimit = 0.6f;
+
+
+        private string[] DialogIDs;
+
+        private bool Waiting;
+        private bool _visible;
+        private bool _forceHide;
+        private Vector2 _position;
+        private FancyTextExt.Text FText;
+
+        public MemoryTextscene(string dialogID, float segmentSpace = -1, float lineSpace = -1) : this(segmentSpace, lineSpace, dialogID) { }
+        public MemoryTextscene(EntityData data, Vector2 offset) : base(data.Position + offset) { }
+        public MemoryTextscene(float segmentSpace, float lineSpace, params string[] dialogIDs) : base(Vector2.Zero)
         {
             Tag |= TagsExt.SubHUD;
             Depth = -1000001;
-            Arrow = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/memoryTextscene/");
-            Arrow.AddLoop("idle", "arrow", 0.1f);
-            Arrow.Play("idle");
-            Arrow.Visible = false;
-            Arrow.Color = Color.White * 0;
-
-            Add(new BeforeRenderHook(BeforeRender));
+            DialogIDs = dialogIDs;
+            SegmentSpace = segmentSpace;
+            LineSpace = lineSpace;
         }
-
-        public MemoryTextscene(EntityData data, Vector2 offset)
-            : this(data.Position + offset)
-        { }
+        private void LoadText(int maxLineWidth, int linesPerPage, Vector2 offset)
+        {
+            FText = FancyTextExt.Parse(Dialog.Get(DialogIDs[CurrentID]), maxLineWidth, linesPerPage, offset);
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            level = scene as Level;
-            activeText = FancyTextExt.Parse(Dialog.Get("TEXT6"), MaxLineWidth, 16);
+            _forceHide = true;
+            LoadText(MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
+            if (SegmentSpace == -1)
+            {
+                SegmentSpace = FText.BaseSize;
+            }
+            if (LineSpace == -1)
+            {
+                LineSpace = FText.BaseSize;
+            }
             Add(new Coroutine(Cutscene()));
         }
 
-        public override void Update()
+        public override void Added(Scene scene)
         {
-            base.Update();
-            if (Waiting)
-            {
-                if (ArrowColorLerp < 1)
-                {
-                    ArrowColorLerp += Engine.DeltaTime;
-                }
-                if (Input.DashPressed)
-                {
-                    Waiting = false;
-                }
-            }
-            else if (ArrowColorLerp > 0)
-            {
-                ArrowColorLerp -= Engine.DeltaTime;
-            }
-
-
-            Arrow.Color *= ArrowColorLerp;
+            base.Added(scene);
+            //ensureCustomFontIsLoaded();
         }
-
-        private IEnumerator Cutscene()
-        {
-            for (float i = 0; i < 1f; i += Engine.DeltaTime)
-            {
-                SolidOpacity = Calc.LerpClamp(0, 0.4f, i);
-                yield return null;
-            }
-
-            while (CurrentNode < activeText.Nodes.Count)
-            {
-
-                for (int i = 0; i < activeText.Nodes.Count; i++)
-                {
-                    FancyTextExt.Node Node = activeText.Nodes[i];
-                    CurrentNode = i + 1;
-                    if (Node is FancyTextExt.Char)
-                    {
-                        LastPosition = (Node as FancyTextExt.Char).LastPosition;
-                        yield return (Node as FancyTextExt.Char).Delay * 1.5f;
-                    }
-                    if (Node is FancyTextExt.NewSegment)
-                    {
-                        CurrentNode += (Node as FancyTextExt.NewSegment).Lines - 1;
-                        level.Add(ArrowEntity = new Entity(LastPosition));
-                        ArrowEntity.Add(Arrow);
-                        
-                        Arrow.Scale = Vector2.One * 6;
-                        Tween ArrowTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineOut,0.8f);
-                        ArrowTween.OnUpdate = (Tween t) =>
-                        {
-                            ArrowEntity.Position.X = LastPosition.X + Arrow.Width + 4;
-                            ArrowEntity.Position.Y = LastPosition.Y - 8 * t.Eased;
-                        };
-                        Add(ArrowTween);
-                        ArrowTween.Start();
-                        Waiting = true;
-
-                        Arrow.Visible = true;
-                        while (Waiting)
-                        {
-                            yield return null;
-                        }
-                        while(ArrowColorLerp > 0)
-                        {
-                            yield return null;
-                        }
-                        ArrowTween.Stop();
-                        Continue = false;
-                    }
-                }
-                yield return null;
-            }
-            yield return 3;
-            for (float i = 0; i < 1f; i += Engine.DeltaTime)
-            {
-                SolidOpacity = Calc.LerpClamp(0.4f, 0, i);
-                TextOpacity = Calc.LerpClamp(1, 0, i);
-                yield return null;
-            }
-            SolidOpacity = 0;
-            yield return null;
-        }
-        /*        static List<string> WrapText(string text, double pixels)
-                {
-                    string[] originalLines = text.Split(new string[] { " " },
-                        StringSplitOptions.None);
-
-                    List<string> wrappedLines = new List<string>();
-
-                    StringBuilder actualLine = new StringBuilder();
-                    double actualWidth = 0;
-
-                    foreach (string item in originalLines)
-                    {
-                        actualLine.Append(item + " ");
-                        actualWidth += ActiveFont.Measure(item).X * 2;
-
-                        if (actualWidth > pixels || item == "{n}")
-                        {
-                            wrappedLines.Add(actualLine.ToString());
-                            actualLine.Clear();
-                            actualWidth = 0;
-                        }
-                    }
-
-                    if (actualLine.Length > 0)
-                        wrappedLines.Add(actualLine.ToString());
-
-                    return wrappedLines;
-                }*/
-
-        private void BeforeRender()
-        {
-            EasyRendering.DrawToObject(Target, Drawing, level, true, true);
-        }
-        private void DrawOutline(Vector2 Position, int stroke, Vector2 Scale, float alpha = 1)
-        {
-
-            for (int i = 1; i <= stroke; i++)
-            {
-                Vector2 offset = Vector2.UnitX * i;
-
-                activeText.Draw(Position + offset, Vector2.Zero, Scale, alpha, Color.Black, 0, CurrentNode);
-
-                offset = -Vector2.UnitX * i;
-
-                activeText.Draw(Position + offset, Vector2.Zero, Scale, alpha, Color.Black, 0, CurrentNode);
-
-                offset = Vector2.UnitY * i;
-
-                activeText.Draw(Position + offset, Vector2.Zero, Scale, alpha, Color.Black, 0, CurrentNode);
-
-                offset = -Vector2.UnitY * i;
-
-                activeText.Draw(Position + offset, Vector2.Zero, Scale, alpha, Color.Black, 0, CurrentNode);
-            }
-
-            activeText.Draw(Position, Vector2.Zero, Scale, 1, Color.White, 0, CurrentNode);
-        }
-        private void Drawing()
-        {
-            /*
-                        List<string> lines = Regex.Split(Dialog.Clean("TEXT6"), "{n}", RegexOptions.None).ToList();
-                        string text = Dialog.Clean("TEXT6");
-                        List<string> lines = WrapText(text, MaxLineWidth);
-                        for (int i = 0; i < lines.Count; i++)
-                        {
-                            Vector2 Position = new Vector2(0, XOffset + 48 * i);
-                            ActiveFont.DrawOutline(lines[i], Position, Vector2.Zero, Vector2.One, Color.White, 1, Color.Black);
-                        }*/
-            Vector2 Position = new Vector2(XOffset, XOffset);
-            DrawOutline(Position, 6, Vector2.One, 2);
-
-
-        }
-        public override void Render()
-        {
-            base.Render();
-            Draw.Rect(0, 0, 1920, 1080, Color.Black * SolidOpacity);
-            Draw.SpriteBatch.Draw(Target, Vector2.Zero, Color.White * TextOpacity);
-        }
-
         private void ensureCustomFontIsLoaded()
         {
             if (Fonts.Get(fontName) == null)
@@ -237,7 +88,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (!fontPaths.ContainsKey(fontName))
                 {
                     // the font isn't in the list... so we need to list fonts again first.
-                    Logger.Log(LogLevel.Warn, "PuzzleIslandHelper/EscapeTimer", $"We need to list fonts again, {fontName} does not exist!");
+                    Logger.Log(LogLevel.Warn, "PuzzleIslandHelper/MemoryTextscene", $"We need to list fonts again, {fontName} does not exist!");
                     Fonts.Prepare();
                 }
 
@@ -245,7 +96,178 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Engine.Scene.Add(new FontHolderEntity());
             }
         }
-        // a small entity that just ensures the font loaded by the timer unloads upon leaving the map.
+
+        #region Routines
+        private IEnumerator Cutscene()
+        {
+            _visible = false;
+            bool startOfNewSegment = false;
+            Level level = SceneAs<Level>();
+            Player player = level.Tracker.GetEntity<Player>();
+            if (player is not null)
+            {
+                player.StateMachine.State = Player.StDummy;
+            }
+            for (float i = 0; i < 1f; i += Engine.DeltaTime)
+            {
+                SolidOpacity = Calc.LerpClamp(0, 0.4f, i);
+                yield return null;
+            }
+            yield return 1;
+            _forceHide = false;
+            _timer = 0;
+            _visible = true;
+
+
+            //start scrolling text
+            for (int k = 0; k < DialogIDs.Length; k++)
+            {
+                while (CurrentNode < FText.Nodes.Count)
+                {
+                    _visible = true;
+                    for (int i = 0; i < FText.Nodes.Count; i++)
+                    {
+                        if (startOfNewSegment)
+                        {
+                            startOfNewSegment = false;
+                            _forceHide = false;
+                        }
+                        float _ypos = (CurrentLine * LineSpace) + (CurrentSegment * SegmentSpace) + XOffset - (FText.BaseSize / 8);
+
+                        FancyTextExt.Node Node = FText.Nodes[i];
+                        CurrentNode = i + 1;
+                        if (Node is FancyTextExt.Char c)
+                        {
+                            if (c.Character != ' ')
+                            {
+                                PixelFontSize size = FText.Font.Get(FText.BaseSize);
+                                PixelFontCharacter ch = size.Get(c.Character);
+                                _position.X = c.Position + XOffset + c.Offset.X + ch.XOffset + ch.XAdvance;
+                                _position.Y = _ypos + c.Offset.Y;
+                            }
+                            yield return c.Delay * 1.5f;
+                        }
+                        if (Node is FancyTextExt.NewLine)
+                        {
+                            CurrentLine++;
+                        }
+                        if (Node is FancyTextExt.NewSegment ns)
+                        {
+                            CurrentSegment++;
+                            CurrentNode += (int)Calc.Max(ns.Lines - 1, 0);
+                            startOfNewSegment = true;
+                            yield return WaitForButton(); //wait for button press and then continue to next segment
+                        }
+                    }
+                }
+    
+                if (k < DialogIDs.Length - 1)
+                {
+                    yield return Reset(k + 1); //advance to next dialog id
+                }
+                else
+                {
+                    yield return WaitForButton();
+                }
+            }
+
+            //close
+            for (float i = 0; i < 1f; i += Engine.DeltaTime)
+            {
+                SolidOpacity = Calc.LerpClamp(0.4f, 0, i);
+                TextOpacity = Calc.LerpClamp(1, 0, i);
+                yield return null;
+            }
+            SolidOpacity = 0;
+            TextOpacity = 0;
+            if (player is not null)
+            {
+                player.StateMachine.State = Player.StNormal;
+            }
+            RemoveSelf();
+        }
+        public override void Update()
+        {
+            base.Update();
+            if (Waiting)
+            {
+                if (_timer >= _timerLimit)
+                {
+                    _visible = !_visible;
+                    _timer = 0;
+                }
+                _timer += Engine.DeltaTime;
+            }
+            else
+            {
+                _visible = true;
+            }
+
+        }
+        private IEnumerator WaitForButton()
+        {
+            Waiting = true;
+
+            while (Waiting)
+            {
+                if (Input.DashPressed)
+                {
+                    break;
+                }
+                yield return null;
+            }
+            Waiting = false;
+            _forceHide = true;
+            yield return null;
+        }
+        private IEnumerator Reset(int next)
+        {
+            yield return WaitForButton();
+            for (float i = 0; i < 1f; i += Engine.DeltaTime)
+            {
+                TextOpacity = Calc.LerpClamp(1, 0, i);
+                yield return null;
+            }
+            CurrentNode = 0;
+            CurrentLine = 1;
+            CurrentSegment = 0;
+            FText = FancyTextExt.Parse(Dialog.Get(DialogIDs[next]), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
+            yield return null;
+            for (float i = 0; i < 1f; i += Engine.DeltaTime)
+            {
+                TextOpacity = Calc.LerpClamp(0, 1, i);
+                yield return null;
+            }
+            _forceHide = false;
+            yield return null;
+        }
+        #endregion
+
+        #region Rendering
+        private void DrawUnderscore(PixelFont font, float baseSize, Vector2 position, Vector2 scale, float alpha, Color color)
+        {
+            Vector2 vector = scale;
+            PixelFontSize pixelFontSize = font.Get(baseSize * Math.Max(vector.X, vector.Y));
+            PixelFontCharacter pixelFontCharacter = pixelFontSize.Get('_');
+            vector *= baseSize / pixelFontSize.Size;
+            position.X = _position.X;
+            Vector2 zero = Vector2.Zero;
+            zero.X += pixelFontCharacter.XOffset;
+            //zero.Y += (float)pixelFontCharacter.YOffset;
+            pixelFontCharacter.Texture.Draw(position + zero * vector, Vector2.Zero, color * alpha, vector);
+        }
+        public override void Render()
+        {
+            Draw.Rect(0, 0, 1920, 1080, Color.Black * SolidOpacity);
+
+            FText.Draw(Vector2.One * XOffset, Vector2.Zero, Vector2.One, 1, Color.White * TextOpacity, 0, CurrentNode);
+            if (_visible && !_forceHide)
+            {
+                DrawUnderscore(FText.Font, FText.BaseSize, _position, Vector2.One, TextOpacity, Color.White * TextOpacity);
+            }
+            base.Render();
+        }
+        #endregion
         private class FontHolderEntity : Entity
         {
             public FontHolderEntity()

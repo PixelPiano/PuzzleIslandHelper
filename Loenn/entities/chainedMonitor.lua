@@ -13,6 +13,7 @@ _q.placements =
         name = "Chained Monitor",
         data = 
         {
+            enabledFlag = "condition",
             flag = "invert",
             flagOnComplete= "chainedComp1"
         }

@@ -112,7 +112,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             this.isHeart = isHeart;
         }
         public DashCodeCollectable(EntityData data, Vector2 offset, EntityID id)
-        : this(data.Position + offset, data.Attr("sprite", "objects/PuzzleIslandHelper/dashCodeCollectable/miniHeart").Contains("miniHeart"))
+        : this(data.Position + offset, data.Attr("Texture", "objects/PuzzleIslandHelper/dashCodeCollectable/miniHeart").Contains("miniHeart"))
         {
             OnlyFlag        = data.Bool("noCollectable");
             flagDebug       = data.Bool("flagDebug", true);
@@ -122,7 +122,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             flag            = data.Attr("flagOnCollected");
             code            = data.Attr("code").Split(',').Select(Convert.ToString).ToArray();
             audio           = data.Attr("event", "event:/new_content/game/10_farewell/glitch_short");
-            spriteName      = data.Attr("sprite", "objects/PuzzleIslandHelper/dashCodeCollectable/miniHeart");
+            spriteName      = data.Attr("Texture", "objects/PuzzleIslandHelper/dashCodeCollectable/miniHeart");
             yBound          = data.Height;
             xBound          = data.Width;
             dataNode        = data.Nodes[0];

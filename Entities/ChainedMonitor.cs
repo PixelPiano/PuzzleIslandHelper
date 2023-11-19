@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -17,21 +18,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Sprite Chains;
         private Sprite Block;
         private Sprite Padlock;
-        private string flag;
-        private string flagOnComplete;
-        private bool broken;
+        private Sprite Shutter;
+        private bool inCutscene;
+        private DotX3 Talk;
+        public bool Usable
+        {
+            get
+            {
+                return PianoModule.SaveData.HasInvert;
+            }
+        }
+        public bool Used
+        {
+            get
+            {
+                return !PianoModule.SaveData.ChainedMonitorsActivated.Contains(SceneAs<Level>().Session.Level);
+            }
+        }
+        private bool Pressed;
         private float delay = 1 / 12f;
         public ChainedMonitor(EntityData data, Vector2 offset)
             : base(data.Position + offset)
         {
             Depth = 1;
-            flag = data.Attr("flag");
-            flagOnComplete = data.Attr("flagOnComplete");
 
             Add(Monitor = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chains/"));
             Add(Chains = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chains/"));
             Add(Block = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chains/invertedUnlock/"));
             Add(Padlock = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chains/padlock/"));
+            Add(Shutter = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/chains/"));
+
+            Shutter.AddLoop("closed", "shuttersOpen", 0.1f, 0);
+            //Shutter.AddLoop("open", "shuttersOpen", 0.1f, 22);
+            //Shutter.Add("opening", "shuttersOpen", 0.07f, "open");
 
             Monitor.AddLoop("idle", "monitorLonger", 1f);
 
@@ -53,15 +72,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Awake(scene);
             Depth = 1;
             Monitor.Play("idle");
-            if (!SceneAs<Level>().Session.GetFlag(flagOnComplete))
+            if (!Used)
             {
                 Chains.Play("idle");
                 Block.Play("idle");
                 Padlock.Play("idle");
             }
+
+            if (Usable)
+            {
+                Remove(Shutter);
+            }
+            else
+            {
+                Shutter.Play("closed");
+            }
         }
         private IEnumerator Sequence()
         {
+            inCutscene = true;
             Chains.Play("break");
             Block.Play("break");
             Padlock.Play("unlock");
@@ -72,19 +101,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return null;
             InvertOverlay.ForceState(false);
             InvertOverlay.ResetState();
-            SceneAs<Level>().Session.SetFlag(flag, false);
+            PianoModule.SaveData.ChainedMonitorsActivated.Add(SceneAs<Level>().Session.Level);
         }
         public override void Update()
         {
             base.Update();
-            if (!SceneAs<Level>().Session.GetFlag(flagOnComplete) && SceneAs<Level>().Session.GetFlag(flag))
+            if (Usable && !Used && InvertOverlay.State && !inCutscene)
             {
                 InvertOverlay.ForceState(true);
                 Add(new Coroutine(Sequence()));
-                SceneAs<Level>().Session.SetFlag(flagOnComplete);
 
             }
-            
+
         }
     }
 }

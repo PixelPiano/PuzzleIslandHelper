@@ -26,6 +26,7 @@
     <ItemGroup>
         <PackageReference Include="MonoMod.RuntimeDetour" Version="22.01.04.03" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
+        <PackageReference Include="YamlDotNet" Version="13.7.1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -44,6 +45,9 @@
         <Reference Include="ExtendedVariantMode">
           <HintPath>libs\ExtendedVariantMode.dll</HintPath>
         </Reference>
+        <Reference Include="FactoryHelper">
+          <HintPath>libs\FactoryHelper.dll</HintPath>
+        </Reference>
         <Reference Include="FancyTileEntities">
           <HintPath>libs\FancyTileEntities.dll</HintPath>
         </Reference>
@@ -53,6 +57,9 @@
         <Reference Include="MonoMod">
           <HintPath>..\..\MonoMod.exe</HintPath>
         </Reference>
+        <Reference Include="PandorasBox" Publicize="True">
+          <HintPath>libs\PandorasBox.dll</HintPath>
+        </Reference>
         <Reference Include="PresentationCore" />
         <Reference Include="VivHelper">
           <HintPath>libs\VivHelper.dll</HintPath>
@@ -60,6 +67,10 @@
         <Reference Include="XaphanHelper">
           <HintPath>libs\XaphanHelper.dll</HintPath>
         </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Helpers\" />
     </ItemGroup>
     <Choose>
         <When Condition="'$(CelesteType)' == 'FNA'">

@@ -11,6 +11,7 @@ uniform float4x4 TransformMatrix;
 uniform float4x4 ViewMatrix;
 uniform float2 Center = float2(0.5,0.5);
 uniform float Speed = 0.035;
+static bool state;
 float length(float2 pos)
 {
     return sqrt(pos.x * pos.x + pos.y * pos.y);
@@ -18,14 +19,6 @@ float length(float2 pos)
 float PulseRate(float mult, float intensity = 2, float offset = 0.5)
 {
 	return sin(Time * mult)/intensity + offset;
-}
-float3 palette(float t, float amount){
-    float3 a = float3(0.5, 0.5, 0.5);
-    float3 b = float3(0.5, 0.5, 0.5);
-    float3 c = float3(1.0, 1.0, 1.0);
-    float3 d = float3(0.263, 0.416, 0.557);
-    
-    return a + b*cos(6.28318*(c*t+d + amount));
 }
 
 float Circle(
@@ -39,19 +32,19 @@ float Circle(
     float c = smoothstep(r, r-blur, d);
     return c;
 }
-
 DECLARE_TEXTURE(text, 0);
 float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 {
-    float2 worldPos = (uv * Dimensions) + CamPos;
-    float4 color = SAMPLE_TEXTURE(text, uv);
-
-    uv -= .5;
-    //uv.x *= Dimensions.x/Dimensions.y;
-    float shade = palette(length(uv),0.2).z;
-    color.rbg *= shade;
-
-	return color;
+	float2 worldPos = (uv * Dimensions) + CamPos;
+    float amplitude = 0.05;
+    float3 offset = float3(sin(Time/2 + uv.y * 5.0), 0.0, 0.0) * amplitude;
+   // float fm = fmod(uv.y * Dimensions.y, 2) - 1;
+    //float2 changed = uv - (offset*(fm));
+    
+//float fm = floor(fmod((uv-offset) * Dimensions, 3) > 1);
+uv = uv - offset;
+float4 color = SAMPLE_TEXTURE(text, uv);
+return float4(color.rgb, color.a);
 }
 
 void SpriteVertexShader(inout float4 color: COLOR0,

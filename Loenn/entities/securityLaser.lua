@@ -7,10 +7,10 @@ _q.justification = { 0, 0 }
 _q.name = "PuzzleIslandHelper/SecurityLaser"
 
 _q.depth = -10001
+_q.texture = "objects/PuzzleIslandHelper/securityLaser/emitter00"
 _q.nodeLimits = {1,1}
 _q.nodeLineRenderType = "line"
 _q.nodeVisibility = "always"
-_q.texture = "objects/PuzzleIslandHelper/securityLaser/emitter00"
 _q.canResize = {false, false}
 function _q.selection(room, entity)
     local nodes = entity.nodes or {}

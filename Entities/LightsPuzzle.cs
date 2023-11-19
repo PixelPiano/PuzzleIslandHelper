@@ -39,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         public static LightsIcon[] Icons = new LightsIcon[4];
         private Player player;
-        private readonly Color[] Answers = { Color.White, Color.White, Color.White, Color.White };
+        private readonly Color[] Answers = { Color.Red, Color.Yellow, Color.Blue, Color.Green };
         private List<WindowDecal> Windows = new();
         private string flag;
         private bool GotSolution
@@ -102,7 +102,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (window.CustomTag == "lightPuzzle")
                 {
                     Windows.Add(window);
-                    Console.WriteLine("Added");
+                    Console.WriteLine("BeenAdded");
                 }
             }
             Windows.OrderBy(window => window.Position.X);
@@ -217,7 +217,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprite.AddLoop("leverDown", "mainModule", 0.1f, 6);
             sprite.Add("flipDown", "mainModule", 0.1f, "leverDown");
             sprite.Add("flipUp", "mainModuleReverse", 0.1f, "leverUp");
-            sprite.Add("stuck", "mainModuleStuck", 0.1f, "leverDown");
+            sprite.Add("stuck", "mainModuleStuck", 0.08f, "leverDown");
             sprite.Play("leverDown");
             Depth = 2;
         }
@@ -228,11 +228,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
 
             int x, y, width, height;
-            x = 8;
+            x = 4;
             y = 22;
-            width = 7;
+            width = 15;
             height = 21;
-            Add(new VertexLight(new Vector2(x + 3, y + 4), Color.White, 0.5f, 5, 10));
+            Add(new VertexLight(new Vector2(x + 3, y + 4), Color.White, PianoModule.Session.RestoredPower ? 1 : 0.7f, 10, 20));
             Rectangle lRect = new Rectangle(x, y, width, height);
             Add(new TalkComponent(lRect, new Vector2(x + width / 2 - 0.5f, y - 7), LeverInteract));
             Rectangle bRect = new Rectangle(-3, 9, 8, 4);

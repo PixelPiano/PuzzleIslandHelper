@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
@@ -61,7 +62,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         public override void Added(Scene scene)
         {
             base.Added(scene);
-
             if (OncePerPlaythrough)
             {
                 if (PianoModule.SaveData.UsedCutscenes.Contains(CutsceneNum))
@@ -91,7 +91,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             {
                 Entered = true;
             }
-
+            Scene.Add(new MemoryTextscene(-1,-1,"TEXTTEST","TODO"));
+            return;
             if (!InCutscene)
             {
                 Add(new Coroutine(Cutscene(CutsceneNum, player)));

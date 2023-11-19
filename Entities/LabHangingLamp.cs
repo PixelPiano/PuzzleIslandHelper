@@ -15,14 +15,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Vector2 Position;
         public float Rotation;
         public Vector2 Origin;
-
+        public Vector2 CollisionPosition;
         public Vector2 LightPosition;
-        public LHLData(Vector2 position, Vector2 origin, float rotation, Vector2 lightPosition)
+        public LHLData(Vector2 position, Vector2 collisionPosition, Vector2 origin, float rotation, Vector2 lightPosition)
         {
             Position = position;
             Rotation = rotation;
             Origin = origin;
+            CollisionPosition = collisionPosition;
             LightPosition = lightPosition;
+
         }
     }
     [CustomEntity("PuzzleIslandHelper/LabLightRenderer")]
@@ -55,6 +57,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void BloomRender(bool fromRender)
         {
+            if (!fromRender)
+            {
+                return;
+            }
             if (vertices.Length > 0 && !Broken)
             {
 
@@ -70,11 +76,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         else
                         {
                             Color c = Color.LightYellow;
-                            //c.A = (byte)0.5;
                             lamp.vertices[0].Color = c;
                         }
+                        
                         PowerScalar = PianoModule.Session.RestoredPower && !lamp.FixedOpacity ? 0.5f : 1;
-                        lamp.vertices[0].Color *= lamp.Opacity * lamp.FlickerScalar * PowerScalar;
+                        lamp.vertices[0].Color *= lamp.Opacity * lamp.FlickerScalar * PowerScalar * (fromRender ? 1 : 0.5f);
+
                         GFX.DrawVertices(level.Camera.Matrix, lamp.vertices, lamp.vertices.Length);
                     }
                 }
@@ -121,7 +128,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float Degradation;
         private float BreakingPoint = 2;
         private int WearAndTearGrade = 0;
-        private float MaxSpeed = 16;
+        private float MaxSpeed = 20;
         private float SpeedMult = 1;
         private Vector2 LampSpeed;
         private EntityID id;
@@ -226,12 +233,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Lamp.Position.Y += Length - 8;
             Collision.Position = Lamp.RenderPosition;
             Falling = true;
+            Collider.Height -=8;
             Add(new Coroutine(Flicker(0.1f)));
             while (!Collided)
             {
 
                 LampSpeed.Y = Calc.Min(MaxSpeed, LampSpeed.Y + Engine.DeltaTime * SpeedMult);
-                SpeedMult += 0.2f;
+                SpeedMult += 0.3f;
                 Collision.MoveH(LampSpeed.X, OnCollideH);
                 Collision.MoveV(LampSpeed.Y, OnCollideV);
                 Lamp.Position = Collision.Position - Position + new Vector2(4, 6);
@@ -255,11 +263,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 || abs.Y > level.LevelOffset.Y + level.Bounds.Height)
                 {
                     Lamp.Visible = false;
-                    PianoModule.Session.BrokenLamps.Add(id, new LHLData(Vector2.Zero, Vector2.Zero, 0, Vector2.Zero));
+                    PianoModule.Session.BrokenLamps.Add(id, new LHLData(Vector2.Zero, Vector2.Zero, Vector2.Zero, 0, Vector2.Zero));
                 }
                 else
                 {
-                    PianoModule.Session.BrokenLamps.Add(id, new LHLData(Lamp.Position, Lamp.Origin, Lamp.Rotation, light.Position));
+                    PianoModule.Session.BrokenLamps.Add(id, new LHLData(Lamp.Position, Collision.Position, Lamp.Origin, Lamp.Rotation, light.Position));
                 }
             }
             Broken = true;
@@ -294,6 +302,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (Broken)
             {
                 Lamp.Texture = GFX.Game["objects/PuzzleIslandHelper/hangingLampBroken"];
+                Lamp.Position = Collision.Position - Position + new Vector2(4, 6);
             }
             if (!Falling && !Broken)
             {
@@ -441,11 +450,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Added(scene);
             level = scene as Level;
+            Vector2 pos;
             if (!Broken)
             {
-                scene.Add(Collision = new Actor(new Vector2(Position.X - 4, Position.Y + Length - 8)));
-                Collision.Collider = new Hitbox(8, 8);
+                pos = new Vector2(Position.X - 4, Position.Y + Length - 8);
             }
+            else
+            {
+                pos = LampData.CollisionPosition;
+            }
+            scene.Add(Collision = new Actor(pos));
+            Collision.Collider = new Hitbox(8, 8);
+            Collision.Add(new StaticMover());
         }
         public override void Awake(Scene scene)
         {

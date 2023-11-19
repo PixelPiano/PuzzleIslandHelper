@@ -107,7 +107,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         private IEnumerator Cutscene(Player player)
         {
             // PLAQUE CHECK
-            SetFlag("getInvertDashCheck"); //Debug, check for button held
+            SetFlag("getInvertDashCheck"); //Target, check for button held
 
             if (GetFlag("getInvertDashCheck"))
             {

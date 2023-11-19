@@ -122,11 +122,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         /*        private IEnumerator Respawn(Stool stool)
                 {
-                    Color _color = stool.sprite.Color;
+                    Color _color = stool.Texture.Color;
                     stool.Respawning = true;
                     for(float i = 1; i >=0; i -= 0.1f)
                     {
-                        stool.sprite.Color = _color * i;
+                        stool.Texture.Color = _color * i;
                         yield return null;
                     }
                     stool.Position = stool.orig_Pos;
@@ -134,7 +134,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     stool.Respawned = true;
                     for (float i = 0; i < 1; i += 0.1f)
                     {
-                        stool.sprite.Color = _color * i;
+                        stool.Texture.Color = _color * i;
                         yield return null;
                     }
                     yield return null;

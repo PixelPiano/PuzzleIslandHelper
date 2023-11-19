@@ -45,7 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Played = true;
 
             Add(new Coroutine(Cutscene(player)));*/
-            level.Add(new MemoryTextscene(Vector2.Zero));
+            //level.Add(new MemoryTextscene(Vector2.Zero));
         }
         private IEnumerator Cutscene(Player player)
         {

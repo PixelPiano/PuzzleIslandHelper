@@ -10,9 +10,14 @@
 # Gameplay Control Commands (should never change)
 # {trigger x} this triggers an in-game event
 # {anchor} controls the visual position of the textbox in-game
+
 #------------------------
 #Cutscenes
 #------------------------
+LightFail=
+	[Madeline right normal]
+	Honestly I don't know why I thought that would work.
+
 CalidusTest= 
 	[Calidus right stern]
 	And when we DO get to the computer...
@@ -59,15 +64,14 @@ N>3kb= 92#@$H#@##)D@
 N3kb= $&^**#*(T&$
 
 CryForHelp= No^ mu&h spa#@ avail. Tra4p(d on&ot$er s]de, \et a@cV$*ss .nd (nt*>r on ap^.
-P@s& t$s". ;nly we c{an st5_op i^t.
-
+P@s& t$s". ;nly we can st5_op i^t.
 
 NCryForHelp= H3$@_&s
 
 NDESTRUCT= DARP.exe
 NMEMORY= MStorage.exe
 
-TODO= To do:{n}- Talk with village leader about expanding available research bounds.{n}- Conduct tests on temple fluids without getting burnt.{n}- Fix broken stabilizer in sector 2.{n}- Laundry.
+TODO= To do:{n}{offset:30,50}- Talk with village leader about expanding available research bounds.{/offset}{n}- Conduct tests on temple fluids without getting burnt.{n}{offset:100,400}- Fix broken stabilizer in sector 2.{/offset}{n}- Laundry.
 
 UNKNOWN= Unrecognized file extension, file not readable
 INVALID= Invalid icon type
@@ -82,6 +86,7 @@ DESTRUCTDENIED= Level 5 clearance not detected. Access denied.
 
 ACCESSDENIED= Access Module not detected. Unable to launch transport system.
 
+TEXTTEST= This is a test.{n1} This text is on the left. It is not long. {n0}{mtRight}This text is on the right. It is also not very long.{/mtRight}{n1}{mtRight}This text is once again, on the right. This time, however, we will be testing to see if the text can stay on screen regardless of how long the group is. Hopefully, I won't have to deal with this shit much longer
 
 TEXT1= To do:{n}- Talk with village leader about expanding available research bounds.{n}- 	 Conduct tests on temple fluids without getting burnt.{n}- Fix broken stabilizer in 	 sector 2.{n}- Laundry.
 
@@ -95,7 +100,7 @@ TEXT5= The village was covered in blues and purples, with multiple sections bein
 
 EXAMPLETEXTT= This is some example text for an extended version of FancyText. {n}It just created a new line by detecting an "n" surrounded by curly braces.{n1}And now it's created a new segment by detecting an "n" and a subsequent number after it.{n2}The number after the "n" corresponds to the number of new lines it should add.{n}Currently, dashing progresses the text to the next segment.
 
-TEXT6= We asked the Villagers how long they'd lived here for, to which we got varied answers.{n1}Some arrived here mere days or weeks before we did, and others have been living here for as long as they can remember.{n2}How they've managed to stay alive, not to mention sane all this time is a mystery to me.
+TEXT6= We asked the Villagers how long they'd lived here for, to which we got varied answers.{n1}{mtRight}Some arrived here mere days or weeks before we did, and others have been living here for as long as they can remember.{/mtRight}{n2}How they've managed to stay alive, not to mention sane all this time is a mystery to me.
 
 TEXT7= Some of the Villagers seemed peculiar to me. I can't tell what it is about them but their presence feels different than the others, it's strange. Of course, I haven't brought it up around them because that would be rude, but it does make me wonder...
 

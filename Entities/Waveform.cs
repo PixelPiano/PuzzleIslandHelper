@@ -38,7 +38,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             position = 1;
             length = 1;
             playNew = true;
-            spriteName = data.Attr("sprite");
+            spriteName = data.Attr("Texture");
             spectrogram = GFX.Game[spriteName];
             subtex = spectrogram.GetSubtexture(0, 0, spectrogram.Width, spectrogram.Height, subtex);
             sound = data.Attr("event", "event:/PianoBoy/defaultWaveform");
