@@ -348,6 +348,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     PlayerUpdate(player);
                 }
             }
+            Tag = 0;
         }
         public override void Update()
         {
@@ -612,7 +613,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (player is not null && !player.Dead)
                 {
                     player.DummyAutoAnimate = true;
-                    if (!player.DashAttacking || Jumps <= 0)
+                    if (!player.DashAttacking)
                     {
                         player.Bounce(player.Center.Y);
                     }

@@ -10,7 +10,7 @@ pipeSpout.depth = -8500
 pipeSpout.minimumSize = {8,8}
 
 local directions = {"Up","Down","Left","Right"}
-local hideMethods = {"Retreat","Dissolve"}
+local appearTypes = {"Dissolve","Grow","Instant"}
 pipeSpout.placements =
 {
     {
@@ -19,7 +19,10 @@ pipeSpout.placements =
         {
             width = 8,
             height = 8,
-            hideMethod = "Retreat",
+            useSaveData = false,
+            appearType = "Instant",
+            hideMethod = "Grow",
+            onlyMoveOnFlag = false,
             startDelay = 0.0,
             moveDuration = 1,
             direction = "Up",
@@ -28,6 +31,7 @@ pipeSpout.placements =
             isTimed = false,
             waitTime = 0.7
         }
+        
     }
 }
 pipeSpout.fieldInformation =
@@ -39,7 +43,12 @@ pipeSpout.fieldInformation =
     },
     hideMethod =
     {
-        options = hideMethods,
+        options = appearTypes,
+        editable = false
+    },
+    appearType =
+    {
+        options = appearTypes,
         editable = false
     }
 }

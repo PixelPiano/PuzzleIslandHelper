@@ -12,42 +12,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class PipeSpout : Entity
     {
-        public enum HideMethods
-        {
-            Retreat,
-            Dissolve
-        }
-        public HideMethods HideMethod;
 
-        public enum States
-        {
-            Idle,
-            Dorment,
-            Shrinking,
-            Growing,
-            Waiting
-        }
-        public StateMachine StateMachine { get; set; }
-        public States State;
-        public const int StIdle = 0;
-        public const int StDorment = 1;
-        public const int StShrinking = 2;
-        public const int StGrowing = 3;
-        public const int StWaiting = 4;
-
-        private float lerp;
-
-
-        private bool StartState;
+        public bool UseSaveData;
+        public VisibleTypes HideMethod;
+        private bool UseDissolveTexture;
         private float StartDelay;
-        private float StartTimer;
         private const float MinScale = 0.6f;
         public static MTexture StreamSpritesheet;
         public static MTexture[] DissolveTextures = new MTexture[4];
         private int dtIndex;
         private static Vector2 originThingy = new Vector2(0, 3);
         private int tvOffset;
-
         private Sprite Splash;
         private Image Hole;
         private bool Vertical
@@ -60,16 +35,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float Angle => (float)Math.PI / -2f * (float)Direction;
 
         private float WaitTime;
-        private float WaitTimer;
         public bool IsTimed;
         public bool IsOn;
+        public bool inverted;
+        private bool CanCollide;
+        private bool RenderTextures = true;
 
-        private bool inverted;
-        private bool InRoutine;
         public bool Enabled
         {
             get
             {
+                if (UseSaveData && (!PianoModule.SaveData.HasBrokenPipes || PianoModule.SaveData.FixedPipes))
+                {
+                    return false;
+                }
+
                 Level level = Scene as Level;
                 if (level is null)
                 {
@@ -89,13 +69,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
+        public bool WaitForRoutine;
         private bool Started;
-        private string flag;
-        private float Timer;
+        public string flag;
         private Vector2 Scale = Vector2.One;
         private Vector2 hideOffset = Vector2.Zero;
         private float MoveTime;
         private bool Moving;
+        private bool OnlyMoveOnFlag;
+
         private enum Directions
         {
             Right,
@@ -104,6 +86,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Down
         }
         private Directions Direction;
+
+        public enum VisibleTypes
+        {
+            Dissolve,
+            Grow,
+            Instant
+        }
+        private VisibleTypes AppearType;
         private Vector2 offset = Vector2.Zero;
         public Collider SplashBox;
         public Collider HurtBox;
@@ -113,24 +103,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         : base(data.Position + offset)
         {
             Tag = Tags.TransitionUpdate;
+            UseSaveData = data.Bool("useSaveData");
             MoveTime = data.Float("moveDuration");
-            HideMethod = data.Enum<HideMethods>("hideMethod");
+            HideMethod = data.Enum<VisibleTypes>("hideMethod");
             Direction = data.Enum<Directions>("direction");
             flag = data.Attr("flag");
             inverted = data.Bool("inverted");
             IsTimed = data.Bool("isTimed");
             WaitTime = data.Float("waitTime");
             StartDelay = data.Float("startDelay");
-
-            if (StartDelay > 0)
-            {
-                State = States.Dorment;
-            }
-            else
-            {
-                State = States.Idle;
-            }
-            Timer = 0;
+            OnlyMoveOnFlag = data.Bool("onlyMoveOnFlag");
+            AppearType = data.Enum<VisibleTypes>("appearType");
             #region Sprites
             Splash = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/waterPipes/")
             {
@@ -184,245 +167,201 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             #endregion
             Collider = HurtBox;
             Target = VirtualContent.CreateRenderTarget("Target", (int)SplashBox.Width, (int)SplashBox.Height);
-            Add(StateMachine = new StateMachine(5));
-            StateMachine.SetCallbacks(0, IdleUpdate, null, IdleBegin);
-            StateMachine.SetCallbacks(1, DormentUpdate);
-            StateMachine.SetCallbacks(2, ShrinkingUpdate, null, ShrinkingBegin, ShrinkingEnd);
-            StateMachine.SetCallbacks(3, GrowingUpdate, null, GrowingBegin, GrowingEnd);
-            StateMachine.SetCallbacks(4, WaitingUpdate, null, WaitingBegin);
-            StateMachine.State = (int)State;
             Add(new BeforeRenderHook(BeforeRender));
         }
-
-        public int IdleUpdate() //Fully Out
+        private IEnumerator Routine()
         {
-            if (!Enabled)
-            {
-                return StDorment;
-            }
-            if (IsTimed)
-            {
-                return StWaiting;
-            }
+            AdjustHideOffset(1); //set collider to fully in
 
-            return StIdle;
-        }
-        public void IdleBegin()
-        {
-            AdjustHideOffset(0);
-            IsOn = true;
-        }
-        public int GrowingUpdate() //Extending from fully in
-        {
-            if (!Enabled)
+            yield return WaitForEnabled(); //wait until state is true
+            RenderTextures = false;
+            yield return StartDelay;
+            while (true)
             {
-                return StDorment;
-            }
-            switch (HideMethod)
-            {
-                case HideMethods.Retreat:
-                    if (lerp > 0)
-                    {
-                        //lerp = Calc.Approach(lerp, 0, Engine.DeltaTime / MoveTime);
-                        AdjustHideOffset(1 - lerp);
-                        lerp -= Engine.DeltaTime / MoveTime;
-                    }
-                    break;
-                case HideMethods.Dissolve:
-
-                    if (lerp > 0)
-                    {
-                        if (lerp > 0.5f)
+                yield return null;
+                if (!Enabled)
+                {
+                    continue;
+                }
+                #region Grow
+                Moving = true;
+                RenderTextures = true;
+                CanCollide = true;
+                //Start
+                AdjustHideOffset(1);
+                switch (HideMethod)
+                {
+                    case VisibleTypes.Grow:
+                        IsOn = true;
+                        break;
+                    case VisibleTypes.Dissolve:
+                        if (IsTimed)
                         {
-                            IsOn = true;
-                            AdjustHideOffset(0);
+                            Splash.Play("undissolve");
+                            UseDissolveTexture = true;
                         }
-                        PickDissolveTexture(1 - lerp, 0.5f);
-                        lerp -=Engine.DeltaTime;
-                    }
-                    break;
-            }
-            if (lerp <= 0)
-            {
-                return StGrowing;
-            }
-            return StIdle;
-        }
-        private void GrowingEnd()
-        {
-            switch (HideMethod)
-            {
-                case HideMethods.Retreat:
-                    AdjustHideOffset(0);
-                    Scale.Y = 1;
-                    break;
-                case HideMethods.Dissolve:
-                    break;
-            }
-            if (!Started)
-            {
-                Started = true;
-                IsOn = true;
-            }
-        }
+                        break;
+                }
+                //Update
+                switch (HideMethod)
+                {
+                    case VisibleTypes.Grow:
+                        for (float i = 0; i < 1; i += Engine.DeltaTime / MoveTime)
+                        {
+                            AdjustHideOffset(1 - i);
+                            yield return null;
+                            CanCollide = true;
+                            Scale.Y = Calc.LerpClamp(MinScale, 1, i);
+                        }
+                        break;
+                    case VisibleTypes.Dissolve:
 
-        public void GrowingBegin()
-        {
-            lerp = 1;
-            AdjustHideOffset(1); //Set collider to fully in
-            switch (HideMethod)
-            {
-                case HideMethods.Retreat:
+                        for (float i = 0; i < 1; i += Engine.DeltaTime)
+                        {
+                            if (i > 0.5f)
+                            {
+                                IsOn = true;
+                                AdjustHideOffset(0);
+                            }
+                            PickDissolveTexture(1 - i, 0.5f);
+                            yield return null;
+                            CanCollide = true;
+                        }
+                        break;
+                }
+                //End
+                switch (HideMethod)
+                {
+                    case VisibleTypes.Grow:
+                        AdjustHideOffset(0);
+                        Scale.Y = 1;
+                        break;
+                    case VisibleTypes.Dissolve:
+                        UseDissolveTexture = false;
+                        break;
+                }
+                if (!Started)
+                {
+                    Started = true;
                     IsOn = true;
-                    break;
-                case HideMethods.Dissolve:
-                    if (IsTimed)
-                    {
-                        Splash.Play("undissolve");
-                    }
-                    break;
-            }
-        }
-        public int ShrinkingUpdate() //Compressing from fully out
-        {
-            if (!Enabled)
-            {
-                return StDorment;
-            }
-            if (lerp < 1)
-            {
+                }
+                yield return null;
+                Moving = false;
+                #endregion
+                if (!Enabled)
+                {
+                    continue;
+                }
+
+                yield return WaitTime;
+
+                if (!Enabled)
+                {
+                    continue;
+                }
+                #region Shrink
+                Moving = true;
+                AdjustHideOffset(0);
                 switch (HideMethod)
                 {
-                    case HideMethods.Retreat:
-                        AdjustHideOffset(lerp);
-                        //lerp = Calc.Approach(lerp, 1, Engine.DeltaTime / MoveTime);
-                        Scale.Y = Calc.LerpClamp(1, MinScale, lerp);
-                        lerp += Engine.DeltaTime/MoveTime;
+                    case VisibleTypes.Grow:
                         break;
-                    case HideMethods.Dissolve:
-                        AdjustHideOffset(1);
-                        //lerp = Calc.Approach(lerp, 1, Engine.DeltaTime);
-                        PickDissolveTexture(lerp, 0.6f);
-                        lerp+=Engine.DeltaTime;
-                        break;
-                }
-            }
-            if (lerp >= 1)
-            {
-                if (HideMethod == HideMethods.Retreat)
-                {
-                    AdjustHideOffset(1);
-                    lerp = 1;
-                    Scale.Y = MinScale;
-                    IsOn = false;
-                }
-                return StWaiting;
-            }
-            return StShrinking;
-        }
-        public void ShrinkingBegin()
-        {
-            lerp = 0;
-            AdjustHideOffset(0);
-            switch (HideMethod)
-            {
-                case HideMethods.Retreat:
-
-                    break;
-                case HideMethods.Dissolve:
-                    IsOn = false;
-                    if (IsTimed)
-                    {
-                        Splash.Play("dissolve");
-                    }
-                    break;
-            }
-
-
-        }
-
-        public void ShrinkingEnd()
-        {
-            switch (HideMethod)
-            {
-                case HideMethods.Retreat:
-                    AdjustHideOffset(1);
-                    lerp = 1;
-                    Scale.Y = MinScale;
-                    IsOn = false;
-                    break;
-                case HideMethods.Dissolve:
-
-                    break;
-            }
-        }
-        public int DormentUpdate()
-        {
-            if (!Enabled)
-            {
-                return StDorment;
-            }
-            if (StartDelay > 0)
-            {
-                return StWaiting;
-            }
-            return 0;
-        } //Waiting for flag
-        public int WaitingUpdate() //Waiting for start
-        {
-            if (!Enabled)
-            {
-                return StDorment;
-            }
-            if (StartTimer < StartDelay && StartDelay > 0) //If should wait StartDelay seconds before growing
-            {
-                StartTimer += Engine.DeltaTime;
-                return StWaiting;
-            }
-            if (Started)
-            {
-                if (WaitTimer < WaitTime) //If on the cycle after entity has Started
-                {
-                    WaitTimer += Engine.DeltaTime;
-                    return StWaiting;
-                }
-            }
-            return StGrowing; //Start growing
-        }
-
-        public void WaitingBegin()
-        {
-            WaitTimer = 0;
-            if (!Started)
-            {
-                switch (HideMethod)
-                {
-                    case HideMethods.Retreat:
-                        Scale.Y = MinScale;
+                    case VisibleTypes.Dissolve:
                         IsOn = false;
+                        if (IsTimed)
+                        {
+                            UseDissolveTexture = true;
+                            Splash.Play("dissolve");
+                        }
                         break;
+                }
+                switch (HideMethod)
+                {
+                    case VisibleTypes.Grow:
+                        for (float i = 0; i < 1; i += Engine.DeltaTime / MoveTime)
+                        {
+                            Scale.Y = Calc.LerpClamp(1, MinScale, i);
+                            AdjustHideOffset(i);
+                            yield return null;
+                        }
+                        break;
+                    case VisibleTypes.Dissolve:
+                        for (float i = 0; i < 1; i += Engine.DeltaTime)
+                        {
+                            AdjustHideOffset(1);
+                            PickDissolveTexture(i, 0.6f);
+                            yield return null;
+                        }
+                        break;
+                }
+                if (HideMethod == VisibleTypes.Grow)
+                {
+                    AdjustHideOffset(1);
+                    Scale.Y = MinScale;
+                    IsOn = false;
+                }
+                Moving = false;
+                #endregion
+                if (!Enabled)
+                {
+                    continue;
+                }
+
+                yield return WaitTime;
+
+                if (!Enabled)
+                {
+                    continue;
                 }
             }
         }
-
+        private IEnumerator WaitForEnabled()
+        {
+            while (!Enabled)
+            {
+                yield return null;
+            }
+        }
+        private IEnumerator OnlyOnFlagRoutine()
+        {
+            float lerp = Enabled ? 0 : 1;
+            while (true)
+            {
+                RenderTextures = lerp < 1;
+                lerp = Calc.Approach(lerp, Enabled ? 0 : 1, Engine.DeltaTime / MoveTime);
+                AdjustHideOffset(lerp);
+                yield return null;
+                CanCollide = true;
+            }
+        }
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            StartState = Enabled;
             Started = Enabled;
             if (StartDelay == 0)
             {
                 IsOn = true;
             }
-            else if (StartState)
+            if (IsTimed)
             {
-                StateMachine.State = StWaiting;
-            }
+                if (OnlyMoveOnFlag)
+                {
+                    Add(new Coroutine(OnlyOnFlagRoutine()));
+                }
+                else
+                {
+                    Add(new Coroutine(Routine()));
+                }
 
+            }
+            else
+            {
+                CanCollide = true;
+            }
         }
         public void DrawTextures(Vector2 pos, Color color)
         {
-            Vector2 retreatOffset = (HideMethod == HideMethods.Retreat ? hideOffset : Vector2.Zero);
+            Vector2 retreatOffset = (HideMethod == VisibleTypes.Grow ? hideOffset : Vector2.Zero);
             Vector2 DrawPosition = pos + offset + retreatOffset;
 
             int Length = Vertical ? (int)orig_Collider.Height : (int)orig_Collider.Width;
@@ -431,7 +370,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Vector2 origin = originThingy * Scale;
             int i = 0;
             Texture2D texture = StreamSpritesheet.Texture.Texture_Safe;
-            if (InRoutine && HideMethod == HideMethods.Dissolve)
+            if (UseDissolveTexture && HideMethod == VisibleTypes.Dissolve)
             {
                 texture = DissolveTextures[dtIndex].Texture.Texture_Safe;
             }
@@ -464,7 +403,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     );
             Splash.Render();
         }
-
         private void OnPlayer(Player player)
         {
             player.Die(Vector2.Zero);
@@ -473,38 +411,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            Collidable = (!IsTimed || IsOn) && Enabled;
-            if (!Enabled)
-            {
-                return;
-            }
-            if (StateMachine.State == StIdle)
-            {
-                if (Timer < WaitTime)
-                {
-                    Timer += Engine.DeltaTime;
-                }
-                else
-                {
-                    Timer = 0;
-                    StateMachine.State = StGrowing;
-                }
-            }
+            Collidable = (!IsTimed || IsOn) && CanCollide && Enabled;
             if (Scene.OnInterval(1 / 12f))
             {
                 tvOffset = ++tvOffset % 3;
             }
-            if (Moving)
-            {
-                RoutineUpdate();
-            }
+            RoutineUpdate();
+
 
         }
         private void RoutineUpdate()
         {
             switch (HideMethod)
             {
-                case HideMethods.Retreat:
+                case VisibleTypes.Grow:
                     HurtBox.Width = (orig_Collider.Width - Math.Abs(hideOffset.X));
                     HurtBox.Height = (orig_Collider.Height - Math.Abs(hideOffset.Y));
                     if (Direction == Directions.Up)
@@ -515,9 +435,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         HurtBox.Position.X = Math.Abs(hideOffset.X);
                     }
-                    break;
-                case HideMethods.Dissolve:
-
                     break;
             }
         }
@@ -578,7 +495,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     break;
             }
         }
-
         private void BeforeRender()
         {
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
@@ -591,7 +507,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            if (Enabled)
+            if (RenderTextures && (OnlyMoveOnFlag || Enabled))
             {
                 Draw.SpriteBatch.Draw(Target, SplashBox.Position, Color.White);
             }
@@ -601,7 +517,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
-            Draw.HollowRect(SplashBox, Color.Red);
             Draw.HollowRect(HurtBox, Color.Green);
         }
     }

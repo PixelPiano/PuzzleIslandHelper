@@ -80,6 +80,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (!string.IsNullOrEmpty(flag))
             {
+                foreach (PipeSpout spout in SceneAs<Level>().Tracker.GetEntities<PipeSpout>())
+                {
+                    if (!string.IsNullOrEmpty(spout.flag) && flag == spout.flag)
+                    {
+                        //spout.WaitForRoutine = true;
+                    }
+                }
                 SceneAs<Level>().Session.SetFlag(flag);
             }
             used = true;
