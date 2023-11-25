@@ -1,24 +1,23 @@
+using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Windows.Media.Media3D;
 using System.Xml.Linq;
 /*using Color = Microsoft.Xna.Framework.Color;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;*/
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 {
     [Tracked]
-    public class Window : Entity
+    public class BetterWindow : Entity
     {
         public static bool AccessLoad = false;
         public Sprite Sprite;
         public Sprite xSprite;
         public Sprite button;
-        public WindowButton ok;
-        public WindowButton cancel;
+        public BetterWindowButton ok;
+        public BetterWindowButton cancel;
         public static bool KeysSwitched = false;
         public Entity x;
         public Collider backupCollider;
@@ -40,11 +39,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
         public static bool Drawing = false;
         public Rectangle TabArea;
         private Color TabColor = Color.Blue;
-        public static List<WindowButton> ButtonsUsed = new List<WindowButton>();
+        public static List<BetterWindowButton> ButtonsUsed = new List<BetterWindowButton>();
         private TextWindow textWindow;
         private bool inRoutine = false;
         public Interface Interface;
-        public Window(Vector2 position, Interface inter)
+        public BetterWindow(Vector2 position, Interface inter)
         {
             Interface = inter;
             Depth = Interface.BaseDepth - 4;
@@ -54,10 +53,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
         {
             for (int i = 0; i < maxButtons; i++)
             {
-                Vector2 position = ToInt(ToInt(DrawPosition) + new Vector2(CaseWidth, CaseHeight)
-                                - new Vector2(WindowButton.ButtonWidth / 3, WindowButton.ButtonHeight / 4)
-                                - Vector2.One - Vector2.UnitX * WindowButton.ButtonWidth * i / 2 - Vector2.UnitX * WindowButton.ButtonWidth / 2);
-                ButtonsUsed[i].Position = position - Vector2.UnitX * 3 * i;
+                /*                Vector2 position = ToInt(ToInt(DrawPosition) + new Vector2(CaseWidth, CaseHeight)
+                                                - new Vector2(BetterWindowButton.ButtonWidth / 3, BetterWindowButton.ButtonHeight / 4)
+                                                - Vector2.One - Vector2.UnitX * BetterWindowButton.ButtonWidth * i / 2 - Vector2.UnitX * BetterWindowButton.ButtonWidth / 2);
+                                ButtonsUsed[i].Position = position - Vector2.UnitX * 3 * i;*/
             }
         }
         public override void Render()
@@ -179,7 +178,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
                 #endregion
                 #region Access
                 case "access":
-                    ButtonsUsed.Add(new WindowButton(WindowButton.ButtonType.Start, ToInt(Position), Vector2.One));
+                    Add(new StartButton());
+                    //ButtonsUsed.Add(new DepWindowButton(BetterWindowButton.ButtonType.Start, ToInt(Position), Vector2.One));
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
                     break;
                 #endregion
@@ -187,8 +187,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
                 case "ram":
                     CaseHeight = 50;
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
-                    ButtonsUsed.Add(new WindowButton(WindowButton.ButtonType.Start, ToInt(Position), Vector2.One));
-                    ButtonsUsed.Add(new WindowButton(WindowButton.ButtonType.Quit, ToInt(Position), Vector2.One));
+                    Add(new StartButton());
+                    Add(new QuitButton());
+                    /*                    ButtonsUsed.Add(new WindowButton(BetterWindowButton.ButtonType.Start, ToInt(Position), Vector2.One));
+                                        ButtonsUsed.Add(new WindowButton(BetterWindowButton.ButtonType.Quit, ToInt(Position), Vector2.One));*/
                     break;
                 #endregion
                 #region Sus
@@ -205,7 +207,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
                 #region Memory
                 case "memory":
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
-                    ButtonsUsed.Add(new WindowButton(WindowButton.ButtonType.Start, ToInt(Position), Vector2.One));
+                    Add(new StartButton());
+                    //ButtonsUsed.Add(new WindowButton(BetterWindowButton.ButtonType.Start, ToInt(Position), Vector2.One));
                     break;
                 #endregion
                 #region Pico
@@ -213,34 +216,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
                     CaseWidth = PicoDimensions.X;
                     CaseHeight = PicoDimensions.Y;
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
-                    ButtonsUsed.Add(new WindowButton(WindowButton.ButtonType.Start, ToInt(Position), Vector2.One));
+                    Add(new StartButton());
+
+                    //ButtonsUsed.Add(new WindowButton(BetterWindowButton.ButtonType.Start, ToInt(Position), Vector2.One));
                     break;
                 #endregion
                 #region Pipes
                 case "pipe":
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
-                    ButtonsUsed.Add(new WindowButton(ToInt(Position), "Switch", Interface.pipeContent.Switch, Vector2.One, 39f));
+                    Add(new CustomButton("Switch", Interface.pipeContent.Switch));
+                    //ButtonsUsed.Add(new WindowButton(ToInt(Position), "Switch", Interface.pipeContent.Switch, Vector2.One, 39f));
                     break;
                     #endregion
 
             }
-
-            for (int i = 0; i < ButtonsUsed.Count; i++)
-            {
-                scene.Add(ButtonsUsed[i]);
-            }
         }
-        public static void RemoveButtons(Scene scene)
+        public void RemoveButtons(Scene scene)
         {
             if (scene is null)
             {
                 return;
             }
-            for (int i = 0; i < ButtonsUsed.Count; i++)
+            List<Component> toRemove = new();
+            foreach (Component c in Components)
             {
-                scene.Remove(ButtonsUsed[i]);
+                if (c is BetterWindowButton)
+                {
+                    toRemove.Add(c);
+                }
             }
-            ButtonsUsed.Clear();
+            Components.Remove(toRemove);
         }
     }
 }

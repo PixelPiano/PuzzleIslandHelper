@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System;
 using Color = Microsoft.Xna.Framework.Color;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
+using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
 
 //I give up this actually sucks so much
 namespace Celeste.Mod.PuzzleIslandHelper.Entities

@@ -1,3 +1,4 @@
+using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
 using Microsoft.Xna.Framework;
 using Monocle;

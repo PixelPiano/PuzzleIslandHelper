@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Windows.DepWindowButton;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.Windows.WindowButton;
 using Color = Microsoft.Xna.Framework.Color;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
@@ -14,12 +14,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
     [CustomEntity("PuzzleIslandHelper/WindowButton")]
     [Tracked]
 
-    public class DepWindowButton : Entity
+    public class WindowButton : Entity
     {
         private static readonly Dictionary<string, List<string>> fontPaths;
         private Level l;
         private Sprite sprite;
-        static DepWindowButton()
+        static WindowButton()
         {
             // Fonts.paths is private static and never instantiated besides in the static constructor, so we only need to get the reference to it once.
             fontPaths = (Dictionary<string, List<string>>)typeof(Fonts).GetField("paths", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
@@ -56,13 +56,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
                 OnClicked();
             }
         }
-        public DepWindowButton(Vector2 position, string Text, Action OnClicked, Vector2 Scale, float textSize)
+        public WindowButton(Vector2 position, string Text, Action OnClicked, Vector2 Scale, float textSize)
             : this(ButtonType.Custom, position, Scale, textSize, Text)
         {
             this.OnClicked = OnClicked;
         }
 
-        public DepWindowButton(ButtonType type, Vector2 position, Vector2 Scale, float textSize = -1, string Text = null)
+        public WindowButton(ButtonType type, Vector2 position, Vector2 Scale, float textSize = -1, string Text = null)
         {
             this.Scale = Scale != Vector2.Zero ? Scale : Vector2.One;
 
@@ -121,13 +121,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
         {
             public string Text;
             public Vector2 Scale;
-            public DepWindowButton Button;
+            public WindowButton Button;
             public float Size;
-            public ButtonText(DepWindowButton button, string text, float textSize, Vector2 Scale)
+            public ButtonText(WindowButton button, string text, float textSize, Vector2 Scale)
             : this(button, ButtonType.Custom, textSize, Scale, text)
             {
             }
-            public ButtonText(DepWindowButton button, ButtonType type, float textSize, Vector2 Scale, string Text = null)
+            public ButtonText(WindowButton button, ButtonType type, float textSize, Vector2 Scale, string Text = null)
             {
                 Size = textSize;
                 Button = button;
