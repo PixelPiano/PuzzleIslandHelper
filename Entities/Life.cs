@@ -20,6 +20,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Vector2 Position;
         public int AliveNeighbors;
         public bool LastState;
+        private int size = 8;
+        public void Reset()
+        {
+            AliveNeighbors = 0;
+            LastState = false;
+            Alive = false;
+        }
         public void SetState(bool alive)
         {
             LastState = Alive;

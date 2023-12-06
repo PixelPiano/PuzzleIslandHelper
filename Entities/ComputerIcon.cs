@@ -23,7 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 "sus",
                 "info",
                 "destruct",
-                "memory",
+                "freq",
                 "pipe",
                 "life"
             };

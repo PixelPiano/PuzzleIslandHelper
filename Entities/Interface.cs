@@ -43,13 +43,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Cursor cursor;
         private Sprite MonitorSprite;
         private Sprite BorderSprite;
-        private Sprite cursorSprite;
+        public Sprite cursorSprite;
         private Sprite PowerSprite;
         private Sprite SunMoon;
         private Entity Power;
         private Stool stool;
         private LoadSequence loadSequence;
-        private MemoryWindowContent memContent;
+        private FreqTimeline memContent;
         public PipeWindowContent pipeContent;
         public GameOfLife GameOfLife;
         private readonly ComputerIcon[] Icons;
@@ -183,9 +183,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     iconText = new string[] { "NDESTRUCT" };
                     break;
                 case 5:
-                    iconNames = new string[] { "memory" };
+                    iconNames = new string[] { "freq" };
                     textIDs = new string[] { };
-                    iconText = new string[] { "NMEMORY" };
+                    iconText = new string[] { "NFREQ" };
                     break;
                 case 6:
                     iconNames = new string[] { "text", "text", "access" };
@@ -198,7 +198,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     iconText = new string[] { "NPIPE" };
                     break;
                 case 8:
-                    iconNames = new string[] { "life" };
+                    iconNames = new string[] { "freq" };
                     textIDs = new string[] { "LIFE" };
                     iconText = new string[] { "NLIFE" };
                     break;
@@ -277,14 +277,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             scene.Add(Window = new BetterWindow(Position, this));
             loadSequence = new LoadSequence(Window.Depth - 1, Window.Position);
-            memContent = new MemoryWindowContent(Window.Depth - 1, Window.Position);
+            memContent = new FreqTimeline(Window);
             pipeContent = new PipeWindowContent(Window);
             GameOfLife = new GameOfLife(Window);
             if (iconNames.Contains("access"))
             {
                 scene.Add(loadSequence);
             }
-            if (iconNames.Contains("memory"))
+            if (iconNames.Contains("freq"))
             {
                 scene.Add(memContent);
             }
@@ -983,6 +983,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Tag = TagsExt.SubHUD;
             }
+            public Vector2 WorldPosition
+            {
+                get
+                {
+                    if (Scene is not Level level)
+                    {
+                        return Vector2.Zero;
+                    }
+                    return level.Camera.Position + MousePosition / 6;
+                }
+            }
+            public static Vector2 MousePosition
+            {
+                get
+                {
+                    MouseState mouseState = Mouse.GetState();
+                    float mouseX = Calc.Clamp(mouseState.X, 0, Engine.ViewWidth);
+                    float mouseY = Calc.Clamp(mouseState.Y, 0, Engine.ViewHeight);
+                    float scale = (float)Engine.Width / Engine.ViewWidth;
+                    Vector2 position = new Vector2(mouseX, mouseY) * scale;
+                    return position;
+                }
+            }
+
         }
         private class InterfaceBorder : Entity
         {

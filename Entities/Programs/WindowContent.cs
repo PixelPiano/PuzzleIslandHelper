@@ -11,6 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
         public BetterWindow Window;
         public MiniLoader MiniLoader;
         public string Name;
+        public bool IsActive => BetterWindow.Drawing && Interface.CurrentIconName == Name;
 
         public WindowContent(BetterWindow window)
         {

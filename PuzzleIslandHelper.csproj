@@ -26,6 +26,7 @@
     <ItemGroup>
         <PackageReference Include="MonoMod.RuntimeDetour" Version="22.01.04.03" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
+        <PackageReference Include="System.ValueTuple" Version="4.5.0" />
         <PackageReference Include="YamlDotNet" Version="13.7.1" />
     </ItemGroup>
 

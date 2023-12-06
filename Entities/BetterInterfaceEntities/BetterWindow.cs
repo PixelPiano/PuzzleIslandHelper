@@ -14,6 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public Sprite xSprite;
         public Sprite button;
         public static bool KeysSwitched = false;
+        public bool PressingButton;
         public Entity x;
         public static Vector2 DrawPosition;
         public Collider backupCollider;
@@ -116,6 +117,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 SetButtonPosition();
             }
+            bool pressed = false;
+            foreach(BetterButton b in Components.GetAll<BetterButton>())
+            {
+                if (b.Pressing)
+                {
+                    pressed = true;
+                    break;
+                }
+            }
+            PressingButton = pressed;
         }
 
         public override void Added(Scene scene)
@@ -201,7 +212,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     break;
                 case "life":
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
-                    Add(new StartButton(Interface, delegate{Interface.GameOfLife.Simulating = true;}));
+                    Add(new StartButton(Interface, delegate { Interface.GameOfLife.Simulating = true; }));
+                    Add(new CustomButton(Interface, "Stop", 35f, Vector2.Zero, Interface.GameOfLife.Stop));
+                    Add(new CustomButton(Interface, "Clear", 35f, Vector2.Zero, Interface.GameOfLife.Clear));
+                    Add(new CustomButton(Interface, "Random", 30f, Vector2.Zero, Interface.GameOfLife.Randomize));
                     break;
 
             }

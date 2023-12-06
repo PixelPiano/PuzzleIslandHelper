@@ -12,6 +12,10 @@ using System.Runtime.CompilerServices;
 
 public static class PianoUtils
 {
+    public static Vector2 ToInt(this Vector2 vec)
+    {
+        return new Vector2((int)vec.X,(int)vec.Y);
+    }
     public static Player GetPlayer(this Level level)
     {
         if(level is null)
