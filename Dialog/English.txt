@@ -10,7 +10,114 @@
 # Gameplay Control Commands (should never change)
 # {trigger x} this triggers an in-game event
 # {anchor} controls the visual position of the textbox in-game
+------------------------
+#Preset MiniLoader text
+------------------------
+miniLoader1= Loading configurations
+miniLoader2= Evaluating checksum
+miniLoader3= 
+//Getting user data {n}
+User user = Interface.GetUser();{n}
+if(user == null){n}
+{tab}return; {n}
+float x = user.X;{n}
+float y = user.Y;{n}
+if(Abs(user.X - Center.X) > Width || (int)user.Y != (int)Y + Height){n}
+{tab}return;{n}
+if(user.WellnessLevel < 0.5) 
+{tab}//return;
 
+miniLoader4= 
+//Evaluating Destination{n}
+WorldLink link = new WorldLink(this, Target);{n}
+if(link == null){n}
+{tab}return;{n}
+if(link.target is CompLoc){n}
+{tab}if((link.target as CompLoc).Stability < 0.5f){n}
+{tab}return;{n}
+
+miniLoader5=
+//Preparing transfer{n}
+if(link.target is not BackendLoc){n}
+{tab}	CompWorldData data = link.target.GetData();{n}
+{tab}int loops = 0;{n}
+{tab}while(data.Location.HasAnomaly && loops < 60){n}
+{tab}{tab}data.Location.Reroll();{n}
+{tab}{tab}loops++;{n}
+{tab}{tab}loops++;{n}
+else{n}
+{tab}BackendWorldData data = link.target.GetData();{n}
+{tab}while(data.PlayerLocation.HasSolid){n}
+{tab}{tab}data.Location.Reroll();
+
+
+miniLoader6=
+Shell userShell = Shell.Create(user, link, data);{n}
+if(link.target is BackendLoc){n}
+{tab} TransferToBackend(target, shell);{n}
+else{n}
+{tab}TransferToComp(target, shell);
+
+miniLoader7=
+CoolTransition transition= Interface.coolTransition;{n}
+if(user.ClearanceLevel > 5){n}
+{tab}transition = user.presetTransition;{n}
+CoolTransition.Start(transition);
+
+
+pipeLoader1=
+if(System.Processes.CheckForVuln() || !PipeSystem.CheckValves()){n}
+{tab}return;{n}
+
+pipeLoader2=
+PipeStates[] valveStates = new PipeSates[5];{n}
+for(int i = 0; i<5; i++){n}
+{tab}valveStates = PipeSystem.Valves[i].State;{n}
+{tab}PipeSystem.Valves[i].State = PipeSystem.StWaiting;{n}
+
+pipeLoader3=
+foreach(PipeComponent pc in PipeSystem.Components){n}
+{tab}pc.Yield();{n}
+
+pipeLoader4=
+float time;{n}
+PipeSystem.Receivers.CloseShields();{n}
+while(!PipeSystem.Receivers.AllShieldsClosed){n}
+{tab}System.Wait();{n}
+{tab}if(time > 900){n}
+{tab}{tab}PipeSystem.StopAllTraffic();{n}
+{tab}{tab}LaboratorySystem.Alert(AlertLevel.Moderate);{n}
+{tab}time++;{n}
+
+pipeLoader5=
+PipeSystem.Receivers.SwitchSide();{n}
+float time2;{n}
+while(PipeSystem.Receivers.InMotion){n}
+{tab}System.Wait();{n}
+{tab}if(time > 900){n}
+{tab}{tab}PipeSystem.StopAllTraffic();{n}
+{tab}{tab}LaboratorySystem.Alert(AlertLevel.Moderate);{n}
+{tab}time++;{n}
+
+pipeLoader6=
+ PipeSystem.TargetReceiver.Switch();{n}
+ PipeSystem.Receivers.ActiveReceiver.OpenShield();{n}
+ for(int i = 0; i<5; i++){n}
+{tab}PipeSystem.Valves[i].State = valveStates[i];{n}
+ foreach(PipeComponent pc in PipeSystem.Components){n}
+{tab}pc.Resume();{n}
+
+
+pipeFixer=
+if(PipeSystem.ActiveValves.Count < 5){n}
+{tab}return;{n}
+{n}
+for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
+{tab}if(!PipeSystem.ActiveValves[i].SafeToAdjust()){n}
+{tab}{tab}return;{n}
+{n}
+for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
+{tab}PipeSystem.ActiveValves[i].NormalizePressure();{n}
 #------------------------
 #Cutscenes
 #------------------------
@@ -38,10 +145,22 @@ Ca4 = [Calidus left obscured]
 Ca5 = [Madeline right normal]
 	Who are you?
 Ca6 = [Calidus left normal] My name is Calidus.
-	
+
+#Pipe Break sequence
+PipeAttemptZero=
+	[Madeline left sad]
+	Whoa! That was close! Good thing I was able to avoid that...
+	[Madeline left distracted]
+	Big...{0.5} screw...
+	Hope that wasn't important or something.
+
+PipeAttemptOhNo=
+	[Madeline right surprised]
+	IT WAS IMPORTANT! IT WAS IMPORTANT!!
 
 
 #Filenames
+
 PICO= Pico data here
 SUS= Amogu
 INFO= Info data here
@@ -55,8 +174,14 @@ NT3= Log1B.txt
 NT4= Log1C.txt
 NI1= Notice.info
 NU1= LiquidConv.bat
-NU2= EmployeeWorthEstimate.lst
+NU2= idk.bat
 NU3= SectorSurv.cam
+
+PIPE=Please refer to the manual for precautions.
+PIPEWARN=Abnormal pressure levels detected in PipeSystem, please reactivate all pressure regulators.
+PIPEBEFOREFIX=All preassure regulators activated.
+
+NPIPE=Route Config
 
 3kb= Hopefully this makes it throu235 Y743OT344B52$%#$$%2439G723924334592T432{n}V4TB24#tb$#@tB49Y7TY293GV{n}TG3@tGV32849GVH34P5PT{n}GUO32HO3TOUHVI3U42T34@5B@#$%b#@$v%yg#@4O8og%@$#{n}f@#h$y%f@$#ho%fh@$#f%@#hf%h$#o%g{n}h@oto4h3558 8.Empty() at line 54
 N>3kb= 92#@$H#@##)D@

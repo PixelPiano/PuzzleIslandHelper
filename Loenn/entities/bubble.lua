@@ -9,7 +9,8 @@ bubble.placements = {
         bubbleType = "Straight",
         layers = 1,
         noCollision = false,
-        respawns = true
+        respawns = true,
+        onlyOnPipesBroken = true
     }
 }
 bubble.fieldInformation = 

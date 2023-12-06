@@ -9,7 +9,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System;
 using Color = Microsoft.Xna.Framework.Color;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
 using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
 
 //I give up this actually sucks so much
@@ -80,7 +79,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Vector2 CursorBoundsA = new Vector2(16, 10);
         private Vector2 CursorBoundsB;
         private Vector2 CursorMiddle = Vector2.One;
-        private Vector2 DragOffset; //used to correctly align window with cursor while being dragged
+        private Vector2 DragOffset; //used to correctly align Window with cursor while being dragged
         private Color startColor = Color.LimeGreen;
         private static bool Closing = false;
         #endregion
@@ -185,7 +184,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             #region Button Sequence Picker
             foreach (DWindowButton button in DWindow.ButtonsUsed)
             {
-                if (button.Waiting && !LeftClicked && CollideCheck(button)) //TODO does button close the window?
+                if (button.Waiting && !LeftClicked && CollideCheck(button)) //TODO does button close the Window?
                 {
                     return;
                 }
@@ -214,7 +213,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         OnClicked(); //if DWindow isn't being drawn, run OnClicked
                     }
-                    if (window != null) //if the window is valid...
+                    if (window != null) //if the Window is valid...
                     {
                         if (CollideRect(window.TabArea) || DraggingWindow)
                         {
@@ -316,11 +315,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             #region Check for x button clicked
-            if (CollideCheck(window.x)) //If "close window" button was clicked
+            if (CollideCheck(window.x)) //If "close Window" button was clicked
             {
                 if (!DraggingWindow)
                 {
-                    //remove button collider, stop drawing window, and allow user to click icons again
+                    //remove button collider, stop drawing Window, and allow user to click icons again
                     RemoveWindow();
                     return;
                 }
@@ -334,11 +333,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     DWindow.CaseWidth = DWindow.WindowWidth;
                     DWindow.CaseHeight = DWindow.WindowHeight;
-                    //prevent icons from reacting to clicks, set window type, and start drawing window
+                    //prevent icons from reacting to clicks, set Window type, and start drawing Window
                     CurrentIconName = "Destruct";
                     DIconText.CurrentIcon = Icon;
                     CanClickIcons = false;
-                    window.Name = Icon.Name; //send the type of window to draw to DWindow.cs
+                    window.Name = Icon.Name; //send the type of Window to draw to DWindow.cs
                     DTextWindow.CurrentID = Icon.Text;
                     DWindow.Drawing = true;
                     return;
@@ -886,7 +885,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprite.Play("idle");
             sprite.Scale = Scale;
             Collider = new Hitbox(sprite.Width * Scale.X, sprite.Height * Scale.Y);
-            WindowPosition = new Vector2(Window.CaseWidth / 2, Window.CaseHeight);
+            WindowPosition = new Vector2(BetterWindow.CaseWidth / 2, BetterWindow.CaseHeight);
         }
         public override void Update()
         {

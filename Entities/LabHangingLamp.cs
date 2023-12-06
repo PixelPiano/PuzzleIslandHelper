@@ -252,6 +252,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 yield return null;
             }
+            Remove(light);
             if (HomeRun)
             {
                 Add(new Coroutine(HoldCamera()));

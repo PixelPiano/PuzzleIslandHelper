@@ -22,7 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public WindowDecal(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Depth = 2;
-            Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/window/");
+            Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/Window/");
             Sprite.AddLoop("idle", "pane", 1f);
             Add(Sprite);
             isFG = data.Bool("fg");

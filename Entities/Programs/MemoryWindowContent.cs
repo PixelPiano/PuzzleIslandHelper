@@ -1,11 +1,10 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
 {
     public class MemoryWindowContent : Entity
     {
@@ -21,35 +20,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             this.Position = Position;
             this.Depth = Depth - 1;
-            
+
 
         }
         public override void Update()
         {
             base.Update();
-            Dial.Visible = Window.Drawing;
+            Dial.Visible = BetterWindow.Drawing;
             //If the Interface initiates a loading sequence
 
             //if player does not have item
-            Position = Window.DrawPosition.ToInt();
-            DrawY = Position.Y + Window.CaseHeight - 8 - Window.CaseHeight / 4;
+            Position = BetterWindow.DrawPosition.ToInt();
+            DrawY = Position.Y + BetterWindow.CaseHeight - 8 - BetterWindow.CaseHeight / 4;
             if (Dial.CollideCheck<Interface.Cursor>() && Interface.LeftClicked)
             {
-                Dial.Position.X = (int)(Interface.MousePosition.X/6) + SceneAs<Level>().Camera.Position.X;
+                Dial.Position.X = (int)(Interface.MousePosition.X / 6) + SceneAs<Level>().Camera.Position.X;
             }
         }
         public override void Render()
         {
             base.Render();
-            if (Window.Drawing && Interface.CurrentIconName == "memory")
+            if (BetterWindow.Drawing && Interface.CurrentIconName == "memory")
             {
                 Vector2 offset = new Vector2(2, -1);
-                for (int i = (int)Position.X; i < (int)Window.DrawPosition.X + (int)Window.CaseWidth - 4; i += TickSpace)
+                for (int i = (int)Position.X; i < (int)BetterWindow.DrawPosition.X + (int)BetterWindow.CaseWidth - 4; i += TickSpace)
                 {
                     Vector2 start = new Vector2(i, DrawY).ToInt();
 
                     Vector2 end = new Vector2(i, start.Y + TickHeight).ToInt();
-                    if (i + TickSpace < (int)Window.DrawPosition.X + (int)Window.CaseWidth - 1)
+                    if (i + TickSpace < (int)BetterWindow.DrawPosition.X + (int)BetterWindow.CaseWidth - 1)
                     {
                         for (int j = 1; j <= 3; j++)
                         {
@@ -61,7 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 Vector2 longStart = new Vector2(Position.X - 3, DrawY + TickHeight) + offset;
 
-                Draw.Line(longStart.ToInt() + offset, longStart.ToInt() + offset + Vector2.UnitX * ((int)Window.CaseWidth - 2), Color.Black, 2);
+                Draw.Line(longStart.ToInt() + offset, longStart.ToInt() + offset + Vector2.UnitX * ((int)BetterWindow.CaseWidth - 2), Color.Black, 2);
             }
         }
         public override void Added(Scene scene)
@@ -76,7 +75,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprite.Play("idle");
             Dial.Collider = new Hitbox(8, 8);
             Dial.Position = new Vector2(Position.X, Position.Y).ToInt();
-            DrawY = Position.Y + Window.CaseHeight - 8 - Window.CaseHeight / 4;
+            DrawY = Position.Y + BetterWindow.CaseHeight - 8 - BetterWindow.CaseHeight / 4;
         }
 
     }

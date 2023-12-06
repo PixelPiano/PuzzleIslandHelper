@@ -1,15 +1,10 @@
-//PuzzleIslandHelper.CustomWater
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using Celeste.Mod.PandorasBox;
-using System;
-using MonoMod.Cil;
-using Mono.Cecil.Cil;
-using ExtendedVariants.Variants;
 using System.Collections;
-using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -93,16 +88,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Rectangle LeftDetect;
         private Rectangle BottomDetect;
         private bool InBubble;
-
+        public bool UsedInCutscene;
         private Bubble.BubbleType BubbleType;
         private bool LeftSide;
         private bool RightSide;
         private bool TopSide;
         private bool BottomSide;
+        private string flag;
+        private bool FlagState
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(flag))
+                {
+                    return true;
+                }
+                if (Scene is not Level level)
+                {
+                    return false;
+                }
+                return level.Session.GetFlag(flag);
 
-        private bool Detected;
+            }
+        }
         public ChargedWater(EntityData data, Vector2 offset) : base(CreateData(data), offset)
         {
+            UsedInCutscene = data.Bool("usedInCutscene");
+            flag = data.Attr("flag");
             BubbleType = data.Enum<Bubble.BubbleType>("bubbleType");
             LeftSide = data.Bool("bubbleLeft");
             RightSide = data.Bool("bubbleRight");
@@ -127,16 +139,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             rayTopColor *= 0.3f;
             Add(new MaskRenderHook(Drawing, Mask));
         }
+        private bool PipesBroken()
+        {
+            return PipeWindowContent.PipeCutsceneStarted || PianoModule.SaveData.GetPipeState() > 1;
+        }
         private void Drawing()
         {
-            if (BubbleSystem is not null)
+            if (BubbleSystem is not null && PipesBroken())
             {
                 BubbleSystem.Render();
             }
         }
         private void Mask()
         {
-            Draw.Rect(Collider, Color.White);
+            if (FlagState)
+            {
+                Draw.Rect(Collider, Color.White);
+            }
         }
         private static EntityData CreateData(EntityData thisData)
         {
@@ -186,6 +205,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public bool DashingOut(Player player)
         {
+            if (!PipesBroken())
+            {
+                return false;
+            }
             bool dashing = player.StateMachine.State == Player.StDash || player.StartedDashing || player.DashAttacking;
             bool detected = false;
             Rectangle bounds = player.Collider.Bounds;
@@ -231,20 +254,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            if (Scene is not Level level)
+            {
+                return;
+            }
+            if (!FlagState)
+            {
+                return;
+            }
             if (player is not null)
             {
                 if (!player.Dead && !InBubble && DashingOut(player))
                 {
-                    Add(new Coroutine(CollideAdjust()));
+                    Add(new Coroutine(StartBubble()));
                 }
             }
-            if (Scene.OnInterval(25 / 60f)) DeepParticles();
-            if (Scene.OnInterval(30 / 60f)) SurfaceParticles();
+            if (PipesBroken())
+            {
+                if (Scene.OnInterval(25 / 60f)) DeepParticles();
+                if (Scene.OnInterval(30 / 60f)) SurfaceParticles();
+            }
+
         }
-        private IEnumerator CollideAdjust()
+        private IEnumerator StartBubble()
         {
             Collidable = false;
-            //player.Position.Y--;
             DashParticles(player.DashDir);
             player.DummyAutoAnimate = false;
             player.DummyGravity = false;
@@ -314,10 +348,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Awake(scene);
             player = (scene as Level).Tracker.GetEntity<Player>();
-            if (PianoUtils.SeekController<RenderHelper>(scene) == null)
-            {
-                //scene.Add(new LabLightRenderer(scene));
-            }
         }
     }
 }

@@ -3,13 +3,63 @@ using Celeste;
 using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
 
 public class PianoCommands
 {
+    [Command("pipestate", "sets the state of pipes")]
+    private static void PipeState(int state = 1)
+    {
+        PianoModule.SaveData.SetPipeState(Calc.Clamp(state, 1, 4));
+        switch (state)
+        {
+            case >= 3: PipeValves(5); break;
+            default: PipeValves(0); break;
+        }
+
+    }
+    [Command("pi_pipevalves", "sets the number of awake pipe valves")]
+    private static void PipeValves(int num = 0)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        bool extremeCondition = num < 1 || num > 4;
+        bool allState = num > 4;
+        if (extremeCondition)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                level.Session.SetFlag("valve" + (i + 1), allState);
+            }
+        }
+        else
+        {
+            for (int i = 1; i < num + 1; i++)
+            {
+                level.Session.SetFlag("valve" + i, true);
+            }
+            for (int i = num + 1; i < 6; i++)
+            {
+                level.Session.SetFlag("valve" + i, false);
+            }
+        }
+    }
+    [Command("pi_pipeattempts", "sets the attempts of switching the pipe route")]
+    private static void PipeAttempts(int num = 0)
+    {
+        int realNum = (int)Calc.Max(0, num);
+        PianoModule.SaveData.PipeSwitchAttempts = realNum;
+        if (realNum == 0)
+        {
+            PianoModule.SaveData.ResetPipeScrew();
+        }
+        PianoModule.SaveData.HasBrokenPipes = realNum > 2;
+    }
     [Command("pi_generator", "turns the generator on/off")]
     private static void Generator(bool state = true)
     {
@@ -42,7 +92,7 @@ public class PianoCommands
         }
         PianoModule.SaveData.HasArtifact = state;
     }
-    [Command("pi_escapestate", "Gives or takes away Level 5 clearance from the player")]
+    [Command("pi_escapestate", "Sets the escaped condition to true or false")]
     private static void EscapeState(bool state = true)
     {
         PianoModule.SaveData.Escaped = state;

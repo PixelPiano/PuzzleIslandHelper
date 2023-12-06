@@ -12,6 +12,18 @@ using System.Runtime.CompilerServices;
 
 public static class PianoUtils
 {
+    public static Player GetPlayer(this Level level)
+    {
+        if(level is null)
+        {
+            return null;
+        }
+        return level.Tracker.GetEntity<Player>();
+    }
+    public static Player GetPlayer(this Scene scene)
+    {
+        return (scene as Level).GetPlayer();
+    }
     public static Vector2? DoRaycast(Scene scene, Vector2 start, Vector2 end)
 => DoRaycast(scene.Tracker.GetEntities<Solid>().Select(s => s.Collider), start, end);
 

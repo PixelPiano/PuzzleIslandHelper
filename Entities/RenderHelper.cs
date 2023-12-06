@@ -91,7 +91,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
         }
         internal static void Load()
         {
-            On.Celeste.LevelLoader.ctor += LevelLoader_ctor;
+           On.Celeste.LevelLoader.ctor += LevelLoader_ctor;
         }
         internal static void Unload()
         {

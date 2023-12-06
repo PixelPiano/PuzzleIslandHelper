@@ -1,11 +1,9 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
 using System.Reflection;
-
+using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -14,7 +12,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class IconText : Entity
     {
         private static readonly Dictionary<string, List<string>> fontPaths;
-        private Level l;
         static IconText()
         {
             // Fonts.paths is private static and never instantiated besides in the static constructor, so we only need to get the reference to it once.
@@ -28,10 +25,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public FancyText.Text ActiveText;
         public static readonly float TextScale = 0.8f;
         public static ComputerIcon CurrentIcon;
+        public bool WasDrawing;
         public List<FancyText.Node> Nodes => ActiveText.Nodes;
         public IconText()
         {
             Tag = TagsExt.SubHUD;
+        }
+        public override void Update()
+        {
+            WasDrawing = BetterWindow.Drawing;
+            base.Update();
+            if (!WasDrawing && BetterWindow.Drawing)
+            {
+                ReloadText();
+            }
+        }
+        public void ReloadText()
+        {
+            ActiveText = FancyText.Parse(Dialog.Get(CurrentIcon.TabText), (int)BetterWindow.WindowWidth * 10, 20);
         }
         private Vector2 ToInt(Vector2 vector)
         {
@@ -44,20 +55,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            if (Scene as Level is null || !Window.Drawing)
+            if (!BetterWindow.Drawing)
             {
                 return;
             }
-            l = Scene as Level;
-
-            ActiveText = FancyText.Parse(Dialog.Get(CurrentIcon.TabText), (int)Window.WindowWidth * 10, 20);
+            if(ActiveText is null)
+            {
+                ReloadText();
+            }
             ActiveText.Font = ActiveFont.Font;
             ActiveText.Draw(TabTextPosition(), Vector2.Zero, Vector2.One * TextScale, 1);
         }
         public Vector2 TabTextPosition()
         {
-            return (ToInt(l.Camera.CameraToScreen(Window.DrawPosition)) * 6) +
-                    ToInt(new Vector2(1,-Window.tabHeight)*6);
+            if (Scene is not Level level)
+            {
+                return Vector2.Zero;
+            }
+            return (ToInt(level.Camera.CameraToScreen(BetterWindow.DrawPosition)) * 6) +
+                    ToInt(new Vector2(1, -BetterWindow.tabHeight) * 6);
         }
         private void ensureCustomFontIsLoaded()
         {

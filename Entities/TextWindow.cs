@@ -1,7 +1,8 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Color = Microsoft.Xna.Framework.Color;
@@ -19,10 +20,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
         private static readonly Dictionary<string, List<string>> fontPaths;
-        private FancyText.Text activeText;
+        public FancyTextExt.Text activeText;
         private static string fontName = "alarm clock";
         public static bool Drawing = false;
         public static string CurrentID = "";
+        private string LastUsedID;
         static TextWindow()
         {
             // Fonts.paths is private static and never instantiated besides in the static constructor, so we only need to get the reference to it once.
@@ -30,19 +32,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
 
         private Level l;
-        public List<FancyText.Node> Nodes => activeText.Nodes;
+        public List<FancyTextExt.Node> Nodes => activeText.Nodes;
 
         public static Vector2 TextPosition;
         public static int TextWidth = 0;
-        private float textScale = 0.7f;
+        public float textScale = 0.7f;
         #endregion
-        public TextWindow()
+        public TextWindow(string dialog)
         {
-            Tag = TagsExt.SubHUD;
+            Tag |= TagsExt.SubHUD | Tags.TransitionUpdate;
             Depth = Interface.BaseDepth - 5;
+            ChangeCurrentID(dialog);
+        }
+        public void ChangeCurrentID(string dialog)
+        {
+            if (LastUsedID == dialog)
+            {
+                return;
+            }
+            activeText = FancyTextExt.Parse(Dialog.Get(dialog), (int)BetterWindow.CaseWidth * 8, 15, Vector2.Zero, 1);
+            LastUsedID = dialog;
+            CurrentID = dialog;
         }
         public override void Render()
         {
+            if (SwitchAccess)
+            {
+                CurrentID = !LoadSequence.HasArtifact && Interface.Loading ? "ACCESSDENIED" : "ACCESS";
+            }
             base.Render();
             if (Scene as Level == null)
             {
@@ -50,11 +67,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             l = Scene as Level;
 
-            //change text on special cases
-            if (SwitchAccess)
-            {
-                CurrentID = !LoadSequence.HasArtifact && Interface.Loading ? "ACCESSDENIED" : "ACCESS";
-            }
             //if the text is being drawn
             if (Drawing)
             {
@@ -62,21 +74,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     return;
                 }
-                activeText = FancyText.Parse(Dialog.Get(CurrentID.ToUpper()),
-                                            (int)Window.CaseWidth * 8,
-                                            15, 1, Interface.NightMode ? Color.White : Color.Black);
-                Window.TextDimensions.Y = (activeText.BaseSize * activeText.Lines / 6 * textScale) + activeText.BaseSize / 6 + 3;
-                activeText.Font = ActiveFont.Font;
-                activeText.Draw(ToInt(l.Camera.CameraToScreen(TextPosition)) * 6, Vector2.Zero, Vector2.One * textScale, 1f);
+                activeText.Font ??= ActiveFont.Font;
+                activeText?.Draw(ToInt(l.Camera.CameraToScreen(TextPosition)) * 6, Vector2.Zero, Vector2.One * textScale, 1f, Interface.NightMode ? Color.White : Color.Black);
 
             }
         }
         public override void Update()
         {
+
             base.Update();
-            if (!Window.Drawing)
+            if (!BetterWindow.Drawing)
             {
                 Drawing = false;
+                return;
+            }
+
+            if (LastUsedID != CurrentID)
+            {
+                ChangeCurrentID(CurrentID);
             }
         }
         #region Finished

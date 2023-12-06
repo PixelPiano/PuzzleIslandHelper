@@ -17,6 +17,8 @@ water.placements = {
         bubbleDown = false,
         bubbleRight = false,
         bubbleLeft = false,
+        flag = "",
+        usedInCutscene = false
     }
 }
 water.fieldInformation = 

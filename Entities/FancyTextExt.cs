@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using System.Windows.Media.Imaging;
 using System.Xml;
 using Celeste.Mod;
-using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
 
@@ -17,6 +15,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
      * This literally only adds a color parameter to the draw calls and nothing else. I'm not experienced enough to know how to do this better
      * 
      * just kidding this is now future me, i have added an offset feature because i am a gremlin HHEE HEE HOO HOO HA
+     * 
+     * future future me here, THE OFFSET FEATURE CAME IN CLUTCH LETS GO
      */
     public class FancyTextExt
     {
@@ -394,8 +394,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private Vector2 offset;
         private Vector2 currentOffset = Vector2.Zero;
-
-        private bool useOffset;
+        private float tabOffset;
         public static Text Parse(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade = 1f, Color? defaultColor = null, Language language = null)
         {
             return new FancyTextExt(text, maxLineWidth, linesPerPage, offset, startFade, defaultColor.HasValue ? defaultColor.Value : DefaultColor, language).Parse();
@@ -689,6 +688,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             y = float.Parse(values[1], CultureInfo.InvariantCulture);
                         }
                         currentOffset = new Vector2(x, y);
+                        continue;
                     }
                     if (text.Equals("/offset"))
                     {
@@ -706,6 +706,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         currentShake = false;
                         continue;
                     }
+                    if (text.Equals("tab"))
+                    {
+                        tabOffset += (int)(size.Size * 1.5f);
+                        continue;
+                    }
+                    if (text.Equals("/tab"))
+                    {
+                        tabOffset = 0;
+                        continue;
+                    }
                     if (text.Equals("mtRight"))
                     {
                         currentOffset.X = offset.X;
@@ -714,7 +724,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     if (text.Equals("/mtRight"))
                     {
                         currentOffset.X = 0;
-                        useOffset = false;
                         continue;
                     }
                     if (text.Equals("~"))
@@ -861,6 +870,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             currentLine++;
             currentPosition = 0f;
             group.Lines++;
+            tabOffset = 0;
             if (currentLine > linesPerPage)
             {
                 group.Pages++;
@@ -962,7 +972,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Impact = currentImpact,
                     Wave = currentWave,
                     IsPunctuation = (Contains(language.CommaCharacters, word[i]) || Contains(language.PeriodCharacters, word[i])),
-                    Offset = currentOffset
+                    Offset = currentOffset + Vector2.UnitX * tabOffset
                 });
                 currentPosition += (float)pixelFontCharacter.XAdvance * currentScale;
                 if (i < word.Length - 1 && pixelFontCharacter.Kerning.TryGetValue(word[i], out var value))

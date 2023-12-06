@@ -653,6 +653,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void OnPickup()
         {
+            Audio.Play("event:/PianoBoy/piano/piano-keys-a/B6");
             Collider = HoldingHitbox;
             IsSet = false;
             Speed = Vector2.Zero;

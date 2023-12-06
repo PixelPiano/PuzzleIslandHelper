@@ -5,6 +5,7 @@ using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection;
 
@@ -85,6 +86,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public override void Update(Scene scene)
         {
             base.Update(scene);
+            Player player = scene.GetPlayer();
             if (PianoModule.SaveData.HasInvert)
             {
                 (scene as Level).Session.SetFlag("invertOverlay");
@@ -180,6 +182,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                                 }*/
             }
         }
+
         public override void Ended(Scene scene)
         {
             base.Ended(scene);

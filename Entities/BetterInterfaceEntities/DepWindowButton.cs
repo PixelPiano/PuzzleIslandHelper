@@ -1,25 +1,23 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Windows.WindowButton;
 using Color = Microsoft.Xna.Framework.Color;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 {
     [CustomEntity("PuzzleIslandHelper/WindowButton")]
     [Tracked]
 
-    public class WindowButton : Entity
+    public class DepWindowButton : Entity
     {
         private static readonly Dictionary<string, List<string>> fontPaths;
         private Level l;
         private Sprite sprite;
-        static WindowButton()
+        static DepWindowButton()
         {
             // Fonts.paths is private static and never instantiated besides in the static constructor, so we only need to get the reference to it once.
             fontPaths = (Dictionary<string, List<string>>)typeof(Fonts).GetField("paths", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
@@ -56,13 +54,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
                 OnClicked();
             }
         }
-        public WindowButton(Vector2 position, string Text, Action OnClicked, Vector2 Scale, float textSize)
+        public DepWindowButton(Vector2 position, string Text, Action OnClicked, Vector2 Scale, float textSize)
             : this(ButtonType.Custom, position, Scale, textSize, Text)
         {
             this.OnClicked = OnClicked;
         }
 
-        public WindowButton(ButtonType type, Vector2 position, Vector2 Scale, float textSize = -1, string Text = null)
+        public DepWindowButton(ButtonType type, Vector2 position, Vector2 Scale, float textSize = -1, string Text = null)
         {
             this.Scale = Scale != Vector2.Zero ? Scale : Vector2.One;
 
@@ -85,7 +83,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
             sprite.Play("idle");
             sprite.Scale = Scale;
             Collider = new Hitbox(sprite.Width * Scale.X, sprite.Height * Scale.Y);
-            WindowPosition = new Vector2(Window.CaseWidth / 2, Window.CaseHeight);
+            WindowPosition = new Vector2(BetterWindow.CaseWidth / 2, BetterWindow.CaseHeight);
         }
         public override void Update()
         {
@@ -114,20 +112,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
         }
         public Vector2 ButtonDrawPosition()
         {
-            return ToInt(ToInt(Window.DrawPosition) + WindowPosition - new Vector2(ButtonWidth / 3, ButtonHeight / 4) - Vector2.One);
+            return ToInt(ToInt(BetterWindow.DrawPosition) + WindowPosition - new Vector2(ButtonWidth / 3, ButtonHeight / 4) - Vector2.One);
         }
 
         public class ButtonText : Entity
         {
             public string Text;
             public Vector2 Scale;
-            public WindowButton Button;
+            public DepWindowButton Button;
             public float Size;
-            public ButtonText(WindowButton button, string text, float textSize, Vector2 Scale)
+            public ButtonText(DepWindowButton button, string text, float textSize, Vector2 Scale)
             : this(button, ButtonType.Custom, textSize, Scale, text)
             {
             }
-            public ButtonText(WindowButton button, ButtonType type, float textSize, Vector2 Scale, string Text = null)
+            public ButtonText(DepWindowButton button, ButtonType type, float textSize, Vector2 Scale, string Text = null)
             {
                 Size = textSize;
                 Button = button;
@@ -138,7 +136,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Windows
             public override void Render()
             {
                 base.Render();
-                if (Scene is not Level level || !Window.Drawing)
+                if (Scene is not Level level || !BetterWindow.Drawing)
                 {
                     return;
                 }

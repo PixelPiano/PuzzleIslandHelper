@@ -1,70 +1,54 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Xml.Linq;
 using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 {
 
-    [TrackedAs(typeof(Component))]
-    public class BetterWindowButton : Image
+    [TrackedAs(typeof(BetterWindowButton))]
+    public class BetterWindowButton : BetterButton
     {
-        public Action OnClicked;
-        public IEnumerator Routine;
-        public string Text;
-        public bool Waiting;
-        public const string Path = "objects/PuzzleIslandHelper/interface/icons/";
-        public bool InFocus;
-        public BetterWindowButton(Action OnClicked = null, IEnumerator Routine = null) : base(GFX.Game[Path + "button00"])
+        private Interface entityInterface;
+        public BetterWindowButton(Interface entityInterface, string path = null, Action OnClicked = null, IEnumerator Routine = null)
+            : base(path, OnClicked, Routine)
         {
+            this.entityInterface = entityInterface;
             this.OnClicked = OnClicked;
             this.Routine = Routine;
+            ButtonCollider = new Hitbox(Texture.Width, Texture.Height);
         }
         public override void Update()
         {
             base.Update();
-            Position = ToInt(Position);
-            if (Interface.LeftClicked && Texture.ClipRect.Contains((int)Interface.MousePosition.X, (int)Interface.MousePosition.Y) && !Waiting)
+            Color = Color.Lerp(Color.White, Disabled ? Color.LightGray : Color.White, 0.5f);
+            ButtonCollider.Position = RenderPosition;
+            if (Scene is Level level && TextRenderer is not null)
             {
-                Waiting = true;
-                Texture = GFX.Game[Path + "buttonPressed00"];
+                TextRenderer.RenderPosition = (level.Camera.CameraToScreen(RenderPosition + new Vector2(2, 1))).ToInt() * 6;
             }
-            else if (Waiting)
+            if (Disabled)
             {
-                Texture = GFX.Game[Path + "button00"];
-                Waiting = false;
-                if (OnClicked is not null)
-                {
-                    OnClicked();
-                }
-                if (Routine is not null)
-                {
-                    Entity.Add(new Coroutine(Routine));
-                }
+                Pressing = false;
+                Texture = GFX.Game[Path + "button"];
+                return;
             }
-        }
-
-        public override void Render()
-        {
-            base.Render();
-            ActiveFont.Font.Draw(40f, Text, RenderPosition, Vector2.Zero, Scale, Color.Black);
-
-
-        }
-        public Vector2 AbsoluteDrawPosition(int i)
-        {
-            Vector2 vec1 = ToInt((Entity.Scene as Level).Camera.CameraToScreen(BetterWindow.ButtonsUsed[i].Position)) * 6;
-            Vector2 adjust = ToInt(new Vector2(Width / 2, 6));
-            return vec1 + adjust;
-        }
-        private Vector2 ToInt(Vector2 vector)
-        {
-            return new Vector2((int)vector.X, (int)vector.Y);
+            bool collidingWithMouse = ButtonCollider.Collide(entityInterface) && !Interface.Buffering;
+            if (collidingWithMouse && Interface.LeftClicked)
+            {
+                Pressing = true;
+                Texture = GFX.Game[Path + "buttonPressed"];
+            }
+            else
+            {
+                if (Pressing && collidingWithMouse)
+                {
+                    RunActions();
+                }
+                Pressing = false;
+                Texture = GFX.Game[Path + "button"];
+            }
         }
     }
 }

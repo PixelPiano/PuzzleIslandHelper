@@ -9,6 +9,7 @@ using MonoMod.Utils;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using System.Linq;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -59,6 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             MonitorDecalGroup.Shader = ShaderHelper.TryGetEffect("monitorDecal");
             ArtifactTester.Shader = ShaderHelper.TryGetEffect("static");
             LCDParallax.Shader = ShaderHelper.TryGetEffect("lcd");
+            LCDArea.Shader = ShaderHelper.TryGetEffect("static");
             LCDParallax.MaskShader = ShaderHelper.TryGetEffect("sineLines");
         }
         private void PlayerHair_Render(On.Celeste.PlayerHair.orig_Render orig, PlayerHair self)
@@ -150,7 +152,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
             InvertOverlay.Load();
             BgTilesColorgrade.Load();
             DigitalOverlay.Load();
-            //FluidMachine.Load();
             PotionFluid.Load();
             BlockGlitch.Load();
             MonitorDecalGroup.Load();
@@ -158,9 +159,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
             LabTubeLight.Load();
             StageData.Load();
             RenderHelper.Load();
-            DebugEater.Load();
+            //DebugEater.Load();
             LCDParallax.Load();
-            //TileseedHelper.Load();
         }
         public override void Unload()
         {
@@ -175,7 +175,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
             InvertOverlay.Unload();
             BgTilesColorgrade.Unload();
             DigitalOverlay.Unload();
-            //FluidMachine.Unload();
             FluidBottle.Unload();
             PotionFluid.Unload();
             BlockGlitch.Unload();
@@ -183,9 +182,9 @@ namespace Celeste.Mod.PuzzleIslandHelper
             DeadRefill.Unload();
             StageData.Unload();
             RenderHelper.Unload();
-            DebugEater.Unload();
+            //DebugEater.Unload();
             LCDParallax.Unload();
-            //TileseedHelper.Unload();
+            LCDArea.Unload();
         }
 
         public override void Initialize()

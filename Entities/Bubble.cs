@@ -19,6 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class Bubble : Actor
     {
+        private bool reactsToPipes;
         public enum BubbleType
         {
             FloatDown,
@@ -100,6 +101,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return Moving || InHold;
             }
         }
+        public float InBubbleTimer;
         public bool Moving;
         public Action OnRemoved;
         private Vector2 AimDir = Vector2.Zero;
@@ -147,6 +149,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         : this(data.Position + offset - Vector2.UnitY * 4, false, data.Int("layers", 1),
                data.Enum<BubbleType>("bubbleType"), data.Bool("noCollision"), data.Bool("respawns"))
         {
+            reactsToPipes = data.Bool("onlyOnPipesBroken");
             Add(new Coroutine(IdleFloat()));
         }
         public Bubble(Vector2 position, bool immediate, int layers, BubbleType type, bool passThroughSolids = false, bool respawns = false) : base(position)
@@ -246,6 +249,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            if (reactsToPipes && PianoModule.SaveData.GetPipeState() < 2)
+            {
+                RemoveSelf();
+            }
             if (PianoUtils.SeekController<BubbleParticleSystem>(scene) == null)
             {
                 scene.Add(PianoModule.Session.BubbleSystem = new BubbleParticleSystem(0, 500));
@@ -361,12 +368,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Update();
             if (InBubble && !popping && !popped)
             {
+                InBubbleTimer += Engine.DeltaTime;
                 if (player is not null && !player.Dead)
                 {
                     player.Sprite.Scale = Vector2.One;
                     player.DummyAutoAnimate = false;
                     player.DummyGravity = false;
                 }
+            }
+            else
+            {
+                InBubbleTimer = 0;
             }
         }
         private void Respawn()
@@ -601,11 +613,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 player.RefillStamina();
 
                 float speed = (CanHold && InHold) ? int.MaxValue : Speed;
-
                 player.Speed = Vector2.Zero;
                 player.MoveTowardsX((int)Math.Round(vector2.X), speed);
                 player.MoveTowardsY((int)Math.Round(vector2.Y), speed);
-
             }
             else if (!popped)
             {

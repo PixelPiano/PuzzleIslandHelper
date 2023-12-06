@@ -1,3 +1,4 @@
+using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -7,12 +8,33 @@ using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
-
     [CustomEntity("PuzzleIslandHelper/PipeSpout")]
     [Tracked]
     public class PipeSpout : Entity
     {
+        private readonly ParticleType PipeShard = new ParticleType()
+        {
+            Source = GFX.Game["objects/PuzzleIslandHelper/particles/pipeShard"],
+            Size = 1,
+            SpeedMin = 40,
+            SpeedMax = 100,
+            LifeMin = 0.8f,
+            LifeMax = 1,
+            SpinMin = 30,
+            SpinMax = 90,
+            RotationMode = ParticleType.RotationModes.Random,
+            Color = Color.Orange,
+            Color2 = Color.DarkOrange,
+            ColorMode = ParticleType.ColorModes.Choose,
+            ScaleOut = true,
+            DirectionRange = 15f.ToRad()
 
+        };
+        public bool Broken;
+        public bool ForceEnable;
+        public bool InBreakRoutine;
+
+        public SoundSource sfx;
         public bool UseSaveData;
         public VisibleTypes HideMethod;
         private bool UseDissolveTexture;
@@ -25,6 +47,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private int tvOffset;
         private Sprite Splash;
         private Image Hole;
+        public Rectangle ClipRect;
         private bool Vertical
         {
             get
@@ -39,17 +62,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool IsOn;
         public bool inverted;
         private bool CanCollide;
-        private bool RenderTextures = true;
+        public bool RenderTextures = true;
 
         public bool Enabled
         {
             get
             {
-                if (UseSaveData && (!PianoModule.SaveData.HasBrokenPipes || PianoModule.SaveData.FixedPipes))
+                if (InBreakRoutine)
                 {
+                    return true;
+                }
+                if (UseSaveData && (!PianoModule.SaveData.HasBrokenPipes || PianoModule.SaveData.HasFixedPipes))
+                {
+                    if (PianoModule.Session.CutsceneSpouts.Contains(this))
+                    {
+                        return FlagState;
+                    }
                     return false;
                 }
-
+                if (PianoModule.SaveData.HasBrokenPipes)
+                {
+                    return FlagState;
+                }
+                return false;
+            }
+        }
+        public bool FlagState
+        {
+            get
+            {
                 Level level = Scene as Level;
                 if (level is null)
                 {
@@ -76,7 +117,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Vector2 hideOffset = Vector2.Zero;
         private float MoveTime;
         private bool Moving;
-        private bool OnlyMoveOnFlag;
+        public bool OnlyMoveOnFlag;
 
         private enum Directions
         {
@@ -93,7 +134,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Grow,
             Instant
         }
-        private VisibleTypes AppearType;
         private Vector2 offset = Vector2.Zero;
         public Collider SplashBox;
         public Collider HurtBox;
@@ -102,6 +142,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public PipeSpout(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
+            sfx = new SoundSource(Vector2.Zero, "event:/PianoBoy/env/local/pipes/water-stream-1");
+            Add(sfx);
             Tag = Tags.TransitionUpdate;
             UseSaveData = data.Bool("useSaveData");
             MoveTime = data.Float("moveDuration");
@@ -113,7 +155,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             WaitTime = data.Float("waitTime");
             StartDelay = data.Float("startDelay");
             OnlyMoveOnFlag = data.Bool("onlyMoveOnFlag");
-            AppearType = data.Enum<VisibleTypes>("appearType");
             #region Sprites
             Splash = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/waterPipes/")
             {
@@ -167,7 +208,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             #endregion
             Collider = HurtBox;
             Target = VirtualContent.CreateRenderTarget("Target", (int)SplashBox.Width, (int)SplashBox.Height);
+            ClipRect = SplashBox.Bounds;
             Add(new BeforeRenderHook(BeforeRender));
+        }
+        public void EmitShards()
+        {
+            Vector2 direction = Direction switch
+            {
+                Directions.Left => Vector2.UnitX,
+                Directions.Right => -Vector2.UnitX,
+                Directions.Up => -Vector2.UnitY,
+                Directions.Down => Vector2.UnitY,
+                _ => Vector2.Zero
+            };
+            ParticleSystem system = SceneAs<Level>().ParticlesFG;
+            system.Emit(PipeShard, 4, Hole.RenderPosition, Vector2.Zero, direction.Angle());
+
         }
         private IEnumerator Routine()
         {
@@ -315,6 +371,55 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
+        public IEnumerator BreakRoutine()
+        {
+            //ForceEnable = true;
+            if (Scene is not Level level)
+            {
+                yield break;
+            }
+            PianoModule.Session.CutsceneSpouts.Add(this);
+            Visible = false;
+            while (!SceneAs<Level>().InsideCamera(Hole.RenderPosition))
+            {
+                yield return null;
+            }
+            //play creak sound
+            yield return 0.8f;
+            Audio.Play("event:/PianoBoy/env/local/pipes/pipeburst");
+            //burst open
+            #region Grow
+            AdjustHideOffset(1);
+            Visible = true;
+            RenderTextures = true;
+            InBreakRoutine = true;
+            Broken = true;
+            EmitShards();
+            level.DirectionalShake(-Vector2.UnitY, 0.1f);
+            sfx.Play(sfx.EventName);
+            float duration = 0.5f;
+            for (float i = 0; i < duration; i += Engine.DeltaTime)
+            {
+                float lerp = i / duration;
+                AdjustHideOffset(1 - Ease.SineIn(lerp));
+                yield return null;
+                Scale.Y = Calc.LerpClamp(MinScale, 1, Ease.SineIn(lerp));
+            }
+            AdjustHideOffset(0);
+            Scale.Y = 1;
+            Started = true;
+            IsOn = true;
+            PianoModule.SaveData.HasBrokenPipes = true;
+            yield return null;
+            CanCollide = true;
+            Moving = false;
+            #endregion
+            yield return null;
+        }
+        public void GrowBreak()
+        {
+            Add(new Coroutine(BreakRoutine()));
+        }
         private IEnumerator WaitForEnabled()
         {
             while (!Enabled)
@@ -361,7 +466,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void DrawTextures(Vector2 pos, Color color)
         {
-            Vector2 retreatOffset = (HideMethod == VisibleTypes.Grow ? hideOffset : Vector2.Zero);
+            Vector2 retreatOffset = (HideMethod == VisibleTypes.Grow || InBreakRoutine ? hideOffset : Vector2.Zero);
             Vector2 DrawPosition = pos + offset + retreatOffset;
 
             int Length = Vertical ? (int)orig_Collider.Height : (int)orig_Collider.Width;
@@ -411,6 +516,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            /*            if (!Enabled)
+                        {
+                            if (sfx.InstancePlaying)
+                            {
+                                sfx.Stop(true);
+                            }
+                        }
+                        else
+                        {
+                            if (!sfx.InstancePlaying)
+                            {
+                                sfx.Play(sfx.EventName);
+                            }
+                        }*/
             Collidable = (!IsTimed || IsOn) && CanCollide && Enabled;
             if (Scene.OnInterval(1 / 12f))
             {
@@ -422,20 +541,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void RoutineUpdate()
         {
-            switch (HideMethod)
+            if (HideMethod == VisibleTypes.Grow || ForceEnable)
             {
-                case VisibleTypes.Grow:
-                    HurtBox.Width = (orig_Collider.Width - Math.Abs(hideOffset.X));
-                    HurtBox.Height = (orig_Collider.Height - Math.Abs(hideOffset.Y));
-                    if (Direction == Directions.Up)
-                    {
-                        HurtBox.Position.Y = Math.Abs(hideOffset.Y);
-                    }
-                    if (Direction == Directions.Left)
-                    {
-                        HurtBox.Position.X = Math.Abs(hideOffset.X);
-                    }
-                    break;
+                HurtBox.Width = (orig_Collider.Width - Math.Abs(hideOffset.X));
+                HurtBox.Height = (orig_Collider.Height - Math.Abs(hideOffset.Y));
+                if (Direction == Directions.Up)
+                {
+                    HurtBox.Position.Y = Math.Abs(hideOffset.Y);
+                }
+                if (Direction == Directions.Left)
+                {
+                    HurtBox.Position.X = Math.Abs(hideOffset.X);
+                }
             }
         }
         public override void SceneEnd(Scene scene)
@@ -477,7 +594,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
 
 
-        private void AdjustHideOffset(float lerp)
+        public void AdjustHideOffset(float lerp)
         {
             switch (Direction)
             {
@@ -497,6 +614,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void BeforeRender()
         {
+            if (Scene is not Level level)
+            {
+                return;
+            }
+            if (!level.Camera.GetBounds().Intersects(SplashBox.Bounds))
+            {
+                return;
+            }
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
             Draw.SpriteBatch.Begin();
@@ -507,12 +632,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            if (RenderTextures && (OnlyMoveOnFlag || Enabled))
+            
+            if (Scene is not Level level)
             {
-                Draw.SpriteBatch.Draw(Target, SplashBox.Position, Color.White);
+                return;
+            }
+            if (level.Camera.GetBounds().Intersects(SplashBox.Bounds))
+            {
+                if (RenderTextures && (OnlyMoveOnFlag || Enabled))
+                {
+                    Draw.SpriteBatch.Draw(Target, SplashBox.Position, Color.White);
+                }
             }
             Hole.Rotation = Angle;
-            Hole.Render();
+            if (((PianoModule.SaveData.HasBrokenPipes || Broken) && FlagState) || PianoModule.SaveData.GetPipeState() > 3)
+            {
+                Hole.Render();
+            }
         }
         public override void DebugRender(Camera camera)
         {

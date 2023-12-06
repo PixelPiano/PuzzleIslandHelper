@@ -9,6 +9,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public ChargedWater CutsceneWater;
+        public List<PipeSpout> CutsceneSpouts = new List<PipeSpout>();
         public EntityID ActiveTransition {get; set;}
         public BubbleParticleSystem BubbleSystem { get; set; }
         public float MaxDarkness = 0.5f;

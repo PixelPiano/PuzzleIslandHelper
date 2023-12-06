@@ -35,8 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return true; //debug
-                //return PianoModule.Session.RestoredPower; 
+                return PianoModule.Session.RestoredPower; 
             }
         }
         private bool Flickering;

@@ -24,7 +24,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 "info",
                 "destruct",
                 "memory",
-                "pipe"
+                "pipe",
+                "life"
             };
         public static readonly List<string> TextDictionary = new List<string>
             {
@@ -40,7 +41,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 "ram",
                 "access",
                 "destruct",
-                "pipe"
+                "pipe",
+                "life"
             };
         public bool Open = false;
         private Color color = Color.White;

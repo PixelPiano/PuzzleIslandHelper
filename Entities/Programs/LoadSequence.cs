@@ -1,11 +1,10 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Windows;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
 {
     public class LoadSequence : Entity
     {
@@ -40,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite.Add("accessDennys", "accessDennys", 0.1f, "accessDennysIdle");
             Sprite.Visible = false;
             Collider = new Hitbox(Sprite.Width, Sprite.Height);
-            Warning.Position -= new Vector2(Window.CaseHeight * 0.66f,Window.CaseWidth * 0.33f);
+            Warning.Position -= new Vector2(BetterWindow.CaseHeight * 0.66f, BetterWindow.CaseWidth * 0.33f);
             Add(new Coroutine(SpriteColorLerp()));
         }
         private IEnumerator SpriteColorLerp()
@@ -72,9 +71,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 timer2 -= Engine.DeltaTime;
             }
-            Warning.Position = Sprite.Position - new Vector2(Window.CaseWidth * 0.7f, Window.CaseHeight * 0.7f);
-            //Reset values if window isn't being drawn
-            if (!Window.Drawing)
+            Warning.Position = Sprite.Position - new Vector2(BetterWindow.CaseWidth * 0.7f, BetterWindow.CaseHeight * 0.7f);
+            //Reset values if BetterWindow isn't being drawn
+            if (!BetterWindow.Drawing)
             {
                 Initialize = false;
                 Sprite.Visible = false;
@@ -85,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
 
-            //Reset the Texture animation if button is pressed right after the window is drawn
+            //Reset the Texture animation if button is pressed right after the BetterWindow is drawn
             if (!Initialize && ButtonPressed)
             {
                 startTimer2 = false;
@@ -107,7 +106,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     timer--;
                 }
-                
+
                 //If player has item
                 if (HasArtifact)
                 {
@@ -132,12 +131,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 else
                 {
                     startTimer2 = true;
-                    if(timer2 <= 0)
+                    if (timer2 <= 0)
                     {
                         Warning.Visible = true;
                     }
                     Sprite.Visible = true;
-                    Sprite.SetColor(Color.Lerp(Color.Red,Color.White,0.3f));
+                    Sprite.SetColor(Color.Lerp(Color.Red, Color.White, 0.3f));
                     //"no artifact detected!!!!!
                     //Warning.Visible = timer < 30;
                 }
@@ -149,24 +148,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 RandProgress = 0;
             }
             Sprite.Origin = new Vector2(Sprite.Width, Sprite.Height);
-            Sprite.Scale = new Vector2(Window.CaseWidth / Sprite.Width, Window.CaseHeight / Sprite.Height);
-            Position = new Vector2((int)Window.DrawPosition.X, (int)Window.DrawPosition.Y) + (new Vector2(Sprite.Width, Sprite.Height) * Sprite.Scale);
+            Sprite.Scale = new Vector2(BetterWindow.CaseWidth / Sprite.Width, BetterWindow.CaseHeight / Sprite.Height);
+            Position = new Vector2((int)BetterWindow.DrawPosition.X, (int)BetterWindow.DrawPosition.Y) + new Vector2(Sprite.Width, Sprite.Height) * Sprite.Scale;
         }
         public override void Render()
         {
             base.Render();
-            if (Window.Drawing)
+            if (BetterWindow.Drawing)
             {
                 //Draw border again to cover up part of Texture
-                Draw.HollowRect(Window.DrawPosition, (int)Window.CaseWidth, (int)Window.CaseHeight, Color.Gray);
+                Draw.HollowRect(BetterWindow.DrawPosition, (int)BetterWindow.CaseWidth, (int)BetterWindow.CaseHeight, Color.Gray);
 
                 //If player has item and Interface is in loading sequence
                 if (Interface.Loading && HasArtifact)
                 {
-                    Draw.Rect(-1 + Window.DrawPosition.X + Window.CaseWidth / 2 - BarWidth / 2, -1 + Window.DrawPosition.Y + Window.CaseHeight / 2 - BarHeight / 2, BarWidth + 2, BarHeight + 2, Color.Black);
+                    Draw.Rect(-1 + BetterWindow.DrawPosition.X + BetterWindow.CaseWidth / 2 - BarWidth / 2, -1 + BetterWindow.DrawPosition.Y + BetterWindow.CaseHeight / 2 - BarHeight / 2, BarWidth + 2, BarHeight + 2, Color.Black);
                     if (HasArtifact)
                     {
-                        Draw.Rect(Window.DrawPosition.X + Window.CaseWidth / 2 - BarWidth / 2, Window.DrawPosition.Y + Window.CaseHeight / 2 - BarHeight / 2, BarWidth * BarProgress, BarHeight, Color.LimeGreen);
+                        Draw.Rect(BetterWindow.DrawPosition.X + BetterWindow.CaseWidth / 2 - BarWidth / 2, BetterWindow.DrawPosition.Y + BetterWindow.CaseHeight / 2 - BarHeight / 2, BarWidth * BarProgress, BarHeight, Color.LimeGreen);
                     }
                 }
                 else
