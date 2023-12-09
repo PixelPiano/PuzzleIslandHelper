@@ -26,6 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
 
         public static StageData StageData { get; set; }
+        public static InterfaceData InterfaceData { get; set; }
         public PianoModule()
         {
             Instance = this;
@@ -54,6 +55,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 {
                     StageData.Stages[pair.Key].ParseData();
                 }
+            }
+            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/InterfacePresets", out var asset2)
+                && asset2.TryDeserialize(out InterfaceData myData2))
+            {
+                InterfaceData = myData2;
             }
 
             BlockGlitch.Shader = ShaderHelper.TryGetEffect("jitter");
@@ -161,6 +167,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             RenderHelper.Load();
             //DebugEater.Load();
             LCDParallax.Load();
+            InterfaceData.Load();
         }
         public override void Unload()
         {
@@ -185,6 +192,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             //DebugEater.Unload();
             LCDParallax.Unload();
             LCDArea.Unload();
+            InterfaceData.Unload();
         }
 
         public override void Initialize()

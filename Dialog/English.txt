@@ -121,14 +121,28 @@ for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
 #------------------------
 #Cutscenes
 #------------------------
+#C IS LEFT, F IS RIGHT
+GREENHEART= Remember when we came through here before?{n0}{mtRight}You mean with the scout group? When you saw your so-called "playground"?{/mtRight}{n0}Yes, and that DID happen. I don't know why you keep insisting it's fake.{n0}{mtRight}I keep insisting because you refuse to wear gas masks when experimenting. It's not healthy.{/mtRight}{n0}Why are you talking as if that matters anymore?
+
+BLUEHEART= Hey, what's going to happen to us?{n0}{mtRight} What do you mean? Like, in the long-term or...?{/mtRight}{n0}I mean, the lab won't stay powered forever. Even on backup energy, it's going to run out eventually.{n0}{mtRight}I think the generator has a renewable energy source... but only if the pipes don't clog up.{/mtRight}{n0}But if power were to go offline... Would we just disappear?
+
+REDHEART= Lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem ipsum quia la la la la la la la
+
+
+DIGILORE1={mtRight} Just for the record, I believe your story about the playground.{/mtRight}{n0}Wait, then why did you act like I was lying?{n0}{mtRight} Because I wanted to keep talking. You've been so quiet recently, it worries me. Have you been occupying yourself with something?{n0}{/mtRight}Not really. Well, aside from keeping these buggers from flying off... You've got it good, y'know?{n0}{mtRight}Maybe to you, but it feels so weird being one eye short...{/mtRight}
+
+DIGILORE2=Any abnormalties?{n0}{mtRight}Do you mean abnormal from here, or abnormal from common sense? If the latter, then yes.{n0}{/mtRight}The latter.{n0}{mtRight}There's been an influx of strange readings lately. Can't really tell what they are though.{n0}{/mtRight}That was incredibly helpful, thank you.{n0}{mtRight}How many are loose now?{n0}{mtRight}7 :(
+
+DIGILORE3={mtRight} So I've been trying to come up with a plan to get out of here. Any ideas?{n0}{/mtRight}Personally, I'm fine staying here, since escaping will likely just lead us to instant death.{n0}{mtRight}Well, yes, but what if we were able to escape a different way?{n0}{/mtRight}Like, with our bodies still intact? Will the physics still be the same?{n0}{/mtRight}Funny you should bring that up...
+
+DIGILORE4={mtRight}Y'know those observers we set up around the village?{n0}{/mtRight}You mean the ones that I invented..? Yes I know them.{n0}{mtRight}Right, well I still have limited access to the lab, and I found that the readings there match up perfectly with the readings from here. What's more, I think the area in here is shifting.{n0}{/mtRight}Wait... Do you mean...?
+
+
+
 LightFail=
 	[Madeline right normal]
 	Honestly I don't know why I thought that would work.
-
-CalidusTest= 
-	[Calidus right stern]
-	And when we DO get to the computer...
-	What exactly do you propose we do?	 
+	 
 #First Encounter with Calidus
 Ca1 = [MADELINE right sad]
 	What the heck? Both paths lead to...
@@ -213,29 +227,27 @@ ACCESSDENIED= Access Module not detected. Unable to launch transport system.
 
 TEXTTEST= This is a test.{n1} This text is on the left. It is not long. {n0}{mtRight}This text is on the right. It is also not very long.{/mtRight}{n1}{mtRight}This text is once again, on the right. This time, however, we will be testing to see if the text can stay on screen regardless of how long the group is. Hopefully, I won't have to deal with this shit much longer
 
-TEXT1= To do:{n}- Talk with village leader about expanding available research bounds.{n}- 	 Conduct tests on temple fluids without getting burnt.{n}- Fix broken stabilizer in 	 sector 2.{n}- Laundry.
+TEXT1= To do:{n}- Talk with village leader about expanding available research bounds.{n}- 	 Conduct tests on temple fluids (WEAR GLOVES THIS TIME.){n}- Fix broken stabilizer in sector 2.{n}- Laundry.
 
-TEXT2= 20XX/05/10{n}This will be the first record of my existence here. I was making my way from my home to the laboratory I'm stationed at when suddenly, without warning, everything went dark. {n} I came to soon after, finding myself in the seemingly endless boughs of rock corriders this place holds. Now, I'm not  particularly atheletic, so navigating through this labyrinth was and still is an ordeal.
+TEXT2= 20XX/05/10{n}This will be the first record of our existence here. My brother and I were investigating what we believed to be the ruins of a temple built by an ancient civilization. Even though we're scientists and not archeologists, we needed to verify something. As we explored the temple, we came across a large, pristine mirror. We were drawn to it immediately, as it seemed to radiate a somewhat otherworldly aura. But the moment I touched it's surface, the world around me spiraled into madness. Shapes and colors blended and twisted in and out. I shut my eyes, since, while it looked pretty cool, it also hurt my head.
 
-TEXT3= Luckily, I had stocked up on supplies, as we needed rations and materials for various experiments, and I was tasked with procuring them. If push comes to shove, I'll have to dip into those. As I made my way through these twisting caves, the ground beneath me gave way I tumbled into a newly opened up route. I made sure I hadn't broken anything, and then decided to look around for anything I could use to hoist myself out.
+TEXT3= A moment later my brother and I found ourselves knee-deep in a small body of water. We looked around ourselves and saw leaves and crystals strung about, connecting the floor and walls to the ceiling. With nowhere to go, we picked a direction and started walking. Walking was better than sitting around waiting to starve. 
 
-TEXT4= I was looking for materials to build an escape route. Instead, I found a civilization.{n}Ok, well, maybe not a "civilization", more of a village, but if I had said "village" it wouldn't have sounded as cool.
+TEXT5= The village was covered in blues and purples. The villagers were wary of us, but oddly they seemed terrified of me in partiular. One of them who seemed to have high authority took one look at me and ordered the both of us to come with them. We didn't really know what to do, so we followed him, hoping to get some answers.
 
-TEXT5= The village was covered in blues and purples, with multiple sections being used to residence. There was a schoolhouse below the bridge, and just a little further, an industrial area. They were wary of me at first, but one of them who seemed to have high authority took one look at me and welcomed me with open arms.
+TEXT7= Once we entered the small house, it seemed to only have one room, but it was littered with books and strange scrawlings. The one who lead us here told us he was the village Leader, and he wanted to evaluate us to make sure we could be trusted.
 
-EXAMPLETEXTT= This is some example text for an extended version of FancyText. {n}It just created a new line by detecting an "n" surrounded by curly braces.{n1}And now it's created a new segment by detecting an "n" and a subsequent number after it.{n2}The number after the "n" corresponds to the number of new lines it should add.{n}Currently, dashing progresses the text to the next segment.
+TEXT11= When the time came for the scout group to move out, they breifed us on some rules we had to follow no matter what: 1. Duck if we hear any high pitched noises. 2. Be prepared for any and all temperatures. 3. Stick close to the main group, and never wander off on our own.
 
-TEXT6= We asked the Villagers how long they'd lived here for, to which we got varied answers.{n1}{mtRight}Some arrived here mere days or weeks before we did, and others have been living here for as long as they can remember.{/mtRight}{n2}How they've managed to stay alive, not to mention sane all this time is a mystery to me.
+TEXT12= We ventured into the labyrinth, running rope through stakes in the ground to mark our path as we went. Aside from the usual dull, grey rocky texture lining the floors and walls, we encountered areas that seemed to sort of... pop in and pop out, almost instantly. We breifly walked through a lush slice of forestry, only to then find ourselves in a warehouse-like room. Then we were back in the rocky atmosphere of the labyrinth.
 
-TEXT7= Some of the Villagers seemed peculiar to me. I can't tell what it is about them but their presence feels different than the others, it's strange. Of course, I haven't brought it up around them because that would be rude, but it does make me wonder...
+TEXT13= I saw a playground. Empty. But it wasn't just any playground, this was the playground from my elementary school. We would spend hours playing on it, so I know without a doubt it was the same one. 
 
-TEXT8= This Temple is fascinating. With the Villagers' help and knowledge, I've been able to go on brief expeditions, and I can hardly believe what I've seen. I saw numerous environments, from a desert to a lush forest, to a cave system filled with crystals and gems. Upon "entering" these environments, the temperature, humidity, light, and air quality change in an instant, and go back to normal upon exit. This couldn't possibly exist given the laws of nature earth follows. Just where am I really?
+TEXT14= As I stepped over the crude line seperating the stone from the gravel, a wave of nostalgia hit me instantly. I must have lost track of time, because by the time I realized I had broken rule 3, it was too late. I could no longer hear the chatter of the scout group. I rushed over to the corner I had turned earlier, knowing the rope had to still be there, but all I saw was one end of it, perfectly sliced off.
 
-TEXT9= I saw something very troubling today during an expedition. We were making our way through a previously unexplored sector and I noticed something in the distance. A swing set. Not just that, a whole empty playground. The one from my elementary years... I must be seeing things. Remind myself to look into gas masks during future experiments with temple fluid.
+TEXT15= I tried screaming, hoping someone would hear me, but I got no reply. But once I looked up, I saw that where I was... was nothing like where I had been before I left the group. The chill, damp atmosphere of the labyrinth had turned into a black, empty nothingness. The ground was devoid of any character, the landscape was empty, there was no color anywhere. I thought I had gone mad.
 
-TEXT10= I thought it was just the gas making me see things, but I couldn't leave this up to chance. However, when I tried to follow the same path back, I found the path had been blocked by some rock formations that didn't exist the first time around. Confused, I decided to head back, but when I turned around the whole temple shook and I heard a terrible scratchy, high-pitched sound in my ears. I closed my eyes and covered my ears until I was sure the sound had quieted, and when I opened my eyes, instead of seeing the same old dull grey rock, I saw a grassy plain, filled with flowers. 
-
-TEXT11= I have a hypothesis. This temple can make a carbon copy of environments from around the globe. How it chooses which areas to replicate, I'm not sure, but if I can figure out how it's doing this and make it out... It could change the course of history. Think about it, no more storage problems! We could replicate neighborhoods or small plots of land, there would be no need for construction! Need some way to regulate it, however. Regardless, I'd no doubt be set for life.
+TEXT16= Then, as if it were all a dream, I heard my brother from behind me. Not just my brother, but the whole scout team. I had somehow wound up ahead of them. Immediately I profusely apologized for my reckless behavior, but they all seemed confused. I told them I went off on my own, but they said that I was gone at most for 10 seconds. They just assumed I fell behind slightly so they went back to check on me before I showed up in front of them.
 
 
 

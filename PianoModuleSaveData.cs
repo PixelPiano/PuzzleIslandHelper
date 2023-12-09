@@ -53,7 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 HasFixedPipes = false;
             }
         }
-         public int GetPipeState()
+        public int GetPipeState()
         {
             if (HasFixedPipes)
             {
@@ -78,6 +78,31 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public EscapeInv EscapeInv;
 
         #endregion
+
+        public List<bool[,]> LifeGrids = new();
+        private int gridIndex;
+        public bool[,] GetLifeGrid()
+        {
+            if(LifeGrids.Count == 0)
+            {
+                return null;
+            }
+            int index = gridIndex;
+            gridIndex++;
+            if(gridIndex > LifeGrids.Count - 1)
+            {
+                gridIndex = 0;
+            }
+            return LifeGrids[index];
+        }
+        public void AddLifeGrid(bool[,] lifeGrid)
+        {
+            LifeGrids.Add((bool[,])lifeGrid.Clone());
+            if (LifeGrids.Count > 5)
+            {
+                LifeGrids.RemoveAt(0);
+            }
+        }
         public bool HasInvert;
         public List<string> ChainedMonitorsActivated = new();
         public bool GeneratorStarted;

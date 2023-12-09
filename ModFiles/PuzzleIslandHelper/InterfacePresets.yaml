@@ -1,0 +1,40 @@
+Layouts:
+  Default:
+    Icons:
+      - ID: unknown
+        Tab: a
+      - ID: text
+        Tab: aa
+        Window: TODO
+      - ID: pico
+        Tab: aaa
+      - ID: info
+        Tab: aaaa
+        Window: INFO
+      - ID: folder
+        Tab: aaaaa
+      - ID: invalid
+        Tab: aaaa
+      - ID: access
+        Tab: aa
+        Window: ACCESS
+      - ID: sus
+        Tab: aaaa
+      - ID: ram
+        Tab: aaa
+  Access:
+    Icons:
+      - ID: access
+        Tab: NACCESS
+        Window: ACCESS
+  Life:
+    Icons:
+      - ID: life
+        Tab: LIFE
+      - ID: info
+        Tab: some random info i guess
+  Pipes:
+    Icons:
+      - ID: pipe
+        Tab: NPIPE
+        Window: PIPE

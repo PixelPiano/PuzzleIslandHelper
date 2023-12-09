@@ -4,14 +4,15 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Color = Microsoft.Xna.Framework.Color;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 {
+
     public class ComputerIcon : Entity
     {
         public Sprite Sprite;
-        public string Name;
-        public string Text;
-        public string TabText;
+        public string Name = "";
+        public string Text = "";
+        public string TabText = "";
         public static readonly List<string> dictionary = new List<string>
             {
                 "unknown",
@@ -46,17 +47,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             };
         public bool Open = false;
         private Color color = Color.White;
-        public ComputerIcon(string name, string textID, [Optional] string lowerText, bool destruct = false)
+        public ComputerIcon(string name, string textID, [Optional] string lowerText)
         {
             Depth = Interface.BaseDepth - 1;
-            if (!destruct)
-            {
-                Name = dictionary.Contains(name) ? name : "invalid";
-            }
-            else
-            {
-                Name = "destruct";
-            }
+            Name = dictionary.Contains(name) ? name : "invalid";
             Text = SetID(textID);
             if (!string.IsNullOrEmpty(lowerText))
             {
@@ -99,14 +93,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public string SetID(string ID)
         {
             //string result = "";
-/*            if (IsStaticText())
-            {
-                result = Name;
-            }
-            else if (IsDynamicText() && !string.IsNullOrEmpty(ID))
-            {
-                result = ID;
-            }*/
+            /*            if (IsStaticText())
+                        {
+                            result = Name;
+                        }
+                        else if (IsDynamicText() && !string.IsNullOrEmpty(ID))
+                        {
+                            result = ID;
+                        }*/
             return ID;
         }
     }

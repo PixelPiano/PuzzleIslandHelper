@@ -1,4 +1,3 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -7,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Color = Microsoft.Xna.Framework.Color;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 {
     public class TextWindow : Entity
     {
@@ -16,6 +15,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
+                if(CurrentID is null)
+                {
+                    return false;
+                }
                 return CurrentID.ToUpper() == "ACCESS" || CurrentID.ToUpper() == "ACCESSDENIED";
             }
         }

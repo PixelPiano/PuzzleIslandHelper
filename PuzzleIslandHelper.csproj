@@ -58,15 +58,18 @@
         <Reference Include="MonoMod">
           <HintPath>..\..\MonoMod.exe</HintPath>
         </Reference>
-        <Reference Include="PandorasBox" Publicize="True">
-          <HintPath>libs\PandorasBox.dll</HintPath>
-        </Reference>
         <Reference Include="PresentationCore" />
+        <Reference Include="vitmod">
+          <HintPath>libs\vitmod.dll</HintPath>
+        </Reference>
         <Reference Include="VivHelper">
           <HintPath>libs\VivHelper.dll</HintPath>
         </Reference>
         <Reference Include="XaphanHelper">
           <HintPath>libs\XaphanHelper.dll</HintPath>
+        </Reference>
+        <Reference Include="PandorasBox" Publicize="True">
+          <HintPath>libs\PandorasBox.dll</HintPath>
         </Reference>
     </ItemGroup>
 

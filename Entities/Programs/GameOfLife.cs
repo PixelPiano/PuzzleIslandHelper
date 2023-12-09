@@ -1,4 +1,3 @@
-using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.PianoEntities;
 using Microsoft.Xna.Framework;
@@ -10,20 +9,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
     [Tracked]
     public class GameOfLife : WindowContent
     {
-        public int W
-        {
-            get
-            {
-                return 200 / CellSize;
-            }
-        }
-        public int H
-        {
-            get
-            {
-                return 120 / CellSize;
-            }
-        }
+        public const int W = 22;
+        public const int H = 11;
         public GameOfLife(BetterWindow window) : base(window)
         {
             Name = "life";
@@ -37,17 +24,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             {
                 for (int j = 0; j < H; j++)
                 {
-                    currentCells[i,j] = false;
+                    currentCells[i, j] = false;
                 }
             }
             Stop();
+        }
+        public void Store()
+        {
+            PianoModule.SaveData.AddLifeGrid(currentCells);
+        }
+        public void LoadPreset()
+        {
+            bool wasSimulating = Simulating;
+            Simulating = false;
+            bool[,] temp = PianoModule.SaveData.GetLifeGrid();
+            if (temp != null)
+            {
+                currentCells = (bool[,])temp.Clone();
+            }
+            Simulating = wasSimulating;
         }
         public void Stop()
         {
             Simulating = false;
         }
         public bool Simulating;
-        public const int CellSize = 8;
+        public const int CellSize = 9;
         public override void Update()
         {
             Position = BetterWindow.DrawPosition.ToInt();
@@ -59,14 +61,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             if (!Simulating)
             {
                 Vector2 cPos = Interface.cursor.WorldPosition;
-                if (Cursor.LeftClicked && Collider.Bounds.Contains((int)cPos.X, (int)cPos.Y) && !Window.PressingButton)
+                if (Collider.Bounds.Contains((int)cPos.X, (int)cPos.Y) && !Window.PressingButton)
                 {
+                    if (!Cursor.LeftClicked && !Cursor.RightClicked)
+                    {
+                        return;
+                    }
                     int x, y;
                     x = ((int)cPos.X - (int)BetterWindow.DrawPosition.X) / CellSize;
                     y = ((int)cPos.Y - (int)BetterWindow.DrawPosition.Y) / CellSize;
-                    if (x >= 0 && y >= 0 && x < W && Y > H)
+                    if (x >= 0 && y >= 0 && x < W && y < H)
                     {
-                        currentCells[x, y] = true;
+                        currentCells[x, y] = Cursor.LeftClicked && !Cursor.RightClicked;
                     }
                 }
                 return;
@@ -108,13 +114,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
                 return;
             }
             MTexture texture = GFX.Game["objects/PuzzleIslandHelper/gameOfLife/cell"];
+            Vector2 offset = new Vector2(2,2);
+            for (int i = 0; i < W + 1; i++) //Vertical lines (UD)
+            {
+                Vector2 start = Position + new Vector2(i * CellSize, 0);
+                Vector2 end = new Vector2(start.X, start.Y + H * CellSize -1);
+                Draw.Line(start + offset, end + offset, Color.Black);
+            }
+            for (int i = 0; i < H + 1; i++) //Horizontal lines (LR)
+            {
+                Vector2 start = Position + new Vector2(-1, -1 + i * CellSize);
+                Vector2 end = new Vector2(start.X + W * CellSize + 1, start.Y); ;
+                Draw.Line(start + offset, end + offset, Color.Black);
+            }
             for (int i = 0; i < W; i++)
             {
                 for (int j = 0; j < H; j++)
                 {
                     if (currentCells[i, j])
                     {
-                        Draw.SpriteBatch.Draw(texture.Texture.Texture_Safe, Position + (new Vector2(i, j) * new Vector2(CellSize)), Color.White);
+                        Draw.SpriteBatch.Draw(texture.Texture.Texture_Safe, Position + offset + (new Vector2(i, j) * new Vector2(CellSize)), Color.White);
                     }
                 }
             }

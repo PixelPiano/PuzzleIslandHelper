@@ -156,12 +156,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 }
             }
             Draw.SpriteBatch.End();
-            /*            float val = Glitch.Value;
-                        Glitch.Value = Calc.Random.Range(0.02f, 0.07f);
+            float val = Glitch.Value;
+            Glitch.Value = Calc.Random.Range(0.02f, 0.07f);
 
-                        Glitch.Apply(Target, scene.TimeActive, seed, Calc.Random.Range(1, 10));
-                        Glitch.Apply(BgTarget, scene.TimeActive, seed, Calc.Random.Range(1, 10));
-                        Glitch.Value = val;*/
+            Glitch.Apply(Target, scene.TimeActive, seed, Calc.Random.Range(1, 10));
+            Glitch.Apply(BgTarget, scene.TimeActive, seed, Calc.Random.Range(1, 10));
+            Glitch.Value = val;
         }
 
         public override void Render(Scene scene)

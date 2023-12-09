@@ -10,7 +10,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class WaterValve : Entity
     {
         private string flag;
-        private bool used;
         private bool InRoutine;
         private float MachineOffsetLerp;
 
@@ -32,7 +31,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void OnPlayer(Player player)
         {
-
             if (Math.Abs(player.Speed.X) >= 160f && !InRoutine)
             {
                 Add(new Coroutine(SpinWheel(Math.Sign(player.Speed.X))));
@@ -76,20 +74,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             while (Wheel.CurrentAnimationID != "idle")
             {
                 yield return null;
-                //play sound here or something
+                //TODO play sound here or something
             }
-            if (!string.IsNullOrEmpty(flag))
+            if (PianoModule.SaveData.GetPipeState() is > 1 and < 4)
             {
-                foreach (PipeSpout spout in SceneAs<Level>().Tracker.GetEntities<PipeSpout>())
+                if (!string.IsNullOrEmpty(flag))
                 {
-                    if (!string.IsNullOrEmpty(spout.flag) && flag == spout.flag)
-                    {
-                        //spout.WaitForRoutine = true;
-                    }
+                    SceneAs<Level>().Session.SetFlag(flag);
                 }
-                SceneAs<Level>().Session.SetFlag(flag);
             }
-            used = true;
             yield return null;
             InRoutine = false;
         }

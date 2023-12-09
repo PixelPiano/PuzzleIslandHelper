@@ -48,7 +48,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         {
             float y = CaseHeight - 3;
             float x = CaseWidth - 3;
-            float xSpace = 3;
+            float xSpace = 8;
             foreach (BetterWindowButton button in Components.GetAll<BetterWindowButton>())
             {
                 button.Position.X = x - (button.Width + xSpace);
@@ -118,7 +118,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 SetButtonPosition();
             }
             bool pressed = false;
-            foreach(BetterButton b in Components.GetAll<BetterButton>())
+            foreach (BetterButton b in Components.GetAll<BetterButton>())
             {
                 if (b.Pressing)
                 {
@@ -151,6 +151,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     CaseHeight = (int)((TextWindow.activeText.BaseSize * TextWindow.activeText.Lines / 6 * TextWindow.textScale) + TextWindow.activeText.BaseSize / 6 + 3);
                 }
             }
+            TabColor = Color.Lerp(Name == "unknown" ? Color.Red : Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
         }
         public void PrepareWindow()
         {
@@ -212,10 +213,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     break;
                 case "life":
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
+                    CaseWidth++;
+                    CaseHeight++;
                     Add(new StartButton(Interface, delegate { Interface.GameOfLife.Simulating = true; }));
                     Add(new CustomButton(Interface, "Stop", 35f, Vector2.Zero, Interface.GameOfLife.Stop));
                     Add(new CustomButton(Interface, "Clear", 35f, Vector2.Zero, Interface.GameOfLife.Clear));
-                    Add(new CustomButton(Interface, "Random", 30f, Vector2.Zero, Interface.GameOfLife.Randomize));
+                    Add(new CustomButton(Interface, "Rand", 35f, Vector2.Zero, Interface.GameOfLife.Randomize));
+                    Add(new CustomButton(Interface, "Store", 35f, Vector2.Zero, Interface.GameOfLife.Store));
+                    Add(new CustomButton(Interface, "Load", 35f, Vector2.Zero, Interface.GameOfLife.LoadPreset));
                     break;
 
             }

@@ -50,6 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PianoEntities
 
         private string path;
         public static bool LeftClicked => Mouse.GetState().LeftButton == ButtonState.Pressed;
+        public static bool RightClicked => Mouse.GetState().RightButton == ButtonState.Pressed;
         public static bool MouseOnBounds
         {
             get

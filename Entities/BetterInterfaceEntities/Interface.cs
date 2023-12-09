@@ -1,15 +1,15 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
+using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
+using System;
 using System.Collections;
-using System.Linq;
-using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 {
     [CustomEntity("PuzzleIslandHelper/Interface")]
     [Tracked]
@@ -118,13 +118,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float GlitchAmplitude = 100f;
         private Color PlayerTransitionColor = Color.White;
         //the order of icons in sequential order. If string is not a valid icon name, is replaced with the "invalid" symbol when drawn.
-        public static string[] iconNames = { "unknown", "text", "pico", "info", "folder", "invalid", "access", "sus", "ram" };
-        public static string[] textIDs = { "TODO", "INFO", "ACCESS" };
-        public static string[] iconText = { "a", "aa", "Aaa", "aaaa", "aaaaa", "aaaaaa", "aaa", "aaaa", "aaa" };
+        public static List<string> IconIDs = new();
+        public static List<string> WindowText = new();
+        public static List<string> TabText = new();
 
         private static bool Closing = false;
         private bool AccessEnding = false;
-        private int DesktopInstance = 0;
         private bool GlitchPlayer = false;
         private float MaxGlitchRange = 0.2f;
         private bool RemovePlayer = false;
@@ -133,7 +132,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool Interacted;
         public static bool Interacting;
         private float SavedAlpha;
-        private string filename = "ModFiles/PuzzleIslandHelper/InterfacePresets";
         private static VirtualRenderTarget _PlayerObject;
         public static VirtualRenderTarget PlayerObject => _PlayerObject ??= VirtualContent.CreateRenderTarget("PlayerObject", 320, 180);
 
@@ -144,6 +142,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private static VirtualRenderTarget _Light;
         public static VirtualRenderTarget Light => _Light ??= VirtualContent.CreateRenderTarget("Light", 320, 180);
 
+
+        public string InstanceID;
+
+        public bool Invalid;
+        public void GetPreset(string id)
+        {
+            IconIDs.Clear();
+            WindowText.Clear();
+            TabText.Clear();
+            InterfaceData.Presets preset = PianoModule.InterfaceData.GetPreset(id);
+            if (preset is null)
+            {
+                Invalid = true;
+            }
+            else
+            {
+                foreach (InterfaceData.Presets.IconText text in preset.Icons)
+                {
+                    IconIDs.Add(text.ID);
+                    WindowText.Add(text.Window);
+                    TabText.Add(text.Tab);
+                }
+                foreach(string s in IconIDs)
+                {
+                    Console.WriteLine(s);
+                }
+            }
+        }
         public Interface(EntityData data, Vector2 offset)
             : base(data.Position + offset)
         {
@@ -151,58 +177,58 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Version = data.Enum<Versions>("type");
             Tag |= Tags.TransitionUpdate;
             roomName = data.Attr("teleportTo", "4t");
-            DesktopInstance = data.Int("instance");
-            switch (DesktopInstance)
-            {
-                case 0:
-                    iconNames = new string[] { "unknown", "text", "pico", "info", "folder", "invalid", "access", "sus", "ram" };
-                    textIDs = new string[] { "TODO", "INFO", "ACCESS" };
-                    iconText = new string[] { "a", "aa", "Aaa", "aaaa", "aaaaa", "aaaaaa", "aaa", "aaaa", "aaa" };
-                    break;
+            GetPreset(data.Attr("instance"));
+            /*            switch (DesktopInstance)
+                        {
+                            case 0:
+                                IconIDs = new string[] { "unknown", "text", "pico", "info", "folder", "invalid", "access", "sus", "ram" };
+                                Window = new string[] { "TODO", "INFO", "ACCESS" };
+                                Tab = new string[] { "a", "aa", "Aaa", "aaaa", "aaaaa", "aaaaaa", "aaa", "aaaa", "aaa" };
+                                break;
 
-                case 1:
-                    iconNames = new string[] { "text", "text", "text", "info", "access" };
-                    textIDs = new string[] { "TEXT1", "TEXT2", "TEXT4", "INFO1", "ACCESS" };
-                    iconText = new string[] { "NT1", "NT2", "NT4", "NI1", "NACCESS" };
-                    break;
+                            case 1:
+                                IconIDs = new string[] { "text", "text", "text", "info", "access" };
+                                Window = new string[] { "TEXT1", "TEXT2", "TEXT4", "INFO1", "ACCESS" };
+                                Tab = new string[] { "NT1", "NT2", "NT4", "NI1", "NACCESS" };
+                                break;
 
-                case 2:
-                    iconNames = new string[] { "unknown", "unknown", "text", "ram", "text", "access" };
-                    textIDs = new string[] { "TEXT3", "SCHOOLNOTEHINT", "ACCESS" };
-                    iconText = new string[] { "NU1", "NU2", "NT3", "NRAM", "NSNH", "NACCESS" };
-                    break;
+                            case 2:
+                                IconIDs = new string[] { "unknown", "unknown", "text", "ram", "text", "access" };
+                                Window = new string[] { "TEXT3", "SCHOOLNOTEHINT", "ACCESS" };
+                                Tab = new string[] { "NU1", "NU2", "NT3", "NRAM", "NSNH", "NACCESS" };
+                                break;
 
-                case 3:
-                    iconNames = new string[] { "unknown", "text", "access" };
-                    textIDs = new string[] { "TEXT4", "ACCESS" };
-                    iconText = new string[] { "NU3", "NT4", "NACCESS" };
-                    break;
-                case 4:
-                    iconNames = new string[] { "destruct" };
-                    textIDs = new string[] { "DESTRUCT" };
-                    iconText = new string[] { "NDESTRUCT" };
-                    break;
-                case 5:
-                    iconNames = new string[] { "freq" };
-                    textIDs = new string[] { };
-                    iconText = new string[] { "NFREQ" };
-                    break;
-                case 6:
-                    iconNames = new string[] { "text", "text", "access" };
-                    textIDs = new string[] { "3kb", "CryForHelp", "ACCESS" };
-                    iconText = new string[] { "N3kb", "NCryForHelp", "NACCESS" };
-                    break;
-                case 7:
-                    iconNames = new string[] { "pipe" };
-                    textIDs = new string[] { "PIPE" };
-                    iconText = new string[] { "NPIPE" };
-                    break;
-                case 8:
-                    iconNames = new string[] { "freq" };
-                    textIDs = new string[] { "LIFE" };
-                    iconText = new string[] { "NLIFE" };
-                    break;
-            }
+                            case 3:
+                                IconIDs = new string[] { "unknown", "text", "access" };
+                                Window = new string[] { "TEXT4", "ACCESS" };
+                                Tab = new string[] { "NU3", "NT4", "NACCESS" };
+                                break;
+                            case 4:
+                                IconIDs = new string[] { "destruct" };
+                                Window = new string[] { "DESTRUCT" };
+                                Tab = new string[] { "NDESTRUCT" };
+                                break;
+                            case 5:
+                                IconIDs = new string[] { "freq" };
+                                Window = new string[] { };
+                                Tab = new string[] { "NFREQ" };
+                                break;
+                            case 6:
+                                IconIDs = new string[] { "text", "text", "access" };
+                                Window = new string[] { "3kb", "CryForHelp", "ACCESS" };
+                                Tab = new string[] { "N3kb", "NCryForHelp", "NACCESS" };
+                                break;
+                            case 7:
+                                IconIDs = new string[] { "pipe" };
+                                Window = new string[] { "PIPE" };
+                                Tab = new string[] { "NPIPE" };
+                                break;
+                            case 8:
+                                IconIDs = new string[] { "life" };
+                                Window = new string[] { "LIFE" };
+                                Tab = new string[] { "NLIFE" };
+                                break;
+                        }*/
             switch (Version)
             {
                 case Versions.Lab:
@@ -226,7 +252,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             float talkYOffset = Version == Versions.Lab ? 8 : -8;
 
             Add(Talk = new TalkComponent(new Rectangle(0, 0, (int)Machine.Width, (int)Machine.Height - (int)talkYOffset), new Vector2(Machine.Width / 2, 0), Interact));
-            Icons = new ComputerIcon[iconNames.Length];
+            Icons = new ComputerIcon[IconIDs.Count];
             if (Version == Versions.Pipes)
             {
                 Talk.PlayerMustBeFacing = false;
@@ -251,6 +277,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             scene.Add(Power = new Entity());
             Power.Add(PowerSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/"));
             PowerSprite.AddLoop("idle", "power", 1f);
+            PowerSprite.Play("idle");
             #region Monitor/Border Setup
             scene.Add(Monitor = new Entity());
             scene.Add(Border = new InterfaceBorder());
@@ -280,19 +307,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             memContent = new FreqTimeline(Window);
             pipeContent = new PipeWindowContent(Window);
             GameOfLife = new GameOfLife(Window);
-            if (iconNames.Contains("access"))
+            if (IconIDs.Contains("access"))
             {
                 scene.Add(loadSequence);
             }
-            if (iconNames.Contains("freq"))
+            if (IconIDs.Contains("freq"))
             {
                 scene.Add(memContent);
             }
-            if (iconNames.Contains("pipe"))
+            if (IconIDs.Contains("pipe"))
             {
                 scene.Add(pipeContent);
             }
-            if (iconNames.Contains("life"))
+            if (IconIDs.Contains("life"))
             {
                 scene.Add(GameOfLife);
             }
@@ -305,7 +332,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Border.Depth = BaseDepth - 7;
             if (Version == Versions.Lab)
             {
-                if (PianoModule.Session.RestoredPower)
+                if (PianoModule.Session.RestoredPower && !Invalid)
                 {
                     Machine.Play("idle");
                 }
@@ -333,34 +360,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Awake(scene);
             player = Scene.Tracker.GetEntity<Player>();
             #region Icon Setup
-            int textIndex = 0;
             if ((scene as Level).Tracker.GetEntities<Interface>().Count > 1)
             {
                 RemoveSelf();
             }
-            if (iconNames.Length > Icons.Length)
+            if (IconIDs.Count > Icons.Length)
             {
                 RemoveSelf();
             }
             for (int i = 0; i < Icons.Length; i++)
             {
-                bool increment = false;
+                Scene.Add(Icons[i] = new ComputerIcon(IconIDs[i], WindowText[i], TabText[i]));
 
-                if (ComputerIcon.TextDictionary.Contains(iconNames[i]) && textIndex < textIDs.Length)
-                {
-                    if (iconNames[i] != "unknown" && ComputerIcon.dictionary.Contains(iconNames[i]))
-                    {
-                        id = textIDs[textIndex];
-                        increment = true;
-                    }
-                }
-                Scene.Add(Icons[i] = new ComputerIcon(iconNames[i], id, iconText[i]));
                 Icons[i].Sprite.Visible = false;
-
-                if (increment)
-                {
-                    textIndex++;
-                }
             }
             #endregion
         }
@@ -577,7 +589,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         CanClickIcons = false;
                         Window.Name = Icons[i].Name; //send the type of Window to draw to Target.cs
                         Window.PrepareWindow();
-                        TextWindow.CurrentID = Icons[i].GetID();
+                        TextWindow.CurrentID = Icons[i].Text;
                         BetterWindow.Drawing = true;
                         return;
                     }

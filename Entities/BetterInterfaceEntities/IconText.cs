@@ -3,9 +3,8 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
 using System.Reflection;
-using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 {
     [CustomEntity("PuzzleIslandHelper/IconText")]
 
@@ -59,7 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return;
             }
-            if(ActiveText is null)
+            if (ActiveText is null)
             {
                 ReloadText();
             }
@@ -72,7 +71,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return Vector2.Zero;
             }
-            return (ToInt(level.Camera.CameraToScreen(BetterWindow.DrawPosition)) * 6) +
+            return ToInt(level.Camera.CameraToScreen(BetterWindow.DrawPosition)) * 6 +
                     ToInt(new Vector2(1, -BetterWindow.tabHeight) * 6);
         }
         private void ensureCustomFontIsLoaded()

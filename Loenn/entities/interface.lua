@@ -12,7 +12,7 @@ interface.placements =
         name = "Computer Interface",
         data = 
         {
-            instance = 0,
+            instance = "",
             type = "Lab",
             teleportTo = "4t",
             flipX = false

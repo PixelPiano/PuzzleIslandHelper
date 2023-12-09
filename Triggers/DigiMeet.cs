@@ -99,11 +99,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         private IEnumerator Cutscene(Player player, Camera cam, Level level)
         {
             level.InCutscene = true;
-/*            if (true)
-            {
-                yield return new SwapImmediately(End(player, level));
-                yield break;
-            }*/
+            /*            if (true)
+                        {
+                            yield return new SwapImmediately(End(player, level));
+                            yield break;
+                        }*/
             //level.SkipCutscene();
             Vector2 ZoomPosition = new Vector2(113, player.Position.Y - level.LevelOffset.Y - 40);
             Coroutine zoomIn = new Coroutine(ScreenZoom(ZoomPosition, 1.5f, 2));
@@ -137,7 +137,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 level.ZoomSnap(ZoomPosition + (Vector2.UnitX * 32), 1.5f);
             }
             Add(new Coroutine(PlayerZoomAcross(player, 2f, 2, 32, -32)));
-            yield return Textbox.Say("Ca6");
+            yield return Textbox.Say("Ca5a");
             Calidus.Parts.Play("jitter");
             yield return 1.4f;
             Calidus.FixSequence();
@@ -150,64 +150,42 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             Calidus.LookDir = Calidus.Looking.Left;
             player.Facing = Facings.Right;
             Add(new Coroutine(Events(Wait(0.5f), Walk(-16, true))));
+            yield return Textbox.Say("Ca6");
             yield return Textbox.Say("Ca7");
-            yield return Textbox.Say("Ca8");
+            yield return Calidus.Say("Ca8", "stern");
+            yield return Textbox.Say("Ca9");
+            yield return Calidus.Say("Ca10", "normal");
+            yield return Textbox.Say("Ca11");
+            yield return 1;
+            yield return Textbox.Say("Ca12");
+            yield return 3;
+            yield return Textbox.Say("Ca13");
+            yield return Calidus.Say("Ca14", "surprised");
+            yield return Calidus.Say("Ca15", "happy");
+            yield return Textbox.Say("Ca16");
             Calidus.LookSpeed *= 5;
             Calidus.LookDir = Calidus.Looking.Right;
-            yield return Calidus.Say("Ca9", "stern");
-
+            yield return Calidus.Say("Ca16a", "stern");
             Add(new Coroutine(Walk(16, false, 2)));
+
             Calidus.LookDir = Calidus.Looking.Left;
             Calidus.Surprised(false);
-            yield return Textbox.Say("Ca10");
-
-            Calidus.LookDir = Calidus.Looking.UpRight;
-            yield return Textbox.Say("Ca11");
-
-            Calidus.LookDir = Calidus.Looking.Left;
-            Add(new Coroutine(Events(Wait(1), Walk(-16, true, 0.5f))));
-            yield return Calidus.Say("Ca12", "stern");
-
-            yield return Calidus.Say("Ca13", "normal");
-            yield return Textbox.Say("Ca14");
+            yield return Textbox.Say("Ca17");
             yield return 0.5f;
-            yield return Calidus.Say("Ca15", "surprised");
+            yield return Calidus.Say("Ca18", "normal");
 
-            Calidus.LookDir = Calidus.Looking.Right;
-            yield return Textbox.Say("Ca16");
 
-            Calidus.LookDir = Calidus.Looking.Left;
-            yield return Calidus.Say("Ca17", "normal");
-
-            yield return Textbox.Say("Ca18");
-
-            Calidus.LookDir = Calidus.Looking.Right;
-            yield return Textbox.Say("Ca19");
-            Calidus.LookDir = Calidus.Looking.Left;
-            Add(new Coroutine(EmotionThenNormal("surprised", 0.6f)));
-            Add(new Coroutine(Walk(8)));
-            yield return Textbox.Say("Ca20");
-            yield return 0.5f;
-            Calidus.Emotion("happy");
-            yield return Textbox.Say("Ca21");
-            yield return Textbox.Say("Ca22");
-
-            yield return Calidus.Say("Ca23", "happy");
-            Calidus.LookDir = Calidus.Looking.Right;
-            yield return Calidus.Say("Ca24", "normal");
-            Add(new Coroutine(LookBackAndForth()));
-            yield return Calidus.Say("Ca25", "eugh");
-            CalidusLookAround = false;
-            yield return Textbox.Say("Ca26");
-
-            yield return 1;
+            //Rumble, glitchy effects
+            level.Session.SetFlag("blockGlitch");
+            yield return 0.1f;
             Calidus.Surprised(true);
-            yield return 0.2f;
-            Calidus.LookAtPlayer = true;
-            yield return Calidus.Say("Ca27", "stern");
+            Calidus.LookDir = Calidus.Looking.Up;
+            yield return 0.4f;
+            Calidus.LookDir = Calidus.Looking.Left;
+            yield return Calidus.Say("Ca19", "surprised");
+            Calidus.Emotion("stern");
+            yield return Textbox.Say("Ca20");
 
-
-            yield return Textbox.Say("Ca28"); //Wha-
             Vector2 pos = Calidus.Position;
             AddTag(Tags.Global);
             for (float i = 0; i < 1; i += Engine.DeltaTime * 2)
@@ -215,18 +193,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 Calidus.Position = Vector2.Lerp(pos, player.TopCenter, Ease.BackIn(i));
                 yield return null;
             }
+            level.Flash(Color.White, true);
+            level.Session.SetFlag("blockGlitch", false);
+            SingleTextscene text = new SingleTextscene("CaL1");
+            level.Add(text);
+            while (text.InCutscene)
+            {
+                yield return null;
+            }
             yield return new SwapImmediately(End(player, level));
-
-
-            //Calidus runs into Maddy, just as the screen begins to corrupt.
-            //In an instant, Maddy is "ejected" from the digital world, and is panting. +Anxiety effect
-            //M: Gah! That hurt! What'd you do that-
-            //M:....for?
-            //M: Calidus?
-            //Camera zooms out, cutscene ends
-
-
-            yield return null;
         }
         private IEnumerator LookBackAndForth()
         {
@@ -261,8 +236,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             Started = true;
 
         }
-        
-       
+
+
         private IEnumerator End(Player player, Level level)
         {
             if (!TagCheck(Tags.Global))
@@ -276,11 +251,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             player.Speed.X = -64;
             player.StateMachine.State = Player.StDummy;
             yield return 0.3f;
-            yield return Textbox.Say("Ca29");
+            yield return Textbox.Say("Ca21");
             yield return 0.2f;
-            yield return Textbox.Say("Ca30");
+            yield return Textbox.Say("Ca22");
             yield return 1;
-            yield return Textbox.Say("Ca31");
+            yield return Textbox.Say("Ca23");
             level.InCutscene = false;
             player.StateMachine.State = Player.StNormal;
             RemoveTag(Tags.Global);
@@ -382,7 +357,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 
                 level.Add(player);
                 player.Position = level.LevelOffset + new Vector2(positionX, positionY);
-                level.Camera.Position = level.LevelOffset + new Vector2(0,260);
+                level.Camera.Position = level.LevelOffset + new Vector2(0, 260);
                 player.Facing = facing;
                 player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
                 //return;

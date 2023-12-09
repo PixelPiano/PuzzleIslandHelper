@@ -9,16 +9,16 @@ using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
-    [CustomEntity("PuzzleIslandHelper/MemoryTextscene")]
+    [CustomEntity("PuzzleIslandHelper/SingleTextscene")]
     [Tracked]
-    public class MemoryTextscene : Entity
+    public class SingleTextscene : Entity
     {
         private const int XOffset = 1920 / 16;
         private const int MaxLineWidth = 1920 / 2 - XOffset;
         private const string fontName = "pixelary";
 
         private static readonly Dictionary<string, List<string>> fontPaths;
-        static MemoryTextscene()
+        static SingleTextscene()
         {
             fontPaths = (Dictionary<string, List<string>>)typeof(Fonts).GetField("paths", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
         }
@@ -46,9 +46,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Vector2 _position;
         private FancyTextExt.Text FText;
 
-        public MemoryTextscene(string dialogID, float segmentSpace = -1, float lineSpace = -1) : this(segmentSpace, lineSpace, dialogID) { }
-        public MemoryTextscene(EntityData data, Vector2 offset) : base(data.Position + offset) { }
-        public MemoryTextscene(float segmentSpace, float lineSpace, params string[] dialogIDs) : base(Vector2.Zero)
+        public SingleTextscene(string dialogID, float segmentSpace = -1, float lineSpace = -1) : this(segmentSpace, lineSpace, dialogID) { }
+        public SingleTextscene(EntityData data, Vector2 offset) : base(data.Position + offset) { }
+        public SingleTextscene(float segmentSpace, float lineSpace, params string[] dialogIDs) : base(Vector2.Zero)
         {
             Tag |= TagsExt.SubHUD;
             Depth = -1000001;
@@ -79,6 +79,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            SolidOpacity = 1;
             //ensureCustomFontIsLoaded();
         }
         private void ensureCustomFontIsLoaded()
@@ -108,11 +109,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (player is not null)
             {
                 player.StateMachine.State = Player.StDummy;
-            }
-            for (float i = 0; i < 1f; i += Engine.DeltaTime)
-            {
-                SolidOpacity = Calc.LerpClamp(0, 0.4f, i);
-                yield return null;
             }
             yield return 1;
             _forceHide = false;
@@ -174,12 +170,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
             //close
-            for (float i = 0; i < 1f; i += Engine.DeltaTime)
-            {
-                SolidOpacity = Calc.LerpClamp(0.4f, 0, i);
-                TextOpacity = Calc.LerpClamp(1, 0, i);
-                yield return null;
-            }
             SolidOpacity = 0;
             TextOpacity = 0;
             if (player is not null)

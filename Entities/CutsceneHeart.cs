@@ -29,11 +29,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool Collected;
         private string room;
         private bool TeleportsPlayer;
+        private MemoryTextscene Cutscene;
+        private Vector2 HoldPosition;
 
         public CutsceneHeart(EntityData data, Vector2 offset, EntityID id)
         : base(data.Position + offset)
         {
-            spriteName = data.Attr("Sprite");
+            spriteName = data.Attr("sprite");
             TeleportsPlayer = data.Bool("teleportsPlayer");
             room = data.Attr("room");
             Collider = new Hitbox(data.Width, data.Height);
@@ -50,6 +52,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            switch (spriteName)
+            {
+                case "green":
+                    Cutscene = new MemoryTextscene("GREENHEART");
+                    break;
+                case "blue":
+                    Cutscene = new MemoryTextscene("BLUEHEART");
+                    break;
+                case "red":
+                    Cutscene = new MemoryTextscene("REDHEART");
+                    break;
+                default: Cutscene = new MemoryTextscene("invalid"); break;
+            }
             scene.Add(heart = new Entity(Position));
             heart.Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/cutsceneHeart/"));
             sprite.AddLoop("idle", spriteName, 0.08f);
@@ -128,13 +143,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
                 player = level.Tracker.GetEntity<Player>();
             }
+            if (Cutscene != null)
+            {
+                SceneAs<Level>().Add(Cutscene);
+            }
             Glitch.Value = 0.5f;
             InvertOverlay.playerTimeRate = 0f;
+            player.DummyGravity = false;
             float mult = TeleportsPlayer ? 1 : 5;
             for (float i = 0; i < 1; i += Engine.RawDeltaTime * mult)
             {
                 Glitch.Value = Calc.Random.Range(0.5f, 1f);
                 yield return null;
+            }
+            if (TeleportsPlayer)
+            {
+                while (Cutscene.InCutscene)
+                {
+                    yield return null;
+                }
+            }
+            else
+            {
+                yield return 1;
+                if (Cutscene != null)
+                {
+                    level.Remove(Cutscene);
+                }
             }
             for (float i = 0; i < 2; i += Engine.RawDeltaTime * mult)
             {
@@ -151,6 +186,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Glitch.Value = 0;
             InvertOverlay.playerTimeRate = 1;
+            player.DummyGravity = true;
             Audio.Play("event:/PianoBoy/invertGlitch2");
             yield return null;
             yield return null;
