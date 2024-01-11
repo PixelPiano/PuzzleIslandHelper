@@ -12,7 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
     [Tracked]
     public class BetaOsc : Entity
     {
-        public Components.Visualizers.AudioEffect Sound;
+        public AudioEffect Sound;
         public FFT FFT;
         public Chorus chorus;
         public Vector2 Scale = new Vector2(1, 1);

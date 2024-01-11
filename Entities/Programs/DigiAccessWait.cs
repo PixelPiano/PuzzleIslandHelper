@@ -15,21 +15,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
     public class DigiAccessWait : Entity
     {
         public float TimeLeft;
-        public Action OnFinish;
-        public DigiAccessWait(float time, Action onFinish) : base(Vector2.Zero)
+        public string To;
+        public bool Running;
+        public Interface Interface;
+        public DigiAccessWait(Interface inter, float time,string to) : base(Vector2.Zero)
         {
+            Interface = inter;
             Tag |= Tags.Global | Tags.Persistent;
             TimeLeft = time;
-            OnFinish = onFinish;
+            To = to;
         }
         public override void Update()
         {
             base.Update();
             TimeLeft -= Engine.DeltaTime;
-            if (TimeLeft < 0 && OnFinish != null)
+            if (TimeLeft < 0 && !string.IsNullOrEmpty(To) && !Running)
             {
-                OnFinish.Invoke();
-                RemoveSelf();
+                Add(new Coroutine(TransitionScene(To)));
             }
         }
         private IEnumerator TransitionScene(string to)
@@ -38,11 +40,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             {
                 yield break;
             }
-            if (Interface.ActiveInstance != null && Interface.Interacting)
+            Running = true;
+            if (Interface != null && Interface.Interacting)
             {
-                Interface.ActiveInstance.RemoveWindow();
+                Interface.RemoveWindow();
                 yield return 0.2f;
-                yield return Interface.ActiveInstance.CloseInterface(false);
+                yield return Interface.CloseInterface(false);
             }
             if (level.Session.MapData.Levels.Find(item => item.Name.Equals(to)) != null)
             {
@@ -53,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
                     yield return null;
                 }
             }
-            RemoveSelf()
+            RemoveSelf();
         }
     }
 }

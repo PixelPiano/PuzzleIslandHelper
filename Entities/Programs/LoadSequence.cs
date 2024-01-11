@@ -26,8 +26,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
         private Color SpriteColor = Color.Green;
         private float timer2 = 0.5f;
         private bool startTimer2 = false;
-        public LoadSequence(int Depth, Vector2 Position)
+        private Interface Interface;
+        public LoadSequence(Interface inter, int Depth, Vector2 Position)
         {
+            Interface = inter;
             this.Position = Position;
             this.Depth = Depth - 1;
             Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/load/"));
@@ -79,7 +81,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
                 Sprite.Visible = false;
                 Warning.Visible = false;
                 Warning.Stop();
-                Interface.Loading = false;
+
                 ButtonPressed = false;
                 return;
             }

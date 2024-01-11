@@ -1,4 +1,5 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -11,7 +12,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
     {
         public ChargedWater CutsceneWater;
         public List<PipeSpout> CutsceneSpouts = new List<PipeSpout>();
-        public EntityID ActiveTransition {get; set;}
+        public EntityID ActiveTransition { get; set; }
+        public Interface Interface { get; set; }
         public BubbleParticleSystem BubbleSystem { get; set; }
         public float MaxDarkness = 0.5f;
         public float MinDarkness = 0.05f;

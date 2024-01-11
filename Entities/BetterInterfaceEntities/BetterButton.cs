@@ -12,7 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
     {
         public Action OnClicked;
         public bool Disabled;
-
+        public Interface Interface;
         public IEnumerator Routine;
         public string Text;
         public bool Pressing;
@@ -103,13 +103,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 return DefaultPath;
             }
         }
-        public BetterButton(Circle circle, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : this(customPath, OnClicked, Routine)
+        public BetterButton(Interface inter, Circle circle, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : this(inter, customPath, OnClicked, Routine)
         {
             Circle = circle;
             UsesCircleCollider = true;
         }
-        public BetterButton(string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : base(GFX.Game[GetPath(customPath) + "button"], true)
+        public BetterButton(Interface inter, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : base(GFX.Game[GetPath(customPath) + "button"], true)
         {
+            Interface = inter;
             this.customPath = customPath;
             this.OnClicked = OnClicked;
             this.Routine = Routine;

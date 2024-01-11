@@ -6,67 +6,29 @@ using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
 {
-    public class GameshowData
+    public class AccessData
     {
-        public class Question
+        public class Link
         {
-            public void ParseData()
-            {
-                if (PerPage <= 0)
-                {
-                    PerPage = 3;
-                }
-                ID ??= "";
-                ChoiceList = new();
-                for (int i = 0; i < Choices; i++)
-                {
-                    ChoiceList.Add(Prefix + (i + 1));
-                }
-            }
-            public List<string> GetPage(int page)
-            {
-                List<string> choices = new();
-                for (int i = 0; i < PerPage; i++)
-                {
-                    int num = page * PerPage + i;
-                    if (num < Choices)
-                    {
-                        choices.Add(ChoiceList[num]);
-                    }
-                }
-                if ((page + 1) * PerPage < Choices)
-                {
-                    choices.Add("qNext");
-                }
-                return choices;
-            }
-            public int Number;
-            public int PerPage { get; set; }
             public string ID { get; set; }
-            public string Prefix => "q" + Number;
-            public string Q => Prefix;
-            public int RandomIncorrect { get; set; }
-            public int Choices { get; set; }
-
-            public List<string> ChoiceList = new();
+            public string Room { get; set; }
+            public bool Wait { get; set;}
         }
-        public List<Question> Questions { get; set; }
-        public List<string> Answers { get; set; }
-        public bool IsAnswer(Question q, int index)
+        public List<Link> Links { get; set; }
+        public bool HasID(string id)
         {
-            if (index < q.ChoiceList.Count)
-            {
-                return Answers.Contains(q.ChoiceList[index]);
-            }
-            return false;
+            return Links.Find(item=> item.ID == id) != null;
+        }
+        public string GetRoom(string id)
+        {
+            return Links.Find(item=> item.ID == id).Room;
+        }
+        public Link GetLink(string id)
+        {
+            return Links.Find(item=> item.ID == id);
         }
         public void ParseData()
         {
-            for (int i = 0; i < Questions.Count; i++)
-            {
-                Questions[i].Number = i + 1;
-                Questions[i].ParseData();
-            }
         }
         public static void Load()
         {
@@ -84,7 +46,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
                 {
                     AssetReloadHelper.Do("Reloading Gameshow Questions", () =>
                     {
-                        if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/GameshowQuestions", out var asset)
+                        if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/AccessLinks", out var asset)
                             && asset.TryDeserialize(out GameshowData myData))
                         {
                             PianoModule.GameshowData = myData;

@@ -13,6 +13,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public string Name = "";
         public string Text = "";
         public string TabText = "";
+        public Interface Interface;
         public static readonly List<string> dictionary = new List<string>
             {
                 "unknown",
@@ -48,8 +49,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             };
         public bool Open = false;
         private Color color = Color.White;
-        public ComputerIcon(string name, string textID, [Optional] string lowerText)
+        public ComputerIcon(Interface inter, string name, string textID, [Optional] string lowerText)
         {
+            Interface = inter;
             Depth = Interface.BaseDepth - 1;
             Name = dictionary.Contains(name) ? name : "invalid";
             Text = SetID(textID);

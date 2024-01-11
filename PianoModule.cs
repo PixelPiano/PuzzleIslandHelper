@@ -33,6 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static StageData StageData { get; set; }
         public static InterfaceData InterfaceData { get; set; }
         public static GameshowData GameshowData { get; set; }
+        public static AccessData AccessData { get; set; }
         public static Dictionary<string, Effect> CutsceneShaders { get; set; }
         public PianoModule()
         {
@@ -50,10 +51,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
 
             PipeSpout.StreamSpritesheet = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streams"];
-            PipeSpout.DissolveTextures[0] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve00"];
-            PipeSpout.DissolveTextures[1] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve01"];
-            PipeSpout.DissolveTextures[2] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve02"];
-            PipeSpout.DissolveTextures[3] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve03"];
+            for (int i = 0; i < 4; i++)
+            {
+                PipeSpout.DissolveTextures[i] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve0" + i];
+            }
             if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/Tutorial", out var asset)
                 && asset.TryDeserialize(out StageData myData))
             {
@@ -68,11 +69,17 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 InterfaceData = myData2;
             }
-            if(Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/GameshowQuestions", out var asset3) 
+            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/GameshowQuestions", out var asset3)
                 && asset3.TryDeserialize(out GameshowData myData3))
             {
                 GameshowData = myData3;
                 GameshowData.ParseData();
+            }
+            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/AccessLinks", out var asset4)
+    && asset4.TryDeserialize(out AccessData myData4))
+            {
+                AccessData = myData4;
+                AccessData.ParseData();
             }
             BlockGlitch.Shader = ShaderHelper.TryGetEffect("jitter");
             MonitorDecalGroup.Shader = ShaderHelper.TryGetEffect("monitorDecal");

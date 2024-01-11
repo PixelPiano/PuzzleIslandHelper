@@ -187,7 +187,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
                     break;
                 case "access":
-                    Add(new InputBox(CaseWidth / 2, CaseHeight / 2, Interface.digiContent.CheckIfValidPass));
+                    Add(new InputBox(Interface, CaseWidth / 2, CaseHeight / 2, Interface.digiContent.CheckIfValidPass));
                     //Add(new StartButton(Interface, Interface.StartAccessEnding));
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
                     break;

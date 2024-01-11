@@ -20,7 +20,9 @@
         <Reference Private="false" />
     </ItemDefinitionGroup>
     <ItemGroup>
+      <Compile Remove="Entities\Destruct.cs" />
       <Compile Remove="Entities\ffffCassetteBlock.cs" />
+      <Compile Remove="Entities\Programs\LoadSequence.cs" />
     </ItemGroup>
 
     <ItemGroup>

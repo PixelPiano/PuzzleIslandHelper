@@ -30,6 +30,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public static int TextWidth = 0;
         public float textScale = 0.7f;
         #endregion
+        public Interface Interface => PianoModule.Session.Interface;
         public TextWindow(string dialog)
         {
             Tag |= TagsExt.SubHUD | Tags.TransitionUpdate;

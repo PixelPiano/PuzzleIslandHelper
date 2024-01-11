@@ -12,7 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
     {
         private Interface entityInterface;
         public BetterWindowButton(Interface entityInterface, string path = null, Action OnClicked = null, IEnumerator Routine = null)
-            : base(path, OnClicked, Routine)
+            : base(entityInterface, path, OnClicked, Routine)
         {
             this.entityInterface = entityInterface;
             this.OnClicked = OnClicked;

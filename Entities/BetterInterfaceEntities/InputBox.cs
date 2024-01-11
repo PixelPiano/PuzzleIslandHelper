@@ -32,6 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public bool Selected;
         private bool consumedButton;
         private Func<string, bool> onSubmit;
+        public Interface Interface;
         public Vector2 ScreenSpacePosition
         {
             get
@@ -56,8 +57,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 return Entity.Position + Position - new Vector2(Width / 2, Height / 2);
             }
         }
-        public InputBox(float x, float y, Func<string, bool> onSubmit = null) : base(true, true)
+        public InputBox(Interface inter, float x, float y, Func<string, bool> onSubmit = null) : base(true, true)
         {
+            Interface = inter;
             this.onSubmit = onSubmit;
             Position = new Vector2(x, y);
 
@@ -222,6 +224,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             public InputBox Track;
             private float timer;
             private bool showUnderscore;
+            public Interface Interface => PianoModule.Session.Interface;
             public InputBoxText(InputBox track) : base(Color.White)
             {
                 Track = track;
@@ -257,6 +260,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 base.Render();
                 float x = ActiveFont.Measure(Text).X;
+                
                 if (Interface.Buffering)
                 {
                     showUnderscore = false;

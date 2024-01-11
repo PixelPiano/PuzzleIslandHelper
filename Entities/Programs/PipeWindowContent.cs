@@ -209,7 +209,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             Flipped =  SceneAs<Level>().Session.GetFlag("pipesSwitched");
             PianoModule.Session.CutsceneSpouts.Clear();
             Circle circle = new Circle(27 / 2f);
-            Add(FixButton = new BetterButton(circle, "objects/PuzzleIslandHelper/interface/pipes/fixedButton/", OnFixClicked, FixPipes()));
+            Add(FixButton = new BetterButton(Interface, circle, "objects/PuzzleIslandHelper/interface/pipes/fixedButton/", OnFixClicked, FixPipes()));
             FixButton.Position = new Vector2(BetterWindow.WindowWidth / 2, BetterWindow.WindowHeight / 2) - new Vector2(FixButton.Width / 2, FixButton.Height / 2);
             FixButton.Visible = false;
             FixButton.Disabled = true;
