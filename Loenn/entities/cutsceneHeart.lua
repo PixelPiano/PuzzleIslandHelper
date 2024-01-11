@@ -14,6 +14,7 @@ cutsceneHeart.placements =
             event = "event:/game/07_summit/gem_get",
             sprite= "green",
             room = "",
+            returnRoom = "",
             flag = "greenMiniHeart",
             teleportsPlayer=true
         }

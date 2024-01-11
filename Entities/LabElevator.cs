@@ -6,10 +6,7 @@ using Monocle;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Emit;
-using static MonoMod.InlineRT.MonoModRule;
 
-// PuzzleIslandHelper.LabElevator
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/LabElevator")]
@@ -21,9 +18,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private CustomTalkComponent downButton;
         private float jitterAmount;
         private float moveSpeed;
-        private float moveTime;
-        private Vector2 startPosition;
-        private Vector2 endPosition;
         public string flag;
         private Sprite doorSprite;
         private Image backGlass;
@@ -34,15 +28,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Entity front;
         private StoolPickupBarrier Barrier;
         private SoundSource click;
+        private SoundSource moveSound;
         private Sprite hover;
         private InvisibleBarrier barrierOne;
         private InvisibleBarrier barrierTwo;
         private InvisibleBarrier barrierThree;
+        private Vector2 bOneOffset;
+        private Vector2 bTwoOffset;
+        private Vector2 bThreeOffset;
         private static int Clicks;
         private float animBuffer;
         public string ElevatorID;
         private int CurrentFloor;
-        private List<float> FloorAltitude = new();
         public LabElevator(EntityData data, Vector2 offset)
             : base(data.Position + offset, 48, 6, false)
         {
@@ -54,16 +51,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             Tag |= Tags.TransitionUpdate;
             //Floors = data.Nodes.Length;
-            List<Vector2> list = new();
-            list = data.NodesWithPosition(offset).ToList();
-            list.Add(Position);
-            list = list.OrderBy(item => item.Y).ToList();
-
-            foreach (Vector2 v in list)
-            {
-                FloorAltitude.Add(v.Y);
-            }
-            CurrentFloor = FloorAltitude.IndexOf(Position.Y);
 
             Sprite sprite = new Sprite(GFX.Gui, "PuzzleIslandHelper/hover/");
             sprite.AddLoop("idle", "digitalC", 0.1f);
@@ -73,19 +60,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             upButton.PlayerMustBeFacing = false;
             downButton.PlayerMustBeFacing = false;
             flag = data.Attr("flag");
-            startPosition = Position;
-            endPosition = Position + new Vector2(0f, data.Float("endPosition"));
+       
             moveSpeed = data.Float("moveSpeed");
-            moveTime = data.Float("moveTime");
             jitterAmount = data.Float("jitterAmount");
             Add(click = new SoundSource());
+
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/labElevator/"));
             doorSprite.AddLoop("idle", "idle", 0.1f);
             doorSprite.Rate = 1.5f;
+            Add(moveSound = new SoundSource());
             Collider = new Hitbox(48, 8, 0, 0);
+            moveSound.Position = Center - Position;
 
             Depth = -10500;
             Add(new LightOcclude());
+        }
+        private void StartMoveSound()
+        {
+            moveSound?.Play("event:/PianoBoy/Machines/ElevatorMoving", "Arrived", 0);
+        }
+        private void StopMoveSound()
+        {
+            moveSound?.Param("Arrived", 1);
         }
         private void Interact(Player player, bool up)
         {
@@ -109,7 +105,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return;
             }
-            Add(new Coroutine(MoveElevator(up)));
+            Add(new Coroutine(MoveElevator(!up)));
         }
         private void InteractDown(Player player)
         {
@@ -163,9 +159,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Added(scene);
 
-            SceneAs<Level>().Add(barrierOne = new InvisibleBarrier(new Vector2(Position.X, Position.Y - 30), 5, 13));
-            SceneAs<Level>().Add(barrierTwo = new InvisibleBarrier(new Vector2(Position.X + 43, Position.Y - 30), 5, 13));
-            SceneAs<Level>().Add(barrierThree = new InvisibleBarrier(new Vector2(Position.X, Position.Y - 40), 48, 10));
+            bOneOffset = new Vector2(0, -30);
+            bTwoOffset = new Vector2(43, -30);
+            bThreeOffset = new Vector2(0, -40);
+            SceneAs<Level>().Add(barrierOne = new InvisibleBarrier(Position + bOneOffset, 5, 13));
+            SceneAs<Level>().Add(barrierTwo = new InvisibleBarrier(Position + bTwoOffset, 5, 13));
+            SceneAs<Level>().Add(barrierThree = new InvisibleBarrier(Position + bThreeOffset, 48, 10));
         }
         public override void Update()
         {
@@ -194,10 +193,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-
-
-            //Floors = data.Nodes.Length;
-            List<ElevatorLevel> list = new();
             foreach (ElevatorLevel floor in scene.Tracker.GetEntities<ElevatorLevel>())
             {
                 if (ElevatorID == floor.ElevatorID)
@@ -208,14 +203,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                 }
             }
-            list = list.OrderBy(item => item.Floor).ToList();
             Floors.OrderBy(item => item.Key).ToList();
-
-
-            foreach (ElevatorLevel v in list)
-            {
-                FloorAltitude.Add(v.Y);
-            }
             CurrentFloor = TryGetFloor(1);
             scene.Add(back = new Entity(Position));
 
@@ -253,22 +241,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private void ResetPlatforms(float value)
         {
             MoveToY(value);
-            barrierOne.MoveToY(value - 30);
-            barrierTwo.MoveToY(value - 30);
-            barrierThree.MoveToY(value - 40);
+            barrierOne.MoveToY(value + bOneOffset.Y);
+            barrierTwo.MoveToY(value + bTwoOffset.Y);
+            barrierThree.MoveToY(value + bThreeOffset.Y);
+        }
+        private void MovePlatformsToX(float value)
+        {
+            MoveToX(value);
+            barrierOne.MoveToX(value + bOneOffset.X);
+            barrierTwo.MoveToX(value + bTwoOffset.X);
+            barrierThree.MoveToX(value + bThreeOffset.X);
         }
         private void MovePlatforms(float value)
         {
             MoveTowardsY(value, moveSpeed * Engine.DeltaTime);
-            barrierOne.MoveTowardsY(value - 30, moveSpeed * Engine.DeltaTime);
-            barrierTwo.MoveTowardsY(value - 30, moveSpeed * Engine.DeltaTime);
-            barrierThree.MoveTowardsY(value - 40, moveSpeed * Engine.DeltaTime);
+            barrierOne.MoveTowardsY(value + bOneOffset.Y, moveSpeed * Engine.DeltaTime);
+            barrierTwo.MoveTowardsY(value + bTwoOffset.Y, moveSpeed * Engine.DeltaTime);
+            barrierThree.MoveTowardsY(value + bThreeOffset.Y, moveSpeed * Engine.DeltaTime);
         }
-        public IEnumerator MoveElevator(bool up)
+        public IEnumerator MoveElevator(bool down)
         {
             bool jitterState = false;
+            int x = (int)Position.X;
             if (!moving)
             {
+                StartMoveSound();
                 moving = true;
                 Barrier.State = true;
                 yield return null;
@@ -279,13 +276,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 Barrier.Opacity = 1;
                 yield return Engine.DeltaTime * 2;
-
-                bool AtEdge = up ? CurrentFloor - 1 < 0 : CurrentFloor + 1 >= Floors.Count;
-                float Altitude = AtEdge ? Position.Y : up ? Floors[CurrentFloor - 1] : Floors[CurrentFloor + 1];
-
+                int direction = down ? -1 : 1;
+                int nextFloor = CurrentFloor + direction;
+                bool AtEdge = !Floors.ContainsKey(nextFloor);
+                float Altitude = AtEdge ? Position.Y : Floors[nextFloor];
+                StopMoveSound();
                 if (!AtEdge)
                 {
-                    while (up ? Position.Y > Altitude : Position.Y < Altitude)
+                    while (down ? Position.Y < Altitude : Position.Y > Altitude)
                     {
                         MovePlatforms(Altitude);
                         JitterPlatforms(jitterState);
@@ -293,11 +291,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         yield return null;
                     }
                     Position.Y = Altitude;
-                    MoveToX(Position.X);
                 }
                 else
                 {
-                    float yBump = Position.Y + (up ? -4 : 4);
+                    float yBump = Position.Y + (direction * -4);
                     float origY = Position.Y;
                     for (float i = 0; i < 1; i += 0.05f)
                     {
@@ -312,9 +309,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     Position.Y = origY;
                 }
+                MovePlatformsToX(x);
                 if (!AtEdge)
                 {
-                    CurrentFloor += up ? -1 : 1;
+                    CurrentFloor += direction;
                 }
                 Barrier.State = false;
                 yield return null;

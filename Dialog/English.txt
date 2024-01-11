@@ -10,9 +10,137 @@
 # Gameplay Control Commands (should never change)
 # {trigger x} this triggers an in-game event
 # {anchor} controls the visual position of the textbox in-game
+
+
+
+
+#Washer Interact while off
+#attempt 1
+washerIsOff=
+You click all the buttons at random, but somehow nothing happens.
+
+#attempt 2
+washerIsStillOff=
+You click all the buttons in order from left to right, but somehow nothing happens still.
+
+#attempt 3
+washerReallyIsOff=
+The third try always works, but fate never liked consistency.
+
+#attempts 4, 5, and 6
+washerIsReallyStillOff=
+You should do it again, I've got a good feeling about the next one.
+
+#attempt 7
+washerButtonsAreSticking=
+You press each button so hard that they all stick inside of the machine.{n} Look at what you've done.
+
+#attempt 8
+washerKicked=
+You kick the machine out of frustration. All the buttons pop back into place.{n}
+Violence is always the answer.
+
+#Prologue
+prologueGondolaRide= 
+		[Madeline left normal] 
+		hi hi ok i'm riding the gondola now this is fun memories
+
+prologue= 	
+		[Madeline left sad]
+		Hm?
+
+	     	[Madeline left normal]
+		Oh, it's a letter from Theo!
+
+	     	{trigger 0 Maddy reads letter}
+
+		[Theo right normal]
+		hey i tried climbing the mountain but i stopped when i got to that weird temple, yknow the one where i got trapped?
+		but i didn't stop just cause i got trapped before. 
+		It seemed stranger than last time. 
+		Figured i should let you know since anyone else i told would have just thought i was crazy anyways peace yolo 
+
+		{trigger 1 To Gondola}
+
+prologueNope = [Madeline left surprised]
+		   ...Nope ok I'm going away now.
+prologue2=
+		{trigger 0 To Boost}
+
+		[Madeline left normal] 
+		wowow i am boosting up to the mirror, wow this mirror looks better 		than i remember it. 
+		i should be careful-
+		{trigger 1 Mirror Flash}
+
+ 		{trigger 2 Blocks Appear}
+
+		[Madeline left panic]
+		huh? oh that's a block. the block stopped me from being pulled in. oh 
+		that's another bnlock. and another. i should go
+
+		{trigger 3 Abscond}
+
+prologue3=		
+		{trigger 0 Fiddle With Gondola}
+
+		[Madeline left normal] 
+		come on you stupid gondola
+		go go go go go go go go go
+
+		{trigger 1 Rope Snap}
+		[Madeline left panic] 
+	 	ah that shounded like a rope snapping
+
+		{trigger 2 Gondola fall}
+
+		[Madeline left panic]
+		distressed noise of someone falling while inside a gondola
+		[Madeline left normal] 
+		ah i have landed on a bunch of those rocks, oh wait whats this i think
+
+		{trigger 3 get blockd nerd}
+
+		madeline then had a block spawn on her and she is dead now oopsie 
 ------------------------
+#GrassShift
+------------------------
+grassShift= 
+	{trigger 0 Zoom In}
+	[Madeline left angry]
+		{>> 0.1}Ughhhhhhhh{/>>}.
+		I had hoped that there would at least be {~}some{/~}{0.2}explanation for what's going on by now.
+		I feel like a rat in a maze.
+	{trigger 1 Face Left}
+	[Madeline left sad]
+		But if I just stay put, I won't get anywhere.
+	[Madeline left distracted]
+		Plus, I'd rather be moving around instead of waiting for this place to go {~}wacko-mode{/~} again.
+	{trigger 2 Temple Shake}
+	[Madeline left surprised]
+		{>> 0.5}Really?!{/>>}{0.5} Now?!
+	{trigger 3 Fall Down}
+	{trigger 4 World Distort}
+
+grassShift2=
+	[Madeline left panic]
+		Wh-{0.5} What's happening...?
+	{trigger 0 Wait}
+		My head... Please...
+	{trigger 1 Wait again}
+	{trigger 2 Settle}
+	[Madeline left panic]
+		Is... Is it over..?
+	{trigger 3 Get back up}
+	{trigger 1 Wait again}
+	[Madeline left sadder]
+		...
+	
+grassShiftAh=
+	[Madeline left surprised]
+		Ah..!
+
 #Preset MiniLoader text
-------------------------
+
 miniLoader1= Loading configurations
 miniLoader2= Evaluating checksum
 miniLoader3= 
@@ -182,42 +310,27 @@ JUSTATEXT= OH GREAT GOOGLY MOOGLY
 TEST= AAAAAAAAAAA
 
 
-NT1= To do.txt
-NT2= Log1A.txt
-NT3= Log1B.txt
-NT4= Log1C.txt
-NI1= Notice.info
-NU1= LiquidConv.bat
-NU2= idk.bat
-NU3= SectorSurv.cam
-
 PIPE=Please refer to the manual for precautions.
 PIPEWARN=Abnormal pressure levels detected in PipeSystem, please reactivate all pressure regulators.
 PIPEBEFOREFIX=All preassure regulators activated.
 
-NPIPE=Route Config
 
 3kb= Hopefully this makes it throu235 Y743OT344B52$%#$$%2439G723924334592T432{n}V4TB24#tb$#@tB49Y7TY293GV{n}TG3@tGV32849GVH34P5PT{n}GUO32HO3TOUHVI3U42T34@5B@#$%b#@$v%yg#@4O8og%@$#{n}f@#h$y%f@$#ho%fh@$#f%@#hf%h$#o%g{n}h@oto4h3558 8.Empty() at line 54
-N>3kb= 92#@$H#@##)D@
 
-N3kb= $&^**#*(T&$
+CryForHelp= No^ mu&h spa#@ avail. Tra4p(d on&ot$er s]de, l0;k fo$ t@e gr!]n [isk. ;nly we can st5_op i^t.
 
-CryForHelp= No^ mu&h spa#@ avail. Tra4p(d on&ot$er s]de, \et a@cV$*ss .nd (nt*>r on ap^.
-P@s& t$s". ;nly we can st5_op i^t.
-
-NCryForHelp= H3$@_&s
 
 NDESTRUCT= DARP.exe
 NMEMORY= MStorage.exe
 
-TODO= To do:{n}{offset:30,50}- Talk with village leader about expanding available research bounds.{/offset}{n}- Conduct tests on temple fluids without getting burnt.{n}{offset:100,400}- Fix broken stabilizer in sector 2.{/offset}{n}- Laundry.
+TODO= To do:{n}- Talk with village leader about expanding available research bounds.{n}- Conduct tests on temple fluids without getting burnt.{n}- Fix broken stabilizer in sector 2.{n}- Laundry.
 
 UNKNOWN= Unrecognized file extension, file not readable
 INVALID= Invalid icon type
 RAM= !!!!!!!!!DOWNLOAD FREE RAM HERE FOR FREE FREE!!!!!!!!!
 FOLDER= Folder data here
 
-ACCESS= Access Module required for transport. Approval from doctor and lead scientist required before proceeding. Lead scientist not responsible for damage dealt to personal effects and/or persons from this point forth.
+ACCESS= Please enter a valid area id. Consult C or F on which areas are safe.
 
 DESTRUCT= Level 5 clearance required to use program.
 
@@ -253,11 +366,152 @@ TEXT16= Then, as if it were all a dream, I heard my brother from behind me. Not 
 
 INFO1= This device is to be used only by laboratory personnel. Please report any unauthorized individuals operating laboratory devices to the village leader. If you don't know whether you qualify as laboratory personnel, then you do not.
 
-SCHOOLNOTEHINT=Due to some of the residents getting a bit... handsy with the school supplies, (doctor's gonna have a time) the village leader and I have elected to make a secluded storage underneath the school. I've let the school teacher know not to disclose this place's location - or allude to it's purpose to avoid more incidents. 
-
+SCHOOLNOTEHINT=Due to some of the residents getting a bit... handsy with the school supplies, (doctor's gonna have a time) the village leader and I have elected to make a secluded storage underneath the school.
 
 NSNH=SchoolUpdate.txt
 
-NACCESS= Key Terminal.exe
 NRAM= VERY REAL OPPORTUNITY FOR SPACE UNLIMITED.exe
 
+
+#Gameshow questions
+
+
+qNext= [EMPTY left normal] (Next)
+qStart= [EMPTY left normal] (Back to start)
+gameshowStart1= [HOST left obscured]LADIES AND GENTLEFACES...
+gameshowStart2= [HOST left obscured]...IT'S THE MOMENT YOU'VE ALL BEEN WAITING FOR!
+gameshowStart3= [HOST left obscured]GET YOUR FACES READY, BECAUSE...
+gameshowStart4= [HOST left obscured]...IT'S TIME...{0.2} 
+gameshowStart5= [HOST left obscured]{>> 0.5}TO...{/>>}
+
+gameshowTitle=	
+	[HOST left happy]
+	{~}{big}{# c859ff}ROOMINATE{0.6} ON {0.6}THAT!{#}{/big}{/~}
+
+gameshowStart=
+	{trigger 0 SayTitle}
+
+	[HOST left happy]
+		THE INCREDIBLY NICHE GAME SHOW THAT'S ONLY IN BUSINESS OUT OF 		SHEER LUCK!
+
+	[MADELINE right panic]
+		What have I gotten myself into..?
+
+	{trigger 1 WaitALittle}
+
+	[HOST left smile]
+		PLEASE WELCOME OUR VERY SPECIAL (FIRST EVER) GUEST!
+
+	[MADELINE right panic] 
+		Um... {0.2}uh... {0.3}h-{0.1}hi..?
+
+	{trigger 2 Cheer}
+
+	[HOST left smile]
+		WITH INTRODUCTIONS OUT OF THE WAY, {~}LETSSSSSSS...{~}
+
+	{trigger 0 SayTitle}
+
+preQuestions= 
+	[HOST left processing]IF YOU COULD DIRECT YOUR ATTENTION TO THE MONITOR ABOVE YOU...
+	YOU'LL NOTICE 5 IDENTICAL ICONS.
+
+	{trigger 0 LookAtLives}
+
+	[HOST left happy]
+		THOSE REPRESENT HOW MANY ATTEMPTS YOU HAVE TO GUESS CORRECTLY.
+
+	[HOST left smile]
+		GUESS INCORRECTLY TOO MANY TIMES, AND...
+
+	[HOST left disbelief]
+		ACTUALLY...
+
+	{trigger 1 StopMusic}
+
+	[HOST left smirk]
+		TO BE COMPLETELY HONEST, I MAY HAVE EVEN {n}EXPLAINED IT TO YOU ALREADY.
+
+	[MADELINE right sad]
+		...?
+
+	{trigger 2 StartMusic}
+
+	[HOST left ominous]
+		ANYWAYS, AS I WAS SAYING...
+
+	[HOST left processing]
+		ON YOUR WAY HERE, YOU PASSED THROUGH 4 ROOMS BEFORE ARRIVING AT A LABORATORY.
+	PLEASE TRY TO RECALL THE DETAILS OF THOSE 4 ROOMS.
+	
+	[MADELINE right angry] 
+		Wh- Hold on, you can't just-
+
+q1= [HOST left processing] QUERY #1: HOW MANY OF THE FOUR ROOMS CONTAIN MOVING BLOCKS?
+q11= [MADELINE right sad] 1.
+q12= [MADELINE right sad] 2.
+q13= [MADELINE right sad] 3.
+
+#
+q14= [MADELINE right sad] 4.
+
+q1R1= [HOST left smile]*BZZT* NAH *BZZT*
+q1R2= [HOST left pensive]*BZZT* SORRY, THAT WAS THE WRONG ANSWER *BZZT*
+q1R3= [HOST left smirk]*BZZT* LOOKS LIKE YOU GOT LOST IN THE WASH *BZZT*
+	{3}
+	[HOST left disbelief]i am a washing machine
+	[MADELINE right angry] I got it.
+q1R4=  [HOST left woozy]h
+q1W= [HOST left smile]*BEEP BEEP BEEP* THAT IS CORRECT!!!! wow. *BEEP BEEP BEEP*
+
+q2= [HOST left processing]QUERY #2: IN THE LAST FOUR ROOMS, WHICH TYPE OF FACE DID YOU SEE THE MOST?
+q21= [MADELINE right angry] :PianoBoyAngry:
+
+#
+q22= [MADELINE right sad] :PianoBoyOk:
+q23= [MADELINE right normal] :PianoBoyStapler:
+q24= [MADELINE right normal] :PianoBoyUwu:
+
+q2R1= [HOST left woozy]*BZZT* THIS IS A CERTIFIED GOLDFISH MOMENT *BZZT*
+q2R2=
+	[HOST left smirk]*BZZT* WOW, IF I WERE YOU RIGHT NOW 
+	[HOST left smirk]I'D CLIMB A MOUNTAIN I'D BE SO EMBARRASSED *BZZT*
+	[MADELINE right sad] ...What?
+q2R3= [HOST left smile]*BZZT HEH. HEHEH. THAT'S FUNNY *BZZT*
+
+q3= [HOST left ominous]FINAL QUERY:{0.3} WHAT 4 DIGITS DID THE LAST 4 ROOMS DETAIL?
+
+q31= [MADELINE right sad] 0375.
+q32= [MADELINE right normal] 0735!
+q33= [MADELINE right sad] 7483.
+q34= [MADELINE right panic] uh....8890..?
+
+#
+q35= [MADELINE right distracted] 0736...?
+q36= [MADELINE right deadpan] 6969
+q37= [MADELINE right sad] 1024.
+q38= [MADELINE right normal] 3308, obviously.
+q39= [MADELINE right angry] What the heck is happening.
+
+q39U=[HOST left shocked]*BWEEP* EVER THING *BWEEP*
+q38U=
+	[HOST left angry]*BZZT* DON'T SASS ME YOUNG LADY *BZZT*
+	[MADELINE right angry] Y-young lady..?!
+q36Ua=[MADELINE right angry]...that one doesn't count.
+     [HOST left processing]..........
+     [MADELINE right sad]........
+q36Ub=[MADELINE right normal] someone hand me a wrench please
+
+q33Ua=[HOST left smile]*BZZT* HA! *BZZT*
+q33Ub=
+	[HOST left disbelief]that means you got it wrong
+	[MADELINE right angry] Thanks.
+
+q3R1= [HOST left smirk]*BZZT* IMAGINE GETTING A QUESTION WRONG LOL COULDN'T BE ME *BZZT
+q3R2= [HOST left smirk]*BZZT* WE'RE SO SORRY (LOL), THAT WAS INCORRECT (TEEHEE). PLEASE TRY AGAIN. (LAUGHING) *BZZT*
+q3R3= [HOST left error]*BZZT* BZZT *BZZT*
+q3R4= [HOST left angry]*BZZT* WRONG *BZZT*
+q3R5= [HOST left pensive]*BZZT* THIS IS JUST SAD *BZZT*
+q3R6= [HOST left smirk]*BZZT* I CAN FEEL THE IQ IN THE ROOM LOWERING BY THE SECOND *BZZT*
+
+q3W= [HOST left happy]*BEEEEP* THAT IS CORRECT! VERY WELL DONE! *BEEEEP*

@@ -105,6 +105,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         Shape.Cube => ShapeStorage.CubeSimple,
                         Shape.Tetrahedron => ShapeStorage.TetrahedronSimple,
                         Shape.Octahedron => ShapeStorage.OctahedronSimple,
+                        _=>null
                     };
                 }
                 else
@@ -114,6 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         Shape.Cube => ShapeStorage.CubeWire,
                         Shape.Tetrahedron => ShapeStorage.TetrahedronWire,
                         Shape.Octahedron => ShapeStorage.OctahedronWire,
+                        _=>null
                     };
                 }
             }

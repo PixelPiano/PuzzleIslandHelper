@@ -37,10 +37,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             Interface.Buffering = true;
             List<string> dialogs = new();
             dialogs.Add("pipeFixer");
-            for (int i = 1; i < 7; i++)
-            {
-                dialogs.Add("pipeLoader" + i);
-            }
+            dialogs.AddRange(CodeDialogStorage.PipeLoader);
             MiniLoader = null;
             Add(MiniLoader = new MiniLoader(new Vector2(6, BetterWindow.WindowHeight - 8), 100, dialogs.ToArray(), 0.3f,
                 BetterWindow.CaseWidth * 6f - 6, BetterWindow.CaseWidth * 3f));
@@ -117,7 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
                 player.StateMachine.State = Player.StDummy;
                 yield return null;
                 player.Facing = Facings.Left;
-                yield return PipeBreak(player);
+                yield return PipeBreak();
                 yield return Textbox.Say("pipeAttemptOhNo");
 
                 player.StateMachine.State = Player.StNormal;
@@ -132,15 +129,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             InRoutine = false;
             yield return null;
         }
-        private IEnumerator PlayAndWait(SoundSource source, string audio)
-        {
-            source.Play(audio);
-            while (source.InstancePlaying)
-            {
-                yield return null;
-            }
-        }
-        private IEnumerator PipeBreak(Player player)
+        private IEnumerator PipeBreak()
         {
             PipeCutsceneStarted = true;
 
@@ -172,14 +161,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             InRoutine = true;
             Interface.Buffering = true;
             FixButton.Disabled = true;
-            List<string> dialogs = new();
 
-            for (int i = 1; i < 7; i++)
-            {
-                dialogs.Add("pipeLoader" + i);
-            }
             MiniLoader = null;
-            Add(MiniLoader = new MiniLoader(new Vector2(6, BetterWindow.WindowHeight - 8), 100, dialogs.ToArray(), 0.3f,
+            Add(MiniLoader = new MiniLoader(new Vector2(6, BetterWindow.WindowHeight - 8), 100, CodeDialogStorage.PipeLoader, 0.3f,
                 BetterWindow.CaseWidth * 6f - 6, BetterWindow.CaseWidth * 3f));
             while (!MiniLoader.Finished)
             {

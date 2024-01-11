@@ -2,6 +2,7 @@ using Celeste.Mod.CommunalHelper;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.PianoEntities
 {

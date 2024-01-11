@@ -91,7 +91,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (ScaleDecal)
             {
                 CustomDecal.Scale = new Vector2(width / CustomDecal.Width, height / CustomDecal.Height);
-                //CustomDecal.Position += new Vector2(((CustomDecal.Width * CustomDecal.Scale.X) - CustomDecal.Width)/4, ((CustomDecal.Height * CustomDecal.Scale.Y) - CustomDecal.Height)/4);
+                //CustomDecal.Position += new Vector2(((CustomDecal.Width * CustomDecal.TextScale.X) - CustomDecal.Width)/4, ((CustomDecal.Height * CustomDecal.TextScale.Y) - CustomDecal.Height)/4);
 
             }
         }

@@ -7,6 +7,8 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using vitmod;
+using System.Linq;
+using static vitmod.TimeCrystal;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 {
@@ -26,6 +28,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 
         private float actSpeed;
 
+        private bool usesBlocks;
+
         private SoundSource sfx;
 
         private List<Rectangle> tileSizes;
@@ -40,6 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             width = data.Width;
             flag = data.Attr("flag");
             left = data.Bool("left");
+            usesBlocks = data.Bool("blocks");
             actDelay = data.Float("delay");
             actSpeed = data.Float("speed", 0.8f) / 10f;
             id = data.ID;
@@ -59,18 +64,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 new Rectangle(0, 0, 16, 16)
             };
         }
-
+        public void StopCollapseLoop()
+        {
+            sfx.Stop();
+        }
         public override void Added(Scene scene)
         {
             base.Added(scene);
 
             Calc.PushRandom(id);
             int num = 0;
-            int num2 = (int)Math.Floor((decimal)width / 8m);
+            int num2 = (int)Math.Floor(width / 8m);
             while (num < num2)
             {
                 int num3 = ((num != num2 - 1) ? Calc.Random.Next(tileSizes.Count) : Calc.Random.Next(tileSizes.Count - 2));
-                PrologueBridgeTile customBridgeTile = new PrologueBridgeTile(Position + new Vector2(num * 8, 0f), tileSizes[num3],num3);
+                PrologueBridgeTile customBridgeTile = new PrologueBridgeTile(Position + new Vector2(num * 8, 0f), tileSizes[num3], num3);
                 tiles.Add(customBridgeTile);
                 SceneAs<Level>().Add(customBridgeTile);
                 num = ((num3 < tileSizes.Count - 2) ? (num + 1) : (num + 2));
@@ -93,16 +101,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             {
                 falling = true;
                 Add(new Coroutine(FallRoutine()));
+                if (usesBlocks)
+                {
+                    Add(new Coroutine(BlockRoutine()));
+                }
             }
             if (SceneAs<Level>().Tracker.GetEntity<Player>()?.Dead ?? true)
             {
                 sfx.Stop();
             }
         }
-
+        public IEnumerator BlockRoutine()
+        {
+            Player player = SceneAs<Level>().GetPlayer();
+            List<Entity> Blocks = SceneAs<Level>().Tracker.GetEntities<CustomFlagExitBlock>().ToList();
+            Blocks.OrderByDescending(item => item.X);
+            int index = 0;
+            while (Engine.TimeRate > 0 && index < Blocks.Count)
+            {
+                CustomFlagExitBlock block = Blocks[index] as CustomFlagExitBlock;
+                block.forceChange = true;
+                block.forceState = true;
+                yield return Calc.Random.Range(0.6f, 1.5f);
+                index++;
+            }
+        }
         public IEnumerator FallRoutine()
         {
             yield return actDelay;
+
             sfx.Play("event:/game/00_prologue/bridge_rumble_loop");
             for (int i = 0; i < tiles.Count; i++)
             {
@@ -111,7 +138,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 tile.Fall();
                 yield return actSpeed;
             }
-
             sfx.Stop();
         }
     }

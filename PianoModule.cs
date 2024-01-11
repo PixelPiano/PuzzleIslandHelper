@@ -10,6 +10,13 @@ using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using System.Linq;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
+using Celeste.Mod.PuzzleIslandHelper.Helpers;
+using Celeste.Mod.PuzzleIslandHelper.Triggers;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes;
+using static MonoMod.InlineRT.MonoModRule;
+using Microsoft.Xna.Framework.Graphics;
+using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -23,10 +30,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
         public override Type SessionType => typeof(PianoModuleSession);
         public static PianoModuleSession Session => (PianoModuleSession)Instance._Session;
-
-
         public static StageData StageData { get; set; }
         public static InterfaceData InterfaceData { get; set; }
+        public static GameshowData GameshowData { get; set; }
+        public static Dictionary<string, Effect> CutsceneShaders { get; set; }
         public PianoModule()
         {
             Instance = this;
@@ -61,13 +68,22 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 InterfaceData = myData2;
             }
-
+            if(Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/GameshowQuestions", out var asset3) 
+                && asset3.TryDeserialize(out GameshowData myData3))
+            {
+                GameshowData = myData3;
+                GameshowData.ParseData();
+            }
             BlockGlitch.Shader = ShaderHelper.TryGetEffect("jitter");
             MonitorDecalGroup.Shader = ShaderHelper.TryGetEffect("monitorDecal");
-            ArtifactTester.Shader = ShaderHelper.TryGetEffect("static");
+            ArtifactTester.Shader = (LCDParallax.Shader = ShaderHelper.TryGetEffect("static"));
             LCDParallax.Shader = ShaderHelper.TryGetEffect("lcd");
-            LCDArea.Shader = ShaderHelper.TryGetEffect("static");
             LCDParallax.MaskShader = ShaderHelper.TryGetEffect("sineLines");
+            ViewContent.Shader = ShaderHelper.TryGetEffect("curvedScreen");
+            CutsceneShaders = new()
+            {
+                {"GrassShift",ShaderHelper.TryGetEffect("fuzzyNoise")}
+            };
         }
         private void PlayerHair_Render(On.Celeste.PlayerHair.orig_Render orig, PlayerHair self)
         {
@@ -141,6 +157,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 return new LCDParallax(child);
             }
+            if (child.Name.Equals("PuzzleIslandHelper/Testtt", StringComparison.OrdinalIgnoreCase))
+            {
+                return new Testtt();
+            }
             return null;
         }
         public override void Load()
@@ -165,9 +185,13 @@ namespace Celeste.Mod.PuzzleIslandHelper
             LabTubeLight.Load();
             StageData.Load();
             RenderHelper.Load();
-            //DebugEater.Load();
             LCDParallax.Load();
             InterfaceData.Load();
+            GameshowData.Load();
+            ViewContent.Load();
+            ShaderOverlay.Load();
+            PortraitRuiner.Load();
+            AudioEffectGlobal.Load();
         }
         public override void Unload()
         {
@@ -189,10 +213,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
             DeadRefill.Unload();
             StageData.Unload();
             RenderHelper.Unload();
-            //DebugEater.Unload();
             LCDParallax.Unload();
             LCDArea.Unload();
             InterfaceData.Unload();
+            ViewContent.Unload();
+            GameshowData.Unload();
+            ShaderOverlay.Unload();
+            PortraitRuiner.Unload();
+            AudioEffectGlobal.Unload();
+
         }
 
         public override void Initialize()

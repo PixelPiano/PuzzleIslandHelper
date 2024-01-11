@@ -17,8 +17,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
     [Tracked]
     public class PrologueBird : Actor
     {
-        public DashDirection DashVariant;
-
         public static ParticleType P_Feather;
 
        
@@ -54,7 +52,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public PrologueBird(EntityData data, Vector2 offset)
             : base(data.Position + offset)
         {
-            DashVariant = new();
             EntityID = new EntityID(data.Level.Name, data.ID);
             nodes = data.NodesOffset(offset);
             Add(Sprite = GFX.SpriteBank.Create("bird"));
@@ -96,11 +93,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            Player entity = scene.Tracker.GetEntity<Player>();
-            if (entity != null && entity.Y < base.Y + 32f)
-            {
-                RemoveSelf();
-            }
         }
 
         public override bool IsRiding(Solid solid)
@@ -163,6 +155,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             yield return Startle("event:/game/general/bird_startle");
             yield return FlyAway();
         }
+        public bool Enabled;
 
         public IEnumerator FlyAway(float upwardsMultiplier = 1f)
         {
@@ -191,7 +184,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             yield return 1f;
             Player player = Scene.Tracker.GetEntity<Player>();
             PrologueBridge bridge = Scene.Entities.FindFirst<PrologueBridge>();
-            while ((player == null || !(player.X > StartPosition.X - 92f) || !(player.Y > StartPosition.Y - 20f) || !(player.Y < StartPosition.Y - 10f)) && (!SaveData.Instance.Assists.Invincible || player == null || !(player.X > StartPosition.X - 60f) || !(player.Y > StartPosition.Y) || !(player.Y < StartPosition.Y + 34f)))
+            while (!Enabled)
             {
                 yield return null;
             }

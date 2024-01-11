@@ -7,9 +7,8 @@ using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {
-
-    [CustomEntity("PuzzleIslandHelper/InvertCutsceneTrigger")]
-    public class InvertCutsceneTrigger : Trigger
+    [Tracked]
+    public class InvertCutsceneTrigger : CutsceneEntity
     {
         private GrapherEntity Graph;
         private PuzzleSpotlight Spotlight;
@@ -28,8 +27,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         private float duration = 1;
         private List<Backdrop> backdrops;
 
-        public InvertCutsceneTrigger(EntityData data, Vector2 offset)
-            : base(data, offset)
+        public InvertCutsceneTrigger() : base() { }
+        public override void OnBegin(Level level)
+        {
+            if (!InCutscene && !Collected)
+            {
+                Add(new Coroutine(Cutscene(level.GetPlayer())));
+            }
+        }
+        public override void OnEnd(Level level)
         {
 
         }
@@ -76,10 +82,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             if (level == null) return false;
             return level.Session.GetFlag(flag);
         }
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-        }
         private IEnumerator FlagSwitch()
         {
             count = 1;
@@ -106,6 +108,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 
         private IEnumerator Cutscene(Player player)
         {
+            InCutscene = true;
             // PLAQUE CHECK
             SetFlag("getInvertDashCheck"); //Target, check for button held
 
@@ -371,23 +374,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 
         }
 
-        public override void OnEnter(Player player)
-        {
-            if (!InCutscene && !Collected)
-            {
-                Add(new Coroutine(Cutscene(player)));
-                InCutscene = true;
-            }
-        }
-
-        public override void OnLeave(Player player)
-        {
-        }
         private IEnumerator endingSizeRoutine()
         {
             float size = GrapherEntity.size;
             stopSizeRoutine = true;
-             for(float i = 0; i < 1; i += Engine.DeltaTime)
+            for (float i = 0; i < 1; i += Engine.DeltaTime)
             {
                 GrapherEntity.size = Calc.Approach(size, 0, size * Ease.SineOut(i));
                 yield return null;

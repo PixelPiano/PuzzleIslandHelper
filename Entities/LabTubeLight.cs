@@ -1,16 +1,11 @@
-using Celeste.Mod.Backdrops;
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing.Drawing2D;
-using System.Linq;
-using System.Windows.Media.Media3D;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

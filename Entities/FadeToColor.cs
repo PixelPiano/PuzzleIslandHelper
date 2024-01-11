@@ -21,19 +21,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Color color;
         private bool usesFlag;
         #endregion
-        public FadeToColor(EntityData data, Vector2 offset)
-            : base(data.Position + offset)
+        public FadeToColor(Vector2 position, string flag, float speed, Color color, bool onEnter, bool usesFlag) : base(position)
         {
             Tag = TagsExt.SubHUD;
-            flag = data.Attr("flag");
-            Speed = data.Float("speed");
-            color = data.HexColor("color");
-            onBegin = data.Bool("onEnter");
-            usesFlag = data.Bool("useFlag");
+            this.flag = flag;
+            Speed = speed;
+            this.color = color;
+            onBegin = onEnter;
+            this.usesFlag = usesFlag;
             if (onBegin)
             {
                 opacity = 1;
             }
+        }
+        public FadeToColor(EntityData data, Vector2 offset) : this(data.Position + offset, data.Attr("flag"), data.Float("speed"), data.HexColor("color"), data.Bool("onEnter"), data.Bool("useFlag"))
+        {
         }
         public override void Render()
         {
@@ -65,7 +67,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     opacity = 0;
                 }
-            }else if (!usesFlag || (usesFlag && SceneAs<Level>().Session.GetFlag(flag)))
+            }
+            else if (!usesFlag || (usesFlag && SceneAs<Level>().Session.GetFlag(flag)))
             {
                 opacity = Calc.Approach(0, 1, rate += (Engine.DeltaTime * Speed));
             }

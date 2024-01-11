@@ -6,7 +6,7 @@ using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {
-    [CustomBackdrop("PuzzleIslandHelper/DigitalOverlay")]
+    [CustomBackdrop("PuzzleIslandHelper/DigitalGrid")]
     public class DigitalGrid : Backdrop
     {
         private float SpacingY;

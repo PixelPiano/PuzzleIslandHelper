@@ -21,35 +21,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         private static string fontName = "alarm clock";
         public Vector2 DrawPosition;
         public float IconWidth = 0;
-        public FancyText.Text ActiveText;
         public static readonly float TextScale = 0.8f;
         public static ComputerIcon CurrentIcon;
-        public bool WasDrawing;
-        public List<FancyText.Node> Nodes => ActiveText.Nodes;
+        private string CurrentTabText => CurrentIcon.TabText;
         public IconText()
         {
             Tag = TagsExt.SubHUD;
-        }
-        public override void Update()
-        {
-            WasDrawing = BetterWindow.Drawing;
-            base.Update();
-            if (!WasDrawing && BetterWindow.Drawing)
-            {
-                ReloadText();
-            }
-        }
-        public void ReloadText()
-        {
-            ActiveText = FancyText.Parse(Dialog.Get(CurrentIcon.TabText), (int)BetterWindow.WindowWidth * 10, 20);
-        }
-        private Vector2 ToInt(Vector2 vector)
-        {
-            return new Vector2((int)vector.X, (int)vector.Y);
-        }
-        public float WidestLine()
-        {
-            return ActiveText.WidestLine() / 6 * TextScale;
         }
         public override void Render()
         {
@@ -58,12 +35,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 return;
             }
-            if (ActiveText is null)
+            if (CurrentIcon is not null)
             {
-                ReloadText();
+                ActiveFont.Draw(CurrentTabText, TabTextPosition(), Vector2.Zero, Vector2.One * TextScale, Color.White);
             }
-            ActiveText.Font = ActiveFont.Font;
-            ActiveText.Draw(TabTextPosition(), Vector2.Zero, Vector2.One * TextScale, 1);
         }
         public Vector2 TabTextPosition()
         {
@@ -71,8 +46,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 return Vector2.Zero;
             }
-            return ToInt(level.Camera.CameraToScreen(BetterWindow.DrawPosition)) * 6 +
-                    ToInt(new Vector2(1, -BetterWindow.tabHeight) * 6);
+            return (level.Camera.CameraToScreen(BetterWindow.DrawPosition)+
+                    new Vector2(1, -BetterWindow.tabHeight)).ToInt() * 6;
         }
         private void ensureCustomFontIsLoaded()
         {

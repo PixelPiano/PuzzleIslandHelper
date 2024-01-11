@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Transitions;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -10,31 +11,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class ArtifactSlot : Actor
     {
-
         private int mode;
-
         private readonly Sprite sprite;
-
-        private Entity pop;
-
-        private Sprite popSprite;
-
-        private static VirtualRenderTarget _buffer;
-
-        public static VirtualRenderTarget buffer => _buffer ??=
-                      VirtualContent.CreateRenderTarget("buffer", 320, 180);
-
-        private bool start;
-
         public Player player;
-
         private ParticleType Sparks = new ParticleType
         {
             Size = 1f,
             Color = Calc.HexToColor("fa7f00"),
             Color2 = Calc.HexToColor("ffbc47"),
             ColorMode = ParticleType.ColorModes.Choose,
-            Direction = -MathHelper.Pi/2f,
+            Direction = -MathHelper.Pi / 2f,
             DirectionRange = MathHelper.PiOver2,
             LifeMin = 0.06f,
             LifeMax = 0.5f,
@@ -44,7 +30,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             FadeMode = ParticleType.FadeModes.Late,
             Friction = 2f
         };
-
         private ParticleType Download = new ParticleType
         {
             Size = 1f,
@@ -61,27 +46,64 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             FadeMode = ParticleType.FadeModes.Late,
             Friction = 2f
         };
-
         public bool playerNear;
-
         private Entity artifact;
-
         private Entity artifactGlow;
-
         private Entity arms;
-
-        private Entity glitch;
-
-        private Sprite glitchSprite;
-
         private Sprite armSprite;
-
         private Sprite glowSprite;
-
         private Sprite artifactSprite;
-
         private Vector2 tempScale;
+        private string room;
+        private SlotExit Transition;
+        public class Pop : Entity
+        {
+            private Sprite sprite;
+            public Pop() : base(Vector2.Zero)
+            {
 
+                Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/access/"));
+                sprite.Add("pop", "pop", 0.07f);
+                Depth = -1000000;
+            }
+            public void Play()
+            {
+                if (SceneAs<Level>().GetPlayer() is not Player player)
+                {
+                    return;
+                }
+                sprite.RenderPosition = player.Center - new Vector2(player.Width * 1.5f, player.Height);
+                sprite.Play("pop");
+                sprite.OnLastFrame = (string s) =>
+                {
+                    RemoveSelf();
+                };
+            }
+        }
+        public class GlitchEntity : Entity
+        {
+            private Sprite sprite;
+            public GlitchEntity() : base(Vector2.Zero)
+            {
+                Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/access/"));
+                sprite.AddLoop("glitch", "screenGlitch", 0.05f);
+                Depth = -1000001;
+            }
+            public void Flip(bool value)
+            {
+                sprite.FlipX = sprite.FlipY = value;
+            }
+            public void Play()
+            {
+                sprite.Play("glitch");
+            }
+            public void Stop()
+            {
+                sprite.Stop();
+            }
+        }
+        private GlitchEntity glitch;
+        private Pop pop;
         private void AppearParticles(bool sparks)
         {
             ParticleSystem particlesBG = SceneAs<Level>().ParticlesBG;
@@ -90,7 +112,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 particlesBG.Depth = -10500;
                 for (int i = 0; i < 120; i += 30)
                 {
-                    particlesBG.Emit(Sparks, 2, Center , Vector2.One * 7f, MathHelper.Pi / 2);
+                    particlesBG.Emit(Sparks, 2, Center, Vector2.One * 7f, MathHelper.Pi / 2);
                 }
             }
             else
@@ -101,30 +123,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     particlesBG.Emit(Download, 1, Center - Vector2.UnitY * 9, Vector2.One * 2f, i * (MathHelper.Pi / 180f));
                 }
             }
-        
-            /*for (int i = 0; i < 10; i++)
-            {
-                particlesBG.Emit(LockIn, 1,base.Center + new Vector2(9,9), Vector2.One + new Vector2(i,i) * 5f, MathHelper.Pi/2);
-            }*/
         }
         public ArtifactSlot(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/access/"));
-            mode = data.Int("cutsceneNumber",1);
+            mode = data.Int("cutsceneNumber", 1);
             sprite.AddLoop("idle", "artifactHolder", 0.1f);
             sprite.AddLoop("dead", "artifactHolderDead", 0.1f);
-            start = true;
             Position += new Vector2(0, 1);
+            sprite.Play("idle");
             Collider = new Hitbox(sprite.Width, sprite.Height);
-            //Add(new StaticMover());
+            Add(new TalkComponent(new Rectangle(0, 0, (int)Width, (int)Height), Vector2.UnitX * Collider.HalfSize.X, Interact));
+            Transition = new SlotExit(true,"l-1a");
         }
-        public IEnumerator toSlot()
+        public IEnumerator ToSlot()
         {
-
-            player = Scene.Tracker.GetEntity<Player>();
+            Level level = Scene as Level;
+            player = level.Tracker.GetEntity<Player>();
+            Coroutine zoom = new Coroutine(level.ZoomTo(Center - level.LevelOffset, 2, 1));
+            Add(zoom);
+            yield return player.DummyWalkTo(Position.X - 24);
             player.Facing = Facings.Right;
-
+            while (!zoom.Finished)
+            {
+                yield return null;
+            }
             Vector2 from = player.Center + new Vector2(0, 8);
             Vector2 target = Position + new Vector2(8, artifactSprite.Height / 2 - 1);
 
@@ -183,6 +207,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 artifactSprite.Rotation = MathHelper.Lerp(rotateFrom, rotateTarget, t.Eased);
             };
+            tweens[2].OnComplete = (Tween t) =>
+            {
+                artifactSprite.Rotation = 0;
+            };
+
             tweens[3].OnUpdate = (Tween t) =>
             {
                 artifactSprite.Rotation = MathHelper.Lerp(rotateTarget, rotateFrom, t.Eased);
@@ -228,13 +257,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
 
                 yield return null;
-
             }
 
-            while (artifact.Position != target)
-            { yield return null; }
-            
-            while (artifactSprite.Rotation != rotateFrom)
+            while (artifact.Position != target || artifactSprite.Rotation != rotateFrom)
             { yield return null; }
 
             AppearParticles(true);
@@ -254,7 +279,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             artifactSprite.Play("download");
             armSprite.Play("glow");
             glowSprite.Play("flicker");
-            for(int i = 0; i<180; i++)
+            for (int i = 0; i < 180; i++)
             {
                 if (i % 10 == 0)
                 {
@@ -262,8 +287,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 yield return null;
             }
-            
-            //yield return 3;
 
             armSprite.Stop();
             arms.RemoveSelf();
@@ -301,121 +324,73 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             while (!sixComplete)
             { yield return null; }
 
-            pop.Position = player.Center - new Vector2(player.Width * 1.5f, player.Height);
-            popSprite.Play("pop");
-            //glitch sequence
-            SceneAs<Level>().Session.SetFlag("digiRumble", true);
-            //rumble and shake
-            SceneAs<Level>().Session.SetFlag("cutsceneProceed", true);
+            pop.Play();
+            yield return level.ZoomBack(1);
+
             if (mode == 99)
             {
-                while (SceneAs<Level>().Session.GetFlag("inSlot2") != true)
-                {
-                    yield return null;
-                }
-                if (true)
-                {
-                    popSprite.Visible = true;
-                    pop.Depth = glitch.Depth - 1;
-                    pop.Position = glitch.Position;
-                    for (int i = 0; i < 10; i++)
-                    {
-                        Glitch.Value = 0.1f;
-                        popSprite.Play("cover");
-                        glitchSprite.Play("glitch");
-                        yield return null;
-                    }
-                    popSprite.Stop();
-                    popSprite.Visible = false;
-                    glitchSprite.Stop();
-                    glitchSprite.Visible = false;
-                    Glitch.Value = 0;
-                    yield return 1f;
-                    glitchSprite.Visible = true;
-                    for (int i = 0; i < 15; i++)
-                    {
-                        Glitch.Value = 0.1f;
-                        glitchSprite.Play("glitch");
-                        yield return null;
-                    }
-                    glitchSprite.Stop();
-                    glitchSprite.Visible = false;
-                    Glitch.Value = 0;
-                    yield return 1.5f;
-                    glitchSprite.Visible = true;
-                    for (int i = 0; i < 5; i++)
-                    {
-                        Glitch.Value = 0.1f;
-                        glitchSprite.Play("glitch");
-                        yield return null;
-                    }
-                    glitchSprite.Stop();
-                    glitchSprite.Visible = false;
-                    Glitch.Value = 0;
-                    yield return 0.5f;
-                    glitchSprite.Visible = true;
-                    for (int i = 0; i < 30; i++)
-                    {
-                        Glitch.Value = 0.1f;
-                        glitchSprite.Play("glitch");
-                        yield return null;
-                    }
-                    glitchSprite.Stop();
-                    glitchSprite.Visible = false;
-                    Glitch.Value = 0;
-                    yield return 0.5f;
-                } //purely just so I can collapse this section lul
-                glitchSprite.Play("glitch");
-                glitchSprite.Visible = true;
-                for (int i = 0; i < 200; i++)
-                {
-                    if (i < 50)
-                    {
-                        Glitch.Value = 0.05f;
-                        glitchSprite.FlipX = true;
-                        glitchSprite.FlipY = true;
-                    }
-                    else if (i < 100)
-                    {
-                        Glitch.Value = 0.1f;
-                        glitchSprite.FlipX = false;
-                        glitchSprite.FlipY = false;
-                    }
-                    else
-                    {
-                        Glitch.Value = 0.15f;
-                        glitchSprite.FlipX = true;
-                        glitchSprite.FlipY = true;
-                    }
-                    yield return null;
-                }
-                for (int i = 0; i < 180; i++)
-                {
-                    Glitch.Value = Calc.Random.Range(0.3f, 1f);
-                    yield return null;
-                }
-                ScreenWipe.WipeColor = Color.White;
-                FadeWipe fadeWipe = new FadeWipe(Scene as Level, wipeIn: false);
-                fadeWipe.Duration = 5f;
-                yield return 5f;
+                yield return GlitchRoutine();
             }
-            SceneAs<Level>().Session.SetFlag("fadingToWhite", true);
+
+            level.Add(Transition);
             yield return null;
+        }
+        private IEnumerator GlitchRoutine()
+        {
+            pop.Depth = glitch.Depth - 1;
+            pop.Position = glitch.Position;
+            int[] loops = { 10, 15, 5, 30, 200 };
+            float[] wait = { 1f, 1.5f, 0.5f, 0.5f };
+            for (int i = 0; i < loops.Length; i++)
+            {
+                glitch.Visible = true;
+                glitch.Play();
+                Glitch.Value = 0.1f;
+                for (int j = 0; j < loops[i]; j++)
+                {
+                    if (i == loops.Length - 1)
+                    {
+                        switch (j)
+                        {
+                            case < 50:
+                                Glitch.Value = 0.05f; glitch.Flip(true);
+                                break;
+                            case < 100:
+                                Glitch.Value = 0.1f; glitch.Flip(false);
+                                break;
+                            default:
+                                Glitch.Value = 0.15f; glitch.Flip(true);
+                                break;
+                        }
+                        yield return null;
+                    }
+                    yield return null;
+                }
+                glitch.Stop();
+                glitch.Visible = false;
+                Glitch.Value = 0f;
+                yield return wait[i];
+            }
+            for (int i = 0; i < 180; i++)
+            {
+                Glitch.Value = Calc.Random.Range(0.3f, 1f);
+                yield return null;
+            }
+            ScreenWipe.WipeColor = Color.White;
+            FadeWipe fadeWipe = new FadeWipe(Scene as Level, wipeIn: false);
+            fadeWipe.Duration = 5f;
+            yield return 5f;
         }
         private void Interact(Player player)
         {
             PianoModule.SaveData.HasArtifact = true;
             artifact.Position = player.Position;
-            Coroutine coroutine = new(toSlot(), true)
-            {
-                RemoveOnComplete = true
-            };
-            Add(coroutine);
+            player.StateMachine.State = Player.StDummy;
+            Add(new Coroutine(ToSlot()));
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            sprite.Play("idle");
             SceneAs<Level>().Session.SetFlag("slotSequence", false);
         }
         public override void Added(Scene scene)
@@ -426,6 +401,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             scene.Add(artifact = new Entity(Position));
             artifact.Add(artifactSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/access/"));
 
+            artifact.Collider = new Hitbox(artifactSprite.Width, artifactSprite.Height, artifactSprite.X - artifactSprite.Width / 2, artifactSprite.Y - artifactSprite.Height / 2);
             artifactSprite.AddLoop("idle", "artifact", 0.1f, 0);
             artifactSprite.AddLoop("coverIdle", "cover", 0.1f, 5);
             artifactSprite.Add("coverOn", "cover", 0.1f, "coverIdle");
@@ -450,30 +426,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             arms.Add(armSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/access/"));
             armSprite.AddLoop("glow", "armGlow", 0.1f);
             arms.Depth = -10501;
-            Level level = Scene as Level;
 
-            scene.Add(glitch = new Entity(new Vector2(level.Bounds.X,level.Bounds.Y)));
-            glitch.Add(glitchSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/access/"));
-            glitchSprite.AddLoop("glitch", "screenGlitch", 0.05f);
-            glitch.Depth = -11000;
             artifactSprite.Play("idle");
 
-            scene.Add(pop = new Entity(new Vector2(artifact.Position.X - 4, artifact.Position.Y - 4)));
-            pop.Add(popSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/access/"));
-            popSprite.AddLoop("cover", "screenGlitchCover", 0.1f);
-            popSprite.Add("pop", "pop", 0.07f);
-            pop.Depth = -10500;
-        }
-        public override void Update()
-        {
-            base.Update();
-            player = Scene.Tracker.GetEntity<Player>();
-            artifact.Collider = new Hitbox(artifactSprite.Width, artifactSprite.Height, artifactSprite.X - artifactSprite.Width / 2, artifactSprite.Y - artifactSprite.Height / 2);
-            if (SceneAs<Level>().Session.GetFlag("slotSequence") && start)
-            {
-                start = false;
-                Interact(player);
-            }
+            scene.Add(glitch = new GlitchEntity());
+            scene.Add(pop = new Pop());
         }
     }
 }

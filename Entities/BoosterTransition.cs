@@ -102,7 +102,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Update();
             /*            if (Booster is not null && !Collidable && !Booster.BoostingPlayer)
                         {
-                            Alarm alarm = Alarm.Create(Alarm.AlarmMode.Oneshot,
+                            Alert alarm = Alert.Create(Alert.AlarmMode.Oneshot,
                                 delegate
                                 {
                                     if (Booster is not null && !InRoutine)

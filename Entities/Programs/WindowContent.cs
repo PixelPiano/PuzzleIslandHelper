@@ -7,7 +7,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
     [Tracked]
     public class WindowContent : Entity
     {
-        public Interface Interface;
+        public Interface Interface => Window.Interface;
         public BetterWindow Window;
         public MiniLoader MiniLoader;
         public string Name;
@@ -31,7 +31,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            Interface = scene.Tracker.GetEntity<Interface>();
             if (Interface == null)
             {
                 RemoveSelf();

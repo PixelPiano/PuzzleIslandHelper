@@ -23,6 +23,7 @@ customPrologueBridge.placements = {
             width = 8,
             height = 8,
             flag = "",
+            blocks = false,
             left = false,
             delay = 0.2,
             speed = 0.8

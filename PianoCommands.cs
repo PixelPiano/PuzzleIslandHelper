@@ -9,6 +9,11 @@ using System.Collections.Generic;
 
 public class PianoCommands
 {
+    [Command("clear_disks","clears collected floppy disks")]
+    private static void ClearFloppys()
+    {
+        PianoModule.SaveData.CollectedDisks.Clear();
+    }
     [Command("pipestate", "sets the state of pipes")]
     private static void PipeState(int state = 1)
     {

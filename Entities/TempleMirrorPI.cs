@@ -6,6 +6,7 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Windows.Media.Media3D;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -53,6 +54,59 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 GFX.Game["objects/temple/portal/surface"].DrawCentered(Position, Color.White, 1, Rotation);
             }
         }
+        public class Inside : Entity
+        {
+            public MirrorReflection reflection;
+            public const string Path = "objects/PuzzleIslandHelper/templeMirror/symbol";
+            public List<MTexture> textures = new()
+            {
+                GFX.Game[Path + "A"],
+                GFX.Game[Path + "B"],
+                GFX.Game[Path + "C"],
+                GFX.Game[Path + "D"],
+                GFX.Game[Path + "E"],
+                GFX.Game[Path + "F"]
+            };
+            public class Ring : Image
+            {
+                public Vector2 Center;
+                public float Radius;
+                public Ring(char type, Vector2 center, float radius) : base(GFX.Game[Path + type])
+                {
+                    Center = center;
+                    Radius = radius;
+                    CenterOrigin();
+                    Position = new Vector2(Width/2, Height/2);
+                }
+                public override void Render()
+                {
+                    if (Texture != null)
+                    {
+                        for (int i = 0; i < 8; i++)
+                        {
+                            Texture.Draw(RenderPosition.RotateAround(Center, (360 / 8) * i), Origin, Color, Scale, Rotation, Effects);
+                        }
+
+                    }
+                }
+            }
+            public Inside(Vector2 position) : base(position)
+            {
+                Depth = 9499;
+
+                Add(reflection = new MirrorReflection()
+                {
+                    IgnoreEntityVisible = true
+                });
+            }
+            public override void Render()
+            {
+                base.Render();
+
+            }
+        }
+        public TemplePortalTorch leftTorch;
+        public TemplePortalTorch rightTorch;
         public VirtualRenderTarget buffer;
         public float bufferAlpha;
         public float bufferTimer;
@@ -68,11 +122,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             : this(data.Position + offset)
         {
         }
+        public void FlashSymbol()
+        {
 
+        }
+        public IEnumerator Shimmer()
+        {
+            yield return null;
+        }
         public override void Added(Scene scene)
         {
             base.Added(scene);
             scene.Add(new Bg(Position));
+            scene.Add(leftTorch = new TemplePortalTorch(Position + new Vector2(-90f, 0f)));
+            scene.Add(rightTorch = new TemplePortalTorch(Position + new Vector2(90f, 0f)));
+            leftTorch.Add(leftTorch.loopSfx = new SoundSource());
+            rightTorch.Add(rightTorch.loopSfx = new SoundSource());
+            leftTorch.sprite.Play("lit");
+            rightTorch.sprite.Play("lit");
+            leftTorch.Add(leftTorch.bloom = new BloomPoint(1f, 16f));
+            leftTorch.Add(leftTorch.light = new VertexLight(Color.LightSeaGreen, 0f, 32, 128));
+            rightTorch.Add(rightTorch.bloom = new BloomPoint(1f, 16f));
+            rightTorch.Add(rightTorch.light = new VertexLight(Color.LightSeaGreen, 0f, 32, 128));
+            leftTorch.loopSfx.Play("event:/game/05_mirror_temple/mainmirror_torch_loop");
+            rightTorch.loopSfx.Play("event:/game/05_mirror_temple/mainmirror_torch_loop");
         }
 
         public override void Render()

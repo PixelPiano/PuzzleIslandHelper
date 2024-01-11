@@ -44,7 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
         private float holdTimer;
         private VirtualButton button;
-
+        public static bool UseNormalTimeRate;
         public InvertOverlay(string flag, float timeMod)
         {
             this.flag = flag;
@@ -116,8 +116,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             /*            #region GlitchMusic
                         if (MusicGlitchCutscene && !Laser)
                         {
-                            Audio.CurrentMusicEventInstance?.setPitch(Pitch - 0.1f);
-                            Audio.MusicVolume = 0.5f;
+                            Event.CurrentMusicEventInstance?.setPitch(Pitch - 0.1f);
+                            Event.MusicVolume = 0.5f;
                             MusicGlitch(Loops);
                             return;
                         }
@@ -175,10 +175,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             }
             else
             {
-                /*                if(Audio.CurrentMusicEventInstance is not null)
+                /*                if(Event.CurrentMusicEventInstance is not null)
                                 {
-                                    Audio.CurrentMusicEventInstance.setPaused(false);
-                                    Audio.CurrentMusicEventInstance.setParameterValue("PitchShift", 0);
+                                    Event.CurrentMusicEventInstance.setPaused(false);
+                                    Event.CurrentMusicEventInstance.setParameterValue("PitchShift", 0);
                                 }*/
             }
         }
@@ -213,10 +213,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private static void PlayerUpdate(On.Celeste.Player.orig_Update orig, Player self)
         {
             float deltaTime = Engine.DeltaTime;
-            engineDeltaTimeProp.SetValue(null, Engine.RawDeltaTime * Engine.TimeRateB * baseTimeRate * playerTimeRate, null);
+            if (!UseNormalTimeRate && State)
+            {
+                engineDeltaTimeProp.SetValue(null, Engine.RawDeltaTime * Engine.TimeRateB * baseTimeRate * playerTimeRate, null);
+            }
             orig.Invoke(self);
-            engineDeltaTimeProp.SetValue(null, deltaTime, null);
+            if (State)
+            {
+                engineDeltaTimeProp.SetValue(null, deltaTime, null);
 
+            }
         }
         private void MusicGlitch(int loops)
         {
@@ -295,23 +301,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private IEnumerator DistortMusic(int loops)
         {
             int random;
-            Audio.CurrentMusicEventInstance.getPitch(out float Pitch, out float FinalPitch);
-            Audio.CurrentMusicEventInstance.setPitch(Pitch - 0.1f);
-            Audio.MusicVolume = 0.5f;
+            Event.CurrentMusicEventInstance.getPitch(out float Pitch, out float FinalPitch);
+            Event.CurrentMusicEventInstance.setPitch(Pitch - 0.1f);
+            Event.MusicVolume = 0.5f;
             InvertOverlay.WaitForGlitch = true;
-            Audio.CurrentMusicEventInstance.getTimelinePosition(out int position);
+            Event.CurrentMusicEventInstance.getTimelinePosition(out int position);
             for (int i = 0; i < loops; i++)
             {
-                Audio.CurrentMusicEventInstance.getDescription(out EventDescription desc);
+                Event.CurrentMusicEventInstance.getDescription(out EventDescription desc);
                 desc.getLength(out int length);
                 random = Calc.Random.Range(0, length);
                 for (float j = 0; j < 5; j += Engine.DeltaTime)
                 {
-                    Audio.CurrentMusicEventInstance.setTimelinePosition(random);
+                    Event.CurrentMusicEventInstance.setTimelinePosition(random);
                     yield return null;
                 }
             }
-            Audio.CurrentMusicEventInstance.setTimelinePosition(position);
+            Event.CurrentMusicEventInstance.setTimelinePosition(position);
             yield return null;
         }
         public override void BeenAdded(Scene scene)

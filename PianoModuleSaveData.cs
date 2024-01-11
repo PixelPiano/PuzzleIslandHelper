@@ -7,11 +7,23 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.PianoEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.EscapeRoomEntities;
 using IL.Monocle;
 using Microsoft.Xna.Framework;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSaveData : EverestModuleSaveData
     {
+
+        public int WasherSwitchAttempts;
+        public List<PrologueGlitchBlock> ActiveGlitchBlocks= new();
+        public List<FloppyDisk> CollectedDisks = new();
+        public void TryAddDisk(FloppyDisk disk)
+        {
+            if (CollectedDisks.Find(item => item.Preset == disk.Preset) == null)
+            {
+                CollectedDisks.Add(disk);
+            }
+        }
         #region Pipes
         public int PipeSwitchAttempts;
         public enum PipeStates
@@ -79,6 +91,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
         #endregion
 
+        #region Game of Life
         public List<bool[,]> LifeGrids = new();
         private int gridIndex;
         public bool[,] GetLifeGrid()
@@ -103,13 +116,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 LifeGrids.RemoveAt(0);
             }
         }
+        #endregion
+
         public bool HasInvert;
         public List<string> ChainedMonitorsActivated = new();
         public bool GeneratorStarted;
         public bool HasArtifact;
         public bool HasClearance;
         public bool Escaped;
-        public List<int> UsedCutscenes = new();
+        public List<string> UsedCutscenes = new();
         public Dictionary<EntityID, Vector2> PressedTSwitches = new();
         public List<string> BrokenPillars = new();
         public int PillarBlockState;

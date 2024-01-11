@@ -6,6 +6,7 @@ using MonoMod;
 using MonoMod.Utils;
 using System.Collections;
 using System.Runtime.InteropServices.ComTypes;
+using System.Xml.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -13,37 +14,42 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class CustomFlagExitBlock : ExitBlock
     {
-        private TileGrid newTiles;
+        public TileGrid newTiles;
         public bool forceChange = false;
         public bool forceState = false;
-        private EffectCutout newCutout;
-        private readonly string flag;
-        private readonly bool inverted;
-        private readonly bool playSound;
-        private readonly bool instant;
-        private string audio = "";
+        public EffectCutout newCutout;
+        public string flag;
+        public bool inverted;
+        public bool playSound;
+        public bool instant;
+        public string audio = "";
         private Level l;
-        private float timer;
-        private float seed;
-        private bool glitch = false;
+        public float timer;
+        public float seed;
+        public bool glitch = false;
         private bool canChange = false;
-        private float glitchLimit = 0;
-        private float max = 30;
-        private bool inRoutine = false;
-        private bool forceGlitch = false;
+        public float glitchLimit = 0;
+        public float max = 30;
+        public bool inRoutine = false;
+        public bool forceGlitch = false;
         private static VirtualRenderTarget _Tiles;
         public static VirtualRenderTarget Tiles => _Tiles ??= VirtualContent.CreateRenderTarget("Tiles", 320, 180);
-
-        public CustomFlagExitBlock(EntityData data, Vector2 offset) : base(data, offset)
+        public CustomFlagExitBlock(Vector2 position, float width, float height, char tileType, string flag, bool inverted, bool playSound, bool instant, string audioEvent, bool forceGlitch) : base(position, width, height, tileType)
         {
-            flag = data.Attr("flag");
-            inverted = data.Bool("inverted");
-            playSound = data.Bool("playSound");
-            instant = data.Bool("instant");
-            audio = data.Attr("audioEvent", "event:/game/general/passage_closed_behind");
-            forceGlitch = data.Bool("forceGlitchEffect");
-            // I'm not sure what this transition listener is for.
+            this.flag = flag;
+            this.inverted = inverted;
+            this.playSound = playSound;
+            this.instant = instant;
+            audio = audioEvent;
+            this.forceGlitch = forceGlitch;
+            this.tileType = tileType;
             Remove(Get<TransitionListener>());
+        }
+
+
+
+        public CustomFlagExitBlock(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height, data.Char("tileType", '3'), data.Attr("flag"), data.Bool("inverted"), data.Bool("playSound"), data.Bool("instant"), data.Attr("audioEvent", "event:/game/general/passage_closed_behind"), data.Bool("forceGlitchEffect"))
+        {
         }
 
         // In regular C# code we can't just call the parent's base method...
@@ -60,13 +66,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             // get some variables from the parent class.
             DynData<ExitBlock> self = new DynData<ExitBlock>(this);
-            newTiles = self.Get<TileGrid>("newTiles");
-            newCutout = self.Get<EffectCutout>("newCutout");
+            newTiles = self.Get<TileGrid>("tiles");
+            newCutout = self.Get<EffectCutout>("cutout");
 
             // hide the block if the flag is initially inactive.
             if (SceneAs<Level>().Session.GetFlag(flag) == inverted)
             {
-                newCutout.Alpha = newTiles.Alpha = 0f;
+                if(newCutout != null) newCutout.Alpha = newTiles.Alpha = 0f;
+
                 Collidable = false;
             }
         }
@@ -77,11 +84,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             bool wasCollidable = Collidable;
             bool isCollidable = SceneAs<Level>().Session.GetFlag(flag) != inverted && !CollideCheck<Player>();
-            timer += Engine.DeltaTime;
+            timer += Engine.RawDeltaTime;
             seed = Calc.Random.NextFloat();
             // the block is only collidable if the flag is set.
             glitch = (!wasCollidable && isCollidable) || (wasCollidable && !isCollidable);
-            if(glitch && !inRoutine && !forceChange)
+            if (glitch && !inRoutine && !forceChange)
             {
                 Add(new Coroutine(GlitchIncrement(isCollidable), true));
             }
@@ -95,18 +102,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
             // fade the block in or out depending on its enabled status.
-            newCutout.Alpha = newTiles.Alpha = Calc.Approach(newTiles.Alpha, Collidable ? 1f : 0f, instant ? 1f : Engine.DeltaTime);
+            newCutout.Alpha = newTiles.Alpha = Calc.Approach(newTiles.Alpha, Collidable ? 1f : 0f, instant ? 1f : Engine.RawDeltaTime);
         }
-        private IEnumerator GlitchIncrement(bool state)
+        public IEnumerator GlitchIncrement(bool state)
         {
             Collidable = state;
             inRoutine = true;
             if (playSound)
             {
-                Audio.Play(audio,Center);
+                Audio.Play(audio, Center);
             }
             glitchLimit = 0;
-            while(glitchLimit < max)
+            while (glitchLimit < max)
             {
                 glitchLimit += 1;
                 yield return null;
@@ -117,7 +124,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            if(Scene as Level == null || (!inRoutine && !forceGlitch))
+            if (Scene as Level == null || (!inRoutine && !forceGlitch))
             {
                 return;
             }

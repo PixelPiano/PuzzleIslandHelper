@@ -128,7 +128,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Player player = Scene.Tracker.GetEntity<Player>();
 
             if (player == null) { return; }
-            if (LeaveOutHair && !l.Transitioning)
+            if (LeaveOutHair)
             {
                 RenderCondition = false;
             }

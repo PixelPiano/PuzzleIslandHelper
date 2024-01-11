@@ -38,6 +38,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private static VirtualRenderTarget _Target;
         public static VirtualRenderTarget Target => _Target ??= VirtualContent.CreateRenderTarget("LampTarget", 320, 180);
 
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            _Target?.Dispose();
+            _Target = null;
+        }
         public LabLightRenderer(Scene scene) : base(Vector2.Zero)
         {
             level = scene as Level;
@@ -78,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             Color c = Color.LightYellow;
                             lamp.vertices[0].Color = c;
                         }
-                        
+
                         PowerScalar = PianoModule.Session.RestoredPower && !lamp.FixedOpacity ? 0.5f : 1;
                         lamp.vertices[0].Color *= lamp.Opacity * lamp.FlickerScalar * PowerScalar * (fromRender ? 1 : 0.5f);
 
@@ -89,22 +95,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void BeforeRender()
         {
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
-            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-            Draw.SpriteBatch.Begin();
-            BloomRender(true);
-            Draw.SpriteBatch.End();
+            if (!PianoModule.Session.RestoredPower)
+            {
+                Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
+                Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+                Draw.SpriteBatch.Begin();
+                BloomRender(true);
+                Draw.SpriteBatch.End();
+            }
         }
         public override void Render()
         {
             base.Render();
-            Draw.SpriteBatch.Draw(Target, level.Camera.Position, Color.White);
-
+            if (!PianoModule.Session.RestoredPower)
+            {
+                Draw.SpriteBatch.Draw(Target, level.Camera.Position, Color.White);
+            }
         }
-
     }
-
-
     [CustomEntity("PuzzleIslandHelper/LabHangingLamp")]
     [Tracked]
     public class LabHangingLamp : Entity
@@ -182,7 +190,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             else if (LampData.Position == Vector2.Zero)
             {
                 Lamp.Visible = false;
-                bloom.Visible = false;
+                //bloom.Visible = false;
                 light.Visible = false;
             }
             else
@@ -233,7 +241,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Lamp.Position.Y += Length - 8;
             Collision.Position = Lamp.RenderPosition;
             Falling = true;
-            Collider.Height -=8;
+            Collider.Height -= 8;
             Add(new Coroutine(Flicker(0.1f)));
             while (!Collided)
             {
@@ -244,7 +252,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Collision.MoveV(LampSpeed.Y, OnCollideV);
                 Lamp.Position = Collision.Position - Position + new Vector2(4, 6);
                 HandleVertices();
-                bloom.Position = Collision.Position;
+                //bloom.Position = Collision.Position;
                 light.Position = Collision.Position;
                 if (HomeRun)
                 {
@@ -331,7 +339,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     if (!Falling && !Broken)
                     {
                         WearAndTearGrade++;
-                        Degradation += (Math.Abs(entity.Speed.X) + Math.Abs(entity.Speed.Y) + WearAndTearGrade) * 0.003f;
+                        Degradation += (Math.Abs(entity.Speed.X) + Math.Abs(entity.Speed.Y) + WearAndTearGrade) * 0.005f;
                         if (Degradation > BreakingPoint)
                         {
                             Add(new Coroutine(Fall()));
@@ -399,7 +407,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             sfx.Position = vector;
             #endregion
-            HandleVertices();
+            if (!PianoModule.Session.RestoredPower)
+            {
+                HandleVertices();
+            }
+            else
+            {
+                bloom.Visible = false;
+            }
         }
         private void HandleVertices()
         {

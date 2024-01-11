@@ -11,17 +11,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
     public class TextWindow : Entity
     {
         #region Variables
-        private bool SwitchAccess
-        {
-            get
-            {
-                if(CurrentID is null)
-                {
-                    return false;
-                }
-                return CurrentID.ToUpper() == "ACCESS" || CurrentID.ToUpper() == "ACCESSDENIED";
-            }
-        }
         private static readonly Dictionary<string, List<string>> fontPaths;
         public FancyTextExt.Text activeText;
         private static string fontName = "alarm clock";
@@ -47,22 +36,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             Depth = Interface.BaseDepth - 5;
             ChangeCurrentID(dialog);
         }
-        public void ChangeCurrentID(string dialog)
+        public void ChangeCurrentID(string text, bool dialog = true)
         {
-            if (LastUsedID == dialog)
+            if (LastUsedID == text)
             {
                 return;
             }
-            activeText = FancyTextExt.Parse(Dialog.Get(dialog), (int)BetterWindow.CaseWidth * 8, 15, Vector2.Zero, 1);
-            LastUsedID = dialog;
-            CurrentID = dialog;
+            activeText = FancyTextExt.Parse(dialog ? Dialog.Get(text) : text, (int)BetterWindow.CaseWidth * 8, 15, Vector2.Zero, 1);
+            LastUsedID = text;
+            CurrentID = text;
         }
         public override void Render()
         {
-            if (SwitchAccess)
-            {
-                CurrentID = !LoadSequence.HasArtifact && Interface.Loading ? "ACCESSDENIED" : "ACCESS";
-            }
             base.Render();
             if (Scene as Level == null)
             {
@@ -73,10 +58,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             //if the text is being drawn
             if (Drawing)
             {
-                if (SwitchAccess && LoadSequence.HasArtifact && Interface.Loading)
-                {
-                    return;
-                }
                 activeText.Font ??= ActiveFont.Font;
                 activeText?.Draw(ToInt(l.Camera.CameraToScreen(TextPosition)) * 6, Vector2.Zero, Vector2.One * textScale, 1f, Interface.NightMode ? Color.White : Color.Black);
 
@@ -91,7 +72,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 Drawing = false;
                 return;
             }
-
             if (LastUsedID != CurrentID)
             {
                 ChangeCurrentID(CurrentID);

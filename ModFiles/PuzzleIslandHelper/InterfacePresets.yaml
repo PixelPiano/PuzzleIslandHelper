@@ -25,7 +25,7 @@ Layouts:
   Access:
     Icons:
       - ID: access
-        Tab: NACCESS
+        Tab: Key Terminal.exe
         Window: ACCESS
   Life:
     Icons:
@@ -36,5 +36,50 @@ Layouts:
   Pipes:
     Icons:
       - ID: pipe
-        Tab: NPIPE
+        Tab: Route Config.exe
         Window: PIPE
+  Chat:
+    Icons:
+      - ID: chatlog
+        Tab: Chat log test
+        Window: GREENHEART
+  SOS:
+    Icons:
+      - ID: text
+        Tab: 92#@$H#@##)D@
+        Window: 3kb
+      - ID: text
+        Tab: H3$@_&s
+        Window: CryForHelp
+  something:
+    Icons:
+      - ID: unknown
+        Tab: SectorSurv.cam
+      - ID: text
+        Tab: Log1C.txt
+        Window: TEXT4
+  something2:
+    Icons:
+      - ID: unknown
+        Tab: LiquidConv.bat
+      - ID: unknown
+        Tab: idk.bat
+      - ID: text
+        Tab: Log1B.txt
+        Window: TEXT3
+      - ID: ram
+        Tab: VERY REAL OPPORTUNITY FOR SPACE UNLIMITED.exe
+  something3:
+    Icons:
+      - ID: text
+        Tab: To do.txt
+        Window: TEXT1
+      - ID: text
+        Tab: Log1A.txt
+        Window: TEXT2
+      - ID: text
+        Tab: Log1C.txt
+        Window: TEXT4
+      - ID: info
+        Tab: Notice.info
+        Window: INFO1

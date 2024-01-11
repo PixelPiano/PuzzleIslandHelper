@@ -14,6 +14,8 @@ artifactSlot.placements =
         data = 
         {
             cutsceneNumber = "1",
+            teleportTo="roomName"
+
         }
     }
 }

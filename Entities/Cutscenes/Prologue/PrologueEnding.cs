@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Celeste.Mod.CommunalHelper;
+using Celeste.Mod.PuzzleIslandHelper.Effects;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -11,6 +13,48 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 {
     public class PIPrologueEnding : CutsceneEntity
     {
+        public class PrologueGlitchBlock : CustomFlagExitBlock
+        {
+            public PrologueGlitchBlock(Vector2 position, float width, float height, char tileType, string flag) : base(position, width, height, tileType, flag, false, true, true, glitchEvent, false)
+            {
+            }
+            public PrologueGlitchBlock(PrologueBird bird) : this(bird.StartPosition - Vector2.One * 16, 32, 40, 'Q', "birdBlock")
+            {
+
+            }
+            public PrologueGlitchBlock(Player player) : this(player.Position - Vector2.One * 22, 48, 56, 'Q', "playerBlock")
+            {
+            }
+            public IEnumerator PrologueGlitchIncrement()
+            {
+                inRoutine = true;
+                glitchLimit = 0;
+                while (glitchLimit < max)
+                {
+                    glitchLimit += 1;
+                    yield return null;
+                }
+                inRoutine = false;
+                newTiles.Visible = true;
+                Collidable = true;
+            }
+            public override void Update()
+            {
+                base_Update();
+                timer += Engine.RawDeltaTime;
+                seed = Calc.Random.NextFloat();
+            }
+            public override void Awake(Scene scene)
+            {
+                base.Awake(scene);
+                Add(new Coroutine(PrologueGlitchIncrement(), true));
+                timer += Engine.RawDeltaTime;
+                seed = Calc.Random.NextFloat();
+                Audio.Play(audio, base.Center);
+                newCutout.Alpha = newTiles.Alpha = 1;
+            }
+        }
+        public PrologueGlitchBlock[] Blocks = new PrologueGlitchBlock[2];
         private class EndingCutsceneDelay : Entity
         {
             public EndingCutsceneDelay()
@@ -22,9 +66,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             {
                 yield return 3f;
                 (Scene as Level).CompleteArea(spotlightWipe: false, false, false);
+                InvertOverlay.playerTimeRate = 1;
             }
         }
-
         private Player player;
 
         private PrologueBird bird;
@@ -33,21 +77,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 
         private bool keyOffed;
 
-        private PrologueEndingText endingText;
-
+        public const string glitchEvent = "event:/PianoBoy/invertGlitch2";
         public PIPrologueEnding(Player player, PrologueBird bird, PrologueBridge bridge)
             : base(fadeInOnSkip: false, endingChapterAfter: true)
         {
+            Engine.TimeRate = 1;
+            InvertOverlay.playerTimeRate = 1;
             this.player = player;
             this.bird = bird;
             this.bridge = bridge;
-        }
+            if (bird is null || player is null || bird.nodes.Length == 0)
+            {
+                RemoveSelf();
+            }
 
+        }
+        public override void SceneEnd(Scene scene)
+        {
+            base.SceneEnd(scene);
+            InvertOverlay.playerTimeRate = 1;
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            InvertOverlay.playerTimeRate = 1;
+        }
         public override void OnBegin(Level level)
         {
             Add(new Coroutine(Cutscene(level)));
         }
-
         private IEnumerator Cutscene(Level level)
         {
             while (Engine.TimeRate > 0f)
@@ -55,18 +113,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 yield return null;
                 if (Engine.TimeRate < 0.5f && bridge != null)
                 {
-                    //bridge.StopCollapseLoop();
+                    bridge.StopCollapseLoop();
                 }
                 level.StopShake();
                 MInput.GamePads[Input.Gamepad].StopRumble();
                 Engine.TimeRate -= Engine.RawDeltaTime * 2f;
+                InvertOverlay.playerTimeRate = Engine.TimeRate;
             }
             Engine.TimeRate = 0f;
-            player.StateMachine.State = 11;
-            player.Facing = Facings.Right;
+            InvertOverlay.playerTimeRate = 0;
+            player.StateMachine.State = Player.StDummy;
+            player.DummyAutoAnimate = false;
+
+            player.Facing = Facings.Left;
+            Vector2 blockPos = player.Position;
             yield return WaitFor(1f);
             EventInstance instance = Audio.Play("event:/game/general/bird_in", bird.Position);
-            bird.Facing = Facings.Left;
+            bird.Facing = Facings.Right;
             bird.Sprite.Play("fall");
             float percent = 0f;
             Vector2 from = bird.Position;
@@ -89,56 +152,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             yield return WaitFor(0.5f);
             bird.Sprite.Play("peck");
             yield return WaitFor(1.1f);
-            yield return bird.ShowTutorial(new BirdTutorialGui(bird, new Vector2(0f, -16f), Dialog.Clean("tutorial_dash"), new Vector2(1f, -1f), "+", BirdTutorialGui.ButtonPrompt.Dash), caw: true);
+            yield return bird.ShowTutorial(new BirdTutorialGui(bird, new Vector2(0f, -16f), Dialog.Clean("tutorial_dash"), new Vector2(-1f, -1f), "+", BirdTutorialGui.ButtonPrompt.Dash), caw: true);
             while (true)
             {
                 Vector2 aimVector = Input.GetAimVector();
-                if (aimVector.X > 0f && aimVector.Y < 0f && Input.Dash.Pressed)
+                if (aimVector.X < 0f && aimVector.Y < 0f && Input.Dash.Pressed)
                 {
                     break;
                 }
                 yield return null;
             }
-            player.StateMachine.State = 16;
-            player.Dashes = 0;
-            level.Session.Inventory.Dashes = 1;
+            Blocks[0] = new PrologueGlitchBlock(bird);
+            Blocks[1] = new PrologueGlitchBlock(player);
+            level.Add(Blocks[0]);
+            bird.Add(new Coroutine(bird.HideTutorial()));
+            yield return WaitFor(3);
+            level.Add(Blocks[1]);
+            while (Engine.TimeRate < 1f)
+            {
+                Engine.TimeRate += Engine.RawDeltaTime * 2f;
+                yield return WaitFor(0.1f);
+            }
             Engine.TimeRate = 1f;
             keyOffed = true;
-            Audio.CurrentMusicEventInstance.triggerCue();
-            bird.Add(new Coroutine(bird.HideTutorial()));
-            yield return 0.25f;
-            bird.Add(new Coroutine(bird.StartleAndFlyAway()));
-            while (!player.Dead && !player.OnGround())
-            {
-                yield return null;
-            }
-            yield return 2f;
-            Audio.SetMusic("event:/music/lvl0/title_ping");
-            yield return 2f;
-            endingText = new PrologueEndingText(instant: false);
-            Scene.Add(endingText);
-            Snow bgSnow = level.Background.Get<Snow>();
-            Snow fgSnow = level.Foreground.Get<Snow>();
-            level.Add(level.HiresSnow = new HiresSnow());
-            level.HiresSnow.Alpha = 0f;
-            float ease = 0f;
-            while (ease < 1f)
-            {
-                ease += Engine.DeltaTime * 0.25f;
-                float num = Ease.CubeInOut(ease);
-                if (fgSnow != null)
-                {
-                    fgSnow.Alpha -= Engine.DeltaTime * 0.5f;
-                }
-                if (bgSnow != null)
-                {
-                    bgSnow.Alpha -= Engine.DeltaTime * 0.5f;
-                }
-                level.HiresSnow.Alpha = Calc.Approach(level.HiresSnow.Alpha, 1f, Engine.DeltaTime * 0.5f);
-                endingText.Position = new Vector2(960f, 540f - 1080f * (1f - num));
-                level.Camera.Y = level.Bounds.Top - 3900f * num;
-                yield return null;
-            }
+            yield return 4f;
             EndCutscene(level);
         }
 
@@ -158,42 +195,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 {
                     bird.Visible = false;
                 }
-                if (player != null)
-                {
-                    player.Position = new Vector2(2120f, 40f);
-                    player.StateMachine.State = 11;
-                    player.DummyAutoAnimate = false;
-                    player.Sprite.Play("tired");
-                    player.Speed = Vector2.Zero;
-                }
+
                 if (!keyOffed)
                 {
                     Audio.CurrentMusicEventInstance.triggerCue();
                 }
-                if (level.HiresSnow == null)
-                {
-                    level.Add(level.HiresSnow = new HiresSnow());
-                }
-                level.HiresSnow.Alpha = 1f;
-                Snow snow = level.Background.Get<Snow>();
-                if (snow != null)
-                {
-                    snow.Alpha = 0f;
-                }
-                Snow snow2 = level.Foreground.Get<Snow>();
-                if (snow2 != null)
-                {
-                    snow2.Alpha = 0f;
-                }
-                if (endingText != null)
-                {
-                    level.Remove(endingText);
-                }
-                level.Add(endingText = new PrologueEndingText(instant: true));
-                endingText.Position = new Vector2(960f, 540f);
-                level.Camera.Y = level.Bounds.Top - 3900;
+
             }
-            Engine.TimeRate = 1f;
+            //Engine.TimeRate = 1f;
             level.PauseLock = true;
             level.Entities.FindFirst<SpeedrunTimerDisplay>().CompleteTimer = 10f;
             level.Add(new EndingCutsceneDelay());

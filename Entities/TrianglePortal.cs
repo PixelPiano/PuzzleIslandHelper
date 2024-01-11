@@ -122,6 +122,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float angle2;
         private float angle3;
         #endregion
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            _PortalMask?.Dispose();
+            _PortalObject.Dispose();
+            _ParticleObject.Dispose();
+            _Debug.Dispose();
+            _PortalMask = null;
+            _PortalObject = null;
+            _ParticleObject = null;
+            _Debug = null;
+        }
         public TrianglePortal(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
@@ -143,7 +155,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.Rect((int)Position.X, (int)Position.Y, (int)Width + 10, (int)Height + 10, Color.Lerp(Color.Black, Color.Green, rectColorRate));
             for (int i = 0; i < innerTriangle.Length; i++)
             {
-                //Vector2 _scale = innerTriangle[i].Scale;
+                //Vector2 _scale = innerTriangle[i].TextScale;
                 innerTriangle[i].SetColor(Color.Lerp(colors[i], Color.White, innerFlashRate));
                 if (!linearDesign)
                 {
@@ -165,11 +177,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             AppearParticles();
-        }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            Draw.SpriteBatch.Draw(Debug, camera.Position, Color.White);
         }
         private void BeforeRender()
         {

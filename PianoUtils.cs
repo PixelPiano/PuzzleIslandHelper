@@ -1,6 +1,7 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
 using Celeste.Mod;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -8,17 +9,272 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 
 public static class PianoUtils
 {
+    public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, int positionX = 0, int positionY = 0)
+    {
+        Level level = scene as Level;
+        Player player = level.GetPlayer();
+        if (level == null || player == null)
+        {
+            return;
+        }
+        if (string.IsNullOrEmpty(room))
+        {
+            return;
+        }
+        level.OnEndOfFrame += delegate
+        {
+            Vector2 levelOffset = level.LevelOffset;
+            Vector2 val2 = player.Position - level.LevelOffset;
+            Vector2 val3 = level.Camera.Position - level.LevelOffset;
+            Vector2 offset = new Vector2(positionY, positionX);
+            Facings facing = player.Facing;
+            level.Remove(player);
+            level.UnloadLevel();
+            level.Session.Level = room;
+            Session session = level.Session;
+            Level level2 = level;
+            Rectangle bounds = level.Bounds;
+            float num = bounds.Left;
+            bounds = level.Bounds;
+            session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
+            level.Session.FirstLevel = false;
+            level.LoadLevel(Player.IntroTypes.Transition);
+            level.Camera.Position = level.LevelOffset + val3 + offset.ToInt();
+            level.Add(player);
+            if (snapToSpawnPoint && session.RespawnPoint.HasValue)
+            {
+                player.Position = session.RespawnPoint.Value + offset.ToInt();
+            }
+            else
+            {
+                player.Position = level.LevelOffset + val2 + offset.ToInt();
+            }
+            player.Facing = facing;
+            player.Hair.MoveHairBy(level.LevelOffset - levelOffset + offset.ToInt());
+            if (level.Wipe != null)
+            {
+                level.Wipe.Cancel();
+            }
+        };
+    }
+    public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint)
+    {
+        InstantRelativeTeleport(scene, room, snapToSpawnPoint, 0, 0);
+    }
+    public static void InstantTeleport(Scene scene, string room, Vector2 newPosition)
+    {
+        InstantTeleport(scene, room, newPosition.X, newPosition.Y);
+    }
+    public static void InstantTeleport(Scene scene, string room, float positionX, float positionY)
+    {
+        Level level = scene as Level;
+        Player player = level.GetPlayer();
+        if (level == null || player == null)
+        {
+            return;
+        }
+        if (string.IsNullOrEmpty(room))
+        {
+            Vector2 val = new Vector2(positionX, positionY) - player.Position;
+            player.Position = new Vector2(positionX, positionY);
+            Camera camera = level.Camera;
+            camera.Position += val;
+            player.Hair.MoveHairBy(val);
+            return;
+        }
+        level.OnEndOfFrame += delegate
+        {
+            Vector2 levelOffset = level.LevelOffset;
+            Vector2 val2 = player.Position - level.LevelOffset;
+            Vector2 val3 = level.Camera.Position - level.LevelOffset;
+            Facings facing = player.Facing;
+            level.Remove(player);
+            level.UnloadLevel();
+            level.Session.Level = room;
+            Session session = level.Session;
+            Level level2 = level;
+            Rectangle bounds = level.Bounds;
+            float num = bounds.Left;
+            bounds = level.Bounds;
+            session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
+            level.Session.FirstLevel = false;
+            level.LoadLevel(Player.IntroTypes.Transition);
+
+            Vector2 val4 = new Vector2(positionX, positionY) - level.LevelOffset - val2;
+            level.Camera.Position = level.LevelOffset + val3 + val4;
+            level.Add(player);
+            player.Position = new Vector2(positionX, positionY);
+            player.Facing = facing;
+            player.Hair.MoveHairBy(level.LevelOffset - levelOffset + val4);
+
+            if (level.Wipe != null)
+            {
+                level.Wipe.Cancel();
+            }
+        };
+    }
+    public static Vector2 Marker(this Scene scene, string id, bool screenSpace = false)
+    {
+        if ((scene as Level).Tracker.GetEntities<Marker>() != null)
+        {
+            foreach (Marker m in (scene as Level).Tracker.GetEntities<Marker>())
+            {
+                if (m.ID == id)
+                {
+                    return screenSpace ? (scene as Level).Camera.CameraToScreen(m.Center) : m.Center;
+                }
+            }
+        }
+        return Vector2.Zero;
+    }
+    public static Facings Flip(this Facings facing)
+    {
+        return (Facings)(-(int)facing);
+    }
+    public static IEnumerator AutoTraverseRelative(this Player player, float distance)
+    {
+        yield return player.AutoTraverse(player.X + distance);
+    }
+
+    public static IEnumerator AutoPlay(this Player player, int xDir, bool walkBackwards = false, float speedMultiplier = 1f)
+    {
+
+        int sign = Math.Sign(xDir);
+        player.StateMachine.State = 11;
+        if (!player.Dead)
+        {
+            player.DummyMoving = true;
+            if (walkBackwards)
+            {
+                player.Sprite.Rate = -1f;
+                player.Facing = (Facings)sign;
+            }
+            else
+            {
+                player.Facing = (Facings)(-sign);
+            }
+
+            while (player != null && !player.Dead && player.Scene != null)
+            {
+                Vector2 referencePoint = sign == 1 ? player.BottomRight : player.BottomLeft;
+                if (player.OnGround())
+                {
+                    player.AutoJump = false;
+                    player.AutoJumpTimer = 0;
+                    Vector2 inFrontPosition = referencePoint + (Vector2.UnitX * sign * 8);
+                    bool wallInFront = player.CollideCheck<Solid>(inFrontPosition);
+                    bool gapInFront = !player.CollideCheck<Solid>(referencePoint + new Vector2(sign * 8, 8));
+                    bool foundLedge = false;
+                    for (int i = 8; i < 17; i += 8)
+                    {
+                        if (!player.CollideCheck<Solid>(inFrontPosition - (Vector2.UnitY * i)))
+                        {
+                            foundLedge = true;
+                        }
+                    }
+                    bool shouldJump = gapInFront || (foundLedge && wallInFront);
+                    if (wallInFront && !foundLedge)
+                    {
+                        player.Facing.Flip();
+                        sign = -sign;
+                    }
+                    if (shouldJump)
+                    {
+                        player.Jump();
+                        player.AutoJump = true;
+                        player.AutoJumpTimer = 2;
+                    }
+                }
+                player.Speed.X = Calc.Approach(player.Speed.X, sign * 64f * speedMultiplier, 1000f * Engine.DeltaTime);
+                yield return null;
+            }
+
+            player.Sprite.Rate = 1f;
+            player.Sprite.Play("idle");
+            player.DummyMoving = false;
+        }
+        yield return null;
+    }
+    public static IEnumerator AutoTraverse(this Player player, float x, bool walkBackwards = false, float speedMultiplier = 1f)
+    {
+        int sign = Math.Sign(x - player.X);
+        player.StateMachine.State = 11;
+        if (Math.Abs(player.X - x) > 4f && !player.Dead)
+        {
+            player.DummyMoving = true;
+            if (walkBackwards)
+            {
+                player.Sprite.Rate = -1f;
+                player.Facing = (Facings)Math.Sign(player.X - x);
+            }
+            else
+            {
+                player.Facing = (Facings)Math.Sign(x - player.X);
+            }
+
+            while (Math.Abs(x - player.X) > 4f && player.Scene != null)
+            {
+                Vector2 referencePoint = sign == 1 ? player.BottomRight : player.BottomLeft;
+                if (player.OnGround())
+                {
+                    player.AutoJump = false;
+                    player.AutoJumpTimer = 0;
+                    Vector2 inFrontPosition = referencePoint + (Vector2.UnitX * sign * 8);
+                    bool wallInFront = player.CollideCheck<Solid>(inFrontPosition);
+                    bool gapInFront = !player.CollideCheck<Solid>(referencePoint + new Vector2(sign * 8, 8));
+                    bool foundLedge = false;
+                    for (int i = 8; i < 17; i += 8)
+                    {
+                        if (!player.CollideCheck<Solid>(inFrontPosition - (Vector2.UnitY * i)))
+                        {
+                            foundLedge = true;
+                        }
+                    }
+                    bool shouldJump = gapInFront || (foundLedge && wallInFront);
+                    if (shouldJump)
+                    {
+                        player.Jump();
+                        player.AutoJump = true;
+                        player.AutoJumpTimer = 2;
+                    }
+                }
+                player.Speed.X = Calc.Approach(player.Speed.X, (float)Math.Sign(x - player.X) * 64f * speedMultiplier, 1000f * Engine.DeltaTime);
+                yield return null;
+            }
+
+            player.Sprite.Rate = 1f;
+            player.Sprite.Play("idle");
+            player.DummyMoving = false;
+        }
+        yield return null;
+    }
+    public static Vector2 RotateAround(this Vector2 pointToRotate, Vector2 centerPoint, double angleInDegrees)
+    {
+        double angleInRadians = angleInDegrees * (Math.PI / 180);
+        double cosTheta = Math.Cos(angleInRadians);
+        double sinTheta = Math.Sin(angleInRadians);
+        return new Vector2
+        {
+            X =
+                (int)
+                (cosTheta * (pointToRotate.X - centerPoint.X) -
+                sinTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.X),
+            Y =
+                (int)
+                (sinTheta * (pointToRotate.X - centerPoint.X) +
+                cosTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.Y)
+        };
+    }
     public static Vector2 ToInt(this Vector2 vec)
     {
-        return new Vector2((int)vec.X,(int)vec.Y);
+        return new Vector2((int)vec.X, (int)vec.Y);
     }
     public static Player GetPlayer(this Level level)
     {
-        if(level is null)
+        if (level is null)
         {
             return null;
         }
@@ -115,28 +371,6 @@ public static class PianoUtils
             }
         }
         return null;
-    }
-    public static Entity CheckAndAddTag(this Entity entity, params int[] tags)
-    {
-        foreach (int i in tags)
-        {
-            if (!entity.TagCheck(i))
-            {
-                entity.AddTag(i);
-            }
-        }
-        return entity;
-    }
-    public static Entity CheckAndRemoveTag(this Entity entity, params int[] tags)
-    {
-        foreach (int i in tags)
-        {
-            if (entity.TagCheck(i))
-            {
-                entity.RemoveTag(i);
-            }
-        }
-        return entity;
     }
     public static LevelData SwitchedData(this LevelData toSwitch, LevelData switchWith)
     {

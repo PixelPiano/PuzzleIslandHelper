@@ -15,10 +15,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class PuzzlePillar : ExitBlock
     {
         private string spriteType;
-        private TileGrid tiles;
         public bool forceChange = false;
         public bool forceState = false;
-        private EffectCutout cutout;
         private Sprite sprite;
         private Entity entity;
 

@@ -15,9 +15,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
     public class ParallaxWindow : Backdrop
     {
         private readonly string flag;
-        private bool State;
+        private bool State
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(flag))
+                {
+                    return true;
+                }
+                if (Engine.Scene is not Level level)
+                {
+                    return false;
+                }
+                return level.Session.GetFlag(flag);
+            }
+        }
         private Level level;
-        private readonly string Tag;
         private readonly VirtualRenderTarget Mask = VirtualContent.CreateRenderTarget("ParallaxWindowMask", 320, 180);
         private readonly VirtualRenderTarget Target = VirtualContent.CreateRenderTarget("ParallaxWindowTarget", 320, 180);
 
@@ -35,13 +48,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         }
         private void GetValidBackdrops(Scene scene)
         {
-            if (State)
+            List<Backdrop> list = (scene as Level).Background.GetEach<Backdrop>("ParallaxWindow").ToList();
+            foreach (Backdrop b in list)
             {
-                List<Backdrop> list = (scene as Level).Background.GetEach<Backdrop>("ParallaxWindow").ToList();
-                foreach (Backdrop b in list)
-                {
-                    b.Render(scene);
-                }
+                b.Render(scene);
             }
         }
 
@@ -49,19 +59,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         {
             base.BeforeRender(scene);
             level = scene as Level;
-            EasyRendering.SetRenderMask(Mask, delegate { DrawTargets(level); }, level);
-            EasyRendering.DrawToObject(Target, delegate { GetValidBackdrops(scene); }, level,true,true);
-            EasyRendering.MaskToObject(Target, Mask);
+            if (State)
+            {
+                EasyRendering.SetRenderMask(Mask, delegate { DrawTargets(level); }, level);
+                EasyRendering.DrawToObject(Target, delegate { GetValidBackdrops(scene); }, level, true, true);
+                EasyRendering.MaskToObject(Target, Mask);
+            }
         }
         public override void Render(Scene scene)
         {
             base.Render(scene);
-            Draw.SpriteBatch.Draw(Target, Vector2.Zero, Color.White);
-        }
-        public override void Update(Scene scene)
-        {
-            base.Update(scene);
-            State = (scene as Level).Session.GetFlag(flag) || string.IsNullOrEmpty(flag);
+
+                Draw.SpriteBatch.Draw(Target, (scene as Level).LevelOffset, Color.White);
+            
         }
     }
 }

@@ -10,9 +10,8 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {
 
-    [CustomEntity("PuzzleIslandHelper/DigiMeet")]
     [Tracked]
-    public class DigiMeet : Trigger
+    public class DigiMeet : CutsceneEntity
     {
         private bool CameFromLeft;
         private bool SawBothSides;
@@ -22,18 +21,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         private Coroutine Main;
         private Calidus Calidus;
         private CutsceneEntity CutsceneEntity;
-        public DigiMeet(EntityData data, Vector2 offset)
-            : base(data, offset)
+        public DigiMeet()
+            : base()
         {
         }
 
-        public override void Awake(Scene scene)
+        public override void OnBegin(Level level)
         {
-            base.Awake(scene);
-            level = scene as Level;
-            //scene.Add(CutsceneEntity = new CutsceneEntity());
-            SawBothSides = level.Session.GetFlag("digiRuinsLabRight") && level.Session.GetFlag("digiRuinsLabLeft");
+            SawBothSides = level.Session.GetFlag("digiRuinsLabRight") &&
+                level.Session.GetFlag("digiRuinsLabLeft");
             Calidus = level.Tracker.GetEntity<Calidus>();
+            /*            if (!CheckConditions() || Started || Completed)
+            {
+                return;
+            }*/
+            Player player = level.GetPlayer();
+            Add(Main = new Coroutine(Cutscene(player, level)));
+            Started = true;
+        }
+        public override void OnEnd(Level level)
+        {
+           
         }
         private IEnumerator Walk(float x, bool backwards = false, float speedmult = 1, bool intoWalls = false)
         {
@@ -96,7 +104,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             return position - level.Camera.Position;
         }
         private bool CalidusLookAround = true;
-        private IEnumerator Cutscene(Player player, Camera cam, Level level)
+        private IEnumerator Cutscene(Player player, Level level)
         {
             level.InCutscene = true;
             /*            if (true)
@@ -225,17 +233,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             yield return Textbox.Say(id);
             yield return waitTime;
         }
-        public override void OnEnter(Player player)
-        {
-            base.OnEnter(player);
-            /*            if (!CheckConditions() || Started || Completed)
-                        {
-                            return;
-                        }*/
-            Add(Main = new Coroutine(Cutscene(player, level.Camera, level)));
-            Started = true;
-
-        }
 
 
         private IEnumerator End(Player player, Level level)
@@ -246,7 +243,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             }
             level.Flash(Color.White, true);
             level.Remove(Calidus);
-            InstantTeleport(level, player, "ruinsLab1", 254, 383);
+            InstantTeleport(level, player, "l-1c", 254, 383);
             yield return null;
             player.Speed.X = -64;
             player.StateMachine.State = Player.StDummy;
@@ -280,9 +277,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 return false;
             }
             return true;
-        }
-        public override void OnLeave(Player player)
-        {
         }
         public static void InstantTeleport(Scene scene, Player player, string room, Vector2 nearestSpawn)
         {

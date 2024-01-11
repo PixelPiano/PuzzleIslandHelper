@@ -56,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
 
         public FreqTimeline(BetterWindow window) : base(window)
         {
-            Name = "freq";
+            Name = "Freq";
             DialCollider = new Hitbox(8, 8);
             Add(Dial = new Dial(Vector2.Zero));
         }

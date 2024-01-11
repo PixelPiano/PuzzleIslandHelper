@@ -77,6 +77,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         : base(data.Position + offset)
         {
             //flag = data.Attr("flag");
+            
             shouldFade = data.Bool("cameraFade");
             Depth = data.Int("depth", 1);
             float delay = 1f / data.Float("fps");
@@ -113,7 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             return str == "None" ? null :
                    str == "Blur" ? GFX.FxGaussianBlur :
-                   str == "Distort" ? GFX.FxDistort :
+                   str == "Distortion" ? GFX.FxDistort :
                    str == "Glitch" ? GFX.FxGlitch : null; ;
         }
         public override void Render()

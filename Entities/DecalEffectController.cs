@@ -126,7 +126,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             return str == "None" ? null :
                    str == "Blur" ? GFX.FxGaussianBlur :
-                   str == "Distort" ? GFX.FxDistort :
+                   str == "Distortion" ? GFX.FxDistort :
                    str == "Glitch" ? GFX.FxGlitch : null; ;
         }
         public override void Render()

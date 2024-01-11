@@ -6,6 +6,62 @@ entities.PuzzleIslandHelper/SampleEntity.attributes.description.sampleProperty=A
 triggers.PuzzleIslandHelper/SampleTrigger.placements.name.normal=Sample Trigger (PuzzleIslandHelper)
 triggers.PuzzleIslandHelper/SampleTrigger.attributes.description.sampleProperty=A sample property for your trigger.
 
+# Audio Effect Trigger
+triggers.PuzzleIslandHelper/AudioEffectTrigger.name=Audio Effect Trigger
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.chorusMix = Percentage of wet signal in mix. Type: float, Units: Percentage , Range: [0, 100]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.chorusRate = Chorus modulation rate. Type: float, Units: Hertz, Range: [0, 20]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.chorusDepth = Chorus modulation depth. Type: float, Units: Milliseconds, Range: [0, 100]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.distortionLevel = Distortion value. Type: float, Units: Linear, Range: [0, 1]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.echoDelay = Echo delay. Type: float, Units: Milliseconds, Range: [10, 5000]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.echoFeedback = Each decay per delay. 100.0 = No decay, 0.0 = total decay. Type: float, Units: Percentage, Range: [0, 100]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.dryLevel = Original sound volume. Type: float, Units: Decibels, Range: [-80, 10]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.wetLevel = Volume of echo signal to pass to output. Type: float, Units: Decibels, Range: [-80, 10]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.flangeMix = Percentage of wet signal in mix. Type: float, Units: Percentage, Range: [0, 100]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.flangeDepth = Flange depth. Type: float, Units: Linear, Range: [0.01, 1]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.flangeRate = Flange speed. Type: float, Units: Hertz, Range: [0, 20]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.fadeTime = Time to ramp the silence to full. Type: float, Units: Milliseconds, Range: [0, 20000]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.threshold = Lower volume range threshold to ignore. Type: float, Units: Linear, Range: [0, 1]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.maxAmp = Maximum amplification allowed. Type: float, Units: Linear, Range: [1, 100000]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.wave = Waveform type. 
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.oscRate = Frequency of the tone. Does not affect the noise generator. Type: float, Units: Hertz, Range: [0, 22000]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.pitch = Pitch value. 0.5 = one octave down, 2.0 = one octave up. 1.0 does not change the pitch. Type: float, Range: [0.5, 2]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.fftSize = FFT window size - 256, 512, 1024, 2048, 4096. Increase this to reduce 'smearing'. This effect is a warbling sound similar to when an mp3 is encoded at very low bitrates. Type: float
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.tremoloFreq = LFO frequency. Type: float, Units: Hertz, Range: [0.1, 20]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.tremoloDepth = Tremolo depth. Type: float, Units: Linear, Range: [0, 1]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.tremoloDuty = LFO on-time. Type: float, Units: Linear, Range: [0, 1] (idk what the heck "on-time" means thanks fmod documentation)
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.tremoloFlatness = Flatness of the LFO shape. Type: float, Units: Linear, Range: [0, 1]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.tremoloShape = LFO shape morph between triangle and sine. Type: float, Units: Linear, Range: [0, 1]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.tremoloSkew = Time-skewing of LFO cycle. Type: float, Units: Linear, Range: [-1, 1]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.tremoloPhase = Instantaneous LFO phase. Type: float, Units: Linear, Range: [0, 1]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.tremoloSpread = Rotation / auto-pan effect. Type: float, Units: Linear, Range: [-1, 1]
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.flag = Flag required for the trigger to activate. Is ignored if the flag is empty.
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.inverted = If checked, the trigger will only activate if the flag is false. Is ignored if the flag is empty.
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.onEnter = Dictates what happens to the effect when the player enters the trigger.
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.onLeave = Dictates what happens to the effect when the player leaves the trigger.
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.onLevelStart = Dictates what happens to the effect when the scene begins.
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.onLevelEnd = Dictates what happens to the effect when the scene ends.
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.effect = Determines which effect will be added or removed (or not changed at all, if you want).
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.effectID = The unique ID of the effect. Is useful for removing audio effects added by separate triggers if they use the same id.
+triggers.PuzzleIslandHelper/AudioEffectTrigger.attributes.description.event = The event the effect should attach itself to.
+
+# Adjust Audio Param Trigger
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.name=Adjust Audio Parameter Trigger
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.flag = Flag required for the trigger to activate. Is ignored if the flag is empty.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.inverted = If checked, the trigger will only activate if the flag is false. Is ignored if the flag is empty.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.mod = Determines how and when the trigger activates.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.effect = Determines which effect the parameter belongs to. Nothing will happen if that effect's parameters does not include the selected parameter.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.effectID = The unique ID of the effect. Is useful for removing audio effects added by separate triggers if they use the same id.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.parameter = The name of the parameter to adjust.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.time = How long it should take for the parameter to adjust.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.delay = How long to wait before the parameter starts adjusting.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.value = The value the parameter should adjust to.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.ease = The ease of the value adjustment.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.onlyOnce = If checked, the parameter will not restart it's adjustment if the trigger is activated again.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.persistUntilComplete = If checked, the parameter will keep adjusting itself through level transitions, until it reaches it's destination.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.allowFlagInterrupt = If checked, allows the flag state to cancel the parameter adjustment if it's state is switched mid routine.
+triggers.PuzzleIslandHelper/AdjustAudioParamTrigger.attributes.description.snapValueIfInterrupted = If checked, will snap the parameter value to it's destination if the routine is interrupted. Does nothing if Allow Flag Interrupt isn't checked.
+
+
 # Digital Grid Effect
 style.effects.PuzzleIslandHelper/DigitalGrid.name=Digital Grid
 style.effects.PuzzleIslandHelper/DigitalGrid.description.color=The color of the grid's lines.

@@ -17,6 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 "unknown",
                 "text",
+                "chatlog",
                 "folder",
                 "access",
                 "ram",
@@ -24,7 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 "sus",
                 "info",
                 "destruct",
-                "freq",
+                "Freq",
                 "pipe",
                 "life"
             };

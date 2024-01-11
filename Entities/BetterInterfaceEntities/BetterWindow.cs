@@ -33,6 +33,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public static bool Drawing = false;
         public Rectangle TabArea;
         public TextWindow TextWindow;
+        private bool WaitForClickRelease;
+        private bool CanCloseWindow;
         public List<BetterWindowButton> Buttons => Components.GetAll<BetterWindowButton>().ToList();
         private Color TabColor = Color.Blue;
         public Interface Interface;
@@ -101,6 +103,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public override void Update()
         {
             UpdateWindow();
+            if (!Interface.LeftClicked && WaitForClickRelease)
+            {
+
+            }
             Position = Position.ToInt();
             DrawPosition = Position;
             Visible = Drawing;
@@ -181,7 +187,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
                     break;
                 case "access":
-                    Add(new StartButton(Interface, Interface.StartAccessEnding));
+                    Add(new InputBox(CaseWidth / 2, CaseHeight / 2, Interface.digiContent.CheckIfValidPass));
+                    //Add(new StartButton(Interface, Interface.StartAccessEnding));
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
                     break;
                 case "ram":
@@ -238,6 +245,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 if (c is BetterWindowButton)
                 {
+                    toRemove.Add(c);
+                }
+                if(c is InputBox)
+                {
+
                     toRemove.Add(c);
                 }
             }

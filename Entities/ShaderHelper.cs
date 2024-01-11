@@ -8,16 +8,40 @@ using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using System.Linq;
 using FrostHelper;
+using FrostHelper.ModIntegration;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
 
     public static class ShaderHelper
     {
+
         public static Effect ApplyStandardParameters(this Effect effect, Level level)
         {
             var parameters = effect.Parameters;
             Matrix? camera = level.Camera.Matrix;
+            parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
+            parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
+            parameters["CamPos"]?.SetValue(level.Camera.Position.ToInt());
+            parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
+            parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
+
+            Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
+
+            Matrix projection = Matrix.CreateOrthographicOffCenter(0, viewport.Width, viewport.Height, 0, 0, 1);
+            // from communal helper
+            Matrix halfPixelOffset = Matrix.Identity;
+
+            parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
+
+            parameters["ViewMatrix"]?.SetValue(camera ?? Matrix.Identity);
+
+            return effect;
+        }
+        public static Effect ApplyStandardParameters(this Effect effect, Level level, bool identity)
+        {
+            var parameters = effect.Parameters;
+            Matrix camera = identity ? Matrix.Identity : level.Camera.Matrix;
             parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
             parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
             parameters["CamPos"]?.SetValue(level.Camera.Position);
@@ -32,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
 
-            parameters["ViewMatrix"]?.SetValue(camera ?? Matrix.Identity);
+            parameters["ViewMatrix"]?.SetValue(camera);
 
             return effect;
         }
@@ -59,11 +83,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             return effect;
         }
 
-        public static Effect TryGetEffect(string id)
+        public static Effect TryGetEffect(string id, bool fullPath = false)
         {
             id = id.Replace('\\', '/');
 
-            if (Everest.Content.TryGet($"Effects/PuzzleIslandHelper/Shaders/{id}.cso", out var effectAsset, true))
+            string name = fullPath ? $"Effects/{id}.cso" : $"Effects/PuzzleIslandHelper/Shaders/{id}.cso";
+            if (Everest.Content.TryGet(name, out var effectAsset, true))
             {
                 try
                 {
@@ -78,7 +103,5 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return null;
         }
-
-
     }
 }

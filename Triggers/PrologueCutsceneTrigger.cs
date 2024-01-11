@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {
@@ -15,25 +16,59 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
     [Tracked]
     public class PrologueCutsceneTrigger : Trigger
     {
-
+        public bool SecondTry = false;
+        public bool Activated = false;
         public PrologueCutsceneTrigger(EntityData data, Vector2 offset)
     : base(data, offset)
         {
+            Tag |= Tags.TransitionUpdate;
         }
         public override void OnEnter(Player player)
         {
             base.OnEnter(player);
             Level level = Scene as Level;
-            if (!level.Session.GetFlag("startFalling") || !level.Session.GetFlag("startFalling2"))
+            if (!SecondTry)
             {
-                return;
+                PrologueBird bird = level.Tracker.GetEntity<PrologueBird>();
+                if (bird is not null)
+                {
+                    bird.Enabled = true;
+                }
             }
-            PrologueBird bird = level.Tracker.GetEntity<PrologueBird>();
-            if(bird is not null)
+            else if (!Activated)
             {
-                bird.Enabled = true;
+                Add(new Coroutine(RoomGlitch(level)));
             }
-            RemoveSelf();
+
+            //RemoveSelf();
         }
+        public override void Update()
+        {
+            base.Update();
+            if (Activated)
+            {
+                Player player = Scene.GetPlayer();
+                if(player is not null && !player.Dead && player.CollideCheck<PrologueGlitchBlock>())
+                {
+                    player.Die(Vector2.Zero);
+                }
+            }
+        }
+        public IEnumerator RoomGlitch(Level level)
+        {
+            Activated = true;
+            foreach (PrologueGlitchBlock block in level.Tracker.GetEntities<PrologueGlitchBlock>().OrderByDescending(item => item.X))
+            {
+                if (PianoModule.SaveData.ActiveGlitchBlocks.Contains(block))
+                {
+                    yield return null;
+                    continue;
+                }
+                yield return Calc.Random.Range(0.4f, 0.7f);
+                block.Activate();
+
+            }
+        }
+
     }
 }

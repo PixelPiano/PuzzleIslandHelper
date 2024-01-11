@@ -28,6 +28,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Entity heart;
         private bool Collected;
         private string room;
+        private string returnRoom;
         private bool TeleportsPlayer;
         private MemoryTextscene Cutscene;
         private Vector2 HoldPosition;
@@ -42,6 +43,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Tag = Tags.TransitionUpdate;
             ID = id;
             flag = data.Attr("flag");
+            returnRoom = data.Attr("returnRoom");
+
         }
         public override void Awake(Scene scene)
         {
@@ -139,7 +142,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return null;
             if (TeleportsPlayer)
             {
-                InstantTeleport(SceneAs<Level>(), player, room, true, 0, 0);
+                InstantTeleport(SceneAs<Level>(), player, room, true);
                 yield return null;
                 player = level.Tracker.GetEntity<Player>();
             }
@@ -192,7 +195,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return null;
             if (TeleportsPlayer)
             {
-                InstantTeleport(SceneAs<Level>(), player, thisRoom, true, 0, 0);
+                string room = string.IsNullOrEmpty(returnRoom) ? thisRoom : returnRoom;
+                InstantTeleport(SceneAs<Level>(), player, room, spriteName != "green");
                 yield return null;
                 level = SceneAs<Level>();
                 player = level.Tracker.GetEntity<Player>();
@@ -233,7 +237,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 sprite.Position = moveWiggleDir * moveWiggler.Value * -8f;
             }
         }
-        public static void InstantTeleport(Scene scene, Player player, string room, bool sameRelativePosition, float positionX, float positionY)
+        public static void InstantTeleport(Scene scene, Player player, string room, bool sameRelativePosition)
         {
             Level level = scene as Level;
             if (level == null)
@@ -272,12 +276,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 else
                 {
-                    Vector2 val4 = new Vector2(positionX, positionY) - level.LevelOffset - val2;
-                    level.Camera.Position = level.LevelOffset + val3 + val4;
+                    level.Camera.Position = level.LevelOffset;
+                    Vector2 pos = player.Position;
                     level.Add(player);
-                    player.Position = new Vector2(positionX, positionY);
+                    player.Position = level.GetSpawnPoint(levelOffset);
                     player.Facing = facing;
-                    player.Hair.MoveHairBy(level.LevelOffset - levelOffset + val4);
+                    player.Hair.MoveHairBy(player.Position);
                 }
                 if (level.Wipe != null)
                 {

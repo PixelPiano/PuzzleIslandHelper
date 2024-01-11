@@ -108,15 +108,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, EasyRendering.AlphaMaskBlendState, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, MaskShader, Matrix.Identity);
                 Draw.SpriteBatch.Draw(GameplayBuffers.TempA, Vector2.Zero, Color.White);
                 Draw.SpriteBatch.End();
-
-
-
-
-
-
-
-
-                //Target.DrawThenMask(delegate { DrawMask(scene); }, delegate { base.Render(scene); }, Matrix.Identity, Shader);
             }
         }
         public override void Render(Scene scene)

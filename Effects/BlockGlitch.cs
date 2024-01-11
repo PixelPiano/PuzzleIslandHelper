@@ -40,7 +40,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         {
             Everest.Content.OnUpdate += Content_OnUpdate;
             IL.Celeste.Level.Render += VeryFunny;
-            //Shader = TryGetEffect("jitter");
 
         }
         public static void Unload()
