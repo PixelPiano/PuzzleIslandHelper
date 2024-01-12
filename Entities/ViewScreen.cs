@@ -308,7 +308,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
              * 2. Render the stuff you want affected by the shader to RT 1 (in this case, whatever is in "CoolStuff()".
              * 3. Draw the contents of RT 1 to RT 2, but this time using the Shader.
              * 4. In Render(), draw RT 2.
-             * Note: To avoid inconsistent render positions, use Matrix.Identity/Vector2.Zero in BeforeRender(), and then render to whatever position you like in Render().
+             * Note: ID avoid inconsistent render positions, use Matrix.Identity/Vector2.Zero in BeforeRender(), and then render to whatever position you like in Render().
              * Also stop pestering rendering pros about your jank stuff ok
              */
             if (Scene is not Level level) return;

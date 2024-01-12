@@ -115,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public override void Added(Entity entity)
         {
             base.Added(entity);
-            Scene.Add(Helper = new InputBoxText(this));
+            Scene.Add(Helper = new InputBoxText(Interface, this));
             if (!AddedToOnInput)
             {
                 TextInput.OnInput += OnTextInput;
@@ -210,7 +210,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public override void Removed(Entity entity)
         {
             base.Removed(entity);
-            Scene?.Remove(Helper);
+            Helper.RemoveSelf();
+
             if (AddedToOnInput)
             {
                 TextInput.OnInput -= OnTextInput;
@@ -224,9 +225,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             public InputBox Track;
             private float timer;
             private bool showUnderscore;
-            public Interface Interface => PianoModule.Session.Interface;
-            public InputBoxText(InputBox track) : base(Color.White)
+            public Interface Interface;
+            public InputBoxText(Interface inter, InputBox track) : base(Color.White)
             {
+                Interface = inter;
                 Track = track;
             }
             public override void Update()
@@ -260,7 +262,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 base.Render();
                 float x = ActiveFont.Measure(Text).X;
-                
+
                 if (Interface.Buffering)
                 {
                     showUnderscore = false;

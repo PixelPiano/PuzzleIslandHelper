@@ -11,6 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Type Transition;
         private string roomName;
         public static bool Finished;
+        public bool Started;
         public enum Type
         {
             BeamMeUp,
@@ -28,13 +29,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            AddTransition(scene);
+        }
+        public void AddTransition(Scene scene)
+        {
             switch (Transition)
             {
-                case Type.BeamMeUp: (scene as Level).Add(new BeamMeUp(roomName, false)); break;
-                case Type.Elevator: (scene as Level).Add(new ElevatorTransition(roomName)); break;
-                case Type.Gremlins: (scene as Level).Add(new BeamMeUp(roomName, true)); break;
-                case Type.Fold: (scene as Level).Add(new FoldTransition(roomName)); break;
+                case Type.BeamMeUp: (scene as Level).Add(new BeamMeUp(roomName, true)); break;
+                //case Type.Elevator: (scene as Level).Add(new ElevatorTransition(roomName)); break;
+                //case Type.Gremlins: (scene as Level).Add(new BeamMeUp(roomName, true)); break;
+                //case Type.Fold: (scene as Level).Add(new FoldTransition(roomName)); break;
             }
+            Started = true;
         }
     }
 }

@@ -17,6 +17,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes;
 using static MonoMod.InlineRT.MonoModRule;
 using Microsoft.Xna.Framework.Graphics;
 using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -76,7 +77,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 GameshowData.ParseData();
             }
             if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/AccessLinks", out var asset4)
-    && asset4.TryDeserialize(out AccessData myData4))
+                && asset4.TryDeserialize(out AccessData myData4))
             {
                 AccessData = myData4;
                 AccessData.ParseData();
@@ -199,6 +200,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
             ShaderOverlay.Load();
             PortraitRuiner.Load();
             AudioEffectGlobal.Load();
+            DigiAccess.Load();
+            AccessData.Load();
         }
         public override void Unload()
         {
@@ -228,6 +231,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
             ShaderOverlay.Unload();
             PortraitRuiner.Unload();
             AudioEffectGlobal.Unload();
+            DigiAccess.Unload();
+            AccessData.Unload();
 
         }
 

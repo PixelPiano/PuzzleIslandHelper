@@ -1,8 +1,10 @@
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
 
 // PuzzleIslandHelper.TransitionEvent
@@ -31,11 +33,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
         private Color RenderColor = Color.White;
         private Rectangle PlayerRect;
         private string RoomName;
-
-        private bool GremlinTime;
-        public BeamMeUp(string roomName, bool gremlinTime = false)
+        private bool faulty;
+        public BeamMeUp(string roomName, bool faulty = false)
         : base(Vector2.Zero)
         {
+            this.faulty = faulty;
             RoomName = roomName;
             Beam = new Sprite(GFX.Game, Path);
             Tag |= Tags.Persistent;
@@ -51,7 +53,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
 
             PlayerBox = VirtualContent.CreateRenderTarget("DigitalTransitionPlayerBox", 320, 180);
             Add(new BeforeRenderHook(BeforeRender));
-            GremlinTime = gremlinTime;
+            if (faulty)
+            {
+                while (true)
+                {
+                    //fuck you
+                }
+                Add(new Coroutine(MultiTeleportGlitch()));
+            }
+        }
+        private IEnumerator MultiTeleportGlitch()
+        {
+            yield return null;
         }
         private static void TeleportTo(Scene scene, Player player, string room, Player.IntroTypes introType = Player.IntroTypes.None, Vector2? nearestSpawn = null)
         {
@@ -64,35 +77,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
                 };
             }
         }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            DigiAccess.AccessTeleporting = false;
+        }
         private IEnumerator End()
         {
-            if (!GremlinTime)
-            {
-                TeleportTo(level, player, RoomName);
-            }
-            else
-            {
-                player.Sprite.Visible = true;
-                player.Hair.Visible = true;
-                yield return 2f;
-                //play "?" animation
-                //gremlins appear
-                //madeline gets carried away
-                //transition
-                TeleportTo(level, player, RoomName);
-            }
+            TeleportTo(level, player, RoomName);
             yield return null;
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             level = scene as Level;
+            Console.WriteLine("beam added");
             player = level.Tracker.GetEntity<Player>();
-
             if (player is null)
             {
                 RemoveSelf();
             }
+            DigiAccess.AccessTeleporting = true;
             player.StateMachine.State = Player.StDummy;
             player.Sprite.Visible = true;
             player.Hair.Visible = true;
@@ -129,6 +134,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
                 Add(new Coroutine(End()));
                 InEnd = true;
             }
+            Console.WriteLine("BABABABABABABABABA");
         }
         private void BeforeRender()
         {
@@ -209,6 +215,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
         }
         private IEnumerator ScaleRoutine()
         {
+            yield return 1;
             Beam.Play("slice");
             while (Beam.CurrentAnimationID == "slice")
             {

@@ -35,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public string CurrentIconName = "invalid";
         public int BaseDepth = -1000001;
         private InterfaceBorder Border;
-        private EventInstance whirringSfx;
+        private SoundSource whirringSfx;
         private EventInstance loadSfx;
         private Entity NightDay;
         private Entity Monitor;
@@ -123,13 +123,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public List<string> TabText = new();
 
         private bool Closing = false;
-        private bool AccessEnding = false;
         private bool GlitchPlayer = false;
         private float MaxGlitchRange = 0.2f;
         private bool RemovePlayer = false;
         private float ColorLerpRate = 0;
+        public bool Teleporting;
         #endregion
-
 
         private bool Interacted;
         public bool Interacting;
@@ -148,37 +147,43 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public string InstanceID;
 
         public bool Invalid;
-
-        public void Cleanup(Scene scene)
+        private IEnumerator AccessDelay()
+        {
+            yield return 0.1f;
+            digiContent.RemoveSelf();
+        }
+        public void LightCleanup()
         {
             IconIDs.Clear();
             WindowText.Clear();
             TabText.Clear();
+            Power?.RemoveSelf();
+            Window?.RemoveSelf();
+            cursor?.RemoveSelf();
+            if (Icons is not null)
+            {
+                foreach (var icon in Icons)
+                {
+                    icon?.RemoveSelf();
+                }
+            }
+            Interacting = false;
+            PianoModule.Session.Interface = null;
+        }
+        public void Cleanup(Scene scene)
+        {
             _PlayerObject?.Dispose();
             _PlayerMask?.Dispose();
             _Light?.Dispose();
             _PlayerObject = null;
             _Light = null;
             _PlayerMask = null;
-            scene.Remove(Power, Window);
-
-            if (Icons is not null)
-            {
-                foreach (var icon in Icons)
-                {
-                    if (icon is not null)
-                    {
-                        scene.Remove(icon);
-                    }
-                }
-            }
+            LightCleanup();
             if (Interacting)
             {
                 (scene as Level).Lighting.Alpha = prevLightAlpha;
                 (scene as Level).Bloom.Strength = prevBloomStrength;
             }
-            Interacting = false;
-            PianoModule.Session.Interface = null;
         }
         public void GetPreset(string id)
         {
@@ -206,7 +211,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             Buffering = false;
             Version = data.Enum<Versions>("type");
             Tag |= Tags.TransitionUpdate;
-            roomName = data.Attr("teleportTo", "4t");  
+            roomName = data.Attr("teleportTo", "4t");
+            Add(whirringSfx = new SoundSource());
             switch (Version)
             {
                 case Versions.Lab:
@@ -237,18 +243,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             Add(new BeforeRenderHook(BeforeRender));
         }
 
-        public override void Added(Scene scene)
+        public void LoadModules(Scene scene)
         {
-            base.Added(scene);
-            Interacting = false;
-            l = scene as Level;
-            scene.Add(MachineEntity = new Entity(Position));
-            MachineEntity.Depth = 2;
             scene.Add(NightDay = new Entity());
             NightDay.Add(SunMoon = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/icons/"));
             SunMoon.AddLoop("sun", "sun", 0.1f);
             SunMoon.AddLoop("moon", "moon", 0.1f);
-            MachineEntity.Add(Machine);
+
             BetterWindow.Drawing = false;
             scene.Add(new IconText());
             scene.Add(Power = new Entity());
@@ -282,12 +283,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             scene.Add(Window = new BetterWindow(Position, this));
             //loadSequence = new LoadSequence(Window.Depth - 1, Window.Position);
 
-            Depth = BaseDepth;
             Power.Depth = BaseDepth - 1;
             NightDay.Depth = Power.Depth;
             Monitor.Depth = BaseDepth;
             cursor.Depth = BaseDepth - 6;
             Border.Depth = BaseDepth - 7;
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            Interacting = false;
+            l = scene as Level;
+            Depth = BaseDepth;
+            scene.Add(MachineEntity = new Entity(Position));
+            MachineEntity.Depth = 2;
+            MachineEntity.Add(Machine);
             if (Version == Versions.Lab)
             {
                 if (PianoModule.Session.RestoredPower && !Invalid)
@@ -433,7 +443,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     Window.Position = Collider.Position + GetDragOffset();
                 }
             }
-            else
+            else if (cursor is not null)
             {
                 cursor.Position = CursorMiddle; //cursor default position
             }
@@ -454,34 +464,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 PlayerTransitionColor = Color.Lerp(Color.White, Color.Green, ColorLerpRate += Engine.DeltaTime);
             }
-
-            #region Player check
-            if (player == null)
+            if (player is not null)
             {
-                return;
-            }
-            #endregion
-            if (GlitchPlayer)
-            {
-                GlitchAmplitude = Calc.Approach(0.01f, 100f, Ease.SineIn(MaxGlitchRange));
-                if (MaxGlitchRange < 1)
+                if (GlitchPlayer)
                 {
-                    MaxGlitchRange += 0.01f;
+                    GlitchAmplitude = Calc.Approach(0.01f, 100f, Ease.SineIn(MaxGlitchRange));
+                    if (MaxGlitchRange < 1)
+                    {
+                        MaxGlitchRange += 0.01f;
+                    }
                 }
-            }
-            if (MonitorSprite.CurrentAnimationID == "idle" && !intoIdle)
-            {
-                //Handles icon/cursor transition from screen off to screen on
-                Add(new Coroutine(TransitionToMain(), true));
-                intoIdle = true;
-            }
-        }
-        public void StartAccessEnding()
-        {
-            //loadSequence.ButtonPressed = true;
-            if (!AccessEnding)
-            {
-                Add(accessRoutine = new Coroutine(AccessRoutine(), true));
+                if (MonitorSprite is not null && MonitorSprite.CurrentAnimationID == "idle" && !intoIdle)
+                {
+                    //Handles icon/cursor transition from screen off to screen on
+                    Add(new Coroutine(TransitionToMain(), true));
+                    intoIdle = true;
+                }
             }
         }
         public override void Removed(Scene scene)
@@ -491,6 +489,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         }
         private Vector2 GetDragOffset()
         {
+            if (Window is null) return Vector2.Zero;
             if (!SetDragOffset)
             {
                 //Get the distance from the tab's position to the cursor's position
@@ -501,7 +500,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         }
         public void RemoveWindow()
         {
-            if (!CanCloseWindow)
+            if (Window is null || !CanCloseWindow)
             {
                 return;
             }
@@ -560,7 +559,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             #endregion
 
             #region Check for icon clicked
-            if (CanClickIcons)
+            if (CanClickIcons && Window is not null && !BetterWindow.Drawing)
             {
                 for (int i = 0; i < Icons.Length; i++) //for each icon on screen...
                 {
@@ -602,6 +601,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 FloppyHUD?.RemoveSelf();
                 yield break;
             }
+            PianoModule.Session.Interface = this;
+            LoadModules(level);
             GetPreset(FloppyHUD.SelectedDisk.Preset);
             FloppyHUD.RemoveSelf();
             AddIcons(level);
@@ -611,6 +612,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public void Start()
         {
             PianoModule.Session.Interface = this;
+            Interacting = true;
             Interacted = true;
             intoIdle = false;
             MonitorSprite.Visible = true;
@@ -655,7 +657,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 }
             }
 
-            whirringSfx = Audio.Play("event:/PianoBoy/interface/Whirring", Position, "Computer FlagState", 0);
+            whirringSfx.Play("event:/PianoBoy/interface/Whirring", "Computer FlagState", 0);
             #endregion
             BorderSprite.Visible = true;
             MonitorSprite.Play("boot");
@@ -686,25 +688,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             }
             PianoModule.Session.Interface = null;
         }
-        private IEnumerator AccessRoutine()
-        {
-            if (!PianoModule.SaveData.HasArtifact) //if not allowed to use program
-            {
-                yield break;
-            }
 
-            AccessEnding = true;
-/*            while (!LoadSequence.DoneLoading) //while searching for valid password
-            {
-                yield return null;
-            }*/
-            yield return Calc.Random.Range(1f, 3f);
-            //then close the Window, force close the computer, and digitize Madeline away and teleport to specified room
-            yield return 0.05f;
-            RemoveWindow(/*button*/);
-            yield return 0.2f;
-            yield return CloseInterface(false);
-        }
         private IEnumerator TransitionToMain()
         {
             Interacting = true;
@@ -761,7 +745,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 Icons[j].Sprite.Visible = false;
             }
-            whirringSfx.setParameterValue("Computer FlagState", 1);
+            whirringSfx.Param("Computer FlagState", 1);
             MonitorSprite.Visible = false;
             BorderSprite.Visible = false;
             Level level = Scene as Level;
@@ -772,7 +756,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             player.StateMachine.State = 0;
             yield return null;
         }
-        public IEnumerator CloseInterface(bool fast)
+        public IEnumerator CloseInterface(bool fast, bool lockPlayer = false)
         {
             Closing = true;
             int count = 0;
@@ -800,7 +784,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 Icons[j].Sprite.Visible = false;
             }
-            whirringSfx.setParameterValue("Computer FlagState", 1);
+            whirringSfx.Param("Computer FlagState", 1);
             MonitorSprite.Play("turnOff");
             Color _color = BorderSprite.Color;
             while (MonitorSprite.CurrentAnimationID == "turnOff")
@@ -820,10 +804,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 yield return null;
             }
             Audio.SetMusicParam("fade", 1);
-            player.StateMachine.State = 0;
-            PianoModule.Session.Interface = null;
+            player.StateMachine.State = lockPlayer ? Player.StDummy : 0;
+            LightCleanup();
             yield return null;
-            //RemoveSelf();
         }
         public override void Render()
         {
@@ -845,17 +828,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         {
             player.Render();
             Draw.Rect(l.Bounds, PlayerTransitionColor);
-        }
-        private IEnumerator Transition()
-        {
-            //player effects
-            SceneAs<Level>().Add(new TransitionManager(TransitionManager.Type.BeamMeUp, roomName));
-            TransitionManager.Finished = false;
-            while (!TransitionManager.Finished)
-            {
-                yield return null;
-            }
-            yield return null;
         }
         public static void InstantTeleport(Scene scene, Player player, string room, bool sameRelativePosition, float positionX, float positionY)
         {

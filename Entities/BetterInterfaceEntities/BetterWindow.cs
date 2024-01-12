@@ -146,7 +146,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             TabArea = new Rectangle((int)Position.X, (int)Position.Y - tabHeight, (int)WindowWidth, tabHeight);
             Visible = Drawing;
             x.Visible = Drawing;
-            scene.Add(TextWindow = new TextWindow(Interface.CurrentIconName));
+            scene.Add(TextWindow = new TextWindow(Interface, Interface.CurrentIconName));
         }
         public void UpdateWindow()
         {
@@ -161,7 +161,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         }
         public void PrepareWindow()
         {
+            if(Drawing) return;
             RemoveButtons();
+
             CaseWidth = WindowWidth;
             CaseHeight = WindowHeight;
             TextCaseWidth = 1;
@@ -188,7 +190,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     break;
                 case "access":
                     Add(new InputBox(Interface, CaseWidth / 2, CaseHeight / 2, Interface.digiContent.CheckIfValidPass));
-                    //Add(new StartButton(Interface, Interface.StartAccessEnding));
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
                     break;
                 case "ram":
@@ -249,7 +250,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 }
                 if(c is InputBox)
                 {
-
                     toRemove.Add(c);
                 }
             }

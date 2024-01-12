@@ -1,10 +1,14 @@
 Links:
   - ID: Test
-    Room: l-lg
+    Room: aaaAa
+  - ID: EndingTestA
+    Room: aaaAa
+  - ID: EndingTestB
+    Room: jumpRope
+    Wait: true
   - ID: mmntm
     Room: digiD1
   - ID: swrv
     Room: digiB1
   - ID: strghtwy
     Room: digiA1
-	
