@@ -23,7 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
             }
             public string ID { get; set; }
             public string Room { get; set; }
-            public bool Wait { get; set; }
+            public float Wait { get; set; }
         }
 
         public List<Link> Links { get; set; }

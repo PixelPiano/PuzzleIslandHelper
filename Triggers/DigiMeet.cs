@@ -13,14 +13,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
     [Tracked]
     public class DigiMeet : CutsceneEntity
     {
-        private bool CameFromLeft;
-        private bool SawBothSides;
-        private Level level;
         private bool Started;
         private bool Completed;
-        private Coroutine Main;
         private Calidus Calidus;
-        private CutsceneEntity CutsceneEntity;
         public DigiMeet()
             : base()
         {
@@ -28,15 +23,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 
         public override void OnBegin(Level level)
         {
-            SawBothSides = level.Session.GetFlag("digiRuinsLabRight") &&
-                level.Session.GetFlag("digiRuinsLabLeft");
             Calidus = level.Tracker.GetEntity<Calidus>();
-            /*            if (!CheckConditions() || Started || Completed)
+            if (Started || Completed)
             {
                 return;
-            }*/
+            }
             Player player = level.GetPlayer();
-            Add(Main = new Coroutine(Cutscene(player, level)));
+            Add(new Coroutine(Cutscene(player, level)));
             Started = true;
         }
         public override void OnEnd(Level level)
@@ -257,26 +250,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             player.StateMachine.State = Player.StNormal;
             RemoveTag(Tags.Global);
 
-        }
-        private bool CheckConditions()
-        {
-            if (!SawBothSides)
-            {
-                return false;
-            }
-            if (level.Session.GetFlag("cameFromLeft"))
-            {
-                CameFromLeft = true;
-            }
-            else if (level.Session.GetFlag("cameFromRight"))
-            {
-                CameFromLeft = false;
-            }
-            else
-            {
-                return false;
-            }
-            return true;
         }
         public static void InstantTeleport(Scene scene, Player player, string room, Vector2 nearestSpawn)
         {

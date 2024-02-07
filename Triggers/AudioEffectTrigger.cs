@@ -6,7 +6,10 @@ using FMOD;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using VivHelper.Entities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {
@@ -17,6 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
     {
         public string flag;
         public bool inverted;
+        public bool Injected;
         public bool FlagState
         {
             get
@@ -60,7 +64,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         public Method OnEnterMethod;
         public Events Event;
         public AEDSP Dsp;
-
         private float chorusMix, chorusRate, chorusDepth;
         private float distortionLevel;
         private float echoDelay, echoFeedback, echoDryLvl, echoWetLvl;
@@ -72,9 +75,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 
         private Osc.Wave oscWave;
         private float oscRate;
+
+        private TransitionListener Listener;
         public AudioEffectTrigger(EntityData data, Vector2 offset)
     : base(data, offset)
         {
+            Tag |= Tags.TransitionUpdate;
             OnLevelStartMethod = data.Enum<Method>("onLevelStart");
             OnLevelEndMethod = data.Enum<Method>("onLevelEnd");
             OnEnterMethod = data.Enum<Method>("onEnter");
@@ -83,9 +89,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             Effect = data.Enum<Effects>("effect");
             inverted = data.Bool("inverted");
             ID = data.Attr("effectID");
-            Dsp.ID = ID;
+            Add(Listener = new TransitionListener());
+            Listener.OnInBegin = OnLevelStart;
+            Listener.OnOutBegin = OnLevelEnd;
+
             flag = data.Attr("flag");
-            
+
             switch (Effect)
             {
                 case Effects.Chorus:
@@ -95,7 +104,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                     Dsp = new Chorus(chorusMix, chorusRate, chorusDepth);
                     break;
                 case Effects.Distortion:
-                    distortionLevel = data.Float("distorationLevel");
+                    distortionLevel = data.Float("distortionLevel");
                     Dsp = new Distortion(distortionLevel);
                     break;
                 case Effects.Echo:
@@ -139,6 +148,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                     Dsp = new Tremolo(tremFreq, tremDepth, tremShape, tremSkew, tremDuty, tremFlatness, tremPhase, tremSpread);
                     break;
             }
+            if (Dsp is null) RemoveSelf();
+            Dsp.ID = ID;
+        }
+        private void OnLevelStart()
+        {
+            Run(OnLevelStartMethod);
+        }
+
+        private void OnLevelEnd()
+        {
+            Run(OnLevelEndMethod);
         }
         public override void OnEnter(Player player)
         {
@@ -149,40 +169,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         {
             base.OnLeave(player);
             Run(OnLeaveMethod);
-
-        }
-        public override void SceneBegin(Scene scene)
-        {
-            base.SceneBegin(scene);
-            Run(OnLevelStartMethod);
-
-        }
-        public override void SceneEnd(Scene scene)
-        {
-            base.SceneEnd(scene);
-            Run(OnLevelEndMethod);
         }
         public void Run(Method state)
         {
-            if (!FlagState || Dsp is null || Dsp.Injected) return;
+            if (!FlagState)
+            {
+                return;
+            }
             switch (state)
             {
                 case Method.Add:
-                    AudioEffectGlobal.AddEffect(Dsp, EnumToInstance());
+                    if (Injected) return;
+                    AddEffect();
                     break;
                 case Method.Remove:
-                    for (int i = 0; i < AudioEffectGlobal.StaticDsps.Count; i++)
-                    {
-                        if (AudioEffectGlobal.StaticDsps[i].ID == ID)
-                        {
-                            AudioEffectGlobal.RemoveEffect(AudioEffectGlobal.StaticDsps[i]);
-                        }
-                    }
+                    if (!Injected) return;
+                    RemoveEffect();
                     break;
                 case Method.Nothing:
                     break;
                 default: break;
             }
+        }
+        private void RemoveEffect()
+        {
+            AudioEffectGlobal.RemoveIDImmediately(ID);
+            Injected = false;
+        }
+        private void AddEffect()
+        {
+            AudioEffectGlobal.AddEffect(Dsp, EnumToInstance());
+            Injected = true;
         }
         public EventInstance EnumToInstance()
         {
@@ -193,10 +210,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 Events.Ambience => Audio.currentAmbientEvent,
                 _ => null
             };
-        }
-        public bool Inverted(string flag)
-        {
-            return flag[0] == '!';
         }
     }
 }

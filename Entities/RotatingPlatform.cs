@@ -225,7 +225,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Awake(scene);
             prevPosition = Position;
-            Block = VirtualContent.CreateRenderTarget("Block", (int)Width, (int)Height);
+            Block = VirtualContent.CreateRenderTarget("FancyBlock", (int)Width, (int)Height);
             scene.Add(particles = new ParticleSystem(Depth + 1, 100));
             previousState = false;
             /*            switch (MoveMeth)

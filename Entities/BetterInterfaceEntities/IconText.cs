@@ -23,15 +23,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public float IconWidth = 0;
         public static readonly float TextScale = 0.8f;
         public static ComputerIcon CurrentIcon;
+        public Interface Interface;
+        public BetterWindow Window;
         private string CurrentTabText => CurrentIcon.TabText;
-        public IconText()
+        public IconText(Interface @interface)
         {
             Tag = TagsExt.SubHUD;
+            Interface = @interface;
+            Window = Interface.Window;
         }
         public override void Render()
         {
             base.Render();
-            if (!BetterWindow.Drawing)
+            if (!Window.Drawing)
             {
                 return;
             }
@@ -46,8 +50,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 return Vector2.Zero;
             }
-            return (level.Camera.CameraToScreen(BetterWindow.DrawPosition)+
-                    new Vector2(1, -BetterWindow.tabHeight)).ToInt() * 6;
+            return (level.Camera.CameraToScreen(Window.DrawPosition)+
+                    new Vector2(1, -Window.tabHeight)).ToInt() * 6;
         }
         private void ensureCustomFontIsLoaded()
         {

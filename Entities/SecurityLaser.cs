@@ -121,6 +121,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            if(Scene is not Level level) return;
+            Camera camera = level.Camera;
+            Rectangle c = new Rectangle((int)camera.X, (int)camera.Y, 320, 180);
+            OnScreen = Collide.RectToLine(c, Start, End);
 
             dangerColorLerp = Calc.Random.Choose(1, 0.5f, 0.3f, 0.8f, 0);
             NodeSprite.Color = Color.Lerp(StateColor, Color.Black, 0.3f);
@@ -244,7 +248,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public SecurityLaser(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
-            Visible = data.Bool("visible",true);
+            Visible = data.Bool("visible", true);
             this.offset = offset;
             #region Finished
             GunState = data.Bool("gunState");
@@ -371,7 +375,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             SetBounds(BaseEntity.Center, NodeEntity.Center, CollisionCheck);
             Collider = new Hitbox(8, 8);
-             if (RespectCollision)
+            if (RespectCollision)
             {
                 Vector2? Ray = DoRaycast(scene, TopBound, BottomBound);
                 if (Ray is not null && !SceneAs<Level>().Transitioning)
@@ -394,7 +398,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Render();
 
-            if (InView())
+            if (OnScreen)
             {
                 ElectricBuffer--;
                 BaseSprite.DrawOutline(StateColor * colorLerp);
@@ -404,7 +408,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Draw.Line(Start, End, Color.Lerp(StateColor, Color.Black, 0.5f) * LaserOpacity * 0.2f, LaserWidth + 4);
                     Draw.Line(Start, End, Color.Lerp(StateColor, Color.Black, 0.3f) * LaserOpacity * 0.2f, LaserWidth + 2);
                     Draw.Line(Start, End, StateColor * LaserOpacity, LaserWidth);
-                    if (Dangerous && !State && ElectricBuffer <= 0)
+                    if (!State && ElectricBuffer <= 0)
                     {
                         if (Dangerous && randomize == 0)
                         {

@@ -17,9 +17,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PianoEntities
          *      Damp button
          *      Voice changer
          *      Melody detection
-         *      Pattern Recording (If time)
-         *      Metronome (If time)
-         *      Resonance/Cutoff/Release (If time)
+         *      Pattern Recording (If acceleration)
+         *      Metronome (If acceleration)
+         *      Resonance/Cutoff/Release (If acceleration)
          *      
          * Features added:
          *      Piano Keys

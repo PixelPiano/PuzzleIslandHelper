@@ -1,16 +1,19 @@
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using System.Reflection.Emit;
 
 // PuzzleIslandHelper.TransitionEvent
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
 {
     [CustomEntity("PuzzleIslandHelper/BeamMeUp")]
+    [Tracked]
     public class BeamMeUp : Entity
     {
         private Level level;
@@ -32,12 +35,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
         private VirtualRenderTarget PlayerBox;
         private Color RenderColor = Color.White;
         private Rectangle PlayerRect;
-        private string RoomName;
-        private bool faulty;
+        public string RoomName;
+        public bool Faulty;
+        public ShaderOverlay Shader;
+        public bool Stall;
+        public float Alpha = 1;
+        private DuelView DuelView;
+        private Duplicate cutscene;
         public BeamMeUp(string roomName, bool faulty = false)
         : base(Vector2.Zero)
         {
-            this.faulty = faulty;
+            Faulty = faulty;
+            Shader = new ShaderOverlay("PuzzleIslandHelper/Shaders/fuzzyNoise");
             RoomName = roomName;
             Beam = new Sprite(GFX.Game, Path);
             Tag |= Tags.Persistent;
@@ -45,7 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
             Beam.Add("intro", "beamIntro", 0.1f, "idle");
             Beam.Add("slice", "introSlice", 0.08f);
             Add(Beam);
-            Depth = -20000;
+            Depth = 0/*-20000*/;
             Beam.Visible = false;
             Collider = new Hitbox(Beam.Width, Beam.Height);
             PlayerRect = new Rectangle(0, 0, (int)Beam.Width, (int)Beam.Height);
@@ -53,18 +62,63 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
 
             PlayerBox = VirtualContent.CreateRenderTarget("DigitalTransitionPlayerBox", 320, 180);
             Add(new BeforeRenderHook(BeforeRender));
-            if (faulty)
-            {
-                while (true)
-                {
-                    //fuck you
-                }
-                Add(new Coroutine(MultiTeleportGlitch()));
-            }
         }
-        private IEnumerator MultiTeleportGlitch()
+        private IEnumerator MultiTeleportGlitch(Scene scene, float deviation, float maxTime)
         {
-            yield return null;
+            if (Scene is not Level level) yield break;
+            scene.Add(Shader);
+            Shader.ForceLevelRender = true;
+            Tween alphaTween = Tween.Create(Tween.TweenMode.Oneshot, Ease.Linear, maxTime / 1.5f);
+            alphaTween.OnUpdate = (Tween t) =>
+            {
+                Shader.Alpha = t.Eased;
+            };
+            Add(alphaTween);
+            alphaTween.Start();
+            float longWait;
+            float shortWait;
+            float midAmp = 0;
+            for (int i = 0; i < 10; i++)
+            {
+                Shader.Amplitude = Calc.Random.Range(Calc.Max(0, midAmp - deviation), Calc.Min(1, midAmp + deviation));
+                shortWait = Calc.Random.Range(0.1f, 0.3f);
+                longWait = Calc.Random.Range(0.5f, 0.8f);
+                yield return (Calc.Random.Range(0, 2) == 0 ? shortWait : longWait);
+                midAmp += Engine.DeltaTime / maxTime;
+            }
+            DuelView = new DuelView();
+            scene.Add(DuelView);
+            for (float i = 0; i < 1; i += Engine.DeltaTime)
+            {
+
+                Shader.Amplitude = Calc.LerpClamp(Shader.Amplitude, 0, i);
+                yield return null;
+            }
+            Shader.ForceLevelRender = false;
+            DuelView.ForceLevelRender = true;
+            for (float i = 0; i < 1; i += Engine.DeltaTime)
+            {
+                DuelView.Amplitude = Calc.LerpClamp(0, 1, Ease.SineIn(i));
+                DuelView.Alpha = Ease.SineIn(i);
+                yield return null;
+            }
+            yield return LerpOtherBeamAlphas(2);
+            Stall = false;
+        }
+        private IEnumerator LerpOtherBeamAlphas(float duration)
+        {
+            for (float i = 0; i < 1; i += Engine.DeltaTime / duration)
+            {
+                foreach (BeamMeUp b in level.Tracker.GetEntities<BeamMeUp>())
+                {
+                    if (b != this)
+                    {
+                        b.Alpha = i;
+                    }
+                }
+                yield return null;
+            }
+
         }
         private static void TeleportTo(Scene scene, Player player, string room, Player.IntroTypes introType = Player.IntroTypes.None, Vector2? nearestSpawn = null)
         {
@@ -80,24 +134,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
-            DigiAccess.AccessTeleporting = false;
+            if (Faulty) Shader.RemoveSelf();
+            AccessProgram.AccessTeleporting = false;
         }
-        private IEnumerator End()
+        private IEnumerator End(bool faulty)
         {
-            TeleportTo(level, player, RoomName);
+            if (!faulty) TeleportTo(level, player, RoomName);
+            else
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    this.MakeGlobal();
+                    DuelView.MakeGlobal();
+                    InstantTeleportToSpawn(RoomName);
+                }
+            }
+
             yield return null;
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+
             level = scene as Level;
-            Console.WriteLine("beam added");
             player = level.Tracker.GetEntity<Player>();
             if (player is null)
             {
                 RemoveSelf();
             }
-            DigiAccess.AccessTeleporting = true;
+            if (Faulty) level.Add(cutscene = new Duplicate());
+            AccessProgram.AccessTeleporting = true;
             player.StateMachine.State = Player.StDummy;
             player.Sprite.Visible = true;
             player.Hair.Visible = true;
@@ -117,6 +183,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
             Add(ColorTween);
             ColorTween.Start();
             Add(new Coroutine(ScaleRoutine()));
+            if (Faulty)
+            {
+                //Add(new Coroutine(MultiTeleportGlitch(scene, 0.1f, 5)));
+                foreach (BeamMeUp bmu in scene.Tracker.GetEntities<BeamMeUp>())
+                {
+                    bmu.Stall = true;
+                }
+            }
         }
         public override void Update()
         {
@@ -131,10 +205,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
             Beam.Scale.Y = ScaleY;
             if (Done && !InEnd)
             {
-                Add(new Coroutine(End()));
+                Add(new Coroutine(End(Faulty)));
                 InEnd = true;
             }
-            Console.WriteLine("BABABABABABABABABA");
         }
         private void BeforeRender()
         {
@@ -209,7 +282,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
         {
             base.Render();
 
-            Draw.SpriteBatch.Draw(Target, level.Camera.Position, RenderColor);
+            Draw.SpriteBatch.Draw(Target, level.Camera.Position, RenderColor * Alpha);
             Draw.SpriteBatch.Draw(PlayerBox, Position + Vector2.UnitY * ((Beam.Height - PlayerRect.Height) / 2), PlayerRect, Color.White);
 
         }
@@ -246,17 +319,79 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Transitions
                 yield return null;
             }
             yield return 3;
-            for (float i = 1; i > 0; i -= Engine.DeltaTime)
+            bool stalled = false;
+            while (true)
             {
-                ScaleY = i;
-                LineOpacity = i;
-                yield return null;
+                if (!Stall) break;
+                else
+                {
+                    stalled = true;
+                    yield return null;
+                }
+            }
+            yield return AlphaOut(true, !stalled);
+            float timer = 0;
+            while (stalled)
+            {
+                timer+=Engine.DeltaTime;
                 yield return null;
             }
             Done = true;
             TransitionManager.Finished = true;
             yield return null;
         }
+        private IEnumerator AlphaOut(bool scale, bool lines)
+        {
+            for (float i = 1; i > 0; i -= Engine.DeltaTime)
+            {
+                if (scale) ScaleY = i;
+                if (lines) LineOpacity = i;
+                yield return null;
+                yield return null;
+            }
+        }
+        public static void InstantTeleportToSpawn(string room)
+        {
+            Level level = Engine.Scene as Level;
+            Player player = level.GetPlayer();
+            if (level == null || player is null)
+            {
+                return;
+            }
+            if (string.IsNullOrEmpty(room))
+            {
+                return;
+            }
+            level.OnEndOfFrame += delegate
+            {
+                Vector2 levelOffset = level.LevelOffset;
+                Vector2 val2 = player.Position - level.LevelOffset;
+                Vector2 val3 = level.Camera.Position - level.LevelOffset;
+                Facings facing = player.Facing;
+                level.Remove(player);
+                level.UnloadLevel();
+                level.Session.Level = room;
+                Session session = level.Session;
+                Level level2 = level;
+                Rectangle bounds = level.Bounds;
+                float num = bounds.Left;
+                bounds = level.Bounds;
+                session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
+                level.Session.FirstLevel = false;
+                level.LoadLevel(Player.IntroTypes.Transition);
+                Vector2 val4 = level.DefaultSpawnPoint - level.LevelOffset - val2;
+                level.Camera.Position = level.LevelOffset + val3 + val4;
+                level.Add(player);
+                player.Position = session.RespawnPoint.HasValue ? session.RespawnPoint.Value : level.DefaultSpawnPoint;
+                player.Facing = facing;
+                player.Hair.MoveHairBy(level.LevelOffset - levelOffset + val4);
+                if (level.Wipe != null)
+                {
+                    level.Wipe.Cancel();
+                }
+            };
+        }
+
 
     }
 }

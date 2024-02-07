@@ -21,22 +21,27 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static List<TileseedAreaData> TileseedAreas = new();
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
-            Action<BinaryPacker.Element> tileseedAreaHandler = tileseedArea =>
-            {
-                TileseedAreaData data = new TileseedAreaData
-                {
-                    MapData = MapData,
-                    LevelName = levelName,
-                    Seed = tileseedArea.AttrFloat("seed"),
-                    RoomOffset = new(tileseedArea.AttrFloat("offsetX"), tileseedArea.AttrFloat("offsetY"))
-                };
+            /*            Action<BinaryPacker.Element> tileseedAreaHandler = tileseedArea =>
+                        {
+                            TileseedAreaData data = new TileseedAreaData
+                            {
+                                MapData = MapData,
+                                LevelName = levelName,
+                                Seed = tileseedArea.AttrFloat("seed"),
+                                RoomOffset = new(tileseedArea.AttrFloat("offsetX"), tileseedArea.AttrFloat("offsetY"))
+                            };
 
-                if (data is not null)
-                {
-                    TileseedAreas.Add(data);
-                    Console.WriteLine("TileseedAreas.Count: " + TileseedAreas.Count);
-                }
-            };
+                            if (data is not null)
+                            {
+                                TileseedAreas.Add(data);
+                                Console.WriteLine("TileseedAreas.Count: " + TileseedAreas.Count);
+                            }
+                        };*/
+
+/*            Action<BinaryPacker.Element> miniGenHandler = miniGen =>
+            {
+                PianoModule.SaveData.MiniGenStates.Add(new EntityID(levelName, miniGen.AttrInt("id")), false);
+            };*/
 
             return new Dictionary<string, Action<BinaryPacker.Element>> {
                 {
@@ -47,11 +52,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         if (levelName.StartsWith("lvl_")) {
                             levelName = levelName.Substring(4);
                         }
-                    }
-                },
-                {
-                    "entity:PuzzleIslandHelper/TileseedArea", area => {
-                        tileseedAreaHandler(area);
                     }
                 },
             };

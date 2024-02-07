@@ -71,7 +71,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
 
             //Just as Madeline is about to approach the computer, the Lab starts collapsing again
-            //With little time to spare, Calidus directly overrides the computer and starts the access module program to get Madeline to safety
+            //With little acceleration to spare, Calidus directly overrides the computer and starts the access module program to get Madeline to safety
             //Music cuts out abruptly and screen goes black for 5 seconds, until instantly coming back onto a digital world area with Madeline
             // -> LastDigitalWorldIntro.cs
             yield return null;

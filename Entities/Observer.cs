@@ -19,10 +19,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public float SignalTime;
             public bool On;
             public Observer Parent;
-            public float Alpha;
+            public float TextAlpha;
             public ObserverRenderer(Observer parent, Vector2 center, float width, float height, float time, float alpha, bool on = true) : base("PuzzleIslandHelper/Shaders/curvePulse")
             {
-                Alpha = alpha;
+                TextAlpha = alpha;
                 Parent = parent;
                 SignalCenter = center;
                 SignalWidth = width;
@@ -56,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Effect.Parameters["Center"]?.SetValue(SignalCenter);
                 Effect.Parameters["GrowTime"]?.SetValue(SignalTime);
                 Effect.Parameters["On"]?.SetValue(On);
-                Effect.Parameters["TextAlpha"]?.SetValue(Alpha);
+                Effect.Parameters["TextAlpha"]?.SetValue(TextAlpha);
             }
         }
         public ObserverRenderer Renderer;

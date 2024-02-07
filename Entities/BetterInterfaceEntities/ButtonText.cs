@@ -15,6 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public float TextWidth;
         public Vector2 TextOffset;
         public BetterButton ParentButton;
+        public BetterWindow Window;
         public ButtonText(BetterButton parent, string text, float textSize, Vector2 Scale, Vector2 offset)
         {
             Size = textSize;
@@ -23,6 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             this.Scale = Scale;
             TextOffset = offset;
             ParentButton = parent;
+            Window = parent.Window;
         }
         public ButtonText(BetterWindowButton parent, string text, float textSize, Vector2 Scale, Vector2 offset)
         {
@@ -32,11 +34,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             this.Scale = Scale;
             TextOffset = offset;
             ParentButton = parent;
+            Window = parent.Window;
         }
         public override void Render()
         {
             base.Render();
-            if (!BetterWindow.Drawing)
+            if(Window is null)
+            {
+                Window = ParentButton.Window;
+                if(Window is null) return;
+            }
+            if (!Window.Drawing)
             {
                 return;
             }

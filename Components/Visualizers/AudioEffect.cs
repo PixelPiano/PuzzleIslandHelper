@@ -133,7 +133,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
                 {
                     aedsp.Initialize(system, aedsp.Type);
                     aedsp.ActiveGroup = ActiveGroup;
-                    aedsp.Inject();
+                    aedsp.Inject(instance);
                 }
             }
             SetAllParams();

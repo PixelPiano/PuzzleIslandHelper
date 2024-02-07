@@ -12,7 +12,7 @@ codeDoor.placements =
     name = "Code Door",
     data = 
     {
-        flag = ""
+        flag = "",
     }
     
 }

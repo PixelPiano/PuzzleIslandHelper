@@ -53,7 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 while (Math.Abs(x - cx) > tolerate)
                 {
                     // Use the derivative to make an educated jump towards the next sample based on "urgence"
-                    // Calculate next guess for t the time parameter / x is always increasing
+                    // Calculate next guess for t the acceleration parameter / x is always increasing
                     t += (x - cx) * urgence / dx(t);
                     // Calculate respective x value of t
                     cx = this.x(t) * Math.Sign(x - cx);

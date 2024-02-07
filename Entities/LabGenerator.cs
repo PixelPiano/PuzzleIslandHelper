@@ -159,7 +159,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             Lights.Color = Color.Lerp(Color.White, Color.Black, LightDim);
-            if (LabGeneratorPuzzle.Completed && PortFixed && LightFixed && !PianoModule.SaveData.GeneratorStarted) //If fixed
+            if (LabGeneratorPuzzle.Completed && PianoModule.SaveData.HasFixedPipes && PortFixed && LightFixed && !PianoModule.SaveData.GeneratorStarted) //If fixed
             {
                 PianoModule.SaveData.GeneratorStarted = true;
                 Add(new Coroutine(StartSequenceOrSomething())); //activate machine

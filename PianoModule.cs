@@ -42,15 +42,13 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public override void PrepareMapDataProcessors(MapDataFixup context)
         {
+            //SaveData.MiniGenStates.Clear();
             base.PrepareMapDataProcessors(context);
-
             context.Add<PianoMapDataProcessor>();
         }
         public override void LoadContent(bool firstLoad)
         {
             base.LoadContent(firstLoad);
-
-
             PipeSpout.StreamSpritesheet = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streams"];
             for (int i = 0; i < 4; i++)
             {
@@ -200,8 +198,9 @@ namespace Celeste.Mod.PuzzleIslandHelper
             ShaderOverlay.Load();
             PortraitRuiner.Load();
             AudioEffectGlobal.Load();
-            DigiAccess.Load();
+            AccessProgram.Load();
             AccessData.Load();
+            CogHolder.CogHolderRenderer.Load();
         }
         public override void Unload()
         {
@@ -231,9 +230,9 @@ namespace Celeste.Mod.PuzzleIslandHelper
             ShaderOverlay.Unload();
             PortraitRuiner.Unload();
             AudioEffectGlobal.Unload();
-            DigiAccess.Unload();
+            AccessProgram.Unload();
             AccessData.Unload();
-
+            CogHolder.CogHolderRenderer.Unload();
         }
 
         public override void Initialize()

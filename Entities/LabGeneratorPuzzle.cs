@@ -466,6 +466,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         scene.Remove(Beads[i]);
                     }
+                    _Target?.Dispose();
+                    _Target = null;
                 }
                 public Counter(Vector2 Position, float height, int max, int beadsToReset = 0) : base(Position + new Vector2(24, 20))
                 {

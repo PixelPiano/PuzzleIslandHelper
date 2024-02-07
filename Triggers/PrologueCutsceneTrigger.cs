@@ -40,7 +40,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 Add(new Coroutine(RoomGlitch(level)));
             }
 
-            //RemoveSelf();
+            //EjectSelf();
         }
         public override void Update()
         {

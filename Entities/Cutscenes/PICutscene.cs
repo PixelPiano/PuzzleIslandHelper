@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
 {
@@ -22,12 +23,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         private bool ActivateOnTransition;
         private bool Entered;
         private bool InCutscene;
-        private string flag;
-
+        private List<string> flags = new();
+        public bool FlagState
+        {
+            get
+            {
+                if (Scene is not Level level) return false;
+                List<bool> bools = new();
+                foreach (string s in flags)
+                {
+        
+                    if(string.IsNullOrEmpty(s)) continue;
+                    bool inverted = s[0] == '!';
+                    bool flagState = level.Session.GetFlag(s);
+                    bools.Add(flagState || (!flagState && inverted));
+                }
+                foreach(bool b in bools)
+                {
+                    if(!b) return false;
+                }
+                return true;
+            }
+        }
         public PICutscene(EntityData data, Vector2 offset)
             : base(data, offset)
         {
-            flag = data.Attr("flag");
+            flags = data.Attr("flag").Replace(" ", "").Split(',').ToList();
             Part = data.Int("part");
             cutsceneName = data.Attr("cutscene");
             Cutscene = cutsceneName switch
@@ -37,6 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 "GetInvert" => new InvertCutsceneTrigger(),
                 "GrassShift" => new GrassShift(Part),
                 "Gameshow" => new Gameshow(),
+                "Fountain" => new FountainMove(data.Int("assignableInt")),
                 "End" => null,
                 "TEST" => new TEST(),
                 _ => null
@@ -50,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         {
             base.Awake(scene);
             (scene as Level).InCutscene = false;
-            if (!FlagState())
+            if (!FlagState)
             {
                 RemoveSelf();
             }
@@ -60,21 +82,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 OnEnter(player);
             }
         }
-        public bool FlagState()
-        {
-            return string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag);
-        }
         public override void OnEnter(Player player)
         {
             string name = "";
-            if(Part > 0 && (cutsceneName is "Prologue" or "GrassShift"))
+            if (Part > 0 && (cutsceneName is "Prologue" or "GrassShift"))
             {
                 name = cutsceneName + Part;
             }
-/*            if ((Entered && OncePerRoom) || (OncePerPlaythrough && PianoModule.SaveData.UsedCutscenes.Contains(name)))
-            {
-                return;
-            }*/
+            /*            if ((Entered && OncePerRoom) || (OncePerPlaythrough && PianoModule.SaveData.UsedCutscenes.Contains(name)))
+                        {
+                            return;
+                        }*/
             Entered = true;
             if (!InCutscene)
             {

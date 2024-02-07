@@ -306,7 +306,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             /*How to render stuff with shader effects:
              * 1. You need two render targets.
              * 2. Render the stuff you want affected by the shader to RT 1 (in this case, whatever is in "CoolStuff()".
-             * 3. Draw the contents of RT 1 to RT 2, but this time using the Shader.
+             * 3. Draw the contents of RT 1 to RT 2, but this acceleration using the Shader.
              * 4. In Render(), draw RT 2.
              * Note: ID avoid inconsistent render positions, use Matrix.Identity/Vector2.Zero in BeforeRender(), and then render to whatever position you like in Render().
              * Also stop pestering rendering pros about your jank stuff ok

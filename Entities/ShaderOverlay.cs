@@ -16,6 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private readonly string flag;
         public Effect Effect;
         private string path;
+        public float Alpha = 1;
         public bool ForceLevelRender;
         public float Amplitude;
         public bool UsesFlag;
@@ -32,12 +33,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return FlagState(Scene as Level);
             }
         }
-        public ShaderOverlay(string path, string flag = "", bool forceRender = false) : base(Vector2.Zero)
+        public ShaderOverlay(string path, string flag = "", bool forceRender = false, float alpha = 1) : base(Vector2.Zero)
         {
             this.path = path;
             Effect = ShaderHelper.TryGetEffect(path, true);
             this.flag = flag;
+            Alpha = alpha;
             ForceLevelRender = forceRender;
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            Effect?.Dispose();
+            Effect = null;
         }
         public virtual void ApplyParameters(bool identity)
         {
@@ -64,12 +72,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static void Load()
         {
-            //Node: don't add onContentUpdate, it messes with things. Just use runCompiler.bat
+            //Note: don't add onContentUpdate, it messes with things. Just use runCompiler.bat
             On.Celeste.Glitch.Apply += Apply_HOOK;
         }
         public static void Unload()
         {
             On.Celeste.Glitch.Apply -= Apply_HOOK;
+
         }
         public static void Apply_HOOK(On.Celeste.Glitch.orig_Apply orig, VirtualRenderTarget source, float timer, float seed, float amplitude)
         {
@@ -85,17 +94,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (so != null && so.State)
                 {
-                    Apply(source, source, so, false);
+                    Apply(source, source, so, false, so.Alpha);
                 }
             }
         }
-        public static void Apply(VirtualRenderTarget source, VirtualRenderTarget target, ShaderOverlay overlay, bool clear = false)
-        {  
-            if (source is null || target is null || overlay is null)
+        public static void Apply(VirtualRenderTarget source, VirtualRenderTarget target, ShaderOverlay overlay = null, bool clear = false, float alpha = 1)
+        {
+            if (source is null || target is null)
             {
                 return;
             }
-            overlay.ApplyParameters(true);
+            overlay?.ApplyParameters(true);
             VirtualRenderTarget tempA = GameplayBuffers.TempA;
             Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
@@ -109,11 +118,58 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Engine.Instance.GraphicsDevice.Clear(Color.Transparent);
             }
 
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, overlay.Effect);
-            Draw.SpriteBatch.Draw((RenderTarget2D)tempA, Vector2.Zero, Color.White);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, overlay?.Effect);
+            Draw.SpriteBatch.Draw((RenderTarget2D)tempA, Vector2.Zero, Color.White * alpha);
             Draw.SpriteBatch.End();
         }
+        public static void Apply(VirtualRenderTarget source, VirtualRenderTarget target, Rectangle destinationRectangle, ShaderOverlay overlay = null, bool clear = false, float alpha = 1)
+        {
+            if (source is null || target is null)
+            {
+                return;
+            }
+            overlay?.ApplyParameters(true);
+            VirtualRenderTarget tempA = GameplayBuffers.TempA;
+            Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
+            Engine.Instance.GraphicsDevice.Clear(Color.Transparent);
 
+            Draw.SpriteBatch.Draw((RenderTarget2D)source, Vector2.Zero, Color.White);
+            GameplayRenderer.End();
+            Engine.Instance.GraphicsDevice.SetRenderTarget(target);
+            if (clear)
+            {
+                Engine.Instance.GraphicsDevice.Clear(Color.Transparent);
+            }
+
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, overlay?.Effect);
+            Draw.SpriteBatch.Draw((RenderTarget2D)tempA, destinationRectangle, Color.White * alpha);
+            Draw.SpriteBatch.End();
+        }
+        public static void Apply(VirtualRenderTarget source, VirtualRenderTarget target, Rectangle destinationRectangle, Rectangle? sourceRectangle, ShaderOverlay overlay = null, bool clear = false, float alpha = 1)
+        {
+            if (source is null || target is null)
+            {
+                return;
+            }
+            overlay?.ApplyParameters(true);
+            VirtualRenderTarget tempA = GameplayBuffers.TempA;
+            Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
+            Engine.Instance.GraphicsDevice.Clear(Color.Transparent);
+
+            Draw.SpriteBatch.Draw((RenderTarget2D)source, Vector2.Zero, Color.White);
+            GameplayRenderer.End();
+            Engine.Instance.GraphicsDevice.SetRenderTarget(target);
+            if (clear)
+            {
+                Engine.Instance.GraphicsDevice.Clear(Color.Transparent);
+            }
+
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, overlay?.Effect);
+            Draw.SpriteBatch.Draw((RenderTarget2D)tempA, destinationRectangle, sourceRectangle, Color.White * alpha);
+            Draw.SpriteBatch.End();
+        }
         public bool FlagState(Level level)
         {
             if (!UsesFlag)

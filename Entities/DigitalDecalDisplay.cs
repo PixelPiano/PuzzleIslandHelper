@@ -71,7 +71,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             AlphaBlendFunction = BlendFunction.Add,
             AlphaDestinationBlend = Blend.SourceColor
         };
-
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            _BubbleMask?.Dispose();
+            _BubbleObject?.Dispose();
+            _BubbleOutline?.Dispose();
+            _BoxTarget?.Dispose();
+            _LineRenderTarget?.Dispose();
+            _BubbleMask = null;
+            _BubbleObject = null;
+            _BubbleOutline = null;
+            _BoxTarget = null;
+            _LineRenderTarget = null;
+        }
         public DigitalDecalDisplay(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {

@@ -2,7 +2,7 @@ local piCutscene = {}
 
 piCutscene.name = "PuzzleIslandHelper/PICutscene"
 
-local cutscenes = {"Prologue","Calidus1","GetInvert","GrassShift","Gameshow","End","TEST"}
+local cutscenes = {"Prologue","Calidus1","GetInvert","GrassShift","Gameshow","Fountain","End","TEST"}
 piCutscene.placements =
 {
     {
@@ -13,7 +13,8 @@ piCutscene.placements =
         flag = "",
         oncePerRoom = false,
         oncePerPlaythrough = false,
-        activateOnTransition = false
+        activateOnTransition = false,
+        assignableInt = 0
         }
     },
 }

@@ -9,28 +9,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
     [Tracked]
     public class BetterWindow : Entity
     {
-        public static bool AccessLoad = false;
         public Sprite Sprite;
         public Sprite xSprite;
         public Sprite button;
-        public static bool KeysSwitched = false;
         public bool PressingButton;
         public Entity x;
-        public static Vector2 DrawPosition;
+        public Vector2 DrawPosition;
         public Collider backupCollider;
         public Collider windowCollider;
-        public Collider header = new Hitbox(WindowWidth, 9);
+        public Collider header = new Hitbox(BaseWidth, 9);
         public string Name = "";
         public bool WasDrawing = false;
-        public static float WindowWidth = 200;
-        public static float WindowHeight = 120;
-        public static float CaseWidth = 1;
-        public static float CaseHeight = 1;
-        public static float TextCaseWidth = 1;
-        public static int tabHeight = 9;
+        public const float BaseWidth = 200;
+        public const float BaseHeight = 120;
+        public float WindowWidth = 200;
+        public float WindowHeight = 120;
+        public float CaseWidth = 1;
+        public float CaseHeight = 1;
+        public float TextCaseWidth = 1;
+        public int tabHeight = 9;
         private Vector2 PicoDimensions = new Vector2(160, 90);
-        public static readonly Vector2 TextOffset = Vector2.One * 3;
-        public static bool Drawing = false;
+        public const int TextOffset = 3;
+        public bool Drawing = false;
         public Rectangle TabArea;
         public TextWindow TextWindow;
         private bool WaitForClickRelease;
@@ -60,6 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         }
         public void ChangeWindowText(string dialog)
         {
+            if (TextWindow is null) return;
             TextWindow.ChangeCurrentID(dialog);
         }
         public override void Render()
@@ -80,11 +81,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             x.Position = new Vector2(TabArea.X + (int)CaseWidth - 8, TabArea.Y + 1); //must be adjusted after rectangles are drawn
             xSprite.Play("idle");
             xSprite.Render();
-            if (ComputerIcon.TextDictionary.Contains(Name) || ComputerIcon.StaticText.Contains(Name))
-            {
-                TextWindow.TextWidth = (int)TextCaseWidth;
-                TextWindow.Drawing = true;
-            }
+            TextWindow.TextWidth = (int)TextCaseWidth;
+            TextWindow.Drawing = true;
+            /*            if (ComputerIcon.TextDictionary.Contains(Name) || ComputerIcon.StaticText.Contains(Name))
+                        {
+                            TextWindow.Drawing = true;
+                        }*/
         }
         public void DisableButtons()
         {
@@ -103,10 +105,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public override void Update()
         {
             UpdateWindow();
-            if (!Interface.LeftClicked && WaitForClickRelease)
-            {
-
-            }
             Position = Position.ToInt();
             DrawPosition = Position;
             Visible = Drawing;
@@ -116,7 +114,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 x.Collider = backupCollider;
             }
-            TextWindow.TextPosition = Position.ToInt() + TextOffset.ToInt();
+            TextWindow.TextPosition = Position.ToInt() + TextOffset * Vector2.One;
+
             WasDrawing = Drawing;
             base.Update();
             if (Drawing)
@@ -150,24 +149,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         }
         public void UpdateWindow()
         {
-            if (Name == "text" || Name == "info")
+            string lower = Name.ToLower();
+            if (lower == "text" || lower == "info")
             {
                 if (TextWindow is not null && TextWindow.activeText is not null)
                 {
                     CaseHeight = (int)((TextWindow.activeText.BaseSize * TextWindow.activeText.Lines / 6 * TextWindow.textScale) + TextWindow.activeText.BaseSize / 6 + 3);
                 }
             }
-            TabColor = Color.Lerp(Name == "unknown" ? Color.Red : Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
+            TabColor = Color.Lerp(lower == "unknown" ? Color.Red : Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
         }
         public void PrepareWindow()
         {
-            if(Drawing) return;
-            RemoveButtons();
+            if (Drawing) return;
+            RemoveComponents();
 
             CaseWidth = WindowWidth;
             CaseHeight = WindowHeight;
-            TextCaseWidth = 1;
-            switch (Name) //set variables based on name
+            TextCaseWidth = WindowWidth;
+            TextWindow.Initialize(Interface.CurrentIconName);
+            switch (Name.ToLower()) //set variables based on name
             {
                 case "text":
                     //CaseHeight = (int)TextDimensions.Y;
@@ -219,6 +220,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
                     Add(new CustomButton(Interface, "Switch", 35f, Vector2.Zero, Interface.pipeContent.Switch));
                     break;
+                case "fountain":
+                    TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
+                    break;
                 case "life":
                     TabColor = Color.Lerp(Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
                     CaseWidth++;
@@ -235,11 +239,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         }
         public void Close()
         {
-            RemoveButtons();
+            RemoveComponents();
             x.Collider = null;
             Drawing = false;
         }
-        public void RemoveButtons()
+        public void RemoveComponents()
         {
             List<Component> toRemove = new();
             foreach (Component c in Components)
@@ -248,7 +252,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 {
                     toRemove.Add(c);
                 }
-                if(c is InputBox)
+                if (c is InputBox)
                 {
                     toRemove.Add(c);
                 }

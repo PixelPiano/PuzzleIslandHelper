@@ -14,8 +14,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         private static readonly Dictionary<string, List<string>> fontPaths;
         public FancyTextExt.Text activeText;
         private static string fontName = "alarm clock";
-        public static bool Drawing = false;
-        public static string CurrentID = "";
+        public bool Drawing = false;
+        public string CurrentID = "";
         private string LastUsedID;
         static TextWindow()
         {
@@ -31,37 +31,41 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public float textScale = 0.7f;
         #endregion
         public Interface Interface;
+        public BetterWindow Window;
         public TextWindow(Interface inter, string dialog)
         {
             Tag |= TagsExt.SubHUD | Tags.TransitionUpdate;
             Interface = inter;
+            Window = inter.Window;
             Depth = Interface.BaseDepth - 5;
-            ChangeCurrentID(dialog);
         }
-        public void ChangeCurrentID(string text, bool dialog = true)
+        public void Initialize(string dialog)
         {
-            if (LastUsedID == text)
+            ChangeCurrentID(dialog, true, true);
+        }
+        public void ChangeCurrentID(string text, bool dialog = true, bool forceChange = false)
+        {
+            if (LastUsedID == text && !forceChange)
             {
                 return;
             }
-            activeText = FancyTextExt.Parse(dialog ? Dialog.Get(text) : text, (int)BetterWindow.CaseWidth * 8, 15, Vector2.Zero, 1);
+            activeText = FancyTextExt.Parse(dialog ? Dialog.Get(text) : text, (int)Window.CaseWidth * 8, 15, Vector2.Zero, 1);
             LastUsedID = text;
             CurrentID = text;
         }
         public override void Render()
         {
             base.Render();
-            if (Scene as Level == null)
+            if (Scene is not Level level)
             {
                 return;
             }
-            l = Scene as Level;
 
             //if the text is being drawn
-            if (Drawing)
+            if (Drawing && !string.IsNullOrEmpty(CurrentID) && activeText != null)
             {
                 activeText.Font ??= ActiveFont.Font;
-                activeText?.Draw(ToInt(l.Camera.CameraToScreen(TextPosition)) * 6, Vector2.Zero, Vector2.One * textScale, 1f, Interface.NightMode ? Color.White : Color.Black);
+                activeText?.Draw(ToInt(level.Camera.CameraToScreen(TextPosition)) * 6, Vector2.Zero, Vector2.One * textScale, 1f, Interface.NightMode ? Color.White : Color.Black);
 
             }
         }
@@ -69,7 +73,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         {
 
             base.Update();
-            if (!BetterWindow.Drawing)
+            if (!Window.Drawing)
             {
                 Drawing = false;
                 return;

@@ -64,6 +64,9 @@
           <HintPath>..\..\MonoMod.exe</HintPath>
         </Reference>
         <Reference Include="PresentationCore" />
+        <Reference Include="PrismaticHelper">
+          <HintPath>libs\PrismaticHelper.dll</HintPath>
+        </Reference>
         <Reference Include="vitmod">
           <HintPath>libs\vitmod.dll</HintPath>
         </Reference>

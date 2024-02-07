@@ -1,11 +1,13 @@
 Links:
+  - ID: Emergency
+    Room: digiCalidus
   - ID: Test
     Room: aaaAa
   - ID: EndingTestA
     Room: aaaAa
   - ID: EndingTestB
     Room: jumpRope
-    Wait: true
+    Wait: 20
   - ID: mmntm
     Room: digiD1
   - ID: swrv

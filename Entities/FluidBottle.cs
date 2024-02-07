@@ -473,7 +473,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Vector2 Current = Position;
             bool condition1 = Current.Y < ReleasedPosition.Y; //aka if it hit the ceiling 
-            bool condition2 = ReleasedPosition != Vector2.Zero; //if it moved at all
+            bool condition2 = ReleasedPosition != Vector2.Zero; //if it opened at all
             bool condition3 = MathHelper.Distance(Current.Y, ReleasedPosition.Y) > 17; //if the player isn't just dropping it
             bool condition4 = MathHelper.Distance(Current.X, ReleasedPosition.X) > 0;
             if (Released && condition2 && !InTightSpaceWhenThrown && (condition3 || condition1 || condition4))

@@ -37,6 +37,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Image.Color = color;
             Display.Color = color;
         }
+        public override void Render()
+        {
+            Image.DrawSimpleOutline();
+            base.Render();
+        }
         private void Interact(Player player)
         {
             Add(new Coroutine(Collect(player)));

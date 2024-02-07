@@ -1,85 +1,95 @@
 Layouts:
   Default:
     Icons:
-      - ID: unknown
+      - ID: Unknown
         Tab: a
-      - ID: text
+      - ID: Text
         Tab: aa
         Window: TODO
-      - ID: pico
+      - ID: Pico
         Tab: aaa
-      - ID: info
+      - ID: Info
         Tab: aaaa
         Window: INFO
-      - ID: folder
+      - ID: Folder
         Tab: aaaaa
-      - ID: invalid
+      - ID: Invalid
         Tab: aaaa
-      - ID: access
+      - ID: Access
         Tab: aa
         Window: ACCESS
-      - ID: sus
+      - ID: Sus
         Tab: aaaa
-      - ID: ram
+      - ID: Ram
         Tab: aaa
+  Calidus1:
+    Icons:
+      - ID: Access
+        Tab: Emergency
+  Fountain:
+    Icons:
+      - ID: Fountain
+        Tab: Maintenance
+      - ID: info
+        Tab: put something here relating to the fountain or generator    
   Access:
     Icons:
-      - ID: access
+      - ID: Access
         Tab: Key Terminal.exe
         Window: ACCESS
   Life:
     Icons:
-      - ID: life
+      - ID: GameOfLife
         Tab: LIFE
-      - ID: info
+      - ID: Info
         Tab: some random info i guess
   Pipes:
     Icons:
-      - ID: pipe
+      - ID: Pipe
         Tab: Route Config.exe
         Window: PIPE
   Chat:
     Icons:
-      - ID: chatlog
+      - ID: ChatLog
         Tab: Chat log test
         Window: GREENHEART
   SOS:
     Icons:
-      - ID: text
+      - ID: Text
         Tab: 92#@$H#@##)D@
         Window: 3kb
-      - ID: text
+      - ID: Text
         Tab: H3$@_&s
         Window: CryForHelp
   something:
     Icons:
-      - ID: unknown
+      - ID: Unknown
         Tab: SectorSurv.cam
-      - ID: text
+      - ID: Text
         Tab: Log1C.txt
         Window: TEXT4
   something2:
     Icons:
-      - ID: unknown
+      - ID: Unknown
         Tab: LiquidConv.bat
-      - ID: unknown
+      - ID: Unknown
         Tab: idk.bat
-      - ID: text
+      - ID: Text
         Tab: Log1B.txt
         Window: TEXT3
-      - ID: ram
+      - ID: Ram
         Tab: VERY REAL OPPORTUNITY FOR SPACE UNLIMITED.exe
   something3:
     Icons:
-      - ID: text
+      - ID: Text
         Tab: To do.txt
         Window: TEXT1
-      - ID: text
+      - ID: Text
         Tab: Log1A.txt
         Window: TEXT2
-      - ID: text
+      - ID: Text
         Tab: Log1C.txt
         Window: TEXT4
-      - ID: info
+      - ID: Info
         Tab: Notice.info
         Window: INFO1

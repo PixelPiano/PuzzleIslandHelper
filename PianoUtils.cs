@@ -2,9 +2,12 @@
 using Celeste;
 using Celeste.Mod;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using FrostHelper;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
+using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -68,6 +71,35 @@ public static class PianoUtils
     {
         InstantTeleport(scene, room, newPosition.X, newPosition.Y);
     }
+    public static List<T> CheckAdd<T>(this List<T> list, T value)
+    {
+        if (!list.Contains(value))
+        {
+            list.Add(value);
+        }
+        return list;
+    }
+    public static void DrawSimpleOutlines(this IEnumerable<GraphicsComponent> components)
+    {
+        foreach (GraphicsComponent g in components)
+        {
+            g.DrawSimpleOutline();
+        }
+    }
+    public static void DrawOutlines(this IEnumerable<GraphicsComponent> components, int offset = 1)
+    {
+        foreach (GraphicsComponent g in components)
+        {
+            g.DrawOutline(offset);
+        }
+    }
+    public static void DrawOutlines(this IEnumerable<GraphicsComponent> components, Color color, int offset = 1)
+    {
+        foreach (GraphicsComponent g in components)
+        {
+            g.DrawOutline(color,offset);
+        }
+    }
     public static void InstantTeleport(Scene scene, string room, float positionX, float positionY)
     {
         Level level = scene as Level;
@@ -116,6 +148,18 @@ public static class PianoUtils
             }
         };
     }
+    public static Entity MakeGlobal(this Entity entity)
+    {
+        entity.AddTag(Tags.Global);
+        entity.AddTag(Tags.Persistent);
+        return entity;
+    }
+    public static Entity MakeLocal(this Entity entity)
+    {
+        entity.RemoveTag(Tags.Global);
+        entity.RemoveTag(Tags.Persistent);
+        return entity;
+    }
     public static Vector2 Marker(this Scene scene, string id, bool screenSpace = false)
     {
         if ((scene as Level).Tracker.GetEntities<Marker>() != null)
@@ -129,6 +173,10 @@ public static class PianoUtils
             }
         }
         return Vector2.Zero;
+    }
+    public static Vector2 MarkerCentered(this Scene scene, string id, bool screenSpace = false)
+    {
+        return scene.Marker(id, screenSpace) - new Vector2(160, 90);
     }
     public static Facings Flip(this Facings facing)
     {
@@ -399,6 +447,7 @@ public static class PianoUtils
     {
         return new Vector2(rect.Left, rect.Top);
     }
+
     public static T SeekController<T>(Scene scene, Func<T> factory = null) where T : Entity
     {
         T controller = scene.Tracker.GetEntity<T>();

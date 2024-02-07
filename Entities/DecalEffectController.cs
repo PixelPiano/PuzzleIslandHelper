@@ -92,6 +92,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             shouldGlitch = data.Bool("glitch");
             audio = data.Attr("event", "event:/new_content/game/10_farewell/glitch_short");
         }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            _SpriteTarget?.Dispose();
+            _FlashMaskTarget?.Dispose();
+            _FlashObject?.Dispose();
+            _ColorFix?.Dispose();
+            _SpriteTarget = null;
+            _ColorFix = null;
+            _FlashObject = null;
+            _FlashMaskTarget = null;
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);

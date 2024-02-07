@@ -42,6 +42,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public static VirtualRenderTarget DummyRenderTarget => _DummyRenderTarget ??=
                       VirtualContent.CreateRenderTarget("DigitalGrid", 320, 180);
 
+
+        public override void Ended(Scene scene)
+        {
+            base.Ended(scene);
+            _DummyRenderTarget?.Dispose();
+            _DummyRenderTarget = null;
+            _GridRenderTarget?.Dispose();
+            _GridRenderTarget = null;
+        }
         public DigitalGrid(float lineWidth, float lineHeight, float ratex, float ratey, int xSpacing, int ySpacing,
                             string color, bool movingEnabled, float diagY, float diagX,
                             float opacity, bool verticalLines, bool horizontalLines, bool blur, bool glitch)

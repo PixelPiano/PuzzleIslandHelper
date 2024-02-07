@@ -49,13 +49,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private char[,] TilePlacements;
         public List<Vector2> Vectors = new();
         public VirtualRenderTarget Block;
-        private PolygonCollider PolygonCollider;
         private List<Vector2> Unordered = new();
         private bool Falling;
         public Rectangle AABB;
         private FancySolidTiles FancyBlock;
         private bool BreakOnImpact;
-        private Random random = new Random((int)Engine.Scene.TimeActive);
         private ParticleSystem particles;
         private bool DashCollided;
         private bool FromController;
@@ -311,7 +309,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Vectors[i] = RotatePoint(orig_Vectors[i] + Vector2.UnitY * OffsetY, FancyBlock.Center, Rotation);
                 }
                 SetAABB();
-                Collider = PolygonCollider = new PolygonCollider(Vectors.ToArray(), this, false);
+                Collider = new PolygonCollider(Vectors.ToArray(), this, false);
                 AppearParticles();
                 if (Collide.Check(this, player) && player.StateMachine.State != Player.StDash && !DashCollided)
                 {
@@ -572,7 +570,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Awake(scene);
             player = SceneAs<Level>().Tracker.GetEntity<Player>();
-            Block = VirtualContent.CreateRenderTarget("Block", (int)FancyBlock.Width, (int)FancyBlock.Height);
+            Block = VirtualContent.CreateRenderTarget("FancyBlock", (int)FancyBlock.Width, (int)FancyBlock.Height);
         }
         private DashCollisionResults OnDashed(Player player, Vector2 direction)
         {

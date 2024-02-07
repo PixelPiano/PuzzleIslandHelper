@@ -34,6 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private static VirtualRenderTarget _Blend;
         public static VirtualRenderTarget Blend => _Blend ??=
               VirtualContent.CreateRenderTarget("GlitchBlockBlend", 320, 180);
+        
 
         [OnLoad]
         public static void Load()
@@ -45,6 +46,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public static void Unload()
         {
             Shader?.Dispose();
+            _BgTarget?.Dispose();
+            _Blend?.Dispose();
+            _Target?.Dispose();
+            _BgTarget = null;
+            _Blend = null;
+            _Target = null;
             IL.Celeste.Level.Render -= VeryFunny;
             Everest.Content.OnUpdate -= Content_OnUpdate;
         }

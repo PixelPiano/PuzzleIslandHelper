@@ -77,6 +77,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private bool LeaveOutHair;
 
         private EntityID id;
+        public override void Ended(Scene scene)
+        {
+            base.Ended(scene);
+            _MaskRenderTarget?.Dispose();
+            _ObjectRenderTarget?.Dispose();
+            _MaskRenderTarget = null;
+            _ObjectRenderTarget = null;
+
+        }
 
         public static readonly BlendState AlphaMaskBlendState = new()
         {
@@ -109,11 +118,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             opacityBufferCounter = 1;
         }
 
-        public override void Ended(Scene scene)
-        {
-            base.Ended(scene);
 
-        }
         /*        internal static void Load()
                 {
                     Everest.Events.Level.OnTransitionTo += Transition;

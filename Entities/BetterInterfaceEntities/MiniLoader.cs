@@ -21,8 +21,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         private int maxLines;
         private float maxBarLength;
         public bool Finished;
-        public MiniLoader(Vector2 textposition, int maxLines, string[] dialogs, float textSize, float maxLineLength, float maxBarLength) : base(true, true)
+        public BetterWindow Window;
+        public MiniLoader(BetterWindow window, Vector2 textposition, int maxLines, string[] dialogs, float textSize, float maxLineLength, float maxBarLength) : base(true, true)
         {
+            Window = window;
             offset = textposition;
             this.maxLines = maxLines;
             this.dialogs = dialogs;
@@ -43,7 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public override void Added(Entity entity)
         {
             base.Added(entity);
-            Renderer = new MiniLoaderText(entity.Position + offset, dialogs, textSize, (int)maxLength, maxBarLength, maxLines);
+            Renderer = new MiniLoaderText(Window, entity.Position + offset, dialogs, textSize, (int)maxLength, maxBarLength, maxLines);
             entity.Scene.Add(Renderer);
         }
         public override void SceneEnd(Scene scene)
@@ -85,10 +87,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             public float LineYOffset;
             public const float BarHeight = 24;
             public float BarWidth;
-       
+            public BetterWindow Window;
 
-            public MiniLoaderText(Vector2 RenderPosition, string[] dialogs, float textSize, int maxLineWidth, float maxBarWidth, int maxLines)
+            public MiniLoaderText(BetterWindow window, Vector2 RenderPosition, string[] dialogs, float textSize, int maxLineWidth, float maxBarWidth, int maxLines)
             {
+                Window = window;
                 Position = RenderPosition;
                 Size = textSize;
                 Tag = TagsExt.SubHUD;
@@ -183,7 +186,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             #region Rendering
             public override void Render()
             {
-                if (!BetterWindow.Drawing)
+                if (!Window.Drawing)
                 {
                     base.Render();
                     return;

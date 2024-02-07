@@ -18,7 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public bool Pressing;
         public Collider ButtonCollider;
         public const string DefaultPath = "objects/PuzzleIslandHelper/interface/icons/";
-        public BetterWindow Window => Entity as BetterWindow;
+        public BetterWindow Window => Interface.Window;
         public string Path
         {
             get
@@ -141,17 +141,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
-            if (Visible && !Disabled)
+            if (Visible)
             {
-                if (BetterWindow.Drawing && Entity.Visible)
+                Color color = Color.Lerp(Color.Aqua, Color.Gray, Disabled ? 0.3f : 0);
+                if (Window.Drawing && Entity.Visible)
                 {
                     if (UsesCircleCollider)
                     {
-                        Draw.Circle(Circle.Position, Circle.Radius, Color.Aqua, (int)Circle.Radius * 2);
+                        Draw.Circle(Circle.Position, Circle.Radius, color, (int)Circle.Radius * 2);
                     }
                     else
                     {
-                        Draw.HollowRect(ButtonCollider, Color.Aqua);
+                        Draw.HollowRect(ButtonCollider, color);
                     }
                 }
             }

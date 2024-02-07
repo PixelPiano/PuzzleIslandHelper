@@ -48,6 +48,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Sprite Splash;
         private Image Hole;
         public Rectangle ClipRect;
+        public bool WasOn;
+        public EntityID ID;
         private bool Vertical
         {
             get
@@ -139,7 +141,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Collider HurtBox;
         public Collider orig_Collider;
         public VirtualRenderTarget Target;
-        public PipeSpout(EntityData data, Vector2 offset)
+        public PipeSpout(EntityData data, Vector2 offset, EntityID iD)
         : base(data.Position + offset)
         {
             sfx = new SoundSource(Vector2.Zero, "event:/PianoBoy/env/local/pipes/water-stream-1");
@@ -210,6 +212,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Target = VirtualContent.CreateRenderTarget("Target", (int)SplashBox.Width, (int)SplashBox.Height);
             ClipRect = SplashBox.Bounds;
             Add(new BeforeRenderHook(BeforeRender));
+            ID = iD;
         }
         public void EmitShards()
         {
@@ -516,6 +519,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            if (FlagState)
+            {
+                WasOn = true;
+                if (!PianoModule.SaveData.SpoutWreckage.Contains(ID))
+                {
+                    PianoModule.SaveData.SpoutWreckage.Add(ID);
+                }
+            }
             /*            if (!Enabled)
                         {
                             if (sfx.InstancePlaying)
@@ -632,7 +643,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            
+
             if (Scene is not Level level)
             {
                 return;
@@ -641,11 +652,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (RenderTextures && (OnlyMoveOnFlag || Enabled))
                 {
+
                     Draw.SpriteBatch.Draw(Target, SplashBox.Position, Color.White);
                 }
             }
             Hole.Rotation = Angle;
-            if (((PianoModule.SaveData.HasBrokenPipes || Broken) && FlagState) || PianoModule.SaveData.GetPipeState() > 3)
+            if (((PianoModule.SaveData.HasBrokenPipes || Broken) && (WasOn || PianoModule.SaveData.SpoutWreckage.Contains(ID))) || PianoModule.SaveData.GetPipeState() > 3)
             {
                 Hole.Render();
             }

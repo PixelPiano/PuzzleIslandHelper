@@ -1,6 +1,6 @@
 local enums = require "consts.celeste_enums"
 local adjustAudioParamTrigger = {}
-adjustAudioParamTrigger.name = "PuzzleIslandHelper/AdjustAudioParamTrigger"
+adjustAudioParamTrigger.name = "PuzzleIslandHelper/AdjustEffectParamTrigger"
 
 local effects = {"Chorus","Distortion","Echo","Flange","Normalize","Oscillator","PitchShift","Tremolo"}
 local waves = {"Sine","Square","Sawup","Sawdown","Triangle","Noise"}

@@ -33,6 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         private bool consumedButton;
         private Func<string, bool> onSubmit;
         public Interface Interface;
+        public BetterWindow Window;
         public Vector2 ScreenSpacePosition
         {
             get
@@ -60,6 +61,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public InputBox(Interface inter, float x, float y, Func<string, bool> onSubmit = null) : base(true, true)
         {
             Interface = inter;
+            Window = inter.Window;
             this.onSubmit = onSubmit;
             Position = new Vector2(x, y);
 
@@ -70,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         }
         public override void Update()
         {
-            Visible = BetterWindow.Drawing;
+            Visible = Window.Drawing;
             Helper.Visible = Visible;
             if (Selected)
             {

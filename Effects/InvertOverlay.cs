@@ -338,7 +338,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             if (Activated && !routine.Active)
             {
                 InvertOverlay.WaitForGlitch = false;
-                RemoveSelf();
+                EjectSelf();
             }
         }
     }*/

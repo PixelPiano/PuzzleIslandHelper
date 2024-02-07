@@ -19,7 +19,17 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public float MinDarkness = 0.05f;
         public bool ThisTimeForSure { get; set; }
         public int ButtonsPressed { get; set; }
-        public bool RestoredPower { get; set; }
+        public bool RestoredPower
+        {
+            get
+            {
+                return PianoModule.SaveData.GeneratorStarted;
+            }
+            set
+            {
+                PianoModule.SaveData.GeneratorStarted = value;
+            }
+        }
         public Dictionary<EntityID, LHLData> BrokenLamps { get; set; } = new Dictionary<EntityID, LHLData>();
         public Effect MonitorShader { get; set; }
         public int GlitchBlocks { get; set; }

@@ -54,9 +54,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private static VirtualRenderTarget _PortalMask;
         private static VirtualRenderTarget _PortalObject;
         private static VirtualRenderTarget _ParticleObject;
-        private static VirtualRenderTarget _Debug;
-        public static VirtualRenderTarget Debug => _Debug ??= VirtualContent.CreateRenderTarget("Target", 320, 180);
-
         public static VirtualRenderTarget PortalMask => _PortalMask ??= VirtualContent.CreateRenderTarget("PortalMask", 320, 180);
         public static VirtualRenderTarget PortalObject => _PortalObject ??= VirtualContent.CreateRenderTarget("PortalObject", 320, 180);
         public static VirtualRenderTarget ParticleObject => _ParticleObject ??= VirtualContent.CreateRenderTarget("PortalObject", 320, 180);
@@ -126,13 +123,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Removed(scene);
             _PortalMask?.Dispose();
-            _PortalObject.Dispose();
-            _ParticleObject.Dispose();
-            _Debug.Dispose();
+            _PortalObject?.Dispose();
+            _ParticleObject?.Dispose();
             _PortalMask = null;
             _PortalObject = null;
             _ParticleObject = null;
-            _Debug = null;
         }
         public TrianglePortal(EntityData data, Vector2 offset)
         : base(data.Position + offset)
@@ -186,8 +181,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             l = Scene as Level;
             EasyRendering.SetRenderMask(PortalMask, triangle, l);
-            EasyRendering.DrawToObject(Debug, triangle, l);
-            EasyRendering.DrawToObject(Debug, DrawInside, l);
             EasyRendering.MaskToObject(PortalObject, PortalMask, DrawInside);
 
         }

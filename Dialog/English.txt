@@ -13,6 +13,15 @@
 
 
 
+findFloppy=
+[Madeline left sad]
+Hmm? There's something in that slot...
+[Madeline left normal]
+Oh, it's... A floppy disk!
+I haven't seen one of those in AGES!
+...
+[Madeline left distracted]
+How long has this place been here?
 
 #Washer Interact while off
 #attempt 1

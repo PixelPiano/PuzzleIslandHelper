@@ -11,43 +11,26 @@ uniform float4x4 TransformMatrix;
 uniform float4x4 ViewMatrix;
 uniform float2 Center = float2(0.5,0.5);
 uniform float Speed = 0.035;
-static bool state;
+uniform float Amplitude;
 float length(float2 pos)
 {
     return sqrt(pos.x * pos.x + pos.y * pos.y);
-}
-float PulseRate(float mult, float intensity = 2, float offset = 0.5)
-{
-	return sin(Time * mult)/intensity + offset;
-}
-
-float Circle(
-    float2 uv, // uv coordinates 
-    float r, // the radius of the circle
-    float blur,  // the blur quantity;
-    float2 p // to fixed position?
-    ){
-
-    float d = length(uv - p);
-    float c = smoothstep(r, r-blur, d);
-    return c;
 }
 DECLARE_TEXTURE(text, 0);
 float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 {
 	float2 worldPos = (uv * Dimensions) + CamPos;
     float amplitude = 1;
-        float4 color = SAMPLE_TEXTURE(text, uv);
-    float a = uv.y;
-    float b = Time;
-    float x = sin(((color.r + color.b + color.g)/3) / 4);
-    float offset = a*sin(b*x) * amplitude;
-    color = SAMPLE_TEXTURE(text, float2(offset,offset));
-    //color.r *= 5;
-    //color.g *= 2;
-    //color.b = 0.1;
-    color.rgba%=Circle(uv, 2, 3.5, float2(0,0));
+    float2 playerPos = CamPos + (Dimensions * float2(0.5, 0.9));
+    float range = 0.3;
+    int r = 30;
+    float4 color = SAMPLE_TEXTURE(text, uv);
 
+    if(worldPos.x < playerPos.x - r || worldPos.x > playerPos.x + r ||
+       worldPos.y < playerPos.y - r || worldPos.y > playerPos.y + r)
+       {
+            return float4(0,0,0,1);
+       }
      
     return color;
 }

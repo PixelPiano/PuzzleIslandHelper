@@ -45,6 +45,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static VirtualRenderTarget OvalObject2 => _OvalObject2 ??= VirtualContent.CreateRenderTarget("OvalObject2", 320, 180);
         private static VirtualRenderTarget _FGTextures;
         public static VirtualRenderTarget FGTextures => _FGTextures ??= VirtualContent.CreateRenderTarget("FGTextures", 320, 180);
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            _OvalObject?.Dispose();
+            _OvalObject2?.Dispose();
+            _FGTextures?.Dispose();
+            _OvalObject = null;
+            _OvalObject2 = null;
+            _FGTextures = null;
+        }
         public DigitalCircle(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {

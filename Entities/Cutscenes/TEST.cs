@@ -5,11 +5,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.Transitions;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using VivHelper.Entities.Spinner2;
+using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
 {
@@ -20,18 +16,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         public Distortion d;
         public TEST() : base()
         {
-            
+
         }
         public override void OnBegin(Level level)
         {
-            AudioEffectGlobal.AddEffect(d = new Distortion(1), Audio.currentMusicEvent);
-
+            Add(new Coroutine(cut()));
             //EndCutscene(level);
+        }
+        private IEnumerator cut()
+        {
+            Level.Add(new BeamMeUp("digiD1"));
+            Level.Add(new BeamMeUp("digiA1", true));
+            yield return null;
         }
         public override void Update()
         {
             base.Update();
-            if(d is null) return;
+            if (d is null) return;
             d.Level += Engine.DeltaTime;
         }
         public override void OnEnd(Level level)

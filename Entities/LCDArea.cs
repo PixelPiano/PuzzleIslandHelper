@@ -25,6 +25,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private static VirtualRenderTarget _BgTarget;
         public static VirtualRenderTarget BgTarget => _BgTarget ??=
                       VirtualContent.CreateRenderTarget("LCDAreaBgTarget", 320, 180);
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            _Target?.Dispose();
+            _Target = null;
+            _BgTarget?.Dispose();
+            _BgTarget = null;
+        }
         public LCDArea(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             ColorOffset = new(0.001f, 0.0005f, -0.0005f);

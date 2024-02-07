@@ -80,6 +80,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool LeaveOutHair;
 
         private EntityID id;
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            _MaskRenderTarget?.Dispose();
+            _MaskRenderTarget = null;
+            _ObjectRenderTarget?.Dispose();
+            _ObjectRenderTarget = null;
+        }
 
         public static readonly BlendState AlphaMaskBlendState = new()
         {

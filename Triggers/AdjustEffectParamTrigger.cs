@@ -6,6 +6,7 @@ using FMOD;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -18,6 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
     {
         public string flag;
         public bool inverted;
+        public Coroutine Routine;
         public bool FlagState
         {
             get
@@ -121,12 +123,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         }
         private Easings Easing;
         private Ease.Easer Easer;
-        private Coroutine routine;
         private bool onlyOnce;
         private bool ran;
         private bool snapToValueIfOff;
         private float To;
         private bool persistUntilFinished;
+        private bool inRoutine;
         public AdjustEffectParamTrigger(EntityData data, Vector2 offset)
     : base(data, offset)
         {
@@ -134,7 +136,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             Effect = data.Enum<Effects>("effect");
             Easing = data.Enum<Easings>("easing");
             Param = data.Enum<Params>("parameter");
-            time = data.Float("time");
+            time = data.Float("acceleration");
             delay = data.Float("delay");
             Value = data.Float("value");
             To = Value;
@@ -145,7 +147,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             persistUntilFinished = data.Bool("persistUntilComplete");
             allowFlagInterrupt = data.Bool("allowFlagCancel");
             snapToValueIfOff = data.Bool("snapValueIfInterrupted");
-            Add(routine = new Coroutine());
+            Add(Routine = new Coroutine(false));
         }
         private IEnumerator Sequence()
         {
@@ -156,31 +158,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 AddTag(Tags.Persistent);
                 addedTags = true;
             }
-            if (onlyOnce && ran) yield break;
+            inRoutine = true;
             yield return delay;
-            float? fromnull = GetParam();
-            float from;
-            if (!fromnull.HasValue) yield break;
-            from = fromnull.Value;
+            float from = GetParam();
             Value = from;
+            bool broke = false;
             for (float i = 0; i < 1; i += Engine.DeltaTime / time)
             {
                 if (allowFlagInterrupt && !FlagState)
                 {
-                    if (snapToValueIfOff) Value = To;
+                    broke = true;
                     break;
                 }
                 Value = Calc.LerpClamp(from, To, Easer(i));
                 SetParam();
                 yield return null;
             }
+            if (!broke || (broke && snapToValueIfOff))
+            {
+                Value = To;
+                SetParam();
+            }
             ran = true;
             //addedTags exists just in case the entity is given a global but not persistent tag (or vice versa) in the middle of the routine.
-            if (persistUntilFinished && addedTags) 
+            if (persistUntilFinished && addedTags)
             {
                 RemoveTag(Tags.Global);
                 RemoveTag(Tags.Persistent);
             }
+            inRoutine = false;
             yield return null;
         }
         public Ease.Easer EnumToEase(Easings easing)
@@ -242,8 +248,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         }
         public void Run()
         {
-            if (!FlagState || (onlyOnce && ran)) return;
-            routine.Replace(Sequence());
+            if (!FlagState || (onlyOnce && ran) || inRoutine) return;
+            CancelSimilarAndReplace();
+        }
+        public void CancelSimilarAndReplace()
+        {
+            foreach (AdjustEffectParamTrigger trigger in SceneAs<Level>().Tracker.GetEntities<AdjustEffectParamTrigger>())
+            {
+                if(trigger == this) continue;
+                if (!trigger.ran || !trigger.inRoutine || trigger.Effect != Effect || trigger.Param != Param || trigger.ID != ID) continue;
+                trigger.Cancel();
+            }
+            Routine.Replace(Sequence());
+        }
+        public void Cancel()
+        {
+            inRoutine = false;
+            Routine.Cancel();
         }
         private void SetParam()
         {
@@ -361,7 +382,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 }
             }
         }
-        private float? GetParam()
+        private float GetParam()
         {
             for (int i = 0; i < AudioEffectGlobal.StaticDsps.Count; i++)
             {
@@ -454,7 +475,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                         break;
                 }
             }
-            return null;
+            return 0;
         }
         public bool Inverted(string flag)
         {

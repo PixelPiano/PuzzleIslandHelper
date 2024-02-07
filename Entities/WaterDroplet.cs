@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class WaterDroplet : Entity
     {
         private Player player;
-        private const float MaxSpeed = 230f;
+        private const float MaxSpeed = 350f;
         private Rectangle PlayerRectangle = new(0, 0, 0, 0);
         private float wait;
         private float startWait = Calc.Random.Range(0.1f, 0.5f);

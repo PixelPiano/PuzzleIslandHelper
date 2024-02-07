@@ -21,7 +21,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         internal enum SpecialType
         {
             DotDotDot,
-            DigitalLog
+            DigitalLog,
+            UpArrow,
+            DownArrow
         }
         internal CustomTalkComponent(float x, float y, float width, float height, Vector2 drawAt, Action<Player> onTalk, SpecialType type)
         : base(new Rectangle((int)x, (int)y, (int)width, (int)height), drawAt, onTalk, null)
@@ -46,22 +48,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     VisibleFromDistance = false;
                     CanHover = true;
                     break;
-            }
-        }
-        internal CustomTalkComponent(float x, float y, float width, float height, Vector2 drawAt, Action<Player> onTalk, bool DotDotDot)
-        : base(new Rectangle((int)x, (int)y, (int)width, (int)height), drawAt, onTalk, null)
-        {
-            if (DotDotDot)
-            {
-                sprite = new Sprite(GFX.Gui, "PuzzleIslandHelper/hover/");
-                sprite.AddLoop("idle", "digitalC", 0.5f);
-                Anim = "idle";
-                UsesSprite = true;
-                Delay = 0.5f;
-                Muted = false;
-                Loop = true;
-                VisibleFromDistance = false;
-                CanHover = false;
+                case SpecialType.UpArrow:
+                    Texture = GFX.Gui["PuzzleIslandHelper/hover/upArrow"];
+                    VisibleFromDistance = false;
+                    CanHover = false;
+                    break;
+                case SpecialType.DownArrow:
+                    Texture = GFX.Gui["PuzzleIslandHelper/hover/downArrow"];
+                    VisibleFromDistance = false;
+                    CanHover = false;
+                    break;
             }
         }
         public CustomTalkComponent(Entity thisEntity, Action<Player> onTalk) : base(new Rectangle(0, 0, (int)thisEntity.Width, (int)thisEntity.Height), new Vector2(thisEntity.X + thisEntity.Width / 2, thisEntity.Y), onTalk)
@@ -260,11 +256,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 {
                     /*                    if (Input.GuiInputController(Input.PrefixMode.Latest))
                                         {
-                                            Input.GuiButton(Input.Talk,Input.PrefixMode.Latest).DrawJustified(position, new Vector2(0.5f), Color.White * num2, num);
+                                            Input.GuiButton(Input.GoUp,Input.PrefixMode.Latest).DrawJustified(position, new Vector2(0.5f), Color.White * num2, num);
                                         }
                                         else
                                         {
-                                            ActiveFont.DrawOutline(Input.FirstKey(Input.Talk).ToString().ToUpper(), position, new Vector2(0.5f), new Vector2(num), Color.White * num2, 2f, Color.Black);
+                                            ActiveFont.DrawOutline(Input.FirstKey(Input.GoUp).ToString().ToUpper(), position, new Vector2(0.5f), new Vector2(num), Color.White * num2, 2f, Color.Black);
                                         }*/
                 }
             }

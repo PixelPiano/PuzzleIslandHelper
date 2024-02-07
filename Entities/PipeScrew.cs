@@ -67,10 +67,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (!Launched)
             {
-                if (level.Session.GetFlag(flag))
-                {
-                    Launch();
-                }
                 return;
             }
             bool onGround = OnGround();

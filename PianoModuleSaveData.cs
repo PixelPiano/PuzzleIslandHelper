@@ -8,21 +8,54 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.EscapeRoomEntities;
 using IL.Monocle;
 using Microsoft.Xna.Framework;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
+using Celeste.Mod.PuzzleIslandHelper.Triggers;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSaveData : EverestModuleSaveData
     {
-
+        public bool DrillUsed;
+        public List<string> DrillBatteryIds = new();
+        public bool HasFirstFloppy;
+        public bool FountainCanOpen;
+        public bool ForceFountainOpen;
+        public int LastElevatorLevel;
+        public bool OpenedFountain;
+        public Dictionary<EntityID, bool> MiniGenStates = new();
+        public List<EntityID> SpoutWreckage = new();
+        public List<int> FixedFloors = new();
+        public List<string> ContinuousCogIDs = new();
+        public CogData CogData = new();
+        public Dictionary<EntityID, float> CogDoorStates = new();
         public int WasherSwitchAttempts;
-        public List<PrologueGlitchBlock> ActiveGlitchBlocks= new();
+        public List<PrologueGlitchBlock> ActiveGlitchBlocks = new();
         public List<FloppyDisk> CollectedDisks = new();
-        public void TryAddDisk(FloppyDisk disk)
+        public enum Endings
+        {
+            Null,
+            Reset,
+            Recover,
+            Eject,
+            Duplicate,
+            Inject,
+        }
+        public Dictionary<Endings, bool> EndingsSeen = new()
+        {
+            {Endings.Null,false},
+            {Endings.Reset,false},
+            {Endings.Recover,false},
+            {Endings.Eject, false},
+            {Endings.Duplicate,false},
+            {Endings.Inject,false}
+        };
+        public bool TryAddDisk(FloppyDisk disk)
         {
             if (CollectedDisks.Find(item => item.Preset == disk.Preset) == null)
             {
                 CollectedDisks.Add(disk);
+                return true;
             }
+            return false;
         }
         #region Pipes
         public int PipeSwitchAttempts;
@@ -63,6 +96,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 HasBrokenPipes = false;
                 CanFixPipes = false;
                 HasFixedPipes = false;
+                ResetPipeScrew();
             }
         }
         public int GetPipeState()
@@ -96,13 +130,13 @@ namespace Celeste.Mod.PuzzleIslandHelper
         private int gridIndex;
         public bool[,] GetLifeGrid()
         {
-            if(LifeGrids.Count == 0)
+            if (LifeGrids.Count == 0)
             {
                 return null;
             }
             int index = gridIndex;
             gridIndex++;
-            if(gridIndex > LifeGrids.Count - 1)
+            if (gridIndex > LifeGrids.Count - 1)
             {
                 gridIndex = 0;
             }
@@ -136,9 +170,16 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public int PipeScrewRestingFrame;
         public void ResetPipeScrew()
         {
-            PipeScrewLaunched = false;
-            PipeScrewRestingFrame = 0;
-            PipeScrewRestingPoint = null;
+            PipeScrew screw = (PipeScrew)Monocle.Engine.Scene.Tracker.GetEntities<PipeScrew>().Find(item => (item as PipeScrew).UsedInCutscene);
+            if (screw is not null)
+            {
+                screw.Launched = false;
+                screw.Position = screw.originalPosition;
+                PianoModule.SaveData.PipeScrewRestingPoint = null;
+                PianoModule.SaveData.PipeScrewRestingFrame = 0;
+                PianoModule.SaveData.PipeScrewLaunched = false;
+                screw.Screw.Play("idle");
+            }
         }
         #endregion
     }
