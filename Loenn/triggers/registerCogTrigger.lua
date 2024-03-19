@@ -1,11 +1,11 @@
-local cogRegisterTrigger = {}
+local gearRegisterTrigger = {}
 
-cogRegisterTrigger.name = "PuzzleIslandHelper/CogRegisterTrigger"
+gearRegisterTrigger.name = "PuzzleIslandHelper/GearRegisterTrigger"
 
-cogRegisterTrigger.placements =
+gearRegisterTrigger.placements =
 {
     {
-        name = "Cog Register Trigger",
+        name = "Gear Register Trigger",
         data = {
             continuityID = "",
             idOrder = -1
@@ -13,4 +13,4 @@ cogRegisterTrigger.placements =
     },
 }
 
-return cogRegisterTrigger
+return gearRegisterTrigger

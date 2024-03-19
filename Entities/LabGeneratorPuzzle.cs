@@ -33,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private CustomTalkComponent Talk;
         public LabGeneratorPuzzle(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
-            PianoModule.SaveData.GeneratorStarted = false;
+            PianoModule.Session.GeneratorStarted = false;
             Reset = false;
             Add(Texture = new Image(GFX.Game["objects/PuzzleIslandHelper/decisionMachine/puzzle/puzzleMachine"]));
             Collider = new Hitbox(Texture.Width, Texture.Height);
@@ -967,7 +967,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             private void UpdateConnections()
-            {//Clear lit & visited flag of all lines
+            {//Clear lit & visited flag of all lineColors
                 bool hitDanger = false;
                 for (int x = 0; x < Columns; x++)
                 {

@@ -3,6 +3,7 @@ using Celeste.Mod.Backdrops;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
+using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {
@@ -51,31 +52,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             _GridRenderTarget?.Dispose();
             _GridRenderTarget = null;
         }
-        public DigitalGrid(float lineWidth, float lineHeight, float ratex, float ratey, int xSpacing, int ySpacing,
-                            string color, bool movingEnabled, float diagY, float diagX,
-                            float opacity, bool verticalLines, bool horizontalLines, bool blur, bool glitch)
+        public DigitalGrid(BinaryPacker.Element data) : base()
         {
-            this.color = Calc.HexToColor(color) * opacity;
-            Opacity = opacity;
+            Opacity = data.AttrFloat("Opacity", 1f);
+            color = Calc.HexToColor(data.Attr("color", "00ff00")) * Opacity;
             timer = 0;
             seed = 0;
             amplitude = Calc.Random.Range(1f, 7f);
             amount = Calc.Random.Range(0.01f, 0.5f);
-            usesGlitch = glitch;
-            if (blur) { effect = GFX.FxGaussianBlur; }
+            usesGlitch = data.AttrBool("glitch", false);
+            if (data.AttrBool("blur", true)) { effect = GFX.FxGaussianBlur; }
             else { effect = null; }
-            LineWidth = lineWidth;
-            LineHeight = lineHeight;
-            DiagonalOffsetY = diagY;
-            DiagonalOffsetX = diagX;
-            SpacingX = xSpacing;
-            SpacingY = ySpacing;
-            MovingEnabled = movingEnabled;
-            Rate = new Vector2(ratex, ratey);
-            VerticalLines = verticalLines;
-            HorizontalLines = horizontalLines;
-            compensation = new Vector2(xSpacing * 4, ySpacing * 4);
-            if (movingEnabled)
+            LineWidth = data.AttrFloat("verticalLineWidth", 4);
+            LineHeight = data.AttrFloat("horizontalLineHeight", 2);
+            DiagonalOffsetY = data.AttrFloat("verticalLineAngle", 10);
+            DiagonalOffsetX = data.AttrFloat("horizontalLineAngle", 10);
+            SpacingX = data.AttrInt("xSpacing", 24);
+            SpacingY = data.AttrInt("ySpacing", 24);
+            MovingEnabled = data.AttrBool("moving", true);
+            Rate = new Vector2(data.AttrFloat("rateX", 4), data.AttrFloat("rateY", 4));
+            VerticalLines = data.AttrBool("verticalLines", true);
+            HorizontalLines = data.AttrBool("horizontalLines", true);
+            compensation = new Vector2(SpacingX * 4, SpacingY * 4);
+            if (MovingEnabled)
             {
                 renderOffsetY = Rate.Y;
                 renderOffsetX = Rate.X;
@@ -116,7 +115,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 return;
             }
-            var level = scene as Level;
+            Level level = scene as Level;
+            if (level is null) return;
             currentY = level.Bounds.Top - compensation.Y;
             currentX = level.Bounds.Left - compensation.X;
             GameplayRenderer.End();

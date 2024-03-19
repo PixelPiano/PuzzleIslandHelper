@@ -11,14 +11,33 @@
 # {trigger x} this triggers an in-game event
 # {anchor} controls the visual position of the textbox in-game
 
+portfolio1=
+This is the most special (and biggest!) entity I've created so far. It is an in-universe computer, with various features.
+It has various programs it can run (with many more still to come). 
 
+This program is a simple text file. In the file "InterfacePresets.yaml", I can create presets for groups of icons. These presets are represented by floppy disks that the user can insert into the computer when they interact with it. 
+
+portfolio2=
+Here's a list of all the programs I've made that I plan to keep in the mod: {n2}{# 00FFFF}Text{#} - A standard text file. Window size changes based on the total height of the text.{n}{# 00FF00}Info{#} - A glorified text file. That's it, the only difference is the icon and the name (maybe I should give it a secondary purpose though).{n}{# 0000FF}Access{#} - A very, very specific program that I will get into later (it's heavily related to the mod's story).{n}{# FFFF00}Fountain{#} - A program that checks a condition and makes a fountain in another area move, revealing a hidden passage.{n}{# 000000}Life{#} - Conway's Game Of Life, with some added bonus features.
+lifeInfo=It's Conway's Game of Life (with some bonus features):{n}Randomize: Does what you'd expect.{n}Save: Saves the current layout in 1 of 6 slots. If all slots are full, it replaces the earliest saved slot.{n}Load: Loads the most recent slot. If used multiple times, it cycles through the rest of the slots.
+
+accessInfo=This program lets the user type in a phrase. In another file, there is a dictionary of keys that link to the names of various levels (rooms) in the map. If the user inputs the correct key, they will activate a sequence where an animation plays and they are teleported to the cooresponding level. 
+
+
+
+elevatorRocks=
+A cluster of rocks is embeded in the main control panel.
 
 findFloppy=
 [Madeline left sad]
-Hmm? There's something in that slot...
+Hm? There's something in that slot.
 [Madeline left normal]
-Oh, it's... A floppy disk!
-I haven't seen one of those in AGES!
+Oh, it's... it's...
+[Madeline left distracted]
+...uhhhhhhhhhh...
+[Madeline left normal]
+...a floppy disk!
+I can't remember the last time I saw one of those!
 ...
 [Madeline left distracted]
 How long has this place been here?
@@ -51,10 +70,10 @@ Violence is always the answer.
 
 #Prologue
 prologueGondolaRide= 
-		[Madeline left normal] 
+		[Madeline left normal]
 		hi hi ok i'm riding the gondola now this is fun memories
 
-prologue= 	
+prologue=
 		[Madeline left sad]
 		Hm?
 
@@ -77,42 +96,57 @@ prologue2=
 		{trigger 0 To Boost}
 
 		[Madeline left normal] 
-		wowow i am boosting up to the mirror, wow this mirror looks better 		than i remember it. 
-		i should be careful-
-		{trigger 1 Mirror Flash}
+		Huh? What's this stuff in the mirror?
+		{tirgger 1 Probe Glue}
+		[Madeline left distracted]
+		It's... squishy.
+		Was somebody trying to fix it?
+		[Madeline left normal]
+		Well, besides this, I didn't notice anything strange about the temple.
+		[Madeline left upset]
+		Stranger than usual, at least.
+		[Madeline left normal]
+		I guess I should head back? 
+		Theo must be worried. I'll call him once I'm out of here.
+		{trigger 2 Mirror Flash}
 
- 		{trigger 2 Blocks Appear}
-
-		[Madeline left panic]
-		huh? oh that's a block. the block stopped me from being pulled in. oh 
-		that's another bnlock. and another. i should go
-
-		{trigger 3 Abscond}
-
-prologue3=		
-		{trigger 0 Fiddle With Gondola}
-
-		[Madeline left normal] 
-		come on you stupid gondola
-		go go go go go go go go go
-
-		{trigger 1 Rope Snap}
-		[Madeline left panic] 
-	 	ah that shounded like a rope snapping
-
-		{trigger 2 Gondola fall}
+ 		{trigger 3 Blocks Appear}
 
 		[Madeline left panic]
-		distressed noise of someone falling while inside a gondola
-		[Madeline left normal] 
-		ah i have landed on a bunch of those rocks, oh wait whats this i think
+		Wah! Wh-What the...?
+		Uh...
+		..!
+prologue2a=
+		[Madeline right panic]
+		WHAT'S HAPPENING?!
+prologue3a=	
+		[Madeline right surprised]
+		Go go go go go go go go go go go go go!
+prologue3b=
+		[Madeline right angry] 
+		Come on, you stupid gondola! Work!!
+prologue3c=
+		[Madeline left surprised] 
+	 	...!
 
-		{trigger 3 get blockd nerd}
+pTA={screenoffset:-0.05,0.1}What's happening?
+pTB={screenoffset:0.3,0.3}Where am I?
+pTC={screenoffset:0.87,0.1}Where am I going?
+pTD={screenoffset:0.6,0.3}Who am I?
+pTE={1}{screenoffset:0.38,0.2}Who am I becoming?
 
-		madeline then had a block spawn on her and she is dead now oopsie 
-------------------------
+pTF=
+{screenoffset:0.4,0.7}{2}Is that...{1} the
+pTWorld= {screenoffset:0.521,0.7}World?
+
+pTAa=What's happening?
+pTBa=Where am I?
+pTCa=Where am I going?
+pTDa=Who am I?
+pTEa=Who am I becoming?
+#------------------------
 #GrassShift
-------------------------
+#------------------------
 grassShift= 
 	{trigger 0 Zoom In}
 	[Madeline left angry]
@@ -259,7 +293,7 @@ for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
 #Cutscenes
 #------------------------
 #C IS LEFT, F IS RIGHT
-GREENHEART= Remember when we came through here before?{n0}{mtRight}You mean with the scout group? When you saw your so-called "playground"?{/mtRight}{n0}Yes, and that DID happen. I don't know why you keep insisting it's fake.{n0}{mtRight}I keep insisting because you refuse to wear gas masks when experimenting. It's not healthy.{/mtRight}{n0}Why are you talking as if that matters anymore?
+GREENHEART= Remember when we came through here before?{n0}{mtRight}You mean with the scout group? When you saw your so-called "playground"?{/mtRight}{n0}Yes, and that DID happen. I wish you would just... just trust me on that. You keep insisting it's fake.{n0}{mtRight}I keep insisting because I vividly remember the expedition, and you never left my side.{/mtRight}{n0}...I'm sorry. I don't want to talk about this anymore.
 
 BLUEHEART= Hey, what's going to happen to us?{n0}{mtRight} What do you mean? Like, in the long-term or...?{/mtRight}{n0}I mean, the lab won't stay powered forever. Even on backup energy, it's going to run out eventually.{n0}{mtRight}I think the generator has a renewable energy source... but only if the pipes don't clog up.{/mtRight}{n0}But if power were to go offline... Would we just disappear?
 

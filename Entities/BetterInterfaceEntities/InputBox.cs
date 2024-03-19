@@ -3,7 +3,11 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
-using System.IO;
+using System.Collections.Generic;
+using TAS;
+using TAS.EverestInterop;
+using MonoMod.Cil;
+using Mono.Cecil.Cil;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 {
@@ -29,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public Collider Collider;
         public int Width = 120;
         public int Height = 14;
-        public bool Selected;
+        public static bool Selected;
         private bool consumedButton;
         private Func<string, bool> onSubmit;
         public Interface Interface;
@@ -70,6 +74,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         {
             Helper.Text = "";
         }
+        public void BlockKeyPress(Hotkeys.Hotkey hotkeys)
+        {
+            foreach (var key in hotkeys.Keys)
+            {
+                if (MInput.Keyboard.Pressed(key))
+                {
+                    MInput.UpdateNull();
+                }
+            }
+            MInput.UpdateNull();
+        }
+
         public override void Update()
         {
             Visible = Window.Drawing;
@@ -155,50 +171,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                             ClearText();
                         }
                     };
-                    goto IL_0157;
+                    break;
                 case '\b':
                     if (Helper.Text.Length > 0)
                     {
                         Helper.Text = Helper.Text.Substring(0, Helper.Text.Length - 1);
                     }
-                    else
+                    else if (Input.MenuCancel.Pressed)
                     {
-                        if (!Input.MenuCancel.Pressed)
-                        {
-                            break;
-                        }
-
                         Deselect();
                     }
-                    goto IL_0157;
+                    break;
                 case ' ':
                     if (Helper.Text.Length > 0 && ActiveFont.Measure(Helper.Text + c + "_").X < Width * 6)
                     {
                         Helper.Text += c;
                     }
-                    goto IL_0157;
+                    break;
                 default:
                     {
-                        if (!char.IsControl(c))
+                        if (!char.IsControl(c) && ActiveFont.FontSize.Characters.ContainsKey(c) && ActiveFont.Measure(Helper.Text + c + "_").X < Width * 6)
                         {
-                            if (ActiveFont.FontSize.Characters.ContainsKey(c))
-                            {
-                                if (ActiveFont.Measure(Helper.Text + c + "_").X < Width * 6)
-                                {
-                                    Helper.Text += c;
-                                }
-                                goto IL_0157;
-                            }
-                            break;
+
+                            Helper.Text += c;
                         }
                         break;
                     }
-                IL_0157:
-                    consumedButton = true;
-                    MInput.Disabled = true;
-                    MInput.UpdateNull();
-                    break;
             }
+            consumedButton = true;
+            MInput.Disabled = true;
+            MInput.UpdateNull();
         }
         public void Deselect()
         {
@@ -212,6 +214,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public override void Removed(Entity entity)
         {
             base.Removed(entity);
+            Selected = false;
             Helper.RemoveSelf();
 
             if (AddedToOnInput)
@@ -221,6 +224,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             }
             MInput.Disabled = false;
         }
+        public static void Load()
+        {
+            Selected = false;
+            IL.Monocle.MInput.Update += MInput_Update;
+        }
+        public static void Unload()
+        {
+            Selected = false;
+            IL.Monocle.MInput.Update -= MInput_Update;
+        }
+
+        private static void MInput_Update(ILContext il)
+        {
+            ILCursor cursor = new ILCursor(il);
+            if (cursor.TryGotoNext(
+                    MoveType.After,
+                    instr => instr.MatchCall<Engine>("get_Commands"),
+                    instr => instr.MatchLdfld<Monocle.Commands>("Open")
+                    ))
+            {
+                cursor.EmitDelegate(DisableHotkeys);
+                cursor.Emit(OpCodes.Or);
+            }
+        }
+        private static bool DisableHotkeys()
+        {
+            return Selected;
+        }
+
         [Tracked]
         public class InputBoxText : TextHelper
         {
@@ -242,7 +274,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                 {
                     return;
                 }
-                if (Track.Selected)
+                if (Selected)
                 {
                     if (timer < 0.5f)
                     {

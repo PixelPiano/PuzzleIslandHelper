@@ -29,16 +29,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 SignalHeight = height;
                 SignalTime = time;
                 On = on;
-                Add(new Coroutine(Lerp()));
+                Add(new Coroutine(Emit()));
             }
-            public IEnumerator Lerp()
+            public IEnumerator Emit()
             {
                 while (true)
                 {
+                    Amplitude = 0;
+                    while (Parent is null || Parent.Spinning || !On)
+                    {
+                        yield return null;
+                    }
                     bool spun = false;
                     for (float i = 0; i < 1; i += Engine.DeltaTime / SignalTime)
                     {
-                        if (i > 0.3f && !spun)
+                        if(i > 0.15f && !spun)
                         {
                             Parent.Emit();
                             spun = true;
@@ -46,17 +51,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         Amplitude = Ease.SineInOut(i);
                         yield return null;
                     }
+                    Amplitude = 1;
                 }
             }
             public override void ApplyParameters(bool identity)
             {
                 base.ApplyParameters(identity);
+                //todo: figure out why the signal shader effect isn't visible
                 Effect.Parameters["MaxWidth"]?.SetValue(SignalWidth);
                 Effect.Parameters["MaxHeight"]?.SetValue(SignalHeight);
                 Effect.Parameters["Center"]?.SetValue(SignalCenter);
                 Effect.Parameters["GrowTime"]?.SetValue(SignalTime);
                 Effect.Parameters["On"]?.SetValue(On);
-                Effect.Parameters["TextAlpha"]?.SetValue(TextAlpha);
+                Effect.Parameters["Alpha"]?.SetValue(TextAlpha);
             }
         }
         public ObserverRenderer Renderer;
@@ -70,16 +77,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Alert,
             Digital
         }
+
         public Modes Mode;
         public float SignalWidth;
         public float SignalHeight;
         public float SignalTime;
         public Vector2 UVCenter;
         public bool Digital;
-
-        public Observer(EntityData data, Vector2 offset) : base(data.Position + offset)
+        public bool Spinning
+        {
+            get
+            {
+                if (Sprite is null) return false;
+                return Sprite.CurrentAnimationID.Contains("spin");
+            }
+        }
+        public Observer(EntityData data, Vector2 offset) : base(data.Position + offset - Vector2.UnitY * 8)
         {
             Tag |= Tags.TransitionUpdate;
+            Depth = 1;
             SignalWidth = data.Float("signalWidth");
             SignalHeight = data.Float("signalHeight");
             SignalTime = data.Float("signalTime");
@@ -101,6 +117,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            if(Scene is not Level level) return;
             Renderer.On = Mode != Modes.Off;
             Renderer.SignalTime = Mode switch
             {
@@ -109,13 +126,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             };
             Renderer.SignalWidth = SignalWidth;
             Renderer.SignalHeight = SignalHeight;
+            Renderer.SignalCenter = (Collider.AbsolutePosition + Collider.HalfSize - level.Camera.Position) / new Vector2(320,180);
+  
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             UVCenter = Collider.AbsolutePosition + Collider.HalfSize - (scene as Level).LevelOffset;
             UVCenter /= new Vector2(320, 180);
-            Renderer = new ObserverRenderer(this, UVCenter, SignalWidth, SignalHeight, SignalTime, 0.96f);
+            Renderer = new ObserverRenderer(this, UVCenter, SignalWidth, SignalHeight, SignalTime, 0.06f);
             scene.Add(Renderer);
         }
         public override void Removed(Scene scene)

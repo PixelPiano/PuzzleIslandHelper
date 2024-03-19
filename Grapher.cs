@@ -13,7 +13,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static float piMod = 32;
         public static float step = (float)Math.PI / piMod; //Change this value
         public static bool Visible = false; // toggles effect visibility
-        public static string ColorGradeName = "PianoBoy/inverted"; // colorgrade to use for the effect
+        public static string ColorGradeName = "PianoBoy/invertFlag"; // colorgrade to use for the effect
         public static float k = 0;
         public static float lineWidth = 1f;
         public static float size = 10f;

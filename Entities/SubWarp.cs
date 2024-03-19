@@ -1,6 +1,7 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
 // PuzzleIslandHelper.SubWarp
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -99,14 +100,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             player.StateMachine.State = 11;
             Glitch.Value = 0.9f;
             yield return 0.2f;
+            if (Scene is not Level level) yield break;
             if (Room != thisLevel)
             {
                 int dashes = player.Dashes;
-                TeleportTo(this, SceneAs<Level>(), SceneAs<Level>().Tracker.GetEntity<Player>(), Room);
-                TalkWait = 0.8f;
+                Console.WriteLine("AAAAAAAAAAAAA");
+                TeleportTo(this, level, Room);
+                Console.WriteLine("AAAAA");
                 yield return null;
-                player = SceneAs<Level>().Tracker.GetEntity<Player>();
-                TeleportCleanup(SceneAs<Level>(), player);
+                level = SceneAs<Level>();
+                TalkWait = 0.8f;
+                Console.WriteLine("C");
+                //todo: fix this shit
+                player = level.Tracker.GetEntity<Player>();
+                yield return null;
+                TeleportCleanup(level);
+                Console.WriteLine("YIPPEE");
                 player.Dashes = dashes;
             }
 
@@ -121,8 +130,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             RemoveTag(Tags.Global);
             yield return null;
         }
-        private void TeleportCleanup(Scene scene, Player player)
+        private void TeleportCleanup(Scene scene)
         {
+            if(scene is not Level level || level.GetPlayer() is not Player player) return;
             if (!string.IsNullOrEmpty(TargetID))
             {
                 foreach (FadeWarpTarget target in SceneAs<Level>().Tracker.GetEntities<FadeWarpTarget>())
@@ -149,9 +159,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(new Coroutine(Cutscene(player)));
         }
 
-        public static void TeleportTo(SubWarp warp, Scene scene, Player player, string room, Player.IntroTypes introType = Player.IntroTypes.Transition, Vector2? nearestSpawn = null)
+        public static void TeleportTo(SubWarp warp, Scene scene, string room, Player.IntroTypes introType = Player.IntroTypes.Transition, Vector2? nearestSpawn = null)
         {
-            Level level = scene as Level;
+            if (scene is not Level level || level.GetPlayer() is not Player player) return;
             if (level != null)
             {
                 level.OnEndOfFrame += delegate

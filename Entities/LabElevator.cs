@@ -60,7 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             upButton.PlayerMustBeFacing = false;
             downButton.PlayerMustBeFacing = false;
             flag = data.Attr("flag");
-       
+
             moveSpeed = data.Float("moveSpeed");
             jitterAmount = data.Float("jitterAmount");
             Add(click = new SoundSource());
@@ -261,6 +261,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public IEnumerator MoveElevator(bool down)
         {
+            if (Scene is not Level level || level.GetPlayer() is not Player player) yield break;
             bool jitterState = false;
             int x = (int)Position.X;
             if (!moving)
@@ -280,12 +281,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 int nextFloor = CurrentFloor + direction;
                 bool AtEdge = !Floors.ContainsKey(nextFloor);
                 float Altitude = AtEdge ? Position.Y : Floors[nextFloor];
-                StopMoveSound();
+                float prevY = 0;
                 if (!AtEdge)
                 {
                     while (down ? Position.Y < Altitude : Position.Y > Altitude)
                     {
+                        prevY = Position.Y;
                         MovePlatforms(Altitude);
+                        if (HasPlayerRider())
+                        {
+                            player.Hair.MoveHairBy(Vector2.UnitY * (Position.Y - prevY));
+                        }
                         JitterPlatforms(jitterState);
                         jitterState = !jitterState;
                         yield return null;
@@ -310,6 +316,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Position.Y = origY;
                 }
                 MovePlatformsToX(x);
+                StopMoveSound();
                 if (!AtEdge)
                 {
                     CurrentFloor += direction;

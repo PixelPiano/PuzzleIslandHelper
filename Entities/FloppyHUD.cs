@@ -112,24 +112,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     int xmove = Input.MoveX.Value;
                     int ymove = Input.MoveY.Value * PerLine;
-                    if (PianoModule.SaveData.CollectedDisks.Count <= PerLine) ymove = 0;
-                    Selected = (Selected + xmove + ymove) % PianoModule.SaveData.CollectedDisks.Count;
+                    if (PianoModule.Session.CollectedDisks.Count <= PerLine) ymove = 0;
+                    Selected = (Selected + xmove + ymove) % PianoModule.Session.CollectedDisks.Count;
                     if(Selected < 0)
                     {
-                        Selected = PianoModule.SaveData.CollectedDisks.Count - 1;
+                        Selected = PianoModule.Session.CollectedDisks.Count - 1;
                     }
                     timer = 0;
                 }
                 yield return null;
             }
             HasChosen = true;
-            SelectedDisk = PianoModule.SaveData.CollectedDisks[Selected];
+            SelectedDisk = PianoModule.Session.CollectedDisks[Selected];
             yield return LeaveRoutine(Ease.SineIn);
             InRoutine = false;
         }
         private void DrawDisks()
         {
-            List<FloppyDisk> disks = PianoModule.SaveData.CollectedDisks;
+            List<FloppyDisk> disks = PianoModule.Session.CollectedDisks;
             if (disks.Count == 0)
             {
                 return;

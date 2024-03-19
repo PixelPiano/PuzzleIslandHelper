@@ -42,7 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         private void RegisterFlag()
         {
             SceneAs<Level>().Session.SetFlag("invertOverlay");
-            PianoModule.SaveData.HasInvert = true;
+            PianoModule.Session.HasInvert = true;
         }
         private void BgCleanup(Level level)
         {
@@ -58,7 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         {
             base.Awake(scene);
             level = (scene as Level);
-            if (PianoModule.SaveData.HasInvert)
+            if (PianoModule.Session.HasInvert)
             {
                 RemoveSelf();
             }

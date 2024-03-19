@@ -21,19 +21,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private string sFlag;
         private float Rate;
         private bool StartActive;
-        private DynamicData gliderData;
         private ParticleSystem particlesBG;
         private Direction directionA;
         private Direction directionB;
         private bool AddedComponant;
         private bool DisableAudio;
         private bool ToggleDirection;
-        private bool flag;
+        private bool flag
+        {
+            get
+            {
+                return string.IsNullOrEmpty(sFlag) || (Scene is Level level && level.Session.GetFlag(sFlag));
+            }
+        }
         private bool NoGravity;
         private bool isHeld = false;
         private bool wasThrown = false;
         private bool inRoutine = false;
-        private bool isOpen = false;
+        private bool isOpen
+        {
+            get
+            {
+                if (sprite is null) return false;
+                return sprite.CurrentAnimationID != "fall" && sprite.CurrentAnimationID != "fallLoop";
+            }
+        }
         private Color color;
         private bool start = true;
         private bool hitWall = false;
@@ -41,8 +53,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool movePlayer;
         private bool release;
         private float from;
-        private bool IsVertical;
-        private bool IsHorizontal;
+        private bool IsVertical
+        {
+            get
+            {
+                return ((directionA == Direction.Up || directionA == Direction.Down) && flag)
+                 || ((directionB == Direction.Up || directionB == Direction.Down) && !flag);
+            }
+        }
+        private bool IsHorizontal
+        {
+            get
+            {
+
+                return ((directionA == Direction.Left || directionA == Direction.Right) && flag)
+                                || ((directionB == Direction.Left || directionB == Direction.Right) && !flag);
+
+            }
+        }
         private bool drawLine = false;
         private float lineOpacity = 0.0f;
         private bool playerAdjust;
@@ -75,15 +103,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             ArrowDust.Color2 = Color.Lerp(color, Color.AliceBlue, 0.1f);
             ArrowLoad.Color = Color.Lerp(ArrowDust.Color.Invert(), Color.White, 0.5f);
             ArrowLoad.Color2 = Color.Lerp(ArrowDust.Color2.Invert(), Color.White, 0.5f);
-
-
-            IsVertical = ((directionA == Direction.Up || directionA == Direction.Down) && flag)
-                            || ((directionB == Direction.Up || directionB == Direction.Down) && !flag);
-
-            IsHorizontal = ((directionA == Direction.Left || directionA == Direction.Right) && flag)
-                            || ((directionB == Direction.Left || directionB == Direction.Right) && !flag);
-
-            gliderData = DynamicData.For(this);
         }
 
         public MovingJelly(Vector2 position, bool bubble, bool tutorial)
@@ -97,7 +116,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         #region Helper Functions
         private void AdjustPosition(Direction a, Scene scene)
         {
-
             if (isHeld && !movePlayer)
             {
                 return;
@@ -108,7 +126,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             int slightY = scene.OnInterval(8 / 60) ? 2 : 0;
             //float gravTime = (directionA == Direction.None && flag) || (directionB == Direction.None && !flag) ? 0 : Engine.DeltaTime;
-            if (CurrentDirection() != Direction.None && NoGravity) gliderData.Set("noGravityTimer", Engine.DeltaTime);
+            noGravityTimer = CurrentDirection() != Direction.None && NoGravity ? Engine.DeltaTime : 0;
 
             if (hitWall || hitFloor)
             {
@@ -193,7 +211,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             Position.Y = from;
             wasThrown = false;
-            isOpen = false;
             AppearParticles(false);
 
             for (float i = 0.0f; i < 1.0f; i += Engine.DeltaTime)
@@ -215,9 +232,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (CurrentDirection() != Direction.None)
             {
-                if (gliderData.Get<Sprite>("Texutre") is not null)
+                if (sprite is not null)
                 {
-                    gliderData.Get<Sprite>("Texture").Rotation = arrowSprite.Rotation;
+                   sprite.Rotation = arrowSprite.Rotation;
                 }
             }
             Player player = Scene.Tracker.GetEntity<Player>();
@@ -255,7 +272,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             for (int i = 0; i < 10; i++)
             {
-                if (NoGravity) gliderData.Set("noGravityTimer", Engine.DeltaTime);
+                if (NoGravity) noGravityTimer = Engine.DeltaTime;
                 yield return null;
             }
 
@@ -293,14 +310,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Speed.X = 0;
             }
-            IsVertical = ((directionA == Direction.Up || directionA == Direction.Down) && flag)
-                 || ((directionB == Direction.Up || directionB == Direction.Down) && !flag);
-
-            IsHorizontal = ((directionA == Direction.Left || directionA == Direction.Right) && flag)
-                            || ((directionB == Direction.Left || directionB == Direction.Right) && !flag);
-            flag = SceneAs<Level>().Session.GetFlag(sFlag);
-            isOpen = (string)gliderData.Get("Texture.CurrentAnimationID") != "fall" && (string)gliderData.Get("Texture.CurrentAnimationID") != "fallLoop" ? false : true;
-
             if (!inRoutine && wasThrown && !isHeld)
             {
                 release = false;
@@ -315,8 +324,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             if (!wasThrown)
             {
-                Direction temp = flag ? directionA : ToggleDirection ? directionB : Direction.None;
-                temp = ToggleDirection ? flag ? directionA : directionB : directionA;
+                Direction temp = ToggleDirection ? flag ? directionA : directionB : directionA;
                 AdjustPosition(temp, Scene as Level);
 
                 if ((isHeld && isOpen) || !isHeld)
@@ -330,7 +338,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
 
-            arrow.Position.Y = Position.Y - (isOpen ? Height * 5f + 20 : Height * 3f);
+            arrow.Position.Y = Position.Y - Height - (isOpen ? 20 : 23);
             arrow.Position.X = Position.X - 4;
             start = false;
         }
@@ -478,8 +486,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                gliderData.Get<Sprite>("Texture").Scale.Y = Calc.Approach(gliderData.Get<Sprite>("Texture").Scale.Y, Vector2.One.Y, Engine.DeltaTime * 2f);
-                gliderData.Get<Sprite>("Texture").Scale.X = Calc.Approach(gliderData.Get<Sprite>("Texture").Scale.X, (float)Math.Sign(gliderData.Get<Sprite>("Texture").Scale.X) * Vector2.One.X, Engine.DeltaTime * 2f);
+                if (sprite != null)
+                {
+                    sprite.Scale.Y = Calc.Approach(sprite.Scale.Y, 1, Engine.DeltaTime * 2);
+                    sprite.Scale.X = Calc.Approach(sprite.Scale.X, Math.Sign(sprite.Scale.X), Engine.DeltaTime * 2);
+                }
                 for (int i = 0; i < 360; i += 30)
                 {
                     particlesBG.Emit(ArrowLoad, 2, new Vector2(arrow.Center.X + Width / 2, arrow.Center.Y + 4), Vector2.One * 2f, i * (MathHelper.Pi / 180f));

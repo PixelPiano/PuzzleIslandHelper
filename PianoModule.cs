@@ -18,6 +18,7 @@ using static MonoMod.InlineRT.MonoModRule;
 using Microsoft.Xna.Framework.Graphics;
 using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
+using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -28,23 +29,31 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static PianoModuleSaveData SaveData => (PianoModuleSaveData)Instance._SaveData;
         public override Type SettingsType => typeof(PianoModuleSettings);
         public static PianoModuleSettings Settings => (PianoModuleSettings)Instance._Settings;
-
         public override Type SessionType => typeof(PianoModuleSession);
         public static PianoModuleSession Session => (PianoModuleSession)Instance._Session;
         public static StageData StageData { get; set; }
         public static InterfaceData InterfaceData { get; set; }
         public static GameshowData GameshowData { get; set; }
         public static AccessData AccessData { get; set; }
-        public static Dictionary<string, Effect> CutsceneShaders { get; set; }
         public PianoModule()
         {
             Instance = this;
         }
         public override void PrepareMapDataProcessors(MapDataFixup context)
         {
-            //SaveData.MiniGenStates.Clear();
             base.PrepareMapDataProcessors(context);
             context.Add<PianoMapDataProcessor>();
+        }
+        public static void LoadCustomData()
+        {
+            StageData = GetContent<StageData>("Tutorial");
+            InterfaceData = GetContent<InterfaceData>("InterfacePresets");
+            GameshowData = GetContent<GameshowData>("GameshowQuestions");
+            AccessData = GetContent<AccessData>("AccessLinks");
+            StageData?.ParseData();
+            GameshowData?.ParseData();
+            AccessData?.ParseData();
+
         }
         public override void LoadContent(bool firstLoad)
         {
@@ -54,125 +63,21 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 PipeSpout.DissolveTextures[i] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve0" + i];
             }
-            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/Tutorial", out var asset)
-                && asset.TryDeserialize(out StageData myData))
-            {
-                StageData = myData;
-                foreach (KeyValuePair<string, GeneratorStage> pair in StageData.Stages)
-                {
-                    StageData.Stages[pair.Key].ParseData();
-                }
-            }
-            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/InterfacePresets", out var asset2)
-                && asset2.TryDeserialize(out InterfaceData myData2))
-            {
-                InterfaceData = myData2;
-            }
-            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/GameshowQuestions", out var asset3)
-                && asset3.TryDeserialize(out GameshowData myData3))
-            {
-                GameshowData = myData3;
-                GameshowData.ParseData();
-            }
-            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/AccessLinks", out var asset4)
-                && asset4.TryDeserialize(out AccessData myData4))
-            {
-                AccessData = myData4;
-                AccessData.ParseData();
-            }
-            BlockGlitch.Shader = ShaderHelper.TryGetEffect("jitter");
-            MonitorDecalGroup.Shader = ShaderHelper.TryGetEffect("monitorDecal");
-            ArtifactTester.Shader = (LCDParallax.Shader = ShaderHelper.TryGetEffect("static"));
-            LCDParallax.Shader = ShaderHelper.TryGetEffect("lcd");
-            LCDParallax.MaskShader = ShaderHelper.TryGetEffect("sineLines");
-            ViewContent.Shader = ShaderHelper.TryGetEffect("curvedScreen");
-            CutsceneShaders = new()
-            {
-                {"GrassShift",ShaderHelper.TryGetEffect("fuzzyNoise")}
-            };
+            LoadCustomData();
+            ShaderFX.LoadFXs();
         }
-        private void PlayerHair_Render(On.Celeste.PlayerHair.orig_Render orig, PlayerHair self)
+        public static T GetContent<T>(string path)
         {
-            if (DigitalEffect.RenderCondition) orig(self);
-        }
-        private Backdrop Level_OnLoadBackdrop(MapData map, BinaryPacker.Element child, BinaryPacker.Element above)
-        {
-            if (child.Name.Equals("PuzzleIslandHelper/HairColorOverride", StringComparison.OrdinalIgnoreCase))
+            T result = default;
+            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/" + path, out ModAsset asset))
             {
-                bool[] bools = new bool[7];
-                bools[0] = child.AttrBool("zero");
-                bools[1] = child.AttrBool("one");
-                bools[2] = child.AttrBool("two");
-                bools[3] = child.AttrBool("three");
-                bools[4] = child.AttrBool("four");
-                bools[5] = child.AttrBool("five");
-                bools[6] = child.AttrBool("six");
-                return new HairColorOverride(child.Attr("noDashes"), child.Attr("oneDash"),
-                                            child.Attr("twoDashes"), child.Attr("threeDashes"),
-                                            child.Attr("fourDashes"), child.Attr("fiveDashes"),
-                                            child.Attr("sixDashes"), bools);
+                asset.TryDeserialize(out result);
             }
-            if (child.Name.Equals("PuzzleIslandHelper/DigitalOverlay", StringComparison.OrdinalIgnoreCase))
-            {
-                return new DigitalOverlay(child.AttrBool("leaveOutHair", true), child.AttrBool("backFlicker"), child.AttrBool("lineFlicker"));
-            }
-            if (child.Name.Equals("PuzzleIslandHelper/DigitalGrid", StringComparison.OrdinalIgnoreCase))
-            {
-                return new DigitalGrid(child.AttrFloat("verticalLineWidth", 4),
-                                       child.AttrFloat("horizontalLineHeight", 2),
-                                       child.AttrFloat("rateX", 4),
-                                       child.AttrFloat("rateY", 4),
-                                       child.AttrInt("xSpacing", 24),
-                                       child.AttrInt("ySpacing", 24),
-                                       child.Attr("color", "00ff00"),
-                                       child.AttrBool("moving", true),
-                                       child.AttrFloat("verticalLineAngle", 10),
-                                       child.AttrFloat("horizontalLineAngle", 10),
-                                       child.AttrFloat("Opacity", 1f),
-                                       child.AttrBool("verticalLines", true),
-                                       child.AttrBool("horizontalLines", true),
-                                       child.AttrBool("blur", true),
-                                       child.AttrBool("glitch", false));
-            }
-            if (child.Name.Equals("PuzzleIslandHelper/InvertOverlay", StringComparison.OrdinalIgnoreCase))
-            {
-                return new InvertOverlay(child.Attr("colorgradeFlag"), child.AttrFloat("timeMod"));
-            }
-            if (child.Name.Equals("PuzzleIslandHelper/ColorgradeOverlay", StringComparison.OrdinalIgnoreCase))
-            {
-                return new ColorgradeOverlay(child.Attr("colorgradeFlag"),
-                                             child.Attr("colorgradeWhenTrue", "oldsite"),
-                                             child.Attr("colorgradeWhenFalse", "none"),
-                                             child.AttrBool("fadeOnFlagSwitch"),
-                                             child.AttrFloat("timeModWhenTrue"),
-                                             child.AttrFloat("timeModWhenFalse"));
-            }
-            if (child.Name.Equals("PuzzleIslandHelper/BgTilesColorgrade", StringComparison.OrdinalIgnoreCase))
-            {
-                return new BgTilesColorgrade(child.Attr("colorgrade"));
-            }
-            if (child.Name.Equals("PuzzleIslandHelper/ParallaxWindow", StringComparison.OrdinalIgnoreCase))
-            {
-                return new ParallaxWindow(child.Attr("flag"));
-            }
-            if (child.Name.Equals("PuzzleIslandHelper/BlockGlitch", StringComparison.OrdinalIgnoreCase))
-            {
-                return new BlockGlitch();
-            }
-            if (child.Name.Equals("PuzzleIslandHelper/LCDParallax", StringComparison.OrdinalIgnoreCase))
-            {
-                return new LCDParallax(child);
-            }
-            if (child.Name.Equals("PuzzleIslandHelper/Testtt", StringComparison.OrdinalIgnoreCase))
-            {
-                return new Testtt();
-            }
-            return null;
+            return result;
         }
         public override void Load()
         {
-            Everest.Events.Level.OnLoadBackdrop += Level_OnLoadBackdrop;
-            On.Celeste.PlayerHair.Render += PlayerHair_Render;
+            InputBox.Load();
             Stool.Load();
             PuzzleSpotlight.Load();
             DigitalEffect.Load();
@@ -186,26 +91,27 @@ namespace Celeste.Mod.PuzzleIslandHelper
             DigitalOverlay.Load();
             PotionFluid.Load();
             BlockGlitch.Load();
-            MonitorDecalGroup.Load();
             DeadRefill.Load();
             LabTubeLight.Load();
             StageData.Load();
             RenderHelper.Load();
-            LCDParallax.Load();
             InterfaceData.Load();
             GameshowData.Load();
-            ViewContent.Load();
             ShaderOverlay.Load();
             PortraitRuiner.Load();
             AudioEffectGlobal.Load();
             AccessProgram.Load();
             AccessData.Load();
-            CogHolder.CogHolderRenderer.Load();
+            GearHolder.GearHolderRenderer.Load();
+            SceneSwitch.Load();
+            ShaderFX.Load();
+            PrologueBooster.Load();
+            PIPrologueSequence.Load();
         }
         public override void Unload()
         {
-            Everest.Events.Level.OnLoadBackdrop -= Level_OnLoadBackdrop;
-            On.Celeste.PlayerHair.Render -= PlayerHair_Render;
+            InputBox.Unload();
+            ShaderFX.Unload();
             LabTubeLight.Unload();
             Stool.Unload();
             PuzzleSpotlight.Unload();
@@ -218,26 +124,30 @@ namespace Celeste.Mod.PuzzleIslandHelper
             FluidBottle.Unload();
             PotionFluid.Unload();
             BlockGlitch.Unload();
-            MonitorDecalGroup.Unload();
             DeadRefill.Unload();
             StageData.Unload();
             RenderHelper.Unload();
-            LCDParallax.Unload();
             LCDArea.Unload();
             InterfaceData.Unload();
-            ViewContent.Unload();
             GameshowData.Unload();
             ShaderOverlay.Unload();
             PortraitRuiner.Unload();
             AudioEffectGlobal.Unload();
             AccessProgram.Unload();
             AccessData.Unload();
-            CogHolder.CogHolderRenderer.Unload();
+            GearHolder.GearHolderRenderer.Unload();
+            SceneSwitch.Unload();
+            BetaCube.Unload();
+            PrologueBooster.Unload();
+            PIPrologueSequence.Unload();
+            PrologueBlock.Unload();
+            ShiftAreaRenderer.Unload();
         }
 
         public override void Initialize()
         {
             PuzzleSpotlight.Initialize();
+            BetaCube.Initialize();
         }
     }
 }

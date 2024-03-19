@@ -89,7 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         : base(data.Position + offset)
         {
             flag = data.Attr("flag");
-            inverted = data.Bool("inverted");
+            inverted = data.Bool("invertFlag");
             Depth = data.Int("depth",1);
             float delay = 1f / data.Float("fps");
             sprite = new Sprite(GFX.Game, "decals/");

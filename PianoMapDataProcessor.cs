@@ -40,7 +40,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
 /*            Action<BinaryPacker.Element> miniGenHandler = miniGen =>
             {
-                PianoModule.SaveData.MiniGenStates.Add(new EntityID(levelName, miniGen.AttrInt("id")), false);
+                PianoModule.Session.MiniGenStates.Add(new EntityID(levelName, miniGen.AttrInt("id")), false);
             };*/
 
             return new Dictionary<string, Action<BinaryPacker.Element>> {

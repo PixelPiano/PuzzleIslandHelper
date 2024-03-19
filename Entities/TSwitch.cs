@@ -24,7 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private BloomPoint Bloom;
         private bool Used
         {
-            get { return PianoModule.SaveData.PressedTSwitches.ContainsKey(id); }
+            get { return PianoModule.Session.PressedTSwitches.ContainsKey(id); }
         }
         private ParticleType Dust = new ParticleType
         {
@@ -88,7 +88,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                foreach(KeyValuePair<EntityID,Vector2> entity in PianoModule.SaveData.PressedTSwitches)
+                foreach(KeyValuePair<EntityID,Vector2> entity in PianoModule.Session.PressedTSwitches)
                 {
                     if(entity.Key.ID == id.ID)
                     {
@@ -159,7 +159,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     DustParticles();
                     yield return null;
                 }
-                //Play collide sound
+                //PlayEvent collide sound
                 for (float i = 0; i < 2; i++)
                 {
                     MoveToY(Position.Y + 4);
@@ -169,9 +169,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Arrows.Visible = false;
                 StartShaking(0.4f);
                 yield return 0.4f;
-                if (!PianoModule.SaveData.PressedTSwitches.ContainsKey(id))
+                if (!PianoModule.Session.PressedTSwitches.ContainsKey(id))
                 {
-                    PianoModule.SaveData.PressedTSwitches.Add(id, Position);
+                    PianoModule.Session.PressedTSwitches.Add(id, Position);
                 }
             }
         }

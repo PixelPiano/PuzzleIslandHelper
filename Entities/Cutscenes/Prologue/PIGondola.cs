@@ -63,10 +63,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         {
             get
             {
-                return Position + new Vector2(Width/2, 52);
+                return Position + new Vector2(Width / 2, 52);
             }
         }
-  
+
         public bool brokenLever;
 
         public bool inCliffside;
@@ -78,7 +78,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public Vector2 Halfway;
 
         public bool PrologueStart;
-
         public PIGondola(EntityData data, Vector2 offset)
             : base(data.Position + offset, 64f, 8f, safe: true)
         {
@@ -90,9 +89,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             Add(top = new Image(GFX.Game["objects/gondola/top"]));
             top.Origin = new Vector2(top.Width / 2f, 12f);
             top.Y = -52f;
-            Add(Lever = new Sprite(GFX.Game, "objects/gondola/lever"));
+            Add(Lever = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/piGondola/lever"));
             Lever.Add("idle", "", 0f, default(int));
-            Lever.Add("pulled", "", 0.5f, "idle", 1, 1);
+            Lever.Add("pulled", "", 0.2f, "idle", 0, 1);
             Lever.Origin = new Vector2(front.Width / 2f, 12f);
             Lever.Y = -52f;
             Lever.Play("idle");
@@ -101,7 +100,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             Destination = offset + data.Nodes[0];
             Halfway = (Position + Destination) / 2f;
             base.Depth = -10500;
-            inCliffside = true;
+            inCliffside = data.Bool("active", defaultValue: true);
             SurfaceSoundIndex = 28;
         }
 
@@ -132,7 +131,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             if (!inCliffside)
             {
                 Position = Destination;
-                Lever.Visible = false;
                 UpdatePositions();
                 JumpThru jumpThru = new JumpThru(Position + new Vector2((0f - base.Width) / 2f, -36f), (int)base.Width, safe: true);
                 jumpThru.SurfaceSoundIndex = 28;
@@ -144,28 +142,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 
         public override void Update()
         {
-            if (inCliffside)
+            float num = ((Math.Sign(Rotation) == Math.Sign(RotationSpeed)) ? 8f : 6f);
+            if (Math.Abs(Rotation) < 0.5f)
             {
-                float num = ((Math.Sign(Rotation) == Math.Sign(RotationSpeed)) ? 8f : 6f);
-                if (Math.Abs(Rotation) < 0.5f)
-                {
-                    num *= 0.5f;
-                }
-
-                if (Math.Abs(Rotation) < 0.25f)
-                {
-                    num *= 0.5f;
-                }
-
-                RotationSpeed += (float)(-Math.Sign(Rotation)) * num * Engine.DeltaTime;
-                Rotation += RotationSpeed * Engine.DeltaTime;
-                Rotation = Calc.Clamp(Rotation, -0.4f, 0.4f);
-                if (Math.Abs(Rotation) < 0.02f && Math.Abs(RotationSpeed) < 0.2f)
-                {
-                    Rotation = (RotationSpeed = 0f);
-                }
+                num *= 0.5f;
             }
 
+            if (Math.Abs(Rotation) < 0.25f)
+            {
+                num *= 0.5f;
+            }
+            RotationSpeed += (float)(-Math.Sign(Rotation)) * num * Engine.DeltaTime;
+            Rotation += RotationSpeed * Engine.DeltaTime;
+            Rotation = Calc.Clamp(Rotation, -0.4f, 0.4f);
+            if (Math.Abs(Rotation) < 0.02f && Math.Abs(RotationSpeed) < 0.2f)
+            {
+                Rotation = (RotationSpeed = 0f);
+            }
             UpdatePositions();
             base.Update();
         }
@@ -175,11 +168,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             back.Position = Position;
             backImg.Rotation = Rotation;
             front.Rotation = Rotation;
-            if (!brokenLever)
-            {
-                Lever.Rotation = Rotation;
-            }
-
             top.Rotation = Calc.Angle(Start, Destination);
         }
 

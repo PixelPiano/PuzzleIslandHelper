@@ -1,6 +1,7 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
 using Celeste.Mod;
+using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FrostHelper;
 using Microsoft.Xna.Framework;
@@ -10,11 +11,113 @@ using System;
 using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 public static class PianoUtils
 {
+    public static Collider Boundaries(this IEnumerable<Vector2> positions)
+    {
+        float left, top, right, bottom;
+        left = top = float.MaxValue;
+        right = bottom = float.MinValue;
+        foreach (Vector2 vector in positions)
+        {
+            left = Math.Min(vector.X, left);
+            right = Math.Max(vector.X, right);
+            top = Math.Min(vector.Y, top);
+            bottom = Math.Max(vector.Y, bottom);
+        }
+        return new Hitbox(right - left, bottom - top, left, top);
+    }
+    public static FancySolidTiles Create(Vector2 position, float width, float height, string tileData, bool blendEdges)
+    {
+        EntityData BlockData = new EntityData
+        {
+            Name = "FancyTileEntities/FancySolidTiles",
+            Position = position,
+        };
+        BlockData.Values = new()
+            {
+                {"randomSeed", Calc.Random.Next()},
+                {"blendEdges", blendEdges },
+                {"width", width },
+                {"height", height },
+                {"tileData", tileData }
+            };
+        return new FancySolidTiles(BlockData, Vector2.Zero, new EntityID());
+    }
+    public static Vector2 Random(float minX, float maxX, float minY, float maxY)
+    {
+        return new Vector2(Calc.Random.Range(minX, maxX), Calc.Random.Range(minY, maxY));
+    }
+    public static Vector2 Random(Vector2 min, Vector2 max)
+    {
+        return Random(min.X, max.X, min.Y, max.Y);
+    }
+    public static VirtualRenderTarget PrepareRenderTarget(VirtualRenderTarget target, string name, int width = 320, int height = 180)
+    {
+        if (target == null || target.IsDisposed) target = VirtualContent.CreateRenderTarget(name, width, height, false);
+        return target;
+    }
+    public static Rectangle Create(this Rectangle rect, float x, float y, float width, float height)
+    {
+        rect = new Rectangle((int)x, (int)y, (int)width, (int)height);
+        return rect;
+    }
+    public static Color Random(this Color color, bool r, bool g, bool b, bool a)
+    {
+        byte red, green, blue, alpha;
+        red = r ? (byte)Calc.Random.Range(0, 256) : color.R;
+        green = g ? (byte)Calc.Random.Range(0, 256) : color.G;
+        blue = b ? (byte)Calc.Random.Range(0, 256) : color.B;
+        alpha = a ? (byte)Calc.Random.Range(0, 256) : color.A;
+        color = new Color(red, green, blue, alpha);
+        return color;
+    }
+    public static Color RandomColor(bool r, bool g, bool b, bool a)
+    {
+        float red, green, blue, alpha;
+        red = r ? Calc.Random.Range(0, 256) : 0;
+        green = g ? Calc.Random.Range(0, 256) : 0;
+        blue = b ? Calc.Random.Range(0, 256) : 0;
+        alpha = a ? Calc.Random.Range(0, 256) : 256;
+        return new Color(red, green, blue, alpha);
+    }
+    public static T Random<T>(this T[] array, int limit = -1)
+    {
+        if (limit < 0 || limit >= array.Length)
+        {
+            limit = array.Length;
+        }
+        return array[Calc.Random.Range(0, limit)];
+    }
+    public static string GetDescription<T>(this T enumerationValue) where T : struct
+    {
+        Type type = enumerationValue.GetType();
+        if (!type.IsEnum)
+        {
+            throw new ArgumentException("EnumerationValue must be of Enum type", "enumerationValue");
+        }
+
+        //Tries to find a DescriptionAttribute for a potential friendly name
+        //for the enum
+        MemberInfo[] memberInfo = type.GetMember(enumerationValue.ToString());
+        if (memberInfo != null && memberInfo.Length > 0)
+        {
+            object[] attrs = memberInfo[0].GetCustomAttributes(typeof(DescriptionAttribute), false);
+
+            if (attrs != null && attrs.Length > 0)
+            {
+                //Pull out the description value
+                return ((DescriptionAttribute)attrs[0]).Description;
+            }
+        }
+        //If we have no description attribute, just return the ToString of the enum
+        return enumerationValue.ToString();
+    }
     public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, int positionX = 0, int positionY = 0)
     {
         Level level = scene as Level;
@@ -97,7 +200,7 @@ public static class PianoUtils
     {
         foreach (GraphicsComponent g in components)
         {
-            g.DrawOutline(color,offset);
+            g.DrawOutline(color, offset);
         }
     }
     public static void InstantTeleport(Scene scene, string room, float positionX, float positionY)
@@ -273,15 +376,21 @@ public static class PianoUtils
                     Vector2 inFrontPosition = referencePoint + (Vector2.UnitX * sign * 8);
                     bool wallInFront = player.CollideCheck<Solid>(inFrontPosition);
                     bool gapInFront = !player.CollideCheck<Solid>(referencePoint + new Vector2(sign * 8, 8));
+                    bool foundJumpThru = false;
+                    if (gapInFront)
+                    {
+                        foundJumpThru = player.CollideCheck<JumpThru>(inFrontPosition + Vector2.UnitY * 2);
+                    }
                     bool foundLedge = false;
-                    for (int i = 8; i < 17; i += 8)
+                    for (int i = 8; i < 17; i += 4)
                     {
                         if (!player.CollideCheck<Solid>(inFrontPosition - (Vector2.UnitY * i)))
                         {
                             foundLedge = true;
                         }
                     }
-                    bool shouldJump = gapInFront || (foundLedge && wallInFront);
+
+                    bool shouldJump = (gapInFront && !foundJumpThru) || (foundLedge && wallInFront);
                     if (shouldJump)
                     {
                         player.Jump();

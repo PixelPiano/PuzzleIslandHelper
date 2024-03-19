@@ -1,12 +1,12 @@
 local utils = require("utils")
 local drawableSprite = require("structs.drawable_sprite")
-local cogMachine = {}
-cogMachine.justification = {0,0}
-cogMachine.name = "PuzzleIslandHelper/CogMachine"
-cogMachine.depth = 0
-function cogMachine.sprite(room, entity)
+local gearMachine = {}
+gearMachine.justification = {0,0}
+gearMachine.name = "PuzzleIslandHelper/GearMachine"
+gearMachine.depth = 0
+function gearMachine.sprite(room, entity)
     local sprites = {}
-    local path = "objects/PuzzleIslandHelper/cog/"
+    local path = "objects/PuzzleIslandHelper/gear/"
 
     local insides = drawableSprite.fromTexture(path .. "lonnInside", entity)
     table.insert(sprites,insides)
@@ -15,8 +15,8 @@ function cogMachine.sprite(room, entity)
     table.insert(sprites, center)
     return sprites
 end
-cogMachine.placements = {
-    name = "Cog Holder",
+gearMachine.placements = {
+    name = "Gear Holder",
     data = {
         onlyOnce = false,
         holderId = -1,
@@ -24,4 +24,4 @@ cogMachine.placements = {
     }
 }
 
-return cogMachine
+return gearMachine

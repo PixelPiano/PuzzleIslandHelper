@@ -1,0 +1,12 @@
+Data:
+  - Area: Forest
+    Prefix: f-1
+    Flag: InForest
+    PartialAreas:
+      - Room: f-0d
+        Sides: Right
+      - Room: r-2c
+        Sides: Left
+  - Area: Pipes
+    Prefix: r-2
+    Flag: InPipes

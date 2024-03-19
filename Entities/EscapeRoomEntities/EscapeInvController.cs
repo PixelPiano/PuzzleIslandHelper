@@ -20,11 +20,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.EscapeRoomEntities
         }
         public void AddInventory(Scene scene)
         {
-            if (PianoModule.SaveData.EscapeInv == null)
+            if (PianoModule.Session.EscapeInv == null)
             {
-                PianoModule.SaveData.EscapeInv = new EscapeInv();
+                PianoModule.Session.EscapeInv = new EscapeInv();
             }
-            scene.Add(PianoModule.SaveData.EscapeInv);
+            scene.Add(PianoModule.Session.EscapeInv);
             RemoveSelf();
         }
     }

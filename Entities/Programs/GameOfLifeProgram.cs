@@ -13,7 +13,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
         public const int H = 11;
         public GameOfLifeProgram(BetterWindow window) : base(window)
         {
-            Name = "GameOfLife";
+            Name = "GameOfLifeProgram";
             currentCells = new bool[W, H];
             newCells = new bool[W, H];
         }
@@ -31,13 +31,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
         }
         public void Store()
         {
-            PianoModule.SaveData.AddLifeGrid(currentCells);
+            PianoModule.Session.AddLifeGrid(currentCells);
         }
         public void LoadPreset()
         {
             bool wasSimulating = Simulating;
             Simulating = false;
-            bool[,] temp = PianoModule.SaveData.GetLifeGrid();
+            bool[,] temp = PianoModule.Session.GetLifeGrid();
             if (temp != null)
             {
                 currentCells = (bool[,])temp.Clone();
@@ -60,7 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             }
             if (!Simulating)
             {
-                Vector2 cPos = Interface.cursor.WorldPosition;
+                Vector2 cPos = Interface.Cursor.WorldPosition;
                 if (Collider.Bounds.Contains((int)cPos.X, (int)cPos.Y) && !Window.PressingButton)
                 {
                     if (!Cursor.LeftClicked && !Cursor.RightClicked)
@@ -115,13 +115,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             }
             MTexture texture = GFX.Game["objects/PuzzleIslandHelper/gameOfLife/cell"];
             Vector2 offset = new Vector2(2,2);
-            for (int i = 0; i < W + 1; i++) //Vertical lines (UD)
+            for (int i = 0; i < W + 1; i++) //Vertical lineColors (UD)
             {
                 Vector2 start = Position + new Vector2(i * CellSize, 0);
                 Vector2 end = new Vector2(start.X, start.Y + H * CellSize -1);
                 Draw.Line(start + offset, end + offset, Color.Black);
             }
-            for (int i = 0; i < H + 1; i++) //Horizontal lines (LR)
+            for (int i = 0; i < H + 1; i++) //Horizontal lineColors (LR)
             {
                 Vector2 start = Position + new Vector2(-1, -1 + i * CellSize);
                 Vector2 end = new Vector2(start.X + W * CellSize + 1, start.Y); ;

@@ -12,11 +12,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return PianoModule.SaveData.PipeScrewLaunched;
+                return PianoModule.Session.PipeScrewLaunched;
             }
             set
             {
-                PianoModule.SaveData.PipeScrewLaunched = value;
+                PianoModule.Session.PipeScrewLaunched = value;
             }
         }
         public Vector2 Speed;
@@ -36,7 +36,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Screw = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/fluidPipe/screw/");
             Screw.AddLoop("idle", "screw", 0.1f);
             Screw.AddLoop("spin", "screwSpin", 0.05f);
-            Screw.AddLoop("resting", "screwSpin", 0.1f, PianoModule.SaveData.PipeScrewRestingFrame);
+            Screw.AddLoop("resting", "screwSpin", 0.1f, PianoModule.Session.PipeScrewRestingFrame);
             Screw.Play("idle");
             Add(Screw);
             Collider = new Hitbox(Screw.Width, Screw.Height - 3, 0, 1);
@@ -61,7 +61,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if (Scene is not Level level || string.IsNullOrEmpty(flag) || PianoModule.SaveData.PipeScrewRestingPoint.HasValue || !UsedInCutscene)
+            if (Scene is not Level level || string.IsNullOrEmpty(flag) || PianoModule.Session.PipeScrewRestingPoint.HasValue || !UsedInCutscene)
             {
                 return;
             }
@@ -109,8 +109,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Speed.Y = 0;
                     if (Screw.Animating)
                     {
-                        PianoModule.SaveData.PipeScrewRestingPoint = Position;
-                        PianoModule.SaveData.PipeScrewRestingFrame = Screw.CurrentAnimationFrame;
+                        PianoModule.Session.PipeScrewRestingPoint = Position;
+                        PianoModule.Session.PipeScrewRestingFrame = Screw.CurrentAnimationFrame;
                         Screw.Stop();
                     }
                 }
@@ -125,7 +125,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            if (PianoModule.SaveData.PipeScrewRestingPoint.HasValue && UsedInCutscene)
+            if (PianoModule.Session.PipeScrewRestingPoint.HasValue && UsedInCutscene)
             {
                 Screw.Play("resting");
             }
@@ -135,9 +135,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (Launched && UsedInCutscene)
             {
                 GFX.Game["objects/PuzzleIslandHelper/fluidPipe/screw/screwHole"].Draw(originalPosition);
-                if (PianoModule.SaveData.PipeScrewRestingPoint.HasValue)
+                if (PianoModule.Session.PipeScrewRestingPoint.HasValue)
                 {
-                    Screw.RenderPosition = PianoModule.SaveData.PipeScrewRestingPoint.Value;
+                    Screw.RenderPosition = PianoModule.Session.PipeScrewRestingPoint.Value;
                 }
             }
             base.Render();

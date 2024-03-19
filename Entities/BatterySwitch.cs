@@ -23,7 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return !string.IsNullOrEmpty(SwitchID) && PianoModule.SaveData.DrillBatteryIds.Contains(SwitchID);
+                return !string.IsNullOrEmpty(SwitchID) && PianoModule.Session.DrillBatteryIds.Contains(SwitchID);
             }
         }
         public BatterySwitch(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
@@ -92,7 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return null;
             player.ForceCameraUpdate = true;
             player.StateMachine.State = Player.StNormal;
-            if (!idEmpty && !PianoModule.SaveData.DrillBatteryIds.Contains(SwitchID))
+            if (!idEmpty && !PianoModule.Session.DrillBatteryIds.Contains(SwitchID))
             {
                 foreach (BatterySwitchPlate plate in level.Tracker.GetEntities<BatterySwitchPlate>())
                 {
@@ -100,7 +100,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     if (!plate.Activated && plate.BatteryID == SwitchID)
                     {
                         plate.Activate(false);
-                        PianoModule.SaveData.DrillBatteryIds.Add(SwitchID);
+                        PianoModule.Session.DrillBatteryIds.Add(SwitchID);
                         break;
                     }
                 }

@@ -73,7 +73,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             this.offset = offset;
             flag = data.Attr("flag");
-            Inverted = data.Bool("flag");
+            Inverted = data.Bool("invertFlag");
         }
 
         public override void Added(Scene scene)

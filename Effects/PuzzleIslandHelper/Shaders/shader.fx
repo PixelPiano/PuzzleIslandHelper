@@ -20,18 +20,14 @@ DECLARE_TEXTURE(text, 0);
 float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 {
 	float2 worldPos = (uv * Dimensions) + CamPos;
-    float amplitude = 1;
-    float2 playerPos = CamPos + (Dimensions * float2(0.5, 0.9));
-    float range = 0.3;
-    int r = 30;
-    float4 color = SAMPLE_TEXTURE(text, uv);
+    float amplitude = sin(Time);
 
-    if(worldPos.x < playerPos.x - r || worldPos.x > playerPos.x + r ||
-       worldPos.y < playerPos.y - r || worldPos.y > playerPos.y + r)
-       {
-            return float4(0,0,0,1);
-       }
-     
+    float4 color = SAMPLE_TEXTURE(text, uv);
+    bool condition = false;
+    if(condition)
+    {
+        return (float4)0;
+    }
     return color;
 }
 

@@ -25,8 +25,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private readonly Color SymbolActiveColor = Calc.HexToColor("AA3CFF");
         private Color StreakColor;
         private Color SymbolColor;
-        public bool Registered => PianoModule.SaveData.MiniGenStates.ContainsKey(ID);
-        public bool RegistryState => Registered && PianoModule.SaveData.MiniGenStates[ID];
+        public bool Registered => PianoModule.Session.MiniGenStates.ContainsKey(ID);
+        public bool RegistryState => Registered && PianoModule.Session.MiniGenStates[ID];
         private Color FlashColor => OnStandby ? Color.Black : Color.White;
         public bool OnStandby => InvertOverlay.State;
         public MTexture Machine = GFX.Game["objects/PuzzleIslandHelper/miniGenerator/machine"];
@@ -42,14 +42,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (!Registered)
             {
-                PianoModule.SaveData.MiniGenStates.Add(ID, Activated);
+                PianoModule.Session.MiniGenStates.Add(ID, Activated);
             }
         }
         public void UpdateRegistry(bool state)
         {
             if (Registered)
             {
-                PianoModule.SaveData.MiniGenStates[ID] = state;
+                PianoModule.Session.MiniGenStates[ID] = state;
             }
         }
         public override void Render()

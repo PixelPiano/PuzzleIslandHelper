@@ -19,7 +19,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Level level;
         private string GroupID;
         private bool UsesDecal;
-        public static Effect Shader;
         private bool ScaleDecal;
 
         private List<MonitorDecal> MonitorGroup = new();
@@ -101,11 +100,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
             Mask.SetRenderMask(DrawInsides, level.Camera.Matrix);
             Target.DrawToObject(DrawScreen, level.Camera.Matrix, true);
-            Target2.DrawToObject(DrawScreen, level.Camera.Matrix, true, Shader);
+            Target2.DrawToObject(DrawScreen, level.Camera.Matrix, true, ShaderFX.MonitorDecal);
 
             Target2.MaskToObject(Mask);
             Target.MaskToObject(Mask);
-            Shader.ApplyStandardParameters(level);
+            ShaderFX.MonitorDecal.ApplyStandardParameters(level);
         }
         public override void Render()
         {
@@ -138,49 +137,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 CustomDecal.Render();
             }
 
-        }
-
-
-        public static void Unload()
-        {
-            Shader?.Dispose();
-            Everest.Content.OnUpdate -= Content_OnUpdate;
-        }
-        public static void Load()
-        {
-            Everest.Content.OnUpdate += Content_OnUpdate;
-
-        }
-        private static void Content_OnUpdate(ModAsset from, ModAsset to)
-        {
-            if (to.Format == "cso" || to.Format == ".cso")
-            {
-                try
-                {
-                    AssetReloadHelper.Do("Reloading Shader", () =>
-                    {
-                        var effectName = to.PathVirtual.Substring("Effects/".Length, to.PathVirtual.Length - ".cso".Length - "Effects/".Length);
-
-                        if (Shader is not null)
-                        {
-                            if (!Shader.IsDisposed)
-                                Shader.Dispose();
-                        }
-                        Shader = ShaderHelper.TryGetEffect("monitorDecal");
-                    }, () =>
-                    {
-                        (Engine.Scene as Level)?.Reload();
-                    });
-
-                }
-                catch (Exception e)
-                {
-                    // there's a catch-all filter on Content.OnUpdate that completely ignores the exception,
-                    // would nice to actually see it though
-                    Logger.LogDetailed(e);
-                }
-
-            }
         }
         public override void DebugRender(Camera camera)
         {

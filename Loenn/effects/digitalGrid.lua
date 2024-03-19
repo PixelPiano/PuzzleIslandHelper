@@ -1,8 +1,6 @@
 local digital_grid = {}
 
 digital_grid.name = "PuzzleIslandHelper/DigitalGrid"
-digital_grid.fieldInformation = {
-}
 
 digital_grid.defaultData = {
     horizontalLineHeight = 2,

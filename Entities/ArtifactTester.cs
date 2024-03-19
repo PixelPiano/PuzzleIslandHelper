@@ -26,7 +26,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float SpaceProgress;
         private int Lines;
         private int Rate = 15;
-        public static Effect Shader;
         private int GlowBuffer = 4;
         private int glowBuf = 4;
         private bool[] flags = new bool[8];
@@ -54,7 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         loops++;
                     }
                 }
-                return loops >= 8 || PianoModule.SaveData.HasArtifact;
+                return loops >= 8 || PianoModule.Session.HasArtifact;
             }
         }
         public ArtifactTester(EntityData data, Vector2 offset)
@@ -112,7 +111,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             string animID = GetAnim(index + 1);
-            Console.WriteLine("animID is " + animID);
             Prompt.Play(animID);
             PianoModule.Session.CurrentPrompt = animID;
             DontChange = true;
@@ -212,7 +210,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             EasyRendering.MaskToObject(Target, Mask);
             EasyRendering.MaskToObject(ScreenContent, Mask);
-            Shader.ApplyStandardParameters(level);
+            ShaderFX.Static.ApplyStandardParameters(level);
         }
      
         public override void Render()
@@ -221,7 +219,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.End();
 
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone,
-                Shader);
+                ShaderFX.Static);
 
             Draw.SpriteBatch.Draw(Target, level.Camera.Position, Color.White);
             Draw.SpriteBatch.End();
@@ -271,7 +269,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             level = scene as Level;
             for (int i = 0; i < 8; i++)
             {
-                if (Verified[i] || PianoModule.SaveData.HasArtifact)
+                if (Verified[i] || PianoModule.Session.HasArtifact)
                 {
                     Boxes[i].Play("closed");
                 }

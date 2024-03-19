@@ -1,51 +1,31 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FMOD;
 using FMOD.Studio;
-using Microsoft.Xna.Framework;
 using Monocle;
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
 {
     [Tracked]
     public class AudioEffect : SoundSource
     {
-        public List<AEDSP> Dsps = new();
-        public bool DSPsInjected;
-        public bool injecting;
-        public ChannelGroup ActiveGroup;
-        public float TimePlaying;
-        public bool Valid => Dsps is not null && DSPsInjected;
-
-        public void SetAllParams()
-        {
-            if (Dsps is null || Dsps.Count == 0) return;
-            for (int i = 0; i < Dsps.Count; i++)
-            {
-                if (Dsps[i].Dsp is null || !Dsps[i].Injected) continue;
-                switch (Dsps[i].Type)
-                {
-                    case DSP_TYPE.FFT:
-                        (Dsps[i] as FFT).SetParams();
-                        break;
-                }
-            }
-        }
-        public virtual void OnEject()
+        public List<AEDSP> Dsps = new(); //"Audio Effect Digital Signal Processor"s that manage and add DSPs to the event instance
+        public bool DSPsInjected;        //if successfully added the dsps to the event instance
+        public bool injecting;           //if currently attempting to add the dsps to the event instance (sometimes takes multiple frames)
+        public ChannelGroup ActiveGroup; //the channel group the event instance is playing from
+        public float TimePlaying;        //how long the event instance has been playing for
+        public virtual void OnEject() //Called once after the dsps have been removed from the event instance
         {
 
         }
-        public virtual void OnInject()
+        public virtual void OnInject() //Called once after the dsps have been added to the event instance
         {
 
         }
+
         public AudioEffect(params DSP_TYPE[] types) : base()
         {
-            Dsps = new();
             foreach (DSP_TYPE type in types)
             {
                 AddDSP(type);
@@ -53,80 +33,68 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
         }
         public void AddDSP(DSP_TYPE type)
         {
+            //there's probably a better way to do this but i have a feeling it would be less optimal
             if (Dsps is null) return;
             switch (type)
             {
-                case DSP_TYPE.FFT: AddFFT(new FFT()); break;
-                case DSP_TYPE.OSCILLATOR: AddOsc(new Osc()); break;
-                case DSP_TYPE.CHORUS: AddChorus(new Chorus()); break;
-                case DSP_TYPE.NORMALIZE: AddNormalize(new Normalize()); break;
-                case DSP_TYPE.PITCHSHIFT: AddPitchShift(new PitchShift()); break;
-                case DSP_TYPE.DISTORTION: AddDistortion(new Distortion()); break;
-                case DSP_TYPE.ECHO: AddEcho(new Echo()); break;
-                case DSP_TYPE.FLANGE: AddFlange(new Flange()); break;
+                case DSP_TYPE.FFT: Add(new FFT()); break;
+                case DSP_TYPE.OSCILLATOR: Add(new Osc()); break;
+                case DSP_TYPE.CHORUS: Add(new Chorus()); break;
+                case DSP_TYPE.NORMALIZE: Add(new Normalize()); break;
+                case DSP_TYPE.PITCHSHIFT: Add(new PitchShift()); break;
+                case DSP_TYPE.DISTORTION: Add(new Distortion()); break;
+                case DSP_TYPE.ECHO: Add(new Echo()); break;
+                case DSP_TYPE.FLANGE: Add(new Flange()); break;
             }
+        }
+        public void SetAllParams()
+        {
+            if (Dsps is null || Dsps.Count == 0) return; 
+            for (int i = 0; i < Dsps.Count; i++)
+            {
+                if (Dsps[i] is null || !Dsps[i].Injected) continue;
+                switch (Dsps[i].Type)
+                {
+                    case DSP_TYPE.FFT: (Dsps[i] as FFT).SetParams(); break;
+                    case DSP_TYPE.OSCILLATOR: (Dsps[i] as Osc).SetParams(); break;
+                    case DSP_TYPE.CHORUS: (Dsps[i] as Chorus).SetParams(); break;
+                    case DSP_TYPE.NORMALIZE: (Dsps[i] as Normalize).SetParams(); break;
+                    case DSP_TYPE.PITCHSHIFT: (Dsps[i] as PitchShift).SetParams(); break;
+                    case DSP_TYPE.DISTORTION: (Dsps[i] as Distortion).SetParams(); break;
+                    case DSP_TYPE.ECHO: (Dsps[i] as Echo).SetParams(); break;
+                    case DSP_TYPE.FLANGE: (Dsps[i] as Flange).SetParams(); break;
+                }
+            }
+        }
+        public void Add(AEDSP dsp)
+        {
+            Dsps.Add(dsp);
         }
 
-        public void AddFFT(FFT fft)
-        {
-            Dsps.Add(fft);
-        }
-        public void AddOsc(Osc osc)
-        {
-            Dsps.Add(osc);
-        }
-        public void AddChorus(Chorus chorus)
-        {
-            Dsps.Add(chorus);
-        }
-        public void AddDistortion(Distortion distortion)
-        {
-            Dsps.Add(distortion);
-        }
-        public void AddEcho(Echo echo)
-        {
-            Dsps.Add(echo);
-        }
-        public void AddFlange(Flange flange)
-        {
-            Dsps.Add(flange);
-        }
-        public void AddNormalize(Normalize normalize)
-        {
-            Dsps.Add(normalize);
-        }
-        public void AddPitchShift(PitchShift pitchshift)
-        {
-            Dsps.Add(pitchshift);
-        }
-        public void AddTremolo(Tremolo tremolo)
-        {
-            Dsps.Add(tremolo);
-        }
         public override void Update()
         {
-            if (Valid)
+            if (injecting && !DSPsInjected)                     //if trying to add dsps but haven't yet
             {
-                SetAllParams();
+                ActiveGroup = GetActiveChannelGroup(instance);  //try to get the channel the instance is playing from
+                if (ActiveGroup is not null)                    //if the channel exists...
+                {
+                    InjectDSPs();                               //add the dsps to it
+                }
             }
-            if (injecting && !DSPsInjected && instance != null)
-            {
-                InjectDSPs();
-            }
+            SetAllParams();                                     //update the parameters for each dsp in the list
             base.Update();
 
             TimePlaying = Playing ? TimePlaying + Engine.DeltaTime : 0;
-            if (!injecting && DSPsInjected && !InstancePlaying)
+            if (!injecting && DSPsInjected && !InstancePlaying) //if dsps are injected and the instance is not longer playing, make sure the dsps are removed.
+                                                                //(if this doesn't happen, some instances may not get fully removed when they should)
             {
                 EjectDSPs();
             }
         }
         private void InjectDSPs()
         {
-            ActiveGroup = GetActiveChannelGroup(instance);
-            if (ActiveGroup is null) return;
             Audio.System.getLowLevelSystem(out FMOD.System system);
-            if (system is null) return;
+            if (system is null) throw new Exception("Error: Low Level System is null!");
             foreach (AEDSP aedsp in Dsps)
             {
                 if (!aedsp.Injected)
@@ -171,12 +139,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
             base.Removed(entity);
             EjectDSPs();
         }
-        public new SoundSource Play(string path, string param = null, float value = 0)
+        public SoundSource PlayEvent(string path, string param = null, float value = 0)
         {
             injecting = true;
             return base.Play(path, param, value);
         }
-        public new SoundSource Stop(bool allowFadeOut = true)
+        public SoundSource StopEvent(bool allowFadeOut = true)
         {
             injecting = false;
             return base.Stop(allowFadeOut);

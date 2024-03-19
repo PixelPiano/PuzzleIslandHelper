@@ -16,7 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return PianoModule.SaveData.CollectedDisks.Contains(this);
+                return PianoModule.Session.CollectedDisks.Contains(this);
             }
         }
         public DotX3 Talk;
@@ -50,7 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             player.StateMachine.State = Player.StDummy;
             yield return Engine.DeltaTime * 2;
-            PianoModule.SaveData.TryAddDisk(this);
+            PianoModule.Session.TryAddDisk(this);
             player.StateMachine.State = Player.StNormal;
             RemoveSelf();
         }

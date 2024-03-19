@@ -25,7 +25,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return inverted ? !flagState : flagState;
             }
         }
-
         public CustomWater(EntityData data, Vector2 offset)
             : base(data.Position + offset, data.Bool("topSurface", true), data.Bool("hasBottom"), data.Width, data.Height)
         {

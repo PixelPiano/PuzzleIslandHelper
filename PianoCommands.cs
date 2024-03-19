@@ -4,15 +4,22 @@ using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
+using Mono.Cecil;
 using Monocle;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 public class PianoCommands
 {
-    [Command("add_batteryid","debug shiz")]
+    [Command("clear_savedtiles","too tired to explain this")]
+    private static void ClearTiles()
+    {
+        ShiftArea.TilesLookup.Clear();
+    }
+    [Command("add_batteryid", "debug shiz")]
     private static void AddBatteryID(string id)
     {
-        PianoModule.SaveData.DrillBatteryIds.Add(id);
+        PianoModule.Session.DrillBatteryIds.Add(id);
     }
     [Command("drill_state", "these are tiring to explain")]
     private static void SetDrill(bool state = true)
@@ -27,34 +34,34 @@ public class PianoCommands
     [Command("remove_batteries", "shuts off all activated drill batteries")]
     private static void RemoveBatteries()
     {
-        PianoModule.SaveData.DrillBatteryIds.Clear();
+        PianoModule.Session.DrillBatteryIds.Clear();
     }
     [Command("set_fountain", "sets the state of the ruins fountain")]
     private static void SetFountain(bool state = true)
     {
-        PianoModule.SaveData.OpenedFountain = state;
-        PianoModule.SaveData.FountainCanOpen = state;
+        PianoModule.Session.OpenedFountain = state;
+        PianoModule.Session.FountainCanOpen = state;
     }
     [Command("open_fountain", "opens the ruins fountain")]
     private static void OpenFountain(bool permanent = false)
     {
-        PianoModule.SaveData.ForceFountainOpen = true;
+        PianoModule.Session.ForceFountainOpen = true;
         if (permanent)
         {
-            PianoModule.SaveData.FountainCanOpen = true;
+            PianoModule.Session.FountainCanOpen = true;
         }
     }
     [Command("resetmgens", "clears the list of registered mini generators in puzzle island")]
     private static void ResetMiniGens()
     {
-        PianoModule.SaveData.MiniGenStates.Clear();
+        PianoModule.Session.MiniGenStates.Clear();
     }
-    [Command("reset_cogs", "resets all cogs to their original positions and frees locked cogs from any holders")]
-    private static void ResetCogs()
+    [Command("reset_gears", "resets all gears to their original positions and frees locked gears from any holders")]
+    private static void ResetGears()
     {
-        PianoModule.SaveData.CogData.Reset();
-        PianoModule.SaveData.ContinuousCogIDs.Clear();
-        PianoModule.SaveData.FixedFloors.Clear();
+        PianoModule.Session.GearData.Reset();
+        PianoModule.Session.ContinuousGearIDs.Clear();
+        PianoModule.Session.FixedFloors.Clear();
     }
     [Command("ejectDSPs", "removes any injected dsps")]
     private static void EjectDsps(string id = "")
@@ -64,13 +71,13 @@ public class PianoCommands
     [Command("clear_disks", "clears collected floppy disks")]
     private static void ClearFloppys()
     {
-        PianoModule.SaveData.CollectedDisks.Clear();
-        PianoModule.SaveData.HasFirstFloppy = false;
+        PianoModule.Session.CollectedDisks.Clear();
+        PianoModule.Session.HasFirstFloppy = false;
     }
     [Command("pipestate", "sets the state of pipes")]
     private static void PipeState(int state = 1)
     {
-        PianoModule.SaveData.SetPipeState(Calc.Clamp(state, 1, 4));
+        PianoModule.Session.SetPipeState(Calc.Clamp(state, 1, 4));
         switch (state)
         {
             case >= 3: PipeValves(5); break;
@@ -111,12 +118,12 @@ public class PianoCommands
     private static void PipeAttempts(int num = 0)
     {
         int realNum = (int)Calc.Max(0, num);
-        PianoModule.SaveData.PipeSwitchAttempts = realNum;
+        PianoModule.Session.PipeSwitchAttempts = realNum;
         if (realNum == 0)
         {
-            PianoModule.SaveData.ResetPipeScrew();
+            PianoModule.Session.ResetPipeScrew();
         }
-        PianoModule.SaveData.HasBrokenPipes = realNum > 2;
+        PianoModule.Session.HasBrokenPipes = realNum > 2;
     }
     [Command("generator", "turns the generator on/off")]
     private static void Generator(bool state = true)
@@ -137,14 +144,14 @@ public class PianoCommands
     [Command("escapestate", "Sets the escaped condition to true or false")]
     private static void EscapeState(bool state = true)
     {
-        PianoModule.SaveData.Escaped = state;
+        PianoModule.Session.Escaped = state;
     }
     [Command("printcollect", "Displays how many Puzzle Island collectables the player has")]
     private static void PrintCollectables()
     {
         int hearts = 0;
         int blocks = 0;
-        foreach (DashCodeCollectable entity in PianoModule.SaveData.CollectedIDs)
+        foreach (DashCodeCollectable entity in PianoModule.Session.CollectedIDs)
         {
             if (entity.isHeart)
             {
@@ -155,24 +162,24 @@ public class PianoCommands
                 blocks++;
             }
         }
-        Engine.Commands.Log($"{PianoModule.SaveData.CollectedIDs.Count} Collected. Mini Hearts: {hearts}, 'T' Blocks: {blocks}.");
+        Engine.Commands.Log($"{PianoModule.Session.CollectedIDs.Count} Collected. Mini Hearts: {hearts}, 'T' Blocks: {blocks}.");
 
     }
     [Command("print_floors", "")]
     private static void PrintFloors()
     {
         string output = "";
-        foreach (int i in PianoModule.SaveData.FixedFloors)
+        foreach (int i in PianoModule.Session.FixedFloors)
         {
             output += i + ",";
         }
         Engine.Commands.Log(output);
     }
-    [Command("print_cogs", "")]
-    private static void PrintCogs()
+    [Command("print_gears", "")]
+    private static void PrintGears()
     {
         string output = "";
-        foreach (string s in PianoModule.SaveData.ContinuousCogIDs)
+        foreach (string s in PianoModule.Session.ContinuousGearIDs)
         {
             output += s + ",";
         }
@@ -183,7 +190,7 @@ public class PianoCommands
     {
         for (int i = 0; i < amount; i++)
         {
-            PianoModule.SaveData.CollectedIDs.Add(new DashCodeCollectable(Vector2.Zero, heart));
+            PianoModule.Session.CollectedIDs.Add(new DashCodeCollectable(Vector2.Zero, heart));
         }
     }
 
@@ -195,7 +202,7 @@ public class PianoCommands
             Engine.Commands.Log("Current Scene is currently not a level.");
             return;
         }
-        foreach (DashCodeCollectable entity in PianoModule.SaveData.CollectedIDs)
+        foreach (DashCodeCollectable entity in PianoModule.Session.CollectedIDs)
         {
             if (level.Session.DoNotLoad.Contains(entity.ID))
             {
@@ -210,12 +217,12 @@ public class PianoCommands
                 level.Session.SetFlag(entity.collectedFlag, false);
             }
         }
-        PianoModule.SaveData.CollectedIDs.Clear();
+        PianoModule.Session.CollectedIDs.Clear();
     }
     [Command("pi_arti", "Gives or takes away Puzzle Island artifact")]
     private static void SetArtifact(bool state = true)
     {
-        PianoModule.SaveData.HasArtifact = state;
+        PianoModule.Session.HasArtifact = state;
     }
     [Command("pi_pillar", "Resets the pillar puzzle in Puzzle Island")]
     private static void ResetPillars()
@@ -225,21 +232,21 @@ public class PianoCommands
             Engine.Commands.Log("Current Scene is currently not a level.");
             return;
         }
-        PianoModule.SaveData.BrokenPillars.Clear();
-        PianoModule.SaveData.PillarBlockState = 0;
+        PianoModule.Session.BrokenPillars.Clear();
+        PianoModule.Session.PillarBlockState = 0;
         level.Session.SetFlag("pillarBlockSpinnerFlag", false);
         level.Session.SetFlag("pillarBlockSpinner", false);
     }
     [Command("pi_clearswitch", "Deactivates all pressed TSwitches")]
     private static void ResetTSwitches()
     {
-        PianoModule.SaveData.PressedTSwitches.Clear();
+        PianoModule.Session.PressedTSwitches.Clear();
     }
     [Command("pi_getswitch", "Displays activated T Switches")]
     private static void TSwitch()
     {
         string output = "Activated switches: ";
-        foreach (KeyValuePair<EntityID, Vector2> pair in PianoModule.SaveData.PressedTSwitches)
+        foreach (KeyValuePair<EntityID, Vector2> pair in PianoModule.Session.PressedTSwitches)
         {
             output += "{" + pair.Key + ", " + pair.Value + "} ";
         }
@@ -314,7 +321,7 @@ public class PianoCommands
     [Command("pi_getinvert", "Returns the state of 'HasInvert' from PuzzleIslandHelper save data")]
     private static void WriteInvertState()
     {
-        Engine.Commands.Log($"{PianoModule.SaveData.HasInvert}");
+        Engine.Commands.Log($"{PianoModule.Session.HasInvert}");
     }
     [Command("pi_setinvertdelay", "Changes how long the player needs to hold down dash before the invert ability activates")]
     private static void SetInvert(float time)
@@ -329,7 +336,7 @@ public class PianoCommands
         SetInvert(state);
         if (state)
         {
-            PianoModule.SaveData.ChainedMonitorsActivated.Clear();
+            PianoModule.Session.ChainedMonitorsActivated.Clear();
         }
     }
     [Command("pi_setinvert", "Gives or takes away the invert ability")]
@@ -341,7 +348,7 @@ public class PianoCommands
             return;
         }
         level.Session.SetFlag("invertOverlay", state);
-        PianoModule.SaveData.HasInvert = state;
+        PianoModule.Session.HasInvert = state;
     }
     [Command("pi_facestate", "Sets the state of the 'Faces' decals in Puzzle Island")]
     private static void Faces(bool state = true)
@@ -427,7 +434,7 @@ public class PianoCommands
         foreach (TrianglePortal portal in level.Tracker.GetEntities<TrianglePortal>())
         {
             found = true;
-            portal.portalState = state;
+            portal.PortalState = state;
 
         }
         level.Session.SetFlag("chainedComp1", state);

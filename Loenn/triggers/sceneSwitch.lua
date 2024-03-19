@@ -2,24 +2,42 @@ local sceneSwitch = {}
 
 sceneSwitch.name = "PuzzleIslandHelper/SceneSwitch"
 
-local transitions = {"Forest","Resort","Home"}
+local areas = {"Forest","Resort","Backend","Pipes"}
+local sides = {"Left","Right","Top","Bottom"}
 sceneSwitch.placements =
 {
     {
         name = "Scene Switch",
         data = {
-            transition = "Forest",
-            templeOnLeft = true
+            areaA = "None",
+            areaB = "None",
+            sideA = "Left",
+            sideB = "Right",
         }
     },
 }
 sceneSwitch.fieldInformation = 
 {
-    transition = 
+    areaA = 
     {
-        options = transitions,
+        options = areas,
         editable = false
-    }
+    },
+        areaB = 
+    {
+        options = areas,
+        editable = false
+    },
+        sideA = 
+    {
+        options = sides,
+        editable = false
+    },
+        sideB = 
+    {
+        options = sides,
+        editable = false
+    },
 }
 
 return sceneSwitch

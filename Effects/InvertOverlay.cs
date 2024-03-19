@@ -29,6 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private int Timer;
         private int Last;
         private bool Wait = false;
+        public static bool HoldState;
         private int Loops;
         private int LastSaved;
         private static PropertyInfo engineDeltaTimeProp = typeof(Engine).GetProperty("DeltaTime");
@@ -45,6 +46,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private float holdTimer;
         private VirtualButton button;
         public static bool UseNormalTimeRate;
+        public InvertOverlay(BinaryPacker.Element data) : this(data.Attr("colorgradeFlag"), data.AttrFloat("timeMod")) { }
         public InvertOverlay(string flag, float timeMod)
         {
             this.flag = flag;
@@ -63,7 +65,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             }
             if (player.Dead || player.StateMachine.State == 11)
             {
-                Reset(scene);
+                if (!HoldState)
+                {
+                    Reset(scene);
+                }
                 return false;
             }
             Transitioning = (scene as Level).Transitioning;
@@ -86,27 +91,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public override void Update(Scene scene)
         {
             base.Update(scene);
-            Player player = scene.GetPlayer();
-            if (PianoModule.SaveData.HasInvert)
+            Level level = scene as Level;
+            if (PianoModule.Session.HasInvert)
             {
-                (scene as Level).Session.SetFlag("invertOverlay");
+                level.Session.SetFlag("invertOverlay");
             }
-            if (!(scene as Level).Session.GetFlag("invertOverlay"))
+            if (!level.Session.GetFlag("invertOverlay"))
             {
                 return;
             }
-            if (button.Check)
-            {
-                holdTimer += Engine.DeltaTime;
-            }
-            else
-            {
-                holdTimer = 0f;
-                Engine.TimeRate = 1;
-            }
             previousState = State;
-            State = ((button.Check && holdTimer >= WaitTime) || (EnforceState && ForcedState));
-            (scene as Level).Session.SetFlag(flag, State);
+            if (!HoldState)
+            {
+                if (button.Check)
+                {
+                    holdTimer += Engine.DeltaTime;
+                }
+                else
+                {
+                    holdTimer = 0f;
+                    Engine.TimeRate = 1;
+                }
+                State = ((button.Check && holdTimer >= WaitTime) || (EnforceState && ForcedState));
+                level.Session.SetFlag(flag, State);
+            }
             if (!CheckScene(scene))
             {
                 return;
@@ -123,7 +131,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                         }
                         #endregion*/
 
-            if (IsVisible(scene as Level))
+            if (IsVisible(level))
             {
                 if (invertAudio != null)
                 {
@@ -136,7 +144,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 if (previousState != State)
                 {
 
-                    (scene as Level).SnapColorGrade(State || (EnforceState && ForcedState) ? "PianoBoy/Inverted" : "none");
+                    level.SnapColorGrade(State || (EnforceState && ForcedState) ? "PianoBoy/Inverted" : "none");
 
                     if (State)
                     {
@@ -207,13 +215,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         }
         private static void Transition(Level level, LevelData data, Vector2 dir)
         {
-
             Engine.TimeRate = State ? OnTime : 1;
         }
         private static void PlayerUpdate(On.Celeste.Player.orig_Update orig, Player self)
         {
             float deltaTime = Engine.DeltaTime;
-            if (!UseNormalTimeRate && State)
+            if ((!UseNormalTimeRate && State) || (EnforceState && ForcedState))
             {
                 engineDeltaTimeProp.SetValue(null, Engine.RawDeltaTime * Engine.TimeRateB * baseTimeRate * playerTimeRate, null);
             }
@@ -285,11 +292,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public static void ForceState(bool state)
         {
             ForcedState = state;
-
             EnforceState = true;
         }
         public static void ResetState()
         {
+            ForcedState = false;
             EnforceState = false;
         }
 

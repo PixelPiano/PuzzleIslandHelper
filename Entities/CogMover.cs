@@ -7,16 +7,16 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
 
-    [CustomEntity("PuzzleIslandHelper/CogMover")]
-    [TrackedAs(typeof(CogHolder))]
-    public class CogMover : CogHolder
+    [CustomEntity("PuzzleIslandHelper/GearMover")]
+    [TrackedAs(typeof(GearHolder))]
+    public class GearMover : GearHolder
     {
         private Vector2 start;
         private Vector2 end;
         private Vector2 target;
         private float MaxSpeed;
         private float acceleration;
-        public CogMover(EntityData data, Vector2 offset) : base(data.Position + offset - new Vector2(8), data.Bool("onlyOnce"), Color.Blue)
+        public GearMover(EntityData data, Vector2 offset) : base(data.Position + offset - new Vector2(8),  data.Bool("onlyOnce"), Color.Blue)
         {
             MaxSpeed = data.Float("maxSpeed", 50f);
             acceleration = data.Float("acceleration");
@@ -31,7 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void RenderAt(Vector2 position, Color color)
         {
-            MTexture tex = GFX.Game["objects/PuzzleIslandHelper/Cog/holder"];
+            MTexture tex = GFX.Game["objects/PuzzleIslandHelper/Gear/holder"];
             Vector2 offset = new Vector2(tex.Width / 2, tex.Height / 2);
             Draw.SpriteBatch.Draw(tex.Texture.Texture_Safe, position + offset, null, color, Rotation.ToRad(), offset, 1, SpriteEffects.None, 0);
         }
@@ -41,12 +41,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             target = target == start ? end : start;
             SpinDirection = -SpinDirection;
         }
-        public override IEnumerator WhileSpinning(Cog cog)
+        public override IEnumerator WhileSpinning(Gear gear)
         {
             float speedLerp = 0;
             while (Position != target)
             {
-                if (!cog.InSlot)
+                if (!gear.InSlot)
                 {
                     break;
                 }
@@ -55,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
             }
             StopSpinning();
-            yield return base.WhileSpinning(cog);
+            yield return base.WhileSpinning(gear);
         }
     }
 }

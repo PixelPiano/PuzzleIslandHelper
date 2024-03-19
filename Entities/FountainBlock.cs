@@ -132,13 +132,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return PianoModule.SaveData.OpenedFountain;
+                return PianoModule.Session.OpenedFountain;
             }
             set
             {
                 if (Scene is not Level level) return;
                 level.Session.SetFlag("fountainPassage", value);
-                PianoModule.SaveData.OpenedFountain = value;
+                PianoModule.Session.OpenedFountain = value;
             }
         }
 
@@ -160,7 +160,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Added(scene);
             scene.Add(fountain, light);
-            if (PianoModule.SaveData.OpenedFountain)
+            if (PianoModule.Session.OpenedFountain)
             {
                 Open();
             }

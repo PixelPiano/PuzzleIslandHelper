@@ -87,7 +87,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             OnLeaveMethod = data.Enum<Method>("onLeave");
             Event = data.Enum<Events>("audio");
             Effect = data.Enum<Effects>("effect");
-            inverted = data.Bool("inverted");
+            inverted = data.Bool("invertFlag");
             ID = data.Attr("effectID");
             Add(Listener = new TransitionListener());
             Listener.OnInBegin = OnLevelStart;

@@ -1,10 +1,12 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
+using ExtendedVariants.Variants;
 using FMOD;
 using FMOD.Studio;
 using FrostHelper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -14,8 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs
     {
         public bool Injected;
         public DSP Dsp;
-        public DSP_TYPE Type;
-        public bool EjectOnSceneEnd;
+        public DSP_TYPE Type; 
         public ChannelGroup ActiveGroup;
         public EventInstance Instance;
         public string ID;
@@ -45,20 +46,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs
             Initialized = true;
             return true;
         }
-
-        public void CheckResult(RESULT result, string function)
-        {
-            if (result != RESULT.OK) throw new Exception(Error.String(result) + "Function: " + function);
-        }
         public bool Inject(EventInstance instance)
         {
             if (Dsp is null || !Initialized) return false;
             instance.getChannelGroup(out ChannelGroup group);
             if (group is null) return false;
-            group.addDSP(CHANNELCONTROL_DSP_INDEX.HEAD, Dsp);
-            Dsp.setWetDryMix(0.5f, 0.5f, 0);
+            CheckResult(group.addDSP(CHANNELCONTROL_DSP_INDEX.HEAD, Dsp), "Inject");
+            CheckResult(Dsp.setWetDryMix(1, 1, 0), "Inject");
             ActiveGroup = group;
             Injected = true;
+            SetParams();
             return true;
         }
         public void Eject(EventInstance instance = null)
@@ -83,6 +80,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs
         {
             if (!InitializeSelf()) return false;
             return Inject(instance);
+        }
+        public static void CheckResult(RESULT result, string function)
+        {
+            if (result != RESULT.OK) throw new Exception(Error.String(result) + "Function: " + function);
         }
     }
 

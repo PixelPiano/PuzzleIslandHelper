@@ -15,6 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private bool Decrement;
         private Color RandomColor;
         private float RandomLimit = 1;
+        public BgTilesColorgrade(BinaryPacker.Element data) : this(data.Attr("colorgrade")){ }
         public BgTilesColorgrade(string colorgrade)
         {
             Colorgrade = "none";

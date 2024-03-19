@@ -372,25 +372,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 }
             }
-            /*            if (cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdfld<bool>("IsRendering")))
+            /*            if (Cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdfld<bool>("IsRendering")))
                         {
-                            if (cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("X")))
+                            if (Cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("X")))
                             {
-                                Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at index {cursor.Index} in CIL code for {cursor.Method.Name}");
+                                Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at index {Cursor.Index} in CIL code for {Cursor.Method.Name}");
 
-                                cursor.EmitDelegate(getScaleMultiplier);
-                                cursor.Emit(OpCodes.Mul);
+                                Cursor.EmitDelegate(getScaleMultiplier);
+                                Cursor.Emit(OpCodes.Mul);
 
                             }
                         }
-                        if (cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdfld<bool>("IsRendering")))
+                        if (Cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdfld<bool>("IsRendering")))
                         {
-                            if (cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("X")))
+                            if (Cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("X")))
                             {
-                                Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at index {cursor.Index} in CIL code for {cursor.Method.Name}");
+                                Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at index {Cursor.Index} in CIL code for {Cursor.Method.Name}");
 
-                                cursor.EmitDelegate(getScaleMultiplier);
-                                cursor.Emit(OpCodes.Mul);
+                                Cursor.EmitDelegate(getScaleMultiplier);
+                                Cursor.Emit(OpCodes.Mul);
 
                             }
                         }*/

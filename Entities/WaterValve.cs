@@ -76,7 +76,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
                 //TODO play sound here or something
             }
-            if (PianoModule.SaveData.GetPipeState() is > 1 and < 4)
+            if (PianoModule.Session.GetPipeState() is > 1 and < 4)
             {
                 if (!string.IsNullOrEmpty(flag))
                 {

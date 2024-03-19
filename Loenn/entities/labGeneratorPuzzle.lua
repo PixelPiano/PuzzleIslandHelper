@@ -5,7 +5,7 @@ labGeneratorPuzzle.name = "PuzzleIslandHelper/LabGeneratorPuzzle"
 
 labGeneratorPuzzle.depth = 10000
 
-labGeneratorPuzzle.texture = "objects/PuzzleIslandHelper/decisionMachine/puzzle/placeholder"
+labGeneratorPuzzle.texture = "objects/PuzzleIslandHelper/decisionMachine/puzzle/puzzleMachine"
 
 labGeneratorPuzzle.placements =
 {

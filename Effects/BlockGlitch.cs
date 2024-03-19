@@ -16,7 +16,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
     {
 
         private Level level;
-        public static Effect Shader;
         public static int Blocks = 7;
         public static float Buffer = 10;
         public static float BlendTime;
@@ -35,17 +34,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public static VirtualRenderTarget Blend => _Blend ??=
               VirtualContent.CreateRenderTarget("GlitchBlockBlend", 320, 180);
         
-
-        [OnLoad]
         public static void Load()
         {
-            Everest.Content.OnUpdate += Content_OnUpdate;
             IL.Celeste.Level.Render += VeryFunny;
-
         }
         public static void Unload()
         {
-            Shader?.Dispose();
             _BgTarget?.Dispose();
             _Blend?.Dispose();
             _Target?.Dispose();
@@ -53,7 +47,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             _Blend = null;
             _Target = null;
             IL.Celeste.Level.Render -= VeryFunny;
-            Everest.Content.OnUpdate -= Content_OnUpdate;
         }
 
         private void ResetBuffers()
@@ -63,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             CurrentBlendTime = 0;
             CurrentBufferTime = 0;
         }
-        public BlockGlitch()
+        public BlockGlitch(BinaryPacker.Element data) : base()
         {
             ResetBuffers();
         }
@@ -91,37 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         {
             return Blending;
         }
-        private static void Content_OnUpdate(ModAsset from, ModAsset to)
-        {
-            if (to.Format == "cso" || to.Format == ".cso")
-            {
-                try
-                {
-                    AssetReloadHelper.Do("Reloading Shader", () =>
-                    {
-                        var effectName = to.PathVirtual.Substring("Effects/".Length, to.PathVirtual.Length - ".cso".Length - "Effects/".Length);
 
-                        if (Shader is not null)
-                        {
-                            if (!Shader.IsDisposed)
-                                Shader.Dispose();
-                        }
-                        Shader = ShaderHelper.TryGetEffect("jitter");
-                    }, () =>
-                    {
-                        (Engine.Scene as Level)?.Reload();
-                    });
-
-                }
-                catch (Exception e)
-                {
-                    // there's a catch-all filter on Content.OnUpdate that completely ignores the exception,
-                    // would nice to actually see it though
-                    Logger.LogDetailed(e);
-                }
-
-            }
-        }
         public override void BeforeRender(Scene scene)
         {
             base.BeforeRender(scene);
@@ -130,13 +93,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 return;
             }
-            Shader.ApplyScreenSpaceParameters(level);
+            ShaderFX.Jitter.ApplyScreenSpaceParameters(level);
 
 
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
 
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap, null, null, Shader);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap, null, null, ShaderFX.Jitter);
 
             List<BlockGlitchArea> areas = level.Tracker.GetEntities<BlockGlitchArea>().Cast<BlockGlitchArea>().ToList();
 
@@ -152,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             Engine.Graphics.GraphicsDevice.SetRenderTarget(BgTarget);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
 
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap, null, null, Shader);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap, null, null, ShaderFX.Jitter);
 
             for (int i = Blocks / 2; i < Blocks; i++)
             {

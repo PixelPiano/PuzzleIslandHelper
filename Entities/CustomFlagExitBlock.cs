@@ -48,7 +48,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
 
 
-        public CustomFlagExitBlock(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height, data.Char("tileType", '3'), data.Attr("flag"), data.Bool("inverted"), data.Bool("playSound"), data.Bool("instant"), data.Attr("audioEvent", "event:/game/general/passage_closed_behind"), data.Bool("forceGlitchEffect"))
+        public CustomFlagExitBlock(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height, data.Char("tileType", '3'), data.Attr("flag"), data.Bool("invertFlag"), data.Bool("playSound"), data.Bool("instant"), data.Attr("audioEvent", "event:/game/general/passage_closed_behind"), data.Bool("forceGlitchEffect"))
         {
         }
 

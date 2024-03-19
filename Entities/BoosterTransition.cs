@@ -56,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             RoomName = data.Attr("roomName");
             flag = data.Attr("flag");
-            inverted = data.Bool("inverted");
+            inverted = data.Bool("invertFlag");
             Collider = new Hitbox(data.Width, data.Height);
             LeftSide = data.Bool("fromLeft");
             RightSide = data.Bool("fromRight");

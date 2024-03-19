@@ -2,7 +2,7 @@ using Celeste.Mod.Backdrops;
 using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
-{    
+{
     [CustomBackdrop("PuzzleIslandHelper/ColorgradeOverlay")]
     public class ColorgradeOverlay : Backdrop
     {
@@ -14,6 +14,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private bool Fade;
         private float OnTime;
         private float OffTime;
+        public ColorgradeOverlay(BinaryPacker.Element data)
+            : this(data.Attr("colorgradeFlag"),
+              data.Attr("colorgradeWhenTrue", "oldsite"),
+              data.Attr("colorgradeWhenFalse", "none"),
+              data.AttrBool("fadeOnFlagSwitch"),
+              data.AttrFloat("timeModWhenTrue"),
+              data.AttrFloat("timeModWhenFalse"))
+        { }
         public ColorgradeOverlay(string flag, string colorgradeWhenTrue, string colorgradeWhenFalse, bool fade, float onTime, float offTime)
         {
             this.flag = flag;

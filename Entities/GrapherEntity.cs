@@ -13,7 +13,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float piMod = 32;
         public float step;
         public bool State = false; //overall visibility override
-        public string ColorGradeName = "PianoBoy/inverted";
+        public string ColorGradeName = "PianoBoy/invertFlag";
         public float k = 0;
         public float lineWidth = 1f;
         public static float size = 10f;
@@ -45,7 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public GrapherEntity(EntityData data, Vector2 offset)
             : this(data.Position + offset, data.Float("timeMod", 0.2f),
-                  data.Attr("Colorgrade", "PianoBoy/inverted"),
+                  data.Attr("Colorgrade", "PianoBoy/invertFlag"),
                   data.Float("lineWidth", 1f),
                   data.Float("size", 10f),
                   data.Float("opacity", 1.0f),

@@ -34,9 +34,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public void Activate()
         {
             Activated = true;
-            if (!PianoModule.SaveData.ActiveGlitchBlocks.Contains(this))
+            if (!PianoModule.Session.ActiveGlitchBlocks.Contains(this))
             {
-                PianoModule.SaveData.ActiveGlitchBlocks.Add(this);
+                PianoModule.Session.ActiveGlitchBlocks.Add(this);
             }
             else
             {
@@ -78,7 +78,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (PianoModule.SaveData.ActiveGlitchBlocks.Contains(this))
+            if (PianoModule.Session.ActiveGlitchBlocks.Contains(this))
             {
                 Activated = true;
                 Add(new Coroutine(PrologueGlitchIncrement(), true));

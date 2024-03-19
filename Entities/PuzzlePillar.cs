@@ -33,9 +33,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private DashCollisionResults OnDash(Player player, Vector2 direction)
         {
             sprite.Play("idle");
-            if (!PianoModule.SaveData.BrokenPillars.Contains(spriteType))
+            if (!PianoModule.Session.BrokenPillars.Contains(spriteType))
             {
-                PianoModule.SaveData.BrokenPillars.Add(spriteType);
+                PianoModule.Session.BrokenPillars.Add(spriteType);
                 return DashCollisionResults.Rebound;
             }
             return DashCollisionResults.NormalCollision;
@@ -52,11 +52,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Added(scene);
             scene.Add(entity);
-            if (PianoModule.SaveData.BrokenPillars.Count == 3)
+            if (PianoModule.Session.BrokenPillars.Count == 3)
             {
                 RemoveSelf();
             }
-            if (PianoModule.SaveData.BrokenPillars.Contains(spriteType))
+            if (PianoModule.Session.BrokenPillars.Contains(spriteType))
             {
                 sprite.Play("idle");
             }
@@ -74,7 +74,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base_Update();
-            if (PianoModule.SaveData.BrokenPillars.Count == 3)
+            if (PianoModule.Session.BrokenPillars.Count == 3)
             {
                 RemoveSelf();
             }

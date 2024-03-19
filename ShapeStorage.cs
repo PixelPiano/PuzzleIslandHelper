@@ -1,4 +1,12 @@
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
+using Monocle;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using VivHelper;
+using VivHelper.Entities;
+using VivHelper.Polygon;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {

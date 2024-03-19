@@ -31,48 +31,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private string returnRoom;
         private bool TeleportsPlayer;
         private MemoryTextscene Cutscene;
-        private Vector2 HoldPosition;
 
         public CutsceneHeart(EntityData data, Vector2 offset, EntityID id)
         : base(data.Position + offset)
         {
-            spriteName = data.Attr("Sprite");
+            spriteName = data.Attr("sprite");
             TeleportsPlayer = data.Bool("teleportsPlayer");
             room = data.Attr("room");
-            Collider = new Hitbox(data.Width, data.Height);
             Tag = Tags.TransitionUpdate;
             ID = id;
             flag = data.Attr("flag");
             returnRoom = data.Attr("returnRoom");
 
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            player = Scene.Tracker.GetEntity<Player>();
-
-        }
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            switch (spriteName)
+            Cutscene = spriteName switch
             {
-                case "green":
-                    Cutscene = new MemoryTextscene("GREENHEART");
-                    break;
-                case "blue":
-                    Cutscene = new MemoryTextscene("BLUEHEART");
-                    break;
-                case "red":
-                    Cutscene = new MemoryTextscene("REDHEART");
-                    break;
-                default: Cutscene = new MemoryTextscene("invalid"); break;
-            }
-            scene.Add(heart = new Entity(Position));
+                "green" => new MemoryTextscene("GREENHEART"),
+                "blue" => new MemoryTextscene("BLUEHEART"),
+                "red" => new MemoryTextscene("REDHEART"),
+                _ => new MemoryTextscene("invalid"),
+            };
+            heart = new Entity(Position)
+            {
+                Collider = new Hitbox(12f, 12f, 4f, 4f)
+            };
+            Collider = new Hitbox(12f, 12f, 4f, 4f);
             heart.Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/cutsceneHeart/"));
             sprite.AddLoop("idle", spriteName, 0.08f);
             sprite.AddLoop("static", spriteName, 1f, 0);
-            heart.Collider = new Hitbox(12f, 12f, 4f, 4f);
+            sprite.X = -(sprite.Width - 12);
 
             Add(scaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f)
             {
@@ -83,6 +69,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             heart.Add(moveWiggler);
             heart.Add(new PlayerCollider(OnPlayer));
             sprite.Play("idle");
+
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            player = scene.GetPlayer();
+
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            scene.Add(heart);
         }
         public override void Render()
         {
@@ -109,6 +107,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 bounceSfxDelay = 0.1f;
             }
         }
+        public void SetRate(float value)
+        {
+            InvertOverlay.UseNormalTimeRate = false;
+            InvertOverlay.ForceState(true);
+            InvertOverlay.playerTimeRate = value;
+        }
         private IEnumerator Collect(Player player, Level level)
         {
             AddTag(Tags.Global);
@@ -128,12 +132,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Vector2 SavedPosition = Position + new Vector2(8f, 8f);
             level = SceneAs<Level>();
             Glitch.Value = 0.8f;
-            InvertOverlay.playerTimeRate = 0.4f;
+            SetRate(0.4f);
             player.DummyGravity = false;
             yield return 0.1f;
             for (float i = 0.4f; i > 0; i -= Engine.RawDeltaTime * 2)
             {
-                InvertOverlay.playerTimeRate = i;
+                SetRate(i);
                 yield return null;
             }
             yield return 0.3f;
@@ -151,7 +155,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 SceneAs<Level>().Add(Cutscene);
             }
             Glitch.Value = 0.5f;
-            InvertOverlay.playerTimeRate = 0f;
+            SetRate(0f);
             player.DummyGravity = false;
             float mult = TeleportsPlayer ? 1 : 5;
             for (float i = 0; i < 1; i += Engine.RawDeltaTime * mult)
@@ -183,12 +187,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 if (i > 1)
                 {
-                    InvertOverlay.playerTimeRate = Ease.QuintIn(i - 1);
+                    SetRate(Ease.QuintIn(i - 1));
                 }
                 yield return null;
             }
             Glitch.Value = 0;
-            InvertOverlay.playerTimeRate = 1;
+            SetRate(1);
             player.DummyGravity = true;
             Audio.Play("event:/PianoBoy/invertGlitch2");
             yield return null;
@@ -207,8 +211,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Scene.Add(new AbsorbOrb(Position + new Vector2(8f, 8f), player));
             }
-            InvertOverlay.playerTimeRate = 1;
-            Engine.TimeRate = 1;
+            SetRate(1);
+            InvertOverlay.ResetState();
             level.Session.SetFlag("InCutsceneHeartCutscene", false);
             RemoveTag(Tags.Global);
             yield return null;
@@ -234,7 +238,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (!Collected)
             {
                 bounceSfxDelay -= Engine.DeltaTime;
-                sprite.Position = moveWiggleDir * moveWiggler.Value * -8f;
+                sprite.Position = moveWiggleDir * moveWiggler.Value * -8f - (Vector2.UnitX * 4);
             }
         }
         public static void InstantTeleport(Scene scene, Player player, string room, bool sameRelativePosition)

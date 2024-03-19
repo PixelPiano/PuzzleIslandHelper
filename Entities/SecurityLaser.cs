@@ -265,7 +265,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             BadColor = _B = data.HexColor("dangerousColor", Color.Red);
 
             flag = data.Attr("flag");
-            inverted = data.Bool("inverted");
+            inverted = data.Bool("invertFlag");
             Node = data.Nodes[0] + offset;
             Depth = -10001;
             AlarmGuns = data.Bool("alertAllGuns");

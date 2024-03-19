@@ -72,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Border.Play("idle");
             }
-            //Border.Play("idle");
+            //Border.PlayEvent("idle");
             Border.Visible = false;
             Add(Border);
             Monitor.AddLoop("idle", "inside", 0.1f);

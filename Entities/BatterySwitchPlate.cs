@@ -80,7 +80,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Blooms[0].Visible = Blooms[1].Visible = Blooms[2].Visible = false;
             Add(Blooms);
             addPipeSolids(8);
-            if (!isEmpty && PianoModule.SaveData.DrillBatteryIds.Contains(BatteryID))
+            if (!isEmpty && PianoModule.Session.DrillBatteryIds.Contains(BatteryID))
             {
                 Activate(true);
             }

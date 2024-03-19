@@ -22,11 +22,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return PianoModule.SaveData.WasherSwitchAttempts;
+                return PianoModule.Session.WasherSwitchAttempts;
             }
             set
             {
-                PianoModule.SaveData.WasherSwitchAttempts = value;
+                PianoModule.Session.WasherSwitchAttempts = value;
             }
         }
         private TalkComponent Talk;

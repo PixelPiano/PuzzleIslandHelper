@@ -16,6 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private const int XOffset = 1920 / 16;
         private const int MaxLineWidth = 1920 / 2 - XOffset;
         private const string fontName = "pixelary";
+        private bool uses_;
 
         private static readonly Dictionary<string, List<string>> fontPaths;
         static MemoryTextscene()
@@ -27,7 +28,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private int CurrentSegment;
         private int CurrentNode;
         private int CurrentID;
-
+        
 
         private float SolidOpacity;
         private float TextOpacity = 1;
@@ -125,6 +126,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 while (CurrentNode < FText.Nodes.Count)
                 {
+                    _forceHide = false;
                     _visible = true;
                     for (int i = 0; i < FText.Nodes.Count; i++)
                     {
@@ -148,9 +150,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             }
                             yield return c.Delay * 1.5f;
                         }
+                        if (Node is FancyTextExt.Wait)
+                        {
+                            _forceHide = true;
+                            yield return (Node as FancyTextExt.Wait).Duration;
+                            _forceHide = false;
+                        }
                         if (Node is FancyTextExt.NewLine)
                         {
                             CurrentLine++;
+                        }
+                        if (Node is FancyTextExt.NewPage)
+                        {
+
                         }
                         if (Node is FancyTextExt.NewSegment ns)
                         {
@@ -158,7 +170,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             CurrentNode += (int)Calc.Max(ns.Lines - 1, 0);
                             startOfNewSegment = true;
                             yield return 1;
-                            //yield return WaitForButton(); //wait for button press and then continue to next segment
                         }
                     }
                 }
@@ -221,8 +232,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
             }
             Waiting = false;
-            _forceHide = true;
             yield return null;
+            _forceHide = true;
         }
         private IEnumerator Reset(int next)
         {
@@ -242,7 +253,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 TextOpacity = Calc.LerpClamp(0, 1, i);
                 yield return null;
             }
-            _forceHide = false;
+            _forceHide = true;
             yield return null;
         }
         #endregion

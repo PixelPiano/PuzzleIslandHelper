@@ -22,6 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool UsesFlag;
         public bool UseRawDeltaTime;
         private float dummyTimer;
+        public bool UseIdentityMatrix;
         public bool State
         {
             get
@@ -30,13 +31,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     return true;
                 }
-                return FlagState(Scene as Level);
+                return FlagState;
             }
         }
-        public ShaderOverlay(string path, string flag = "", bool forceRender = false, float alpha = 1) : base(Vector2.Zero)
+        public bool FlagState
         {
-            this.path = path;
-            Effect = ShaderHelper.TryGetEffect(path, true);
+            get
+            {
+                if (Scene is not Level level) return false;
+                return !UsesFlag || level.Session.GetFlag(flag) || string.IsNullOrEmpty(flag);
+            }
+        }
+        public ShaderOverlay(string path, string flag = "", bool forceRender = false, float alpha = 1)
+            : this(ShaderHelper.TryGetEffect(path,true), flag, forceRender, alpha)
+        {
+        }
+        public ShaderOverlay(Effect effect, string flag = "", bool forceRender = false, float alpha = 1) : base()
+        {
+            Effect = effect;
             this.flag = flag;
             Alpha = alpha;
             ForceLevelRender = forceRender;
@@ -169,14 +181,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, overlay?.Effect);
             Draw.SpriteBatch.Draw((RenderTarget2D)tempA, destinationRectangle, sourceRectangle, Color.White * alpha);
             Draw.SpriteBatch.End();
-        }
-        public bool FlagState(Level level)
-        {
-            if (!UsesFlag)
-            {
-                return false;
-            }
-            return string.IsNullOrEmpty(flag) || level.Session.GetFlag(flag);
         }
     }
 }

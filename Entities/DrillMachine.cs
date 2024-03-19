@@ -43,7 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return PianoModule.SaveData.DrillBatteryIds.Count > 2;
+                return PianoModule.Session.DrillBatteryIds.Count > 2;
             }
         }
         public DrillMachine(EntityData data, Vector2 offset) : base(data.Position + offset)
@@ -97,7 +97,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public void UpdateBatteries()
         {
-            int count = PianoModule.SaveData.DrillBatteryIds.Count;
+            int count = PianoModule.Session.DrillBatteryIds.Count;
             for (int i = 0; i < Batteries.Length; i++)
             {
                 Batteries[i].Play(count > i ? "lit" : "idle");

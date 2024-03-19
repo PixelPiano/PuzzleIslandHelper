@@ -159,9 +159,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             Lights.Color = Color.Lerp(Color.White, Color.Black, LightDim);
-            if (LabGeneratorPuzzle.Completed && PianoModule.SaveData.HasFixedPipes && PortFixed && LightFixed && !PianoModule.SaveData.GeneratorStarted) //If fixed
+            if (LabGeneratorPuzzle.Completed && PianoModule.Session.HasFixedPipes && PortFixed && LightFixed && !PianoModule.Session.GeneratorStarted) //If fixed
             {
-                PianoModule.SaveData.GeneratorStarted = true;
+                PianoModule.Session.GeneratorStarted = true;
                 Add(new Coroutine(StartSequenceOrSomething())); //activate machine
             }
 
@@ -247,7 +247,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             glowEntity.Add(Glow);
             glowEntity.Depth = -1;
             Glow.CenterOrigin();
-            if (PianoModule.SaveData.GeneratorStarted && LightFixed)
+            if (PianoModule.Session.GeneratorStarted && LightFixed)
             {
                 Laser = true;
                 Lights.Play("onIdle");

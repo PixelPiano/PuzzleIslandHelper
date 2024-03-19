@@ -141,7 +141,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private bool PipesBroken()
         {
-            return PipeProgram.PipeCutsceneStarted || PianoModule.SaveData.GetPipeState() > 1;
+            return PipeProgram.PipeCutsceneStarted || PianoModule.Session.GetPipeState() > 1;
         }
         private void Drawing()
         {

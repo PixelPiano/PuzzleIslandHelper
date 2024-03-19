@@ -11,7 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
 {
     public class StageData
     {
-        
+
         public int CurrentStage { get; set; }
         public bool Completed
         {
@@ -27,6 +27,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
             CurrentStage = 0;
         }
 
+        public void ParseData()
+        {
+            foreach (KeyValuePair<string, GeneratorStage> pair in Stages)
+            {
+                Stages[pair.Key].ParseData();
+            }
+        }
         public bool GetNextStage(out GeneratorStage stage)
         {
             CurrentStage++;

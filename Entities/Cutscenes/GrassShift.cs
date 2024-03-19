@@ -33,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
 
             if (Shader is null)
             {
-                Shader = new ShaderOverlay("PuzzleIslandHelper/Shaders/fuzzyNoise");
+                Shader = new ShaderOverlay(ShaderFX.FuzzyNoise);
                 Shader.AddTag(Tags.Global);
                 level.Add(Shader);
             }
@@ -58,7 +58,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         public IEnumerator CutscenePart1(Level level)
         {
-            //level.Add(new PortraitRuiner("PuzzleIslandHelper/Shaders/fuzzyNoise"));
             Level.Session.SetFlag("mustHaveSeenPart1", false);
             Shader.ForceLevelRender = false;
             Shader.Amplitude = 0;
@@ -154,7 +153,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         {
             Shaking = true;
             Add(new Coroutine(ShakeRoutine()));
-            //Event.Play(GrassShiftRumble);
+            //Event.PlayEvent(GrassShiftRumble);
             yield return null;
         }
         public IEnumerator ShakeRoutine()

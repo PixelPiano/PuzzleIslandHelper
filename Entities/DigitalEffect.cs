@@ -1,5 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Xml.Schema;
 using Celeste.Mod.Entities;
+using ExtendedVariants.Entities.ForMappers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -8,66 +12,151 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/DigitalEffect")]
     [Tracked]
+
     public class DigitalEffect : Entity
     {
-        #region Variables
-        public static bool RenderCondition;
 
-        private Player player;
-        private Color[] HairColor = {Calc.HexToColor("0FD4F1"),
-                                     Calc.HexToColor("00a807"),
-                                     Calc.HexToColor("99ffd3"),
-                                     Calc.HexToColor("7040FF"),
-                                     Calc.HexToColor("CF40FF"),
-                                     Calc.HexToColor("FF0080")};
+        public class GlitchTexture : Image
+        {
+            public const string DefaultPath = "objects/PuzzleIslandHelper/digitalEffect/artifacts/";
 
+            public class Timer
+            {
+                public float Min;
+                public float Range;
+                private float time;
+                private float timer;
+                public Action OnComplete;
+
+                public Timer(float min, float range, Action onComplete)
+                {
+                    Min = min;
+                    Range = range;
+                    OnComplete = onComplete;
+                }
+                public void Update()
+                {
+                    if (timer < time)
+                    {
+                        timer += Engine.DeltaTime;
+                    }
+                    else
+                    {
+                        OnComplete.Invoke();
+                        timer = 0;
+                        time = Min + Calc.Random.Range(0, Range);
+                    }
+                }
+            }
+            public List<Timer> Timers = new();
+
+            public float WaitRange = 1.0f;
+            public float ColorIntervalRange = 0.2f;
+            public float VariantCycleRange = 4;
+            public float ScaleRange = 0.5f;
+            public float PositionRange = 0.5f;
+
+            private float scaleTime;
+            private float waitTime;
+            private float colorTime;
+            private float variantCycles;
+
+            private float scaleTimer;
+            private float waitTimer;
+            private float colorTimer;
+            private int cycle;
+
+            private const int MaxFrames = 21;
+            public const float WaitMin = 0.5f;
+            public const float ColorMin = 0.1f;
+            public const int CycleMin = 1;
+            public const float ScaleMin = 0.5f;
+            private Vector2 offset;
+            public string[] Variants = new string[] { "", "Blur", "Drunk", "Rock" };
+            public int Variant;
+            public GlitchTexture() : base(GFX.Game[DefaultPath + "artifact00"], true)
+            {
+                Timers = new()
+                {
+                    new Timer(0.5f, 1, RandomizeTexture), //texture
+                    new Timer(0.1f,0.2f,RandomizeColor), //color
+                    new Timer(0.2f, 0.1f, RandomizeScale), //scale
+                    new Timer(0.1f, 1f, RandomizeOffset) //position
+                };
+            }
+            public override void Update()
+            {
+                base.Update();
+                foreach (Timer t in Timers)
+                {
+                    t.Update();
+                }
+            }
+            public override void Added(Entity entity)
+            {
+                base.Added(entity);
+                RandomizeTexture();
+                CenterOrigin();
+                Position += new Vector2(Width / 2, Height / 2);
+            }
+
+            public override void Render()
+            {
+                if (Scene is not Level level || level.GetPlayer() is not Player player) return;
+                if (Texture != null)
+                {
+                    Texture.Draw(player.Position - Vector2.UnitY * Texture.Height / 2 + offset, Origin, Color, Scale, Rotation, Effects);
+                }
+            }
+            private void RandomizeScale()
+            {
+                Scale = Vector2.One * (ScaleMin + Calc.Random.Range(0, ScaleRange));
+            }
+            private void RandomizeOffset()
+            {
+                Vector2 halfSize = new Vector2(Width, Height) / 2;
+                offset = Calc.Random.Range(-halfSize, halfSize);
+            }
+            private void RandomizeTexture()
+            {
+                if (cycle >= variantCycles)
+                {
+                    Variant = Calc.Random.Range(0, 4);
+                    variantCycles = CycleMin + Calc.Random.Range(0, variantCycles);
+                    cycle = 0;
+                }
+                else
+                {
+                    cycle++;
+                }
+                int frame = Calc.Random.Range(0, MaxFrames);
+                string path = DefaultPath + "artifact" + Variants[Variant] + (frame < 10 ? "0" + frame : frame);
+                Texture = GFX.Game[path];
+                Rotation = Calc.Random.Range(0, 360f).ToRad();
+            }
+            private void RandomizeColor()
+            {
+                Color = Color.Random(true, true, true, false);
+            }
+
+        }
+        public static bool IgnoreHair;
         private Color background;
 
-        private Color[] lines = new Color[4];
+        private Color[] lineColors = new Color[4];
 
-        private Color[] lineCache = new Color[4];
-
-        private Color tempBack;
-
-        private float[] addToY = new float[4];
-
-        private float maxY;
-
-        private float rate = 0.2f;
-
-        private int opacityCounter;
-
-        private readonly float lineOpacity = 0.5f;
-
-        private readonly float backOpacity = 0.9f;
-        private readonly float lineOpacity2 = 0.2f;
-
-        private readonly float backOpacity2 = 0.8f;
-
+        private float yOffset;
 
         private bool backFlicker;
 
         private bool lineFlicker;
 
-        private float currentLineOpacity;
+        private float currentLineOpacity = 1;
 
-        private float currentBackOpacity;
+        private float currentBackOpacity = 1;
+        public static bool ForceStop;
 
-        private readonly int opacityBuffer = 8;
-
-        private int opacityBufferCounter;
-
-        private int[] lineFrameOpacity = new int[] { 1, 0, 0, 1, 1, 0, 1, 0, 1, 1,
-                                                1, 1, 0, 1, 1, 0, 0, 0, 1, 0,
-                                                1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1 };
-
-
-        private int[] backgroundFrameOpacity = new int[] { 1, 1, 0, 1, 1, 1, 1, 0, 1, 1,
-                                                      1, 1, 0, 1, 1, 1, 1, 1, 0, 1,
-                                                      1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1 };
-
-
-        private bool start;
+        private GlitchTexture[] Glitches = new GlitchTexture[3];
 
         private static VirtualRenderTarget _MaskRenderTarget;
         private static VirtualRenderTarget _ObjectRenderTarget;
@@ -77,12 +166,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public static VirtualRenderTarget ObjectRenderTarget => _ObjectRenderTarget ??=
                       VirtualContent.CreateRenderTarget("DigitalObject", 320, 180);
-        private bool LeaveOutHair;
 
-        private EntityID id;
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
+            UseEffect = false;
             _MaskRenderTarget?.Dispose();
             _MaskRenderTarget = null;
             _ObjectRenderTarget?.Dispose();
@@ -98,207 +186,147 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             AlphaBlendFunction = BlendFunction.Add,
             AlphaDestinationBlend = Blend.SourceColor
         };
-        #endregion
-        public static bool ForceStop;
-        public DigitalEffect(EntityData data, Vector2 offset, EntityID id)
+        public static bool UseEffect;
+        public DigitalEffect(EntityData data, Vector2 offset)
           : base(data.Position + offset)
         {
             Tag |= Tags.TransitionUpdate;
-            this.id = id;
-            LeaveOutHair = data.Bool("leaveOutHair", true);
-            RenderCondition = true;
+            //IgnoreHair = data.Bool("leaveOutHair", true);
             background = Calc.HexToColor("008801");
-            lines[0] = Calc.HexToColor("00FF00");
-            lines[1] = Calc.HexToColor("00E800");
-            lines[2] = Calc.HexToColor("00FF00");
-            lines[3] = Calc.HexToColor("07ED07");
+            lineColors[0] = Calc.HexToColor("00FF00");
+            lineColors[1] = Calc.HexToColor("00E800");
+            lineColors[2] = Calc.HexToColor("00FF00");
+            lineColors[3] = Calc.HexToColor("07ED07");
             backFlicker = data.Bool("backgroundFlicker", true);
             lineFlicker = data.Bool("lineFlicker", true);
-            tempBack = background;
-            lines.CopyTo(lineCache, 0);
             Depth = -1;
-            start = true;
-            maxY = 10;
-            opacityCounter = 0;
-            currentLineOpacity = 1f;
-            currentBackOpacity = 1f;
-            opacityBufferCounter = 1;
-        }
 
-        public override void Render()
-        {
-            base.Render();
-            if (Scene is not Level l || ForceStop)
-            {
-                return;
-            }
+            //Add(new BeforeRenderHook(BeforeRender));
 
-            Player player = Scene.Tracker.GetEntity<Player>();
-
-            if (player == null) { return; }
-            if (LeaveOutHair)
-            {
-                RenderCondition = false;
-            }
-            float rectX = player.X - (player.Width / 2) - 18;
-            float rectY = player.Y - player.Height - 22;
-            float rectWidth = player.Width + 40;
-            float rectHeight = player.Height + 32;
-
-            if (start)
-            {
-                addToY[0] = 0;
-                addToY[1] = -rectHeight / 2;
-                addToY[2] = -rectHeight / 4;
-                addToY[3] = -(rectHeight / 4) * 3;
-                maxY = rectHeight;
-            }
-            start = false;
-            Draw.SpriteBatch.End(); // stop drawing things like normal
-
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(MaskRenderTarget); // "when you draw, draw to my buffer"
-            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);// clear the buffer, since that doesn't get done automatically
-            GameplayRenderer.Begin(); // setup drawing again with standard properties
-
-            // ...
-            // draw your mask (here, the player)
-            player.Render();
-            Draw.SpriteBatch.End();
-
-
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(ObjectRenderTarget);
-            // note the custom AlphaMaskBlendState to ignore *source* alpha and *destination* colour
-
-            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-
-            GameplayRenderer.Begin();
-
-            if (player.Facing == Facings.Right) { rectX -= 1; }
-
-            // draw our overlay
-            opacityCounter %= 32;
-            opacityBufferCounter %= opacityBuffer;
-            if (lineFlicker)
-            {
-                if (lineFrameOpacity[opacityCounter] == 0)
-                {
-                    Random ra = new Random();
-                    int raInt = ra.Next(0, 100);
-                    if (raInt > 50)
-                    {
-                        currentLineOpacity = lineOpacity;
-                    }
-                    else
-                    {
-                        currentLineOpacity = lineOpacity2;
-                    }
-                }
-                else
-                {
-                    currentLineOpacity = 1f;
-                }
-            }
-
-            if (backFlicker)
-            {
-                if (backgroundFrameOpacity[opacityCounter] == 0)
-                {
-                    Random r = new Random();
-                    int rInt = r.Next(0, 100);
-                    if (rInt > 50)
-                    {
-                        currentBackOpacity = backOpacity;
-                    }
-                    else
-                    {
-                        currentBackOpacity = backOpacity2;
-                    }
-                }
-                else
-                {
-                    currentBackOpacity = 1f;
-                }
-            }
-            Draw.Rect(rectX, rectY, rectWidth, rectHeight, background);
-
-            float[] lineY = new float[4];
-
-            for (int i = 0; i < 4; i++)
-            {
-                addToY[i] %= maxY;
-                lineY[i] = rectY + rectHeight + addToY[i];
-            }
-            float endX = rectX + rectWidth;
-
-            Draw.Line(new Vector2(rectX, lineY[0]), new Vector2(endX, lineY[0]), lines[0]);
-
-            Draw.Line(new Vector2(rectX, lineY[1]), new Vector2(endX, lineY[1]), lines[1]);
-
-            Draw.Line(new Vector2(rectX, lineY[2]), new Vector2(endX, lineY[2]), lines[2]);
-
-            Draw.Line(new Vector2(rectX, lineY[3]), new Vector2(endX, lineY[3]), lines[3]);
-
-            // back to normal
-
-            Draw.SpriteBatch.End();
-
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(ObjectRenderTarget);
-
-            Draw.SpriteBatch.Begin(
-                SpriteSortMode.Deferred,
-                AlphaMaskBlendState,
-                SamplerState.PointClamp,
-                DepthStencilState.Default,
-                RasterizerState.CullNone,
-                null, Matrix.Identity);
-
-            //draw mask to object target
-            Draw.SpriteBatch.Draw(MaskRenderTarget, Vector2.Zero, Color.White);
-
-            GameplayRenderer.End();
-            //switch to render to Gameplay
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Gameplay);
-
-            GameplayRenderer.Begin();
-            // draw our masked overlay
-            Draw.SpriteBatch.Draw(ObjectRenderTarget, l.Camera.Position, Color.White);
-            RenderCondition = true;
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            ForceStop = false;
+            UseEffect = true;
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            if (scene.GetPlayer() is not Player player) return;
+            IgnoreHair = true;
+            Collider = new Hitbox(player.Width + 40, player.Height + 32, -(player.Width / 2) - (player.Facing == Facings.Right ? 19 : 18), player.Height - 22);
+            for (int i = 0; i < Glitches.Length; i++)
+            {
+                Glitches[i] = new GlitchTexture()
+                {
+                    ColorIntervalRange = 0.4f * (i + 1),
+                    WaitRange = 0.2f * (i + 1),
+                    VariantCycleRange = i + 1,
+                    Position = player.Center - Center,
+                    Visible = false
+                };
+            }
+            Add(Glitches);
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            DrawTextures();
+        }
+        public void DrawRect()
+        {
+            Draw.Rect(Collider, background);
+        }
+        public void DrawTextures()
+        {
+            foreach (GlitchTexture tex in Glitches)
+            {
+                tex.Render();
+            }
+        }
+        public void DrawLines()
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                float y = Collider.AbsoluteY + Height - (Height / 4 * i) + yOffset - (Height / 2);
+                Draw.Line(new Vector2(Collider.AbsoluteX, y), new Vector2(Collider.AbsoluteX + Width, y), lineColors[i] * currentLineOpacity);
+            }
+        }
+        public override void Render()
+        {
+            base.Render();
+            if (Scene is not Level level || ForceStop) return;
+            if (level.GetPlayer() is not Player player)
+            {
+                //Draw.Rect(Collider,Color.Red);
+                return;
+            }
+            Draw.SpriteBatch.End();
+
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(MaskRenderTarget);
+            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+            GameplayRenderer.Begin();
+            Color haircolor = player.Hair.Color;
+            if (IgnoreHair)
+            {
+                player.Hair.Visible = false;
+            }
+            player.Render();
+            // DrawTextures();
+            if (IgnoreHair)
+            {
+                player.Hair.Visible = true;
+            }
+            Draw.SpriteBatch.End();
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(ObjectRenderTarget);
+            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+
+            GameplayRenderer.Begin();
+            DrawRect();
+            DrawLines();
+            DrawTextures();
+
+            Draw.SpriteBatch.End();
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(ObjectRenderTarget);
+
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, AlphaMaskBlendState, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, Matrix.Identity);
+            Draw.SpriteBatch.Draw(MaskRenderTarget, Vector2.Zero, Color.White);
+            GameplayRenderer.End();
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Gameplay);
+            GameplayRenderer.Begin();
+            Draw.SpriteBatch.Draw(ObjectRenderTarget, level.Camera.Position, Color.White);
+
         }
         public override void Update()
         {
             base.Update();
-            if (Scene as Level is null)
-            {
-                return;
-            }
-
-            Visible = SceneAs<Level>().Session.Level.Contains("digi");
-            background = Color.Lerp(Color.LightGreen, tempBack, currentBackOpacity);
-            for (int i = 0; i < 4; i++)
-            {
-                lines[i] = lineCache[i] * currentLineOpacity;
-                addToY[i] -= rate;
-            }
-
-            if (opacityBufferCounter == 1)
-            {
-                opacityCounter++;
-            }
-            opacityBufferCounter++;
+            if (Scene is not Level level || level.GetPlayer() is not Player player) return;
+            Position = player.Position;
+            Collider.Position = new Vector2(-(player.Width / 2) - (player.Facing == Facings.Right ? 19 : 18), -player.Height - 22);
+            currentLineOpacity = lineFlicker && Calc.Random.Range(0, 2) == 0 ? Calc.Random.Range(0, 2) == 0 ? 0.2f : 0.5f : 1;
+            currentBackOpacity = backFlicker && Calc.Random.Range(0, 2) == 0 ? Calc.Random.Range(0, 2) == 0 ? 0.8f : 0.9f : 1;
+            background = Color.Lerp(Color.LightGreen, Calc.HexToColor("008801"), currentBackOpacity);
+            yOffset = (yOffset + 0.2f) % (Height / 4);
         }
         public static void Unload()
         {
+            UseEffect = false;
             _MaskRenderTarget?.Dispose();
             _ObjectRenderTarget?.Dispose();
+            On.Celeste.PlayerHair.Render -= PlayerHair_Render;
         }
         public static void Load()
         {
-            RenderCondition = true;
+            IgnoreHair = false;
+            On.Celeste.PlayerHair.Render += PlayerHair_Render;
+        }
+        private static void PlayerHair_Render(On.Celeste.PlayerHair.orig_Render orig, PlayerHair self)
+        {
+
+            if ((IgnoreHair && UseEffect) || !UseEffect)
+            {
+                orig(self);
+            }
         }
     }
 }

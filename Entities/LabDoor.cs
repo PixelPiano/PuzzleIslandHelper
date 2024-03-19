@@ -40,6 +40,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             flag = data.Attr("flag");
             start = data.Attr("startState");
             // TODO: read properties from data
+            Add(doorSprite = GFX.SpriteBank.Create("labDoor"));
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/machineDoor/"));
             doorSprite.AddLoop("idle", "idle", 0.1f);
             doorSprite.AddLoop("open", "open", 0.1f, 8);
@@ -49,6 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             doorSprite.Rate = 1.5f;
             Collider = new Hitbox(8, 48, 0, 0);
             range = data.Float("range") * 8;
+            Depth = -8500;
             Add(new LightOcclude());
         }
         public IEnumerator Open()
@@ -94,12 +96,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            Depth = -8500;
-            doorSprite.Play("idle");
-        }
         public override void Added(Scene scene)
         {
             base.Added(scene);
@@ -127,20 +123,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             player = Scene.Tracker.GetEntity<Player>();
-            
+
             if (!auto)
             {
                 stateChange((SceneAs<Level>().Session.GetFlag(flag)));
             }
             else
             {
-                if (player.Position.Y < Y + Height + 8 && player.Position.Y > Y - 8 
-                    && ((player.Position.X <= X + Width + range && player.Position.X > X + Width )
-                    || (player.Position.X >= X - range && player.Position.X < X )))
+                if (player.Position.Y < Y + Height + 8 && player.Position.Y > Y - 8
+                    && ((player.Position.X <= X + Width + range && player.Position.X > X + Width)
+                    || (player.Position.X >= X - range && player.Position.X < X)))
                 {
                     stateChange(true);
                 }
-                if ((player.Position.Y > Y + Height + 8 || player.Position.Y < Y - 8) 
+                if ((player.Position.Y > Y + Height + 8 || player.Position.Y < Y - 8)
                     && (player.Position.X > X + Width + range || player.Position.X < X - range))
                 {
                     stateChange(false);

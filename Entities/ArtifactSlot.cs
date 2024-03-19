@@ -135,7 +135,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprite.Play("idle");
             Collider = new Hitbox(sprite.Width, sprite.Height);
             Add(new TalkComponent(new Rectangle(0, 0, (int)Width, (int)Height), Vector2.UnitX * Collider.HalfSize.X, Interact));
-            Transition = new SlotExit(true,"l-1a");
+            Transition = new SlotExit(true,"level-1a");
         }
         public IEnumerator ToSlot()
         {
@@ -383,7 +383,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void Interact(Player player)
         {
-            PianoModule.SaveData.HasArtifact = true;
+            PianoModule.Session.HasArtifact = true;
             artifact.Position = player.Position;
             player.StateMachine.State = Player.StDummy;
             Add(new Coroutine(ToSlot()));

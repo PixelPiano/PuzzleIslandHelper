@@ -1,25 +1,25 @@
 local utils = require("utils")
 local drawableSprite = require("structs.drawable_sprite")
-local cogDoor= {}
-cogDoor.justification = { 0, 0 }
-cogDoor.name = "PuzzleIslandHelper/CogDoor"
+local gearDoor= {}
+gearDoor.justification = { 0, 0 }
+gearDoor.name = "PuzzleIslandHelper/GearDoor"
 
-cogDoor.depth = 0
-function cogDoor.canResize(room, entity)
+gearDoor.depth = 0
+function gearDoor.canResize(room, entity)
     if entity.vertical then
         return false, true
     else
         return true, false
     end
 end
-function cogDoor.minimumSize(room, entity)
+function gearDoor.minimumSize(room, entity)
     if entity.vertical then
         return 8, 24
     else
         return 24, 8
     end
 end
-function cogDoor.selection(room, entity)
+function gearDoor.selection(room, entity)
     local x, y = entity.x or 0, entity.y or 0
     if entity.vertical then
         entity.width = 8
@@ -30,11 +30,11 @@ function cogDoor.selection(room, entity)
     end
     return utils.rectangle(x,y, entity.width or 8, entity.height or 8)
 end
-function cogDoor.sprite(room, entity)
+function gearDoor.sprite(room, entity)
     local sprites = {}
     local width = math.max(entity.width or 0, 8)  
     local height = math.max(entity.height or 0, 8)
-    local path = "objects/PuzzleIslandHelper/cog/door"
+    local path = "objects/PuzzleIslandHelper/gear/door"
 
     local xm, ym
     if entity.vertical then
@@ -68,10 +68,10 @@ function cogDoor.sprite(room, entity)
     table.insert(sprites,bottom)
     return sprites
 end
-cogDoor.placements =
+gearDoor.placements =
 {
     {
-        name = "Cog Door",
+        name = "Gear Door",
         data =
         {
             width = 8,
@@ -87,4 +87,4 @@ cogDoor.placements =
 }
 
 
-return cogDoor
+return gearDoor

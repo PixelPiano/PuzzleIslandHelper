@@ -33,8 +33,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private Level level;
         private readonly VirtualRenderTarget Mask = VirtualContent.CreateRenderTarget("ParallaxWindowMask", 320, 180);
         private readonly VirtualRenderTarget Target = VirtualContent.CreateRenderTarget("ParallaxWindowTarget", 320, 180);
-
-        public ParallaxWindow(string flag)
+        public ParallaxWindow(BinaryPacker.Element data) : this(data.Attr("flag")){ }
+        public ParallaxWindow(string flag) : base()
         {
             this.flag = flag;
         }

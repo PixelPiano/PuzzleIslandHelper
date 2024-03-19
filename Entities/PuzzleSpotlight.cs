@@ -14,7 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class PuzzleSpotlight : Entity
     {
         public bool State = false; // toggles effect visibility
-        public string ColorGradeName = "PianoBoy/inverted"; // colorgrade to use for the effect
+        public string ColorGradeName = "PianoBoy/invertFlag"; // colorgrade to use for the effect
         public float Radius = 30; // radius of the center circle
         private string flag;
         private static bool flagValue;

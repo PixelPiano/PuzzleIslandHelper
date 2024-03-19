@@ -31,7 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public static VirtualRenderTarget Target => _Target ??=
                       VirtualContent.CreateRenderTarget("GlitchBlockTarget", 320, 180);
       
-        public Testtt()
+        public Testtt(BinaryPacker.Element data) : base()
         {
             Shader = ShaderHelper.TryGetEffect("curvedScreen");
         }

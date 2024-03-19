@@ -2,12 +2,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Windows;
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using FMOD.Studio;
 using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
+using MonoMod.RuntimeDetour;
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 {
     public class PIPrologueSequence : CutsceneEntity
@@ -25,55 +29,217 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 (Scene as Level).CompleteArea(spotlightWipe: false, false, false);
             }
         }
+        [Tracked]
+        public class DuckForcer : Entity
+        {
+            public DuckForcer() : base()
+            {
+
+            }
+        }
         private Player player;
         private float fadeOpacity = 1;
-        private bool fading;
-        private Level level;
+        private bool blackScreen;
         private PIGondola gondola;
+        private bool stopUsingLever;
         private int Part;
         private List<CustomFlagExitBlock> blocks = new();
         public const string glitchEvent = "event:/PianoBoy/invertGlitch2";
         public PIPrologueSequence(int part)
-            : base(fadeInOnSkip: false, endingChapterAfter: false)
+            : base(fadeInOnSkip: false, endingChapterAfter: part >= 4)
         {
+            Tag |= Tags.TransitionUpdate;
             Part = part;
             Depth = -100001;
-            if (part > 1)
+            if (part == 2)
             {
-                fading = true;
+                blackScreen = true;
             }
-
+        }
+        public void TeleportCleanup(Level level)
+        {
+            Level = level;
+            Player player = level.GetPlayer();
+            if (player is null) return;
+            player.StateMachine.State = Player.StDummy;
+            blackScreen = true;
+            fadeOpacity = 1;
         }
         public override void OnBegin(Level level)
         {
-            Level.Session.SetFlag("mirrorBlockShatter", false);
+            Level = level;
             gondola = level.Tracker.GetEntity<PIGondola>();
-            if (Part < 2)
+            Coroutine routine = Part switch
             {
-                Add(new Coroutine(Cutscene1(level)));
-            }
-            else
-            {
-                Add(new Coroutine(Cutscene2(level)));
-            }
+                <= 1 => new Coroutine(Cutscene1()),
+                2 => new Coroutine(Cutscene2()),
+                3 => new Coroutine(Cutscene3()),
+                >= 4 => new Coroutine(Cutscene4())
+            };
+            //Add(routine);
         }
-        public IEnumerator Cutscene1(Level level)
+        private static IDetour hook_Player_set_Ducking;
+        private delegate bool orig_Player_set_Ducking(Player self);
+        public static void Load()
         {
-            this.level = level;
+            On.Celeste.Input.GetAimVector += Input_GetAimVector;
+            hook_Player_set_Ducking = new Hook(
+            typeof(Player).GetProperty("Ducking").SetMethod,
+            (Action<Player, bool> duck, Player player, bool v) =>
+            {
+                if (player is null) return;
+                if (player.SceneAs<Level>().Tracker.GetEntity<DuckForcer>() is null)
+                {
+                    duck(player, v);
+                }
+                else
+                {
+                    duck(player, true);
+                }
+            });
+        }
+        public static void Unload()
+        {
+            On.Celeste.Input.GetAimVector -= Input_GetAimVector;
+            hook_Player_set_Ducking?.Dispose();
+        }
+        private static Vector2 Input_GetAimVector(On.Celeste.Input.orig_GetAimVector orig, Facings defaultFacing)
+        {
+            if (Engine.Scene is not Level level || level.Tracker.GetEntity<DuckForcer>() is null)
+            {
+                return orig(defaultFacing);
+            }
+            return Vector2.UnitY;
+        }
+
+        public IEnumerator Cutscene1()
+        {
+            TeleportCleanup(Level);
+            yield return 2f; //todo: add sounds of door opening, mailbox, picking up letter, door closing, shuffling paper, opening letter
             yield return Textbox.Say("prologue", GetLetter, ToGondola);
             yield return null;
         }
-        public IEnumerator Cutscene2(Level level)
+
+        public IEnumerator Cutscene2()
         {
-            Level = level;
-            yield return Textbox.Say("prologue2", ToBoost, MirrorFlash, BlocksAppear, Abscond);
+            TeleportCleanup(Level);
+            yield return 1;
+            yield return Textbox.Say("prologue2", ToBoost, ProbeGlue, MirrorFlash, BlocksAppear);
 
         }
-        public IEnumerator Cutscene3(Level level)
+        public IEnumerator Cutscene3()
         {
-            Level = level;
-            yield return Textbox.Say("prologue3", FiddleWithGondola, RopeSnap, GondolaFall, GetBlockd);
+            if (Level.GetPlayer() is not Player player) yield break;
+            player.StateMachine.State = Player.StDummy;
+            this.player = player;
+            player.ForceCameraUpdate = true;
+            Coroutine sayLine = new Coroutine(Textbox.Say("prologue3a"));
+            Add(sayLine);
+            Coroutine runBack = new Coroutine(RunBackToGondola());
+            Add(runBack);
+            while (!runBack.Finished)
+            {
+                yield return null;
+            }
+            Coroutine fiddle = new Coroutine(FiddleWithGondola());
+            Add(fiddle);
+            while (!sayLine.Finished)
+            {
+                yield return null;
+            }
+            yield return Textbox.Say("prologue3b");
+            stopUsingLever = true;
+            while (!fiddle.Finished)
+            {
+                yield return null;
+            }
+            yield return BlocksSurroundGondola();
+            yield return GetBlockd();
+        }
+        public IEnumerator Cutscene4()
+        {
+            TheWorldScene worldScene = new TheWorldScene("pTA","pTB","pTC","pTD","pTE");
+            Level.Add(worldScene);
+            while (worldScene.InCutscene)
+            {
+                yield return null;
+            }
+            EndCutscene(Level);
+            yield return null;
+        }
+        public IEnumerator ProbeGlue()
+        {
+            yield return null;
+        }
+        public IEnumerator RunBackToGondola()
+        {
+            Coroutine routine = new Coroutine(player.AutoTraverse(Level.Marker("gondola").X, false, 2));
+            Add(routine);
+            yield return Level.ZoomTo(new Vector2(160, 90), 1.3f, 1);
+            while (!routine.Finished)
+            {
+                yield return null;
+            }
+            yield return null;
+        }
+        public IEnumerator FiddleWithGondola()
+        {
 
+            float angle = -5f.ToRad();
+            Vector2 position = player.Position;
+            player.ForceCameraUpdate = false;
+            while (!stopUsingLever)
+            {
+                gondola.Lever.Play("pulled");
+                yield return null;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.2f)
+                {
+                    player.MoveToX(position.X - i * 2);
+                    yield return null;
+                }
+                player.MoveToX(position.X - 2);
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.2f)
+                {
+                    player.MoveToX(position.X - 2 + i * 2);
+                    yield return null;
+                }
+                player.MoveToX(position.X);
+                yield return 0.1f;
+                yield return null;
+            }
+        }
+        public IEnumerator BlocksSurroundGondola()
+        {
+            List<PrologueBlock> blocks = new();
+            foreach (PrologueBlock block in Level.Tracker.GetEntities<PrologueBlock>())
+            {
+                if (block.Order > 100)
+                {
+                    blocks.Add(block);
+                }
+            }
+            foreach (PrologueBlock block in blocks.OrderByDescending(item => item.X))
+            {
+                block.Appear();
+            }
+            Add(new Coroutine(LookLoop()));
+            yield return Textbox.Say("prologue3c");
+            yield return null;
+        }
+        public IEnumerator LookLoop()
+        {
+            while (player is not null && !player.Dead)
+            {
+                player.Facing = Facings.Right;
+                yield return 0.7f;
+                player.Facing = Facings.Left;
+                yield return 0.7f;
+            }
+        }
+        public IEnumerator GetBlockd()
+        {
+            Level.Add(new PrologueKillBlock());
+            yield return null;
         }
         public IEnumerator GetLetter()
         {
@@ -81,7 +247,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         }
         public IEnumerator ToGondola()
         {
-            yield return FadeEnd();
+            yield return FadeOut();
             yield return Ascend();
         }
 
@@ -92,7 +258,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 yield return null;
             }
             yield return 1f;
-            yield return player.DummyWalkTo(level.Bounds.Width - 8);
+            yield return player.DummyWalkTo(Level.Bounds.Width - 8);
             yield return null;
             yield return FadeStart();
             //InstantTeleport(level, player, "temple", false, gondolaStart.X + gondolaPlayerOffset, gondolaStart.Y + 52);
@@ -102,7 +268,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public IEnumerator ToBoost()
         {
             yield return FadeEnd();
-            Booster booster = Level.Entities.FindFirst<Booster>();
+            Booster booster = Level.Entities.FindFirst<PrologueBooster>();
             player = Level.GetPlayer();
             if (booster is not null)
             {
@@ -145,6 +311,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             {
                 yield break;
             }
+            //mirror flickers with exotic color
             Coroutine flash = new Coroutine(mirror.Shimmer());
             Add(flash);
             player.Facing.Flip();
@@ -157,19 +324,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             }
             player.ForceCameraUpdate = false;
             Add(new Coroutine(Level.ZoomAcross(Level.Marker("cameraScared", true), 1.9f, 1.2f)));
+            //madeline runs for cover
             yield return player.DummyWalkTo(Level.Marker("mirrorRight").X, false, 2);
             player.Facing = Facings.Left;
-            player.Ducking = true;
-            player.Duck();
+            //Madeline ducks beneath the bottom of the camera
+            DuckForcer helper = new DuckForcer();
+            Level.Add(helper);
+            //nothing happens
             yield return 2f;
-            player.Ducking = false;
-            player.UnDuck();
+            //madeline pokes her head up from below the screen
+            Level.Remove(helper);
+            //madeline waits for a bit and then approaches the mirror again
             yield return 4f;
             yield return player.AutoTraverseRelative(-8);
             yield return 1;
             yield return player.AutoTraverse(Level.Marker("mirrorNervous").X);
             yield return 2;
             Add(new Coroutine(player.DummyWalkTo(player.X + 8, true, 2)));
+            //sparks in center of mirror
             //yield return mirror.Sparks();
             //Camera zoom in slowly
             yield return 1f;
@@ -177,24 +349,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             yield return null;
             //yield return mirror.Shatter();
 
-
-
-            //mirror flickers with exotic color
-            //madeline runs for cover
-            //nothing happens
-            //madeline pokes her head up from below the screen
-            //sparks in center of mirror
             //block appears in center, inside of mirror
             //madeline exclaims
             //more blocks appear
             //madeline panics
             yield return null;
         }
-
         public IEnumerator BlocksAppear()
         {
-            List<Entity> Blocks = level.Tracker.GetEntities<PrologueGlitchBlock>();
-            DashBlock dashBlock = level.Tracker.GetEntity<DashBlock>();
+            List<Entity> Blocks = Level.Tracker.GetEntities<PrologueGlitchBlock>();
+            DashBlock dashBlock = Level.Tracker.GetEntity<DashBlock>();
             bool broke = false;
             foreach (Entity block in Blocks)
             {
@@ -227,9 +391,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public IEnumerator Abscond()
         {
             //sick reference dude
-            yield return FadeStart();
-            //InstantTeleport(level, player, "temple", false, gondolaStart.X + gondolaPlayerOffset, gondolaStart.Y + 52);
-            yield return FadeEnd();
             while (player is null || player.Dead || !gondola.Collider.Bounds.Contains(player.Position.ToPoint()))
             {
                 yield return null;
@@ -248,22 +409,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 yield return null;
             }
             player.DummyWalkTo(gondola.Center.X, false, 2);
-            yield return null;
-        }
-        public IEnumerator FiddleWithGondola()
-        {
-            yield return null;
-        }
-        public IEnumerator RopeSnap()
-        {
-            yield return null;
-        }
-        public IEnumerator GondolaFall()
-        {
-            yield return null;
-        }
-        public IEnumerator GetBlockd()
-        {
             yield return null;
         }
         public static void InstantTeleport(Scene scene, Player player, string room)
@@ -307,7 +452,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         }
         public IEnumerator FadeStart(float time = 1)
         {
-            fading = true;
+            blackScreen = true;
             fadeOpacity = 0;
             for (float i = 0; i < 1; i += Engine.DeltaTime / time)
             {
@@ -318,7 +463,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         }
         public IEnumerator FadeEnd(float time = 1)
         {
-            fading = true;
+            blackScreen = true;
             fadeOpacity = 1;
             for (float i = 0; i < 1; i += Engine.DeltaTime / time)
             {
@@ -326,7 +471,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 yield return null;
             }
             fadeOpacity = 0;
-            fading = false;
+            blackScreen = false;
+        }
+        public IEnumerator FadeOut()
+        {
+            blackScreen = true;
+            fadeOpacity = 1;
+            for (float i = 0; i < 1; i += Engine.DeltaTime)
+            {
+                fadeOpacity = Calc.LerpClamp(1, 0, i);
+                yield return null;
+            }
+            fadeOpacity = 0;
+            blackScreen = false;
         }
         public override void OnEnd(Level level)
         {
@@ -341,7 +498,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         }
         public override void Render()
         {
-            if (fading)
+            if (blackScreen)
             {
                 Draw.Rect(Level.Camera.GetBounds(), Color.Black * fadeOpacity);
             }

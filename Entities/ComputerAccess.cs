@@ -136,7 +136,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (!noPop && canPop)
             {
                 popSprite.Play("pop");
-                //TODO: Play pop sound
+                //TODO: PlayEvent pop sound
                 noPop = true;
                 SceneAs<Level>().Session.SetFlag("nextArtifactSequence", true);
             }

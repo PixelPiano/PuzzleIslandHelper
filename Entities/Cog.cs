@@ -13,9 +13,9 @@ using static Celeste.Mod.PuzzleIslandHelper.PuzzleData.AccessData;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
 
-    [CustomEntity("PuzzleIslandHelper/Cog")]
+    [CustomEntity("PuzzleIslandHelper/Gear")]
     [Tracked]
-    public class Cog : Actor
+    public class Gear : Actor
     {
         public Vector2 PrevPosition;
         public Vector2 AttractTo;
@@ -33,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public VertexLight Light;
         private Collision onCollideV;
         private Collision onCollideH;
-        public CogHolder Holder;
+        public GearHolder Holder;
         public bool Launching;
         private Vector2 launchDir;
         public EntityID EntityID;
@@ -43,20 +43,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public float Rotation => Sprite is null ? 0 : Sprite.Rotation;
         public bool HolderIsNull => Holder is null;
-        public bool StuckInCog;
+        public bool StuckInGear;
 
         public string ContinuityID;
         public bool IsLeader;
+        public string SubID;
         private float switchBackTimer;
         private bool switchColliders;
-        public Cog(EntityData data, Vector2 offset, EntityID entityID) : base(data.Position + offset)
+        public Gear(EntityData data, Vector2 offset, EntityID entityID) : base(data.Position + offset)
         {
             IsLeader = data.Bool("isLeader");
+            SubID = data.Attr("subId");
             WasNotLeader = !IsLeader;
             ContinuityID = data.Attr("continuityID");
             Depth = 1;
-            Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/Cog/"));
-            Sprite.AddLoop("idle", "Cog", 0.1f, 0);
+            Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/Gear/"));
+            Sprite.AddLoop("idle", "Gear", 0.1f, 0);
             Sprite.Add("flash", "flash", 0.1f, "idle");
             Sprite.Justify = Justify;
             Sprite.JustifyOrigin(Justify);
@@ -65,9 +67,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void Post()
         {
-            if (InSlot && Holder != null && Holder.InCogRoutine)
+            if (InSlot && Holder != null && Holder.InGearRoutine)
             {
-                UpdateCog(Holder);
+                UpdateGear(Holder);
             }
         }
         public void Launch(Vector2 dir, float speed)
@@ -90,17 +92,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Awake(scene);
 
             bool isEmpty = string.IsNullOrEmpty(ContinuityID);
-            if (!PianoModule.SaveData.CogData.ShouldLoad(this)) RemoveSelf();
+            if (!PianoModule.Session.GearData.ShouldLoad(this)) RemoveSelf();
             if (!isEmpty)
             {
-                if (!PianoModule.SaveData.ContinuousCogIDs.Contains(ContinuityID) && !IsLeader)
+                if (!PianoModule.Session.ContinuousGearIDs.Contains(ContinuityID) && !IsLeader)
                 {
                     RemoveSelf();
                 }
                 Player player = scene.GetPlayer();
-                if (player is not null && player.Holding is not null && player.Holding.Entity is Cog heldCog && heldCog != this)
+                if (player is not null && player.Holding is not null && player.Holding.Entity is Gear heldGear && heldGear != this)
                 {
-                    if ((heldCog.IsLeader && ContinuityID == heldCog.ContinuityID) || heldCog.EntityID.Equals(EntityID)) RemoveSelf();
+                    if ((heldGear.IsLeader && ContinuityID == heldGear.ContinuityID) || heldGear.EntityID.Equals(EntityID)) RemoveSelf();
                 }
             }
 
@@ -146,7 +148,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitY * Math.Sign(Speed.Y));
             }
-            if (Speed.Y > 0f && TimePassed > 1)
+            if (Speed.Y > 0f && TimePassed > 1 && !InSlot)
             {
                 if (hardVerticalHitSoundCooldown <= 0f)
                 {
@@ -182,7 +184,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitX * Math.Sign(Speed.X));
             }
-            Audio.Play("event:/PianoBoy/stool_hit_side", Position);
+            if (!InSlot)
+            {
+                Audio.Play("event:/PianoBoy/stool_hit_side", Position);
+            }
             Speed.X *= -0.4f;
             if (Launching && launchDir.X != 0 && Math.Sign(launchDir.X) == Math.Sign(data.Direction.X))
             {
@@ -200,9 +205,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (!string.IsNullOrEmpty(ContinuityID) && IsLeader)
             {
-                if (!PianoModule.SaveData.ContinuousCogIDs.Contains(ContinuityID))
+                if (!PianoModule.Session.ContinuousGearIDs.Contains(ContinuityID))
                 {
-                    PianoModule.SaveData.ContinuousCogIDs.Add(ContinuityID);
+                    PianoModule.Session.ContinuousGearIDs.Add(ContinuityID);
                 }
             }
             if (Launching)
@@ -227,7 +232,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite.Position.Y = 0;
             AddTag(Tags.Persistent);
         }
-        public void UpdateCog(CogHolder holder)
+        public void UpdateGear(GearHolder holder)
         {
             if (holder is null) return;
             InSlot = true;
@@ -276,7 +281,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 force.Y = -0.4f;
             }
-            Speed = force * 200f;
+            Speed = force * 180f;
             if (Speed != Vector2.Zero)
             {
                 noGravityTimer = 0.1f;
@@ -313,6 +318,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             PrevPosition = Position;
             base.Update();
             if (Scene is not Level level) return;
+            
             TimePassed += Engine.DeltaTime;
             Hold.CheckAgainstColliders();
 
@@ -320,9 +326,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Collider = IdleHitbox;
             }
-            if (CollideFirst<CogHolder>() is CogHolder holder)
+            if (CollideFirst<GearHolder>() is GearHolder holder)
             {
-                if (holder.CanUseCog(this))
+                if (holder.CanUseGear(this))
                 {
                     holder.StartRoutine(this);
                     Holder = holder;
@@ -340,6 +346,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 prevLiftSpeed = Vector2.Zero;
                 Collider = HoldingHitbox;
+                if(level.GetPlayer() is Player player)
+                {
+                    if(player.StateMachine.State == Player.StRedDash || player.StateMachine.State == Player.StBoost)
+                    {
+                        player.Drop();
+                    }
+                }
+                
             }
             else
             {
@@ -422,45 +436,46 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         }
     }
-    public struct CogData
+    public struct GearData
     {
-        public List<Cog> Cogs = new();
+        public List<Gear> Gears = new();
         public List<EntityID> HolderIDs = new();
         public bool HasHolder(EntityID id)
         {
             return HolderIDs.Contains(id);
         }
-        public bool ShouldLoad(Cog cog)
+        public bool ShouldLoad(Gear gear)
         {
-            bool hasId = HasGroup(cog.ContinuityID);
-            bool hasEntityID = Cogs.Find(item => item.EntityID.ID == cog.EntityID.ID) != null;
-            return !hasId && !hasEntityID;
+            bool hasId = HasGroup(gear.ContinuityID);
+            bool hasEntityID = Gears.Find(item => item.EntityID.ID == gear.EntityID.ID) != null;
+            bool hasSubID = PianoModule.Session.GearCheckpointIDs.Contains(gear.SubID);
+            return !hasId && !hasEntityID && (hasSubID || gear.IsLeader);
         }
         public bool HasGroup(string continuity)
         {
             if (string.IsNullOrEmpty(continuity)) return false;
-            return Cogs.Find(item => item.ContinuityID == continuity) != null;
+            return Gears.Find(item => item.ContinuityID == continuity) != null;
         }
-        public void AddCog(Cog cog)
+        public void AddGear(Gear gear)
         {
-            if (Cogs.Contains(cog)) return;
-            Cogs.Add(cog);
-            if (!cog.HolderIsNull && !HolderIDs.Contains(cog.Holder.EntityID))
+            if (Gears.Contains(gear)) return;
+            Gears.Add(gear);
+            if (!gear.HolderIsNull && !HolderIDs.Contains(gear.Holder.EntityID))
             {
-                HolderIDs.Add(cog.Holder.EntityID);
+                HolderIDs.Add(gear.Holder.EntityID);
             }
         }
         public void Reset()
         {
-            Cogs.Clear();
+            Gears.Clear();
             HolderIDs.Clear();
         }
-        public void RemoveCog(Cog cog)
+        public void RemoveGear(Gear gear)
         {
-            Cogs.Remove(cog);
+            Gears.Remove(gear);
 
         }
-        public CogData()
+        public GearData()
         {
         }
     }

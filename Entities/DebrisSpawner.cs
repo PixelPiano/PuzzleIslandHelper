@@ -34,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             this.id = id;
             flag = data.Attr("flag");
-            inverted = data.Bool("inverted");
+            inverted = data.Bool("invertFlag");
             oncePerSession = data.Bool("onlyOncePerSession");
             tileType = data.Char("tileType");
             Collider = new Hitbox(data.Width,data.Height);

@@ -22,7 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (UseForCutscene)
                 {
-                    return PianoModule.SaveData.GetPipeState() > 1;
+                    return PianoModule.Session.GetPipeState() > 1;
                 }
                 if (Scene is not Level level)
                 {

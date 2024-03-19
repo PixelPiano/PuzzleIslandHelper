@@ -335,7 +335,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             levels[i].Position.X = sprites[5].Position.X + ((levels[i].Width + 1) * _i);
                             levels[i].Position.Y = i > 8 ? -38 : -43;
                             levels[i].Position.X -= i > 8 ? levels[i].Width + 1 : 0;
-                            levels[i].Play("idle");
+                            levels[i].PlayEvent("idle");
                             _i++;
                         }*/
         }

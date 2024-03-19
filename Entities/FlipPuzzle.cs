@@ -85,7 +85,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 for (int k = 0; k < 5; k++)
                 {
-                    //Texture[i, k].Play("idleRed");
+                    //Texture[i, k].PlayEvent("idleRed");
                     if (cellValue[k, i] == 0)
                     {
                         sprite[k, i].Play("idleRed");

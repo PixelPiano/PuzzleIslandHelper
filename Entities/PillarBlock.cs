@@ -59,7 +59,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                 }
                 Audio.Play("event:/game/general/wall_break_ice", Position);
-                PianoModule.SaveData.PillarBlockState = 2;
+                PianoModule.Session.PillarBlockState = 2;
                 Block.RemoveSelf();
                 RemoveSelf();
             }
@@ -102,7 +102,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             ImpactSfx();
             Cracks.Play("crack");
             Fallen = true;
-            PianoModule.SaveData.PillarBlockState = 1;
+            PianoModule.Session.PillarBlockState = 1;
             SceneAs<Level>().Session.SetFlag("pillarBlockSpinner", true);
             yield return 0.1f;
             SceneAs<Level>().Session.SetFlag("pillarBlockSpinnerFlag", true);
@@ -110,7 +110,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            switch (PianoModule.SaveData.PillarBlockState)
+            switch (PianoModule.Session.PillarBlockState)
             {
                 case 0:
                     scene.Add(Block);
@@ -139,7 +139,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Cracks.Position = Block.Position - Position;
             }
-            if (!Activated && PianoModule.SaveData.BrokenPillars.Count == 3)
+            if (!Activated && PianoModule.Session.BrokenPillars.Count == 3)
             {
                 Add(new Coroutine(FallSequence()));
             }

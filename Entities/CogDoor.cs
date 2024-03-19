@@ -15,9 +15,9 @@ using static MonoMod.InlineRT.MonoModRule;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
 
-    [CustomEntity("PuzzleIslandHelper/CogDoor")]
+    [CustomEntity("PuzzleIslandHelper/GearDoor")]
     [Tracked]
-    public class CogDoor : Solid
+    public class GearDoor : Solid
     {
         private readonly List<Image> images = new();
         public string DoorID;
@@ -34,11 +34,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                 return (CanRevert || (!HasChanged && !CanRevert)) && !PianoModule.SaveData.CogDoorStates.ContainsKey(EntityID);
+                 return (CanRevert || (!HasChanged && !CanRevert)) && !PianoModule.Session.GearDoorStates.ContainsKey(EntityID);
             }
         }
         public EntityID EntityID;
-        public CogDoor(Vector2 position, bool vertical, bool upOrLeft, float length, string id, bool canRevert, bool persistent, EntityID entityID)
+        public GearDoor(Vector2 position, bool vertical, bool upOrLeft, float length, string id, bool canRevert, bool persistent, EntityID entityID)
             : base(position, vertical ? 8 : length, vertical ? length : 8, false)
         {
             ClosedPosition = position;
@@ -56,18 +56,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (PianoModule.SaveData.CogDoorStates.ContainsKey(EntityID))
+            if (PianoModule.Session.GearDoorStates.ContainsKey(EntityID))
             {
                 HasChanged = true;
-                Amount = PianoModule.SaveData.CogDoorStates[EntityID];
+                Amount = PianoModule.Session.GearDoorStates[EntityID];
                 MoveDoorTo(Amount);
             }
         }
         public void CheckRegister()
         {
-            if (Persistent && !PianoModule.SaveData.CogDoorStates.ContainsKey(EntityID))
+            if (Persistent && !PianoModule.Session.GearDoorStates.ContainsKey(EntityID))
             {
-                PianoModule.SaveData.CogDoorStates.Add(EntityID, Amount);
+                PianoModule.Session.GearDoorStates.Add(EntityID, Amount);
             }
         }
         public override void Update()
@@ -80,7 +80,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (!CanChange) return;
             MoveTo(Vector2.Lerp(ClosedPosition, OpenPosition, percent));
         }
-        public CogDoor(EntityData data, Vector2 offset, EntityID id)
+        public GearDoor(EntityData data, Vector2 offset, EntityID id)
         : this(data.Position + offset,
                data.Bool("vertical"), data.Bool("upOrLeft"),
                data.Bool("vertical") ? data.Height : data.Width, data.Attr("doorID"),
@@ -100,7 +100,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Remove(images.ToArray());
             images.Clear();
-            MTexture tex = GFX.Game["objects/PuzzleIslandHelper/cog/door"];
+            MTexture tex = GFX.Game["objects/PuzzleIslandHelper/gear/door"];
             int xm = Vertical ? 0 : 1, ym = Vertical ? 1 : 0;
             float rotation = xm * (float)(-Math.PI / 2);
             float xOff = xm * 8;

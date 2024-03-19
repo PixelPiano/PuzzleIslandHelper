@@ -295,7 +295,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Collider = new ColliderList(Colliders.ToArray());
             }
-            //SetMapData(l, Fluids);
+            //SetMapData(level, Fluids);
         }
         public override void Render()
         {

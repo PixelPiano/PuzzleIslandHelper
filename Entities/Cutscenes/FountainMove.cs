@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            PianoModule.SaveData.ForceFountainOpen = false;
+            PianoModule.Session.ForceFountainOpen = false;
             Block = (scene as Level).Tracker.GetEntity<FountainBlock>();
             if (Block is null) RemoveSelf();
         }
@@ -27,8 +27,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         private IEnumerator Cutscene()
         {
-            if (Block is null || PianoModule.SaveData.OpenedFountain) yield break;
-            while (!PianoModule.SaveData.ForceFountainOpen && (!PianoModule.SaveData.FountainCanOpen || !InSafeLocation(Level))) yield return null;
+            if (Block is null || PianoModule.Session.OpenedFountain) yield break;
+            while (!PianoModule.Session.ForceFountainOpen && (!PianoModule.Session.FountainCanOpen || !InSafeLocation(Level))) yield return null;
             Player player = Level.GetPlayer();
             if (player is null) yield break;
             player.StateMachine.State = Player.StDummy;
@@ -43,7 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             yield return Block.OpenPassage();
             yield return null;
             player.StateMachine.State = Player.StNormal;
-            PianoModule.SaveData.ForceFountainOpen = false;
+            PianoModule.Session.ForceFountainOpen = false;
             EndCutscene(Level);
         }
 

@@ -72,9 +72,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
                     screw.Launched = false;
                     screw.Position = screw.originalPosition;
                     level.Session.SetFlag(screw.flag, false);
-                    PianoModule.SaveData.PipeScrewRestingPoint = null;
-                    PianoModule.SaveData.PipeScrewRestingFrame = 0;
-                    PianoModule.SaveData.PipeScrewLaunched = false;
+                    PianoModule.Session.PipeScrewRestingPoint = null;
+                    PianoModule.Session.PipeScrewRestingFrame = 0;
+                    PianoModule.Session.PipeScrewLaunched = false;
                     screw.Screw.Play("idle");
                 }
                 SetPipeState(1);
@@ -92,7 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
                 player.Facing = Facings.Left;
                 yield return Textbox.Say("pipeAttemptZero");
 
-                PianoModule.SaveData.PipeSwitchAttempts = 1;
+                PianoModule.Session.PipeSwitchAttempts = 1;
                 player.StateMachine.State = Player.StNormal;
             }
             else if (i == 1)
@@ -100,11 +100,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
                 SetPipeState(1);
                 yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalCreak2");
 
-                PianoModule.SaveData.PipeSwitchAttempts = 2;
+                PianoModule.Session.PipeSwitchAttempts = 2;
             }
             else if (i == 2)
             {
-                PianoModule.SaveData.HasBrokenPipes = false;
+                PianoModule.Session.HasBrokenPipes = false;
                 yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalsnap");
                 yield return Interface.CloseInterface(true);
                 player.StateMachine.State = Player.StDummy;
@@ -178,7 +178,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             {
                 if (!InRoutine)
                 {
-                    Add(new Coroutine(Routine(PianoModule.SaveData.PipeSwitchAttempts)));
+                    Add(new Coroutine(Routine(PianoModule.Session.PipeSwitchAttempts)));
                 }
                 return;
             }
@@ -189,11 +189,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
         }
         public int GetPipeState()
         {
-            return PianoModule.SaveData.GetPipeState();
+            return PianoModule.Session.GetPipeState();
         }
         public void SetPipeState(int state)
         {
-            PianoModule.SaveData.SetPipeState(state);
+            PianoModule.Session.SetPipeState(state);
         }
         public override void Awake(Scene scene)
         {

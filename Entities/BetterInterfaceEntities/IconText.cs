@@ -10,15 +10,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 
     public class IconText : Entity
     {
-        private static readonly Dictionary<string, List<string>> fontPaths;
-        static IconText()
-        {
-            // Fonts.paths is private static and never instantiated besides in the static constructor, so we only need to get the reference to it once.
-            fontPaths = (Dictionary<string, List<string>>)typeof(Fonts).GetField("paths", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
-        }
         public static float ButtonWidth;
         public static float ButtonHeight;
-        private static string fontName = "alarm clock";
         public Vector2 DrawPosition;
         public float IconWidth = 0;
         public static readonly float TextScale = 0.8f;
@@ -26,10 +19,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public Interface Interface;
         public BetterWindow Window;
         private string CurrentTabText => CurrentIcon.TabText;
-        public IconText(Interface @interface)
+        public IconText(Interface computer)
         {
             Tag = TagsExt.SubHUD;
-            Interface = @interface;
+            Interface = computer;
             Window = Interface.Window;
         }
         public override void Render()
@@ -50,40 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 return Vector2.Zero;
             }
-            return (level.Camera.CameraToScreen(Window.DrawPosition)+
-                    new Vector2(1, -Window.tabHeight)).ToInt() * 6;
+            return (level.Camera.CameraToScreen(Window.DrawPosition) + new Vector2(1, -Window.tabHeight)).ToInt() * 6;
         }
-        private void ensureCustomFontIsLoaded()
-        {
-            if (Fonts.Get(fontName) == null)
-            {
-                // this is a font we need to load for the cutscene specifically!
-                if (!fontPaths.ContainsKey(fontName))
-                {
-                    // the font isn't in the list... so we need to list fonts again first.
-                    Logger.Log(LogLevel.Warn, "PuzzleIslandHelper/IconText", $"We need to list fonts again, {fontName} does not exist!");
-                    Fonts.Prepare();
-                }
-
-                Fonts.Load(fontName);
-                Engine.Scene.Add(new FontHolderEntity());
-            }
-        }
-
-        // a small entity that just ensures the font loaded by the timer unloads upon leaving the map.
-        private class FontHolderEntity : Entity
-        {
-            public FontHolderEntity()
-            {
-                Tag = Tags.Global;
-            }
-
-            public override void SceneEnd(Scene scene)
-            {
-                base.SceneEnd(scene);
-                Fonts.Unload(fontName);
-            }
-        }
-
     }
 }

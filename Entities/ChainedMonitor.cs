@@ -25,14 +25,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return PianoModule.SaveData.HasInvert;
+                return PianoModule.Session.HasInvert;
             }
         }
         public bool Used
         {
             get
             {
-                return !PianoModule.SaveData.ChainedMonitorsActivated.Contains(SceneAs<Level>().Session.Level);
+                return !PianoModule.Session.ChainedMonitorsActivated.Contains(SceneAs<Level>().Session.Level);
             }
         }
         private bool Pressed;
@@ -57,8 +57,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Chains.AddLoop("idle", "doubleGreen", delay);
             Chains.Add("break", "chainsFadeOut", delay);
 
-            Block.AddLoop("idle", "inverted", 1f, 0);
-            Block.Add("break", "inverted", delay);
+            Block.AddLoop("idle", "invertFlag", 1f, 0);
+            Block.Add("break", "invertFlag", delay);
 
             Padlock.AddLoop("idle", "idle", delay);
             Padlock.Add("unlock", "unlock", delay);
@@ -101,7 +101,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return null;
             InvertOverlay.ForceState(false);
             InvertOverlay.ResetState();
-            PianoModule.SaveData.ChainedMonitorsActivated.Add(SceneAs<Level>().Session.Level);
+            PianoModule.Session.ChainedMonitorsActivated.Add(SceneAs<Level>().Session.Level);
         }
         public override void Update()
         {

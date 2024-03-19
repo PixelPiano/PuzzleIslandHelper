@@ -7,9 +7,9 @@
 
     <labDoor path="objects/PuzzleIslandHelper/machineDoor/" start="idle">
         <Loop id="idle" path="idle" delay="0.1"/>
-        <Anim id="opening" path="open" delay="0.1"/>
         <Loop id="open" path="open" delay="0.1" frames="8"/>
-        <Anim id="closing" path="close" delay="0.1"/>
         <Loop id="closed" path="close" delay="0.1" frames="8"/>
+        <Anim id="closing" path="close" delay="0.1" into="closed"/>
+        <Anim id="opening" path="open" delay="0.1" into="open"/>
     </labDoor>
 </Sprites>

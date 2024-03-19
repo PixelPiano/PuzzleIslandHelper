@@ -245,7 +245,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(new Coroutine(Flicker(0.1f)));
             while (!Collided)
             {
-
                 LampSpeed.Y = Calc.Min(MaxSpeed, LampSpeed.Y + Engine.DeltaTime * SpeedMult);
                 SpeedMult += 0.3f;
                 Collision.MoveH(LampSpeed.X, OnCollideH);
@@ -429,7 +428,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-
                 CenterPoint = Collision.Position + Vector2.One * 4;
             }
             Vector2 a = RotatePoint(Collision.Position + new Vector2(4, 6), CenterPoint, Lamp.Rotation.ToDeg());

@@ -22,8 +22,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
         private float ClipAreaTime;
         private float clipAreaTimer;
-        public static Effect Shader;
-        public static Effect MaskShader;
         private float JitterAmount;
         private Vector3 Jitter = new();
         private float Frequency = 0.02f;
@@ -101,11 +99,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
                 Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
                 Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-                Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, Shader, Matrix.Identity);
+                Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, ShaderFX.LCD, Matrix.Identity);
                 base.Render(scene);
                 Draw.SpriteBatch.End();
 
-                Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, EasyRendering.AlphaMaskBlendState, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, MaskShader, Matrix.Identity);
+                Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, EasyRendering.AlphaMaskBlendState, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, ShaderFX.SineLines, Matrix.Identity);
                 Draw.SpriteBatch.Draw(GameplayBuffers.TempA, Vector2.Zero, Color.White);
                 Draw.SpriteBatch.End();
             }
@@ -172,14 +170,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public void ApplyParameters(Level level)
         {
             Matrix? camera = level.Camera.Matrix;
-            Shader.Parameters["RedOffset"]?.SetValue(ColorOffset.X + Math.Sign(ColorOffset.X) * Jitter.X);
-            Shader.Parameters["GreenOffset"]?.SetValue(ColorOffset.Y + Math.Sign(ColorOffset.Y) * Jitter.Y);
-            Shader.Parameters["BlueOffset"]?.SetValue(ColorOffset.Z + Math.Sign(ColorOffset.Z) * Jitter.Z);
-            Shader.Parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
-            Shader.Parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
-            Shader.Parameters["CamPos"]?.SetValue(level.Camera.Position);
-            Shader.Parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
-            Shader.Parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
+            ShaderFX.LCD.Parameters["RedOffset"]?.SetValue(ColorOffset.X + Math.Sign(ColorOffset.X) * Jitter.X);
+            ShaderFX.LCD.Parameters["GreenOffset"]?.SetValue(ColorOffset.Y + Math.Sign(ColorOffset.Y) * Jitter.Y);
+            ShaderFX.LCD.Parameters["BlueOffset"]?.SetValue(ColorOffset.Z + Math.Sign(ColorOffset.Z) * Jitter.Z);
+            ShaderFX.LCD.Parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
+            ShaderFX.LCD.Parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
+            ShaderFX.LCD.Parameters["CamPos"]?.SetValue(level.Camera.Position);
+            ShaderFX.LCD.Parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
+            ShaderFX.LCD.Parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
 
             Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
 
@@ -187,18 +185,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             // from communal helper
             Matrix halfPixelOffset = Matrix.Identity;
 
-            Shader.Parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
+            ShaderFX.LCD.Parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
 
-            Shader.Parameters["ViewMatrix"]?.SetValue(Matrix.Identity);
+            ShaderFX.LCD.Parameters["ViewMatrix"]?.SetValue(Matrix.Identity);
         }
         public void ApplyStandardParameters(Level level)
         {
             Matrix? camera = level.Camera.Matrix;
-            MaskShader.Parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
-            MaskShader.Parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
-            MaskShader.Parameters["CamPos"]?.SetValue(level.Camera.Position);
-            MaskShader.Parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
-            MaskShader.Parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
+            ShaderFX.SineLines.Parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
+            ShaderFX.SineLines.Parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
+            ShaderFX.SineLines.Parameters["CamPos"]?.SetValue(level.Camera.Position);
+            ShaderFX.SineLines.Parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
+            ShaderFX.SineLines.Parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
 
             Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
 
@@ -206,55 +204,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             // from communal helper
             Matrix halfPixelOffset = Matrix.Identity;
 
-            MaskShader.Parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
+            ShaderFX.SineLines.Parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
 
-            MaskShader.Parameters["ViewMatrix"]?.SetValue(Matrix.Identity);
-        }
-        public static void Load()
-        {
-            Everest.Content.OnUpdate += Content_OnUpdate;
-        }
-        public static void Unload()
-        {
-            Shader?.Dispose();
-            Everest.Content.OnUpdate -= Content_OnUpdate;
-        }
-        private static void Content_OnUpdate(ModAsset from, ModAsset to)
-        {
-            if (to.Format == "cso" || to.Format == ".cso")
-            {
-                try
-                {
-                    AssetReloadHelper.Do("Reloading Shader", () =>
-                    {
-                        var effectName = to.PathVirtual.Substring("Effects/".Length, to.PathVirtual.Length - ".cso".Length - "Effects/".Length);
-
-                        if (Shader is not null)
-                        {
-                            if (!Shader.IsDisposed)
-                                Shader.Dispose();
-                        }
-                        if (MaskShader is not null)
-                        {
-                            if (!MaskShader.IsDisposed)
-                                MaskShader.Dispose();
-                        }
-                        MaskShader = ShaderHelper.TryGetEffect("sineLines");
-                        Shader = ShaderHelper.TryGetEffect("lcd");
-                    }, () =>
-                    {
-                        (Engine.Scene as Level)?.Reload();
-                    });
-
-                }
-                catch (Exception e)
-                {
-                    // there's a catch-all filter on Content.OnUpdate that completely ignores the exception,
-                    // would nice to actually see it though
-                    Logger.LogDetailed(e);
-                }
-
-            }
+            ShaderFX.SineLines.Parameters["ViewMatrix"]?.SetValue(Matrix.Identity);
         }
     }
 }

@@ -1,16 +1,15 @@
-local cog = {}
-cog.justification = {0.5,1}
-cog.name = "PuzzleIslandHelper/Cog"
-cog.texture = "objects/PuzzleIslandHelper/cog/cog"
-cog.depth = 0
-cog.placements = {
-    name = "Cog",
+local gear = {}
+gear.justification = {0.5,1}
+gear.name = "PuzzleIslandHelper/Gear"
+gear.texture = "objects/PuzzleIslandHelper/gear/gear"
+gear.depth = 0
+gear.placements = {
+    name = "Gear",
     data = {
-        linkID = "",
         continuityID = "",
         isLeader = false,
-        index = -1
+        subId = "",
     }
 }
 
-return cog
+return gear

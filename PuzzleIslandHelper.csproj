@@ -39,11 +39,17 @@
         <Reference Include="Celeste" Publicize="True">
           <HintPath>..\..\legacyRef\Celeste.exe</HintPath>
         </Reference>
+        <Reference Include="CelesteTAS-EverestInterop">
+          <HintPath>libs\CelesteTAS-EverestInterop.dll</HintPath>
+        </Reference>
         <Reference Include="CherryHelper">
           <HintPath>libs\CherryHelper.dll</HintPath>
         </Reference>
         <Reference Include="CommunalHelper">
           <HintPath>libs\CommunalHelper.dll</HintPath>
+        </Reference>
+        <Reference Include="corkr900Graphics">
+          <HintPath>libs\corkr900Graphics.dll</HintPath>
         </Reference>
         <Reference Include="ExtendedVariantMode">
           <HintPath>libs\ExtendedVariantMode.dll</HintPath>

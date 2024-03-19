@@ -117,7 +117,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         : base(data.Position + offset)
         {
             this.id = id;
-            Inverted = data.Bool("inverted");
+            Inverted = data.Bool("invertFlag");
             flag = data.Attr("flag");
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/stool/"));
             sprite.AddLoop("down", "stoolext", 0.1f, 0);

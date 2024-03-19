@@ -7,9 +7,9 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
 
-    [CustomEntity("PuzzleIslandHelper/CogLauncher")]
-    [TrackedAs(typeof(CogHolder))]
-    public class CogLauncher : CogHolder
+    [CustomEntity("PuzzleIslandHelper/GearLauncher")]
+    [TrackedAs(typeof(GearHolder))]
+    public class GearLauncher : GearHolder
     {
         private float Force;
         private float normalRate;
@@ -19,7 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Up, Down, Left, Right, UpLeft, UpRight, DownLeft, DownRight
         }
-        public CogLauncher(EntityData data, Vector2 offset) : base(data.Position + offset - new Vector2(8), data.Bool("onlyOnce"), Color.Orange)
+        public GearLauncher(EntityData data, Vector2 offset) : base(data.Position + offset - Vector2.One * 8, data.Bool("onlyOnce"), Color.Orange)
         {
             Force = data.Float("force", 50f);
             direction = data.Enum<Direction>("direction") switch
@@ -39,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void RenderAt(Vector2 position, Color color)
         {
-            MTexture tex = GFX.Game["objects/PuzzleIslandHelper/Cog/holder"];
+            MTexture tex = GFX.Game["objects/PuzzleIslandHelper/Gear/holder"];
             Vector2 offset = new Vector2(tex.Width / 2, tex.Height / 2);
             Draw.SpriteBatch.Draw(tex.Texture.Texture_Safe, position + offset, null, color, Rotation.ToRad(), offset, 1, SpriteEffects.None, 0);
         }
@@ -48,12 +48,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.StopSpinning(drop);
         }
 
-        public override IEnumerator WhileSpinning(Cog cog)
+        public override IEnumerator WhileSpinning(Gear gear)
         {
             RotateRate = normalRate;
             for (float i = 0; i < 1; i += Engine.DeltaTime / chargeTime)
             {
-                if (cog is null || !cog.InSlot)
+                if (gear is null || !gear.InSlot)
                 {
                     break;
                 }
@@ -65,9 +65,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 yield return null;
             }
-            float speed = CogSparks.SpeedMax;
+            float speed = GearSparks.SpeedMax;
             yield return Engine.DeltaTime * 2;
-            cog?.Launch(direction, Force * 6);
+            gear?.Launch(direction, Force * 6);
             Rotation %= 360;
             for (float i = 0; i < 1; i += Engine.DeltaTime / 3)
             {
@@ -75,7 +75,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
             }
             StopSpinning();
-            yield return base.WhileSpinning(cog);
+            yield return base.WhileSpinning(gear);
         }
     }
 }

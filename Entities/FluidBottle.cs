@@ -486,12 +486,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     if (hardVerticalHitSoundCooldown <= 0f)
                     {
-                        //Event.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", Calc.ClampedMap(Speed.Y, 0f, 200f));
+                        //Event.PlayEvent("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", Calc.ClampedMap(Speed.Y, 0f, 200f));
                         hardVerticalHitSoundCooldown = 0.5f;
                     }
                     else
                     {
-                        //Event.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", 0f);
+                        //Event.PlayEvent("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", 0f);
                     }
                 }
                 if (Speed.Y > 140f && !(data.Hit is SwapBlock) && !(data.Hit is DashSwitch))
@@ -523,7 +523,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else if (!Broken)
             {
-                //Event.Play("event:/PianoBoy/stool_hit_side", Position);
+                //Event.PlayEvent("event:/PianoBoy/stool_hit_side", Position);
                 //Speed.X *= -0.4f;
             }
             Released = false;

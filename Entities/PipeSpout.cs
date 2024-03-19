@@ -74,7 +74,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     return true;
                 }
-                if (UseSaveData && (!PianoModule.SaveData.HasBrokenPipes || PianoModule.SaveData.HasFixedPipes))
+                if (UseSaveData && (!PianoModule.Session.HasBrokenPipes || PianoModule.Session.HasFixedPipes))
                 {
                     if (PianoModule.Session.CutsceneSpouts.Contains(this))
                     {
@@ -82,7 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     return false;
                 }
-                if (PianoModule.SaveData.HasBrokenPipes)
+                if (PianoModule.Session.HasBrokenPipes)
                 {
                     return FlagState;
                 }
@@ -152,7 +152,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             HideMethod = data.Enum<VisibleTypes>("hideMethod");
             Direction = data.Enum<Directions>("direction");
             flag = data.Attr("flag");
-            inverted = data.Bool("inverted");
+            inverted = data.Bool("invertFlag");
             IsTimed = data.Bool("isTimed");
             WaitTime = data.Float("waitTime");
             StartDelay = data.Float("startDelay");
@@ -412,7 +412,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Scale.Y = 1;
             Started = true;
             IsOn = true;
-            PianoModule.SaveData.HasBrokenPipes = true;
+            PianoModule.Session.HasBrokenPipes = true;
             yield return null;
             CanCollide = true;
             Moving = false;
@@ -522,23 +522,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (FlagState)
             {
                 WasOn = true;
-                if (!PianoModule.SaveData.SpoutWreckage.Contains(ID))
+                if (!PianoModule.Session.SpoutWreckage.Contains(ID))
                 {
-                    PianoModule.SaveData.SpoutWreckage.Add(ID);
+                    PianoModule.Session.SpoutWreckage.Add(ID);
                 }
             }
             /*            if (!Enabled)
                         {
                             if (sfx.InstancePlaying)
                             {
-                                sfx.Stop(true);
+                                sfx.StopEvent(true);
                             }
                         }
                         else
                         {
                             if (!sfx.InstancePlaying)
                             {
-                                sfx.Play(sfx.EventName);
+                                sfx.PlayEvent(sfx.EventName);
                             }
                         }*/
             Collidable = (!IsTimed || IsOn) && CanCollide && Enabled;
@@ -657,7 +657,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             Hole.Rotation = Angle;
-            if (((PianoModule.SaveData.HasBrokenPipes || Broken) && (WasOn || PianoModule.SaveData.SpoutWreckage.Contains(ID))) || PianoModule.SaveData.GetPipeState() > 3)
+            if (((PianoModule.Session.HasBrokenPipes || Broken) && (WasOn || PianoModule.Session.SpoutWreckage.Contains(ID))) || PianoModule.Session.GetPipeState() > 3)
             {
                 Hole.Render();
             }

@@ -1,10 +1,10 @@
-local cogLauncher = {}
-cogLauncher.name = "PuzzleIslandHelper/CogLauncher"
-cogLauncher.texture = "objects/PuzzleIslandHelper/cog/holderStart"
-cogLauncher.depth = 0
+local gearLauncher = {}
+gearLauncher.name = "PuzzleIslandHelper/GearLauncher"
+gearLauncher.texture = "objects/PuzzleIslandHelper/gear/holderStart"
+gearLauncher.depth = 0
 local dir = {"Up","Down","Left","Right","UpLeft","UpRight","DownLeft","DownRight"}
-cogLauncher.placements = {
-    name = "Cog Launcher",
+gearLauncher.placements = {
+    name = "Gear Launcher",
     data = {
         onlyOnce = false,
         force = 10,
@@ -12,7 +12,7 @@ cogLauncher.placements = {
         chargeTime = 1
     }
 }
-cogLauncher.fieldInformation =
+gearLauncher.fieldInformation =
 {
     direction =
     {
@@ -21,4 +21,4 @@ cogLauncher.fieldInformation =
     }
 }
 
-return cogLauncher
+return gearLauncher

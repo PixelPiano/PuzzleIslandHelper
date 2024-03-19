@@ -89,7 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             {
                 name = cutsceneName + Part;
             }
-            /*            if ((Entered && OncePerRoom) || (OncePerPlaythrough && PianoModule.SaveData.UsedCutscenes.Contains(name)))
+            /*            if ((Entered && OncePerRoom) || (OncePerPlaythrough && PianoModule.Session.UsedCutscenes.Contains(name)))
                         {
                             return;
                         }*/
@@ -100,9 +100,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 SceneAs<Level>().Add(Cutscene);
             }
 
-            if (!PianoModule.SaveData.UsedCutscenes.Contains(name))
+            if (!PianoModule.Session.UsedCutscenes.Contains(name))
             {
-                PianoModule.SaveData.UsedCutscenes.Add(name);
+                PianoModule.Session.UsedCutscenes.Add(name);
             }
         }
     }

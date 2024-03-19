@@ -3,6 +3,7 @@ using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using FMOD.Studio;
+using FrostHelper.Helpers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
@@ -16,68 +17,89 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
     [Tracked]
     public class Interface : Entity
     {
-        #region Variables
-        public bool Buffering;
-        public bool HoldLight;
-        private float timer = 0;
-        public bool NightMode = true;
+
+
         public const int ColliderWidth = 6;
         public const int ColliderHeight = 6;
+        public const int BorderX = 16;
+        public const int BorderY = 10;
+        public const int BaseDepth = -1000001;
+
+        private float MaxGlitchRange = 0.2f;
+        private float timer;
         private float prevLightAlpha;
         private float prevBloomStrength;
-        public Rectangle MouseRectangle;
+        private float ColorLerpRate;
+        private float SavedAlpha;
+
+        public bool HoldLight;
+        public bool Buffering;
+        public bool NightMode = true;
+        public bool DraggingWindow;
+        public bool InControl;
+        public bool CanCloseWindow;
+        public bool Teleporting;
+        public bool Invalid;
+        public bool Interacting;
+        private bool Interacted;
+        public bool MouseOnBounds
+        {
+            get
+            {
+                MouseState mouseState = Mouse.GetState();
+
+
+                float mouseX = Calc.Clamp(mouseState.X, 0, Engine.ViewWidth);
+                float mouseY = Calc.Clamp(mouseState.Y, 0, Engine.ViewHeight);
+                return mouseX == BorderX || mouseX == Engine.ViewWidth - BorderX || mouseY == BorderY || mouseY == Engine.ViewHeight - BorderY;
+            }
+        }
         public bool LeftClicked => Mouse.GetState().LeftButton == ButtonState.Pressed;
-        public bool DraggingWindow = false;
-        public bool InControl = false;
         private bool intoIdle = false;
         private bool CanClickIcons = true;
         private bool SetDragOffset = false;
+        private bool Closing = false;
+        private bool GlitchPlayer = false;
+        private bool RemovePlayer = false;
+
         public string CurrentIconName = "invalid";
-        public int BaseDepth = -1000001;
-        private InterfaceBorder Border;
-        private SoundSource whirringSfx;
+
+        public Rectangle MouseRectangle;
+
         private Entity NightDay;
         private Entity Monitor;
-        public Cursor cursor;
-        private Sprite MonitorSprite;
-        private Sprite BorderSprite;
-        public Sprite cursorSprite;
-        private Sprite PowerSprite;
-        private Sprite SunMoon;
         private Entity Power;
-        public List<WindowContent> Content = new();
-        private FreqProgram memContent;
-        public PipeProgram pipeContent;
-        public FountainProgram fountainProgram;
-        public GameOfLifeProgram GameOfLife;
-        public AccessProgram digiContent;
-        private ComputerIcon[] Icons;
-        public BetterWindow Window;
-        private Level l;
-        private Player player;
-        private Sprite Machine;
         private Entity MachineEntity;
+
+        public AccessProgram AccessProgram;
+        public BetterWindow Window;
+        public InterfaceCursor Cursor;
+        private InterfaceBorder Border;
+        private Sprite MonitorSprite;
+        private Sprite BorderSprite; //change to image
+        public Sprite cursorSprite; //change to image
+        private Sprite PowerSprite; //change to image
+        private Sprite SunMoon; //change to image
+        private Sprite Machine;
+        private SoundSource whirringSfx;
+        private FreqProgram FreqProgram;
+        public PipeProgram PipeProgram;
+        public FountainProgram FountainProgram;
+        public GameOfLifeProgram GameOfLifeProgram;
+        private ComputerIcon[] Icons;
+        public List<WindowContent> Content = new();
+        private Level level;
+        private Player player;
         public DotX3 Talk;
         public FloppyHUD FloppyHUD;
-        public bool CanCloseWindow;
+
         public enum Versions
         {
             Lab,
             Pipes
         }
         public Versions Version;
-        public bool MouseOnBounds
-        {
-            get
-            {
-                MouseState mouseState = Mouse.GetState();
-                float mouseX = Calc.Clamp(mouseState.X, 0, Engine.ViewWidth);
-                float mouseY = Calc.Clamp(mouseState.Y, 0, Engine.ViewHeight);
-                return mouseX == BorderX || mouseX == Engine.ViewWidth - BorderX || mouseY == BorderY || mouseY == Engine.ViewHeight - BorderY;
-            }
-        }
-        public const int BorderX = 16;
-        public const int BorderY = 10;
+
 
         public Vector2 MousePosition
         {
@@ -110,7 +132,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         private Vector2 CursorBoundsB;
         private Vector2 CursorMiddle = Vector2.One;
         private Vector2 spacing = new Vector2(8, 16); //spacing between the icons
-        private Vector2 DragOffset; //used to correctly align Window with cursor while being dragged
+        private Vector2 DragOffset; //used to correctly align Window with Cursor while being dragged
         private Color startColor = Color.LimeGreen;
         private Color backgroundColor;
         //the order of icons in sequential order. If string is not a valid icon name, is replaced with the "invalid" symbol when drawn.
@@ -118,20 +140,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public List<string> WindowText = new();
         public List<string> TabText = new();
 
-        private bool Closing = false;
-        private bool GlitchPlayer = false;
-        private float MaxGlitchRange = 0.2f;
-        private bool RemovePlayer = false;
-        private float ColorLerpRate = 0;
-        public bool Teleporting;
-        #endregion
-
-        private bool Interacted;
-        public bool Interacting;
-        private float SavedAlpha;
         public string InstanceID;
 
-        public bool Invalid;
 
         public MTexture Keyboard = GFX.Game["objects/PuzzleIslandHelper/interface/keyboard"];
 
@@ -142,7 +152,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             TabText.Clear();
             Power?.RemoveSelf();
             Window?.RemoveSelf();
-            cursor?.RemoveSelf();
+            Cursor?.RemoveSelf();
             SunMoon?.RemoveSelf();
 
             foreach (WindowContent content in /*scene.Tracker.GetEntities<WindowContent>()*/Content)
@@ -227,59 +237,68 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 
             float talkYOffset = Version == Versions.Lab ? 8 : -8;
 
-            Add(Talk = new DotX3(0, talkYOffset, Machine.Width, Machine.Height - (int)talkYOffset, new Vector2(Machine.Width / 2, 0), Interact));
+            Add(Talk = new DotX3(0, 0, Machine.Width, Machine.Height - (int)talkYOffset, new Vector2(Machine.Width / 2, 0), Interact));
             Talk.PlayerMustBeFacing = false;
 
         }
         public void LoadModules(Scene scene)
         {
-
+            //can you tell this code used to be bad
             scene.Add(Window = new BetterWindow(Position, this));
-            Window.Drawing = false;
+            scene.Add(new IconText(this));
+
+            //InterfaceCursor and Border are just generic entities but with tags that tell them to render in screen-space rather than world-space
+            scene.Add(Cursor = new InterfaceCursor());
+            scene.Add(Border = new InterfaceBorder());
+
+            //since the game renders entities in order based on their depth
+            //these three generic entities have to be made, since sprites don't have a depth field of their own.
+            scene.Add(Power = new Entity());
             scene.Add(NightDay = new Entity());
-            NightDay.Add(SunMoon = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/icons/"));
+            scene.Add(Monitor = new Entity());
+
+            //create sprites and add them to their corresponding entities
+            string path = "objects/PuzzleIslandHelper/interface/";
+            NightDay.Add(SunMoon = new Sprite(GFX.Game, path));
+            Power.Add(PowerSprite = new Sprite(GFX.Game, path));
+            Cursor.Add(cursorSprite = new Sprite(GFX.Game, path));
+            Monitor.Add(MonitorSprite = new Sprite(GFX.Game, path));
+            Border.Add(BorderSprite = new Sprite(GFX.Game, path));
+            //add animations to the sprites
+            
             SunMoon.AddLoop("sun", "sun", 0.1f);
             SunMoon.AddLoop("moon", "moon", 0.1f);
-            scene.Add(new IconText(this));
-            scene.Add(Power = new Entity());
-            Power.Add(PowerSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/"));
             PowerSprite.AddLoop("idle", "power", 1f);
-            PowerSprite.Play("idle");
-            #region Monitor/Border Setup
-            scene.Add(Monitor = new Entity());
-            scene.Add(Border = new InterfaceBorder());
-            Monitor.Add(MonitorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/"));
-            Border.Add(BorderSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/"));
-            BorderSprite.AddLoop("idle", "border", 0.1f);
-            BorderSprite.Add("fadeIn", "borderIn", 0.1f, "idle");
             MonitorSprite.AddLoop("idle", "idle", 1f);
-            MonitorSprite.Add("boot", "startUp", 0.07f, "idle");
             MonitorSprite.AddLoop("off", "off", 0.1f);
-            MonitorSprite.Add("turnOff", "shutDown", 0.07f, "off");
-            MonitorSprite.SetColor(startColor);
-            PowerSprite.Visible = false;
-            SunMoon.Visible = false;
-            #endregion
-            #region Cursor Setup
-            scene.Add(cursor = new Cursor());
-            cursor.Add(cursorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/"));
-            cursorSprite.AddLoop("idle", "cursor", 1f);
+            BorderSprite.AddLoop("idle", "border", 0.1f);
+            cursorSprite.AddLoop("idle", "Cursor", 1f);
             cursorSprite.AddLoop("pressed", "cursorPress", 1f);
             cursorSprite.AddLoop("buffer", "buffering", 0.1f);
-            cursorSprite.Visible = false;
-            #endregion
 
+            BorderSprite.Add("fadeIn", "borderIn", 0.1f, "idle");
+            MonitorSprite.Add("boot", "startUp", 0.07f, "idle");
+            MonitorSprite.Add("turnOff", "shutDown", 0.07f, "off");
+
+            MonitorSprite.SetColor(startColor);
+
+            //the "screen" hasn't started up yet, so don't draw certain sprites until it has
+            cursorSprite.Visible = PowerSprite.Visible = SunMoon.Visible = false;
+
+            //set depth values for rendering
             Power.Depth = BaseDepth - 1;
             NightDay.Depth = Power.Depth;
             Monitor.Depth = BaseDepth;
-            cursor.Depth = BaseDepth - 6;
+            Cursor.Depth = BaseDepth - 6;
             Border.Depth = BaseDepth - 7;
+
+            Window.Drawing = false;
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
             Interacting = false;
-            l = scene as Level;
+            level = scene as Level;
             Depth = BaseDepth;
             scene.Add(MachineEntity = new Entity(Position));
             MachineEntity.Depth = 2;
@@ -288,35 +307,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         }
         public void AddPrograms(Scene scene, List<string> ids)
         {
+
             foreach (string id in ids)
             {
                 switch (id.ToLower())
                 {
                     case "access":
-                        if (digiContent != null)
+                        if (AccessProgram != null)
                         {
-                            digiContent.Window = Window;
+                            AccessProgram.Window = Window;
                             break;
                         }
-                        Console.WriteLine("Added Access");
-                        scene.Add(digiContent = new AccessProgram(Window));
+                        scene.Add(AccessProgram = new AccessProgram(Window));
                         break;
                     case "freq":
-                        scene.Add(memContent = new FreqProgram(Window));
+                        scene.Add(FreqProgram = new FreqProgram(Window));
                         break;
                     case "pipe":
-                        if (pipeContent != null)
+                        if (PipeProgram != null)
                         {
-                            pipeContent.Window = Window;
+                            PipeProgram.Window = Window;
                             break;
                         }
-                        scene.Add(pipeContent = new PipeProgram(Window));
+                        scene.Add(PipeProgram = new PipeProgram(Window));
                         break;
                     case "gameoflife":
-                        scene.Add(GameOfLife = new GameOfLifeProgram(Window));
+                        scene.Add(GameOfLifeProgram = new GameOfLifeProgram(Window));
                         break;
                     case "fountain":
-                        scene.Add(fountainProgram = new FountainProgram(Window));
+                        scene.Add(FountainProgram = new FountainProgram(Window));
                         break;
                 }
             }
@@ -379,22 +398,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 if (!MouseOnBounds)
                 {
-                    cursor.Position = MousePosition.ToInt();
+                    Cursor.Position = MousePosition.ToInt();
                 }
                 //Enforce CursorBoundsA and CursorBoundsB if bounds are exceeded
-                cursor.Position.X = cursor.Position.X < CursorBoundsA.X ? CursorBoundsA.X : cursor.Position.X > CursorBoundsB.X ? CursorBoundsB.X : cursor.Position.X;
-                cursor.Position.Y = cursor.Position.Y < CursorBoundsA.Y ? CursorBoundsA.Y : cursor.Position.Y > CursorBoundsB.Y ? CursorBoundsB.Y : cursor.Position.Y;
+                Cursor.Position.X = Cursor.Position.X < CursorBoundsA.X ? CursorBoundsA.X : Cursor.Position.X > CursorBoundsB.X ? CursorBoundsB.X : Cursor.Position.X;
+                Cursor.Position.Y = Cursor.Position.Y < CursorBoundsA.Y ? CursorBoundsA.Y : Cursor.Position.Y > CursorBoundsB.Y ? CursorBoundsB.Y : Cursor.Position.Y;
                 if (Collider is not null)
                 {
-                    Collider.Position = new Vector2(Monitor.Position.X - Position.X + cursor.Position.X / 6, Monitor.Position.Y - Position.Y + cursor.Position.Y / 6).ToInt();
+                    Collider.Position = new Vector2(Monitor.Position.X - Position.X + Cursor.Position.X / 6, Monitor.Position.Y - Position.Y + Cursor.Position.Y / 6).ToInt();
                 }
-                if (LeftClicked && !MouseOnBounds && !Buffering) //if mouse is clicked
+                if (LeftClicked && !MouseOnBounds && !Buffering) //If the mouse is clicked
                 {
                     if (CollideCheck(NightDay) && timer <= 0 && !Closing)
                     {
                         NightMode = !NightMode;
-                        string id = NightMode ? "moon" : "sun";
-                        SunMoon.Play(id);
+                        SunMoon.Play(NightMode ? "moon" : "sun");
                         timer = Engine.DeltaTime * 10;
                     }
                     cursorSprite.Play("pressed"); //play the "click" animation
@@ -420,7 +438,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     SetDragOffset = false;
                     if (!Buffering)
                     {
-                        cursorSprite.Play("idle"); //revert cursor Texture if not being clicked
+                        cursorSprite.Play("idle"); //revert Cursor Texture if not being clicked
                     }
                 }
                 if (DraggingWindow && Window.Drawing)
@@ -428,9 +446,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     Window.Position = Collider.Position + GetDragOffset();
                 }
             }
-            else if (cursor is not null)
+            else if (Cursor is not null)
             {
-                cursor.Position = CursorMiddle; //cursor default position
+                Cursor.Position = CursorMiddle; //Cursor default position
             }
             #endregion
             base.Update();
@@ -449,7 +467,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 if (MonitorSprite is not null && MonitorSprite.CurrentAnimationID == "idle" && !intoIdle)
                 {
-                    //Handles icon/cursor transition from screen off to screen on
+                    //Handles icon/Cursor transition from screen off to screen on
                     Add(new Coroutine(TransitionToMain(), true));
                     intoIdle = true;
                 }
@@ -465,7 +483,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             if (Window is null) return Vector2.Zero;
             if (!SetDragOffset)
             {
-                //Get the distance from the tab's position to the cursor's position
+                //Get the distance from the tab's position to the Cursor's position
                 DragOffset = new Vector2(-(Collider.Position.X - Window.Position.X), Window.TabArea.Y - Collider.Position.Y + Window.tabHeight);
             }
             SetDragOffset = true;
@@ -487,10 +505,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 yield return null;
             }
-            if (onReleased != null)
-            {
-                onReleased.Invoke();
-            }
+            onReleased?.Invoke();
         }
         public void ForceClose(bool fast)
         {
@@ -502,25 +517,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             {
                 return;
             }
-            if (CollideCheck(Power) && !DraggingWindow)
+            if (!DraggingWindow && CollideCheck(Power))
             {
-                if (!DraggingWindow)
+                foreach (BetterWindowButton button in Window.Buttons)
                 {
-                    foreach (BetterWindowButton button in Window.Buttons)
+                    if (button.Pressing)
                     {
-                        if (button.Pressing)
-                        {
-                            return;
-                        }
+                        return;
                     }
-                    if (!Closing)
-                    {
-                        Add(new Coroutine(CloseInterface(false), true));
-                    }
+                }
+                if (!Closing)
+                {
+                    Add(new Coroutine(CloseInterface(false), true));
                 }
             }
             #region Check for x button clicked
-            if (CollideCheck(Window.x) && CanCloseWindow) //If "close Window" button was clicked
+            if (CanCloseWindow && CollideCheck(Window.x)) //If "close Window" button was clicked
             {
                 if (!DraggingWindow)
                 {
@@ -553,74 +565,91 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             CurrentIconName = Window.Name = icon.Name;
             Add(new Coroutine(WaitForClickRelease(delegate { CanCloseWindow = true; })));
             Window.PrepareWindow();
-            Window.TextWindow.CurrentID = icon.Text;
+            Window.TextWindow.CurrentID = icon.TextID;
             Window.Drawing = true;
         }
         private IEnumerator CollectFirstFloppyDisk(Player player)
         {
-            if (PianoModule.SaveData.HasFirstFloppy) yield break;
+            if (PianoModule.Session.HasFirstFloppy) yield break;
             player.StateMachine.State = Player.StDummy;
             yield return Textbox.Say("findFloppy");
             FloppyDisk firstDisk = new FloppyDisk(Vector2.Zero, "Calidus1", Color.White);
-            PianoModule.SaveData.TryAddDisk(firstDisk);
-            PianoModule.SaveData.HasFirstFloppy = true;
+            PianoModule.Session.TryAddDisk(firstDisk);
+            PianoModule.Session.HasFirstFloppy = true;
             player.StateMachine.State = Player.StNormal;
             yield return null;
         }
         private IEnumerator BeginSequence(Player player)
         {
             if (Scene is not Level level) yield break;
-            if (PianoModule.SaveData.CollectedDisks.Count == 0 && Version == Versions.Lab)
+            if (PianoModule.Session.CollectedDisks.Count == 0 && Version == Versions.Lab) //if it's the computer in the lab area
             {
-                if (!PianoModule.SaveData.HasFirstFloppy)
+                if (!PianoModule.Session.HasFirstFloppy) //if player has not collected the floppy disk inside the computer by default
                 {
-                    yield return CollectFirstFloppyDisk(player);
+                    yield return CollectFirstFloppyDisk(player); //play a cutscene where the player collects it
                 }
-                yield break;
+                yield break; //abort the rest of the interaction 
             }
-            player.StateMachine.State = Player.StDummy;
+
+            player.StateMachine.State = Player.StDummy; //prevent the player from moving
             string preset = "";
+
+            //currently overengineered switch statement
+            //just in case I add more versions of this entity in the future
             switch (Version)
             {
                 case Versions.Lab:
+                    //add the floppy disk selection hud to the level
+                    //then play the floppy disk select sequence and don't procede until it's finished
                     level.Add(FloppyHUD = new FloppyHUD());
                     yield return FloppyHUD.Sequence();
+
+                    //if entity is removed or the player backs out of the hud
+                    //reset the player's state back to normal and ensure the hud gets removed from the scene, then abort the interaction
                     if (FloppyHUD is null || FloppyHUD.LeftEarly)
                     {
                         player.StateMachine.State = Player.StNormal;
                         FloppyHUD?.RemoveSelf();
                         yield break;
                     }
+                    //assign the selected preset name to our variable
                     preset = FloppyHUD.SelectedDisk.Preset;
                     break;
                 case Versions.Pipes:
-                    preset = "Pipes";
+                    preset = "Pipes"; //the best switch case known to man
                     break;
             }
             if (string.IsNullOrEmpty(preset)) yield break;
-            PianoModule.Session.Interface = this;
-            LoadModules(level);
+
+            PianoModule.Session.Interface = this; //safety check for the next couple of methods
+
+            //create and add sprites, assign depth values so everything is displayed correctly
+            LoadModules(level); //see image 2
+
+            //load programs associated with the preset name (see image 3)
             GetPreset(preset);
-            FloppyHUD?.RemoveSelf();
+            FloppyHUD?.RemoveSelf(); //remove the floppyhud from the scene if it exists
+
+            //add icons and programs to scene, but don't render them yet
             AddIcons(level);
+            //play start up animations, audio, set up colliders for icons, etc.
             Start();
             yield return null;
         }
         public void Start()
         {
+            //setting various variables, adding sprites, setting position of icons, etc.
             PianoModule.Session.Interface = this;
-            Interacting = true;
-            Interacted = true;
             intoIdle = false;
-            MonitorSprite.Visible = true;
-            BorderSprite.Visible = true;
+            Interacting = Interacted = BorderSprite.Visible = MonitorSprite.Visible = true;
+
             MonitorSprite.SetColor(startColor);
-            Monitor.Position = new Vector2(l.Camera.Position.X, l.Camera.Position.Y);
-            Border.Position = SceneAs<Level>().Camera.CameraToScreen(Monitor.Position) + Vector2.One;
+            Monitor.Position = level.Camera.Position;
+            Border.Position = level.Camera.CameraToScreen(Monitor.Position) + Vector2.One;
             NightDay.Collider = new Hitbox(SunMoon.Width * 2, SunMoon.Height * 2);
             SunMoon.Play(NightMode ? "moon" : "sun");
 
-            //set middle of screen and cursor bounds based on Border position
+            //set middle of screen and Cursor bounds based on Border position
             CursorMiddle = new Vector2(Monitor.Position.X + Monitor.Width / 2, Monitor.Position.Y + Monitor.Height / 2);
             CursorBoundsA = new Vector2(16, 10) * 6;
             CursorBoundsB = new Vector2((MonitorSprite.Width - 11 - (cursorSprite.Width / 6)) * 6, (MonitorSprite.Height - 9 - (cursorSprite.Height / 6)) * 6);
@@ -647,31 +676,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
                     iconPosition = Monitor.Position + new Vector2(18, 12 + spacing.Y * row);
                 }
                 Icons[i].Position = iconPosition;
-                //Icons[i].Visible = true;
                 if (!change)
                 {
                     iconPosition += new Vector2(Icons[i].Width + spacing.X, 0);
                 }
             }
 
-            whirringSfx.Play("event:/PianoBoy/interface/Whirring", "Computer FlagState", 0);
+            whirringSfx.Play("event:/PianoBoy/interface/Whirring", "Computer State", 0);
             #endregion
+            Add(new Coroutine(MonitorSequence()));
+            //ScreenCoords collider
+            Collider = new Hitbox(ColliderWidth, ColliderHeight, Monitor.Position.X - Position.X + MousePosition.X / 6, Monitor.Position.Y - Position.Y + MousePosition.Y / 6);
+        }
+        private IEnumerator MonitorSequence()
+        {
+            PianoModule.Session.MonitorActivated = true;
+            if (Version == Versions.Lab)
+            {
+                yield return MonitorIconAnim(true);
+                yield return 0.3f;
+            }
             BorderSprite.Visible = true;
             MonitorSprite.Play("boot");
             BorderSprite.Play("fadeIn");
-
-            //ScreenCoords collider
-            Collider = new Hitbox(ColliderWidth, ColliderHeight, Monitor.Position.X - Position.X + MousePosition.X / 6, Monitor.Position.Y - Position.Y + MousePosition.Y / 6);
+            yield return null;
         }
         private void Interact(Player player)
         {
             //play click sound
             if (Version == Versions.Lab)
             {
-                /*                if (!PianoModule.Session.RestoredPower)
-                                {
-                                    return;
-                                }*/
+                if (!PianoModule.Session.RestoredPower)
+                {
+                    return;
+                }
             }
             Add(new Coroutine(BeginSequence(player)));
         }
@@ -802,7 +840,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             Audio.SetMusicParam("fade", 1);
             player.StateMachine.State = lockPlayer ? Player.StDummy : 0;
             LightCleanup(Scene);
+            if (Version == Versions.Lab)
+            {
+                yield return 0.8f;
+                yield return MonitorIconAnim(false);
+            }
             yield return null;
+        }
+        public IEnumerator MonitorIconAnim(bool state)
+        {
+            InterfaceMonitor monitor = SceneAs<Level>().Tracker.GetEntity<InterfaceMonitor>();
+            if (monitor is null) yield break;
+            if (state)
+            {
+                monitor.Activate();
+            }
+            else
+            {
+                monitor.Deactivate();
+            }
+            yield return null;
+            while (monitor.InRoutine)
+            {
+                yield return null;
+            }
         }
         public static void InstantTeleport(Scene scene, Player player, string room, bool sameRelativePosition, float positionX, float positionY)
         {
@@ -873,10 +934,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
             }
         }
         [Tracked]
-        public class Cursor : Entity
+        public class InterfaceCursor : Entity
         {
 
-            public Cursor()
+            public InterfaceCursor()
             {
                 Tag = TagsExt.SubHUD;
             }

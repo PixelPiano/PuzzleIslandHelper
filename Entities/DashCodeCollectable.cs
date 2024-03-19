@@ -235,9 +235,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             { 
                 SceneAs<Level>().Session.SetFlag(flag, true);
             }
-            if (!PianoModule.SaveData.CollectedIDs.Contains(this))
+            if (!PianoModule.Session.CollectedIDs.Contains(this))
             {
-                PianoModule.SaveData.CollectedIDs.Add(this);
+                PianoModule.Session.CollectedIDs.Add(this);
             }
             heart.RemoveSelf();
 

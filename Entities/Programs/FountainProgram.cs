@@ -55,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
                 Vector2 drawPosition = Window.DrawPosition.ToInt() + Vector2.UnitX;
                 int count = 0;
                 Vector2 pos = drawPosition + Vector2.UnitX * (Window.CaseWidth / 2 - (5 * 8));
-                foreach (bool value in PianoModule.SaveData.MiniGenStates.Values)
+                foreach (bool value in PianoModule.Session.MiniGenStates.Values)
                 {
                     if (count > 5) break;
                     Vector2 offset = (count * (Vector2.UnitX * (8)));

@@ -16,16 +16,14 @@ using System.Security.Policy;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
 
-    [CustomEntity("PuzzleIslandHelper/CogDoorActivator")]
-    [TrackedAs(typeof(CogHolder))]
-    public class CogDoorActivator : CogHolder
+    [CustomEntity("PuzzleIslandHelper/GearDoorActivator")]
+    [TrackedAs(typeof(GearHolder))]
+    public class GearDoorActivator : GearHolder
     {
         private float spins;
         public string DoorID;
-        public List<CogDoor> LinkedDoors = new();
-        private float rotations => Rotations;
-        private bool co => DropCog;
-        public CogDoorActivator(EntityData data, Vector2 offset) : base(data.Position + offset, data.Bool("onlyOnce"), Color.MediumPurple, 10f)
+        public List<GearDoor> LinkedDoors = new();
+        public GearDoorActivator(EntityData data, Vector2 offset) : base(data.Position + offset, data.Bool("onlyOnce"), Color.MediumPurple, 10f)
         {
             spins = data.Float("spins", 1);
             DoorID = data.Attr("doorID");
@@ -33,7 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            foreach (CogDoor door in (scene as Level).Tracker.GetEntities<CogDoor>())
+            foreach (GearDoor door in (scene as Level).Tracker.GetEntities<GearDoor>())
             {
                 if (!string.IsNullOrEmpty(door.DoorID) && DoorID == door.DoorID)
                 {
@@ -41,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-        public override IEnumerator WhileSpinning(Cog cog)
+        public override IEnumerator WhileSpinning(Gear gear)
         {
             if (LinkedDoors.Count > 0)
             {
@@ -49,22 +47,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     yield return null;
                 }
-                foreach (CogDoor door in LinkedDoors)
+                foreach (GearDoor door in LinkedDoors)
                 {
-                    door.CheckRegister();
+                    door.CheckRegister(); //add the door state to a list to prevent open doors from closing if the player re-enters the room
                 }
             }
             yield return 0.2f;
             StopSpinning();
-            yield return base.WhileSpinning(cog);
+            yield return base.WhileSpinning(gear);
         }
         public override void Update()
         {
             base.Update();
-            if (LinkedDoors.Count <= 0) return;
-            foreach (CogDoor door in LinkedDoors)
+            foreach (GearDoor door in LinkedDoors)
             {
-                if(!door.CanRevert && door.Amount >= 1) continue;
+                if (!door.CanRevert && door.Amount >= 1) continue;
                 door.Amount = Calc.Clamp(Rotations, 0, spins) / spins;
             }
         }

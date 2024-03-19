@@ -7,6 +7,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities;
 using System.Collections;
 using FrostHelper;
 using FrostHelper.ModIntegration;
+using Celeste.Mod.PuzzleIslandHelper.Effects;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Helpers
 {
@@ -48,7 +49,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         private float alpha;
         public bool FullyIn;
         public bool FullyOut;
-        public static Effect Shader;
+
         public bool Closing;
         public Vector2 Size;
         public int why = 1;
@@ -107,7 +108,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                 {
                     return;
                 }
-                var parameters = Shader.Parameters;
+                var parameters = ShaderFX.CurvedScreen.Parameters;
                 Matrix? camera = level.Camera.Matrix;
                 parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
                 parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
@@ -133,7 +134,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                     return;
                 }
                 //ApplyParameters();
-                TextTarget.DrawToObject(DrawText, Matrix.Identity, true, Shader);
+                TextTarget.DrawToObject(DrawText, Matrix.Identity, true, ShaderFX.CurvedScreen);
             }
             public void DrawText()
             {
@@ -306,18 +307,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             /*How to render stuff with shader effects:
              * 1. You need two render targets.
              * 2. Render the stuff you want affected by the shader to RT 1 (in this case, whatever is in "CoolStuff()".
-             * 3. Draw the contents of RT 1 to RT 2, but this acceleration using the Shader.
+             * 3. Draw the contents of RT 1 to RT 2, but this acceleration using the ShaderFX.CurvedScreen.
              * 4. In Render(), draw RT 2.
              * Note: ID avoid inconsistent render positions, use Matrix.Identity/Vector2.Zero in BeforeRender(), and then render to whatever position you like in Render().
              * Also stop pestering rendering pros about your jank stuff ok
              */
             if (Scene is not Level level) return;
-            Shader.ApplyStandardParameters();
+            ShaderFX.CurvedScreen.ApplyStandardParameters();
             Target.DrawToObject(CoolStuff, Matrix.Identity, true);
 
             Engine.Instance.GraphicsDevice.SetRenderTarget(Target2);
             Engine.Instance.GraphicsDevice.Clear(Color.Transparent);
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, Shader, Matrix.Identity);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, ShaderFX.CurvedScreen, Matrix.Identity);
             Draw.SpriteBatch.Draw(Target, Vector2.Zero, Color.White);
             Draw.SpriteBatch.End();
             //Target.MaskToObject(Mask);
@@ -325,7 +326,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
 
         public void ApplyParameters(Level level)
         {
-            var parameters = Shader.Parameters;
+            var parameters = ShaderFX.CurvedScreen.Parameters;
             Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
             Matrix projection = Matrix.CreateOrthographicOffCenter(0, viewport.Width, viewport.Height, 0, 0, 1);
             parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
@@ -360,47 +361,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                     RemoveSelf();
                 }
             }
-        }
-        private static void Content_OnUpdate(ModAsset from, ModAsset to)
-        {
-            if (to.Format == "cso" || to.Format == ".cso")
-            {
-                try
-                {
-                    AssetReloadHelper.Do("Reloading Shader", () =>
-                    {
-                        var effectName = to.PathVirtual.Substring("Effects/".Length, to.PathVirtual.Length - ".cso".Length - "Effects/".Length);
-
-                        if (Shader is not null)
-                        {
-                            if (!Shader.IsDisposed)
-                                Shader.Dispose();
-                        }
-                        Shader = ShaderHelper.TryGetEffect("curvedScreen");
-                    }, () =>
-                    {
-                        (Engine.Scene as Level)?.Reload();
-                    });
-
-                }
-                catch (Exception e)
-                {
-                    // there's a catch-all filter on Content.OnUpdate that completely ignores the exception,
-                    // would nice to actually see it though
-                    Logger.LogDetailed(e);
-                }
-
-            }
-        }
-        public static void Load()
-        {
-            Everest.Content.OnUpdate += Content_OnUpdate;
-
-        }
-        public static void Unload()
-        {
-            Shader?.Dispose();
-            Everest.Content.OnUpdate -= Content_OnUpdate;
         }
     }
 }

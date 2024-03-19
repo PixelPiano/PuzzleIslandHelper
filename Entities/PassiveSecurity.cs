@@ -163,7 +163,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Delay = Calc.Random.Range(0.2f, 0.5f);
             Progress = Delay;
             flag = data.Attr("flag");
-            inverted = data.Bool("inverted");
+            inverted = data.Bool("invertFlag");
             Depth = -10002;
         }
         private void CheckState()
@@ -370,7 +370,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     yield return null;
                 }
-                //Gun.Play("alert") or something
+                //Gun.PlayEvent("alert") or something
                 yield return 0.1f;
             }
             while (true)

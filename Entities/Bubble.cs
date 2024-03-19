@@ -249,7 +249,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (reactsToPipes && PianoModule.SaveData.GetPipeState() < 2)
+            if (reactsToPipes && PianoModule.Session.GetPipeState() < 2)
             {
                 RemoveSelf();
             }

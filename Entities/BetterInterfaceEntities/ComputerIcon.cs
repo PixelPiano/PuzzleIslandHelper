@@ -9,95 +9,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
 
     public class ComputerIcon : Entity
     {
-        //public Sprite Sprite;
         public string Name;
-        public string Text;
-        public string TabText;
-        public Interface Interface;
-        public MTexture Texture;
-        /*        public static readonly List<string> dictionary = new List<string>
-                    {
-                        "unknown",
-                        "text",
-                        "chatlog",
-                        "folder",
-                        "access",
-                        "ram",
-                        "pico",
-                        "sus",
-                        "info",
-                        "destruct",
-                        "Freq",
-                        "pipe",
-                        "life",
-                        "fountain"
-                    };
-                public static readonly List<string> TextDictionary = new List<string>
-                    {
-                        "text",
-                        "info",
-                        "invalid",
-                        "unknown",
-                    };
-                public static readonly List<string> StaticText = new List<string>
-                    {
-                        "invalid",
-                        "unknown",
-                        "ram",
-                        "access",
-                        "destruct",
-                        "pipe",
-                        "life"
-                    };*/
-        public bool Open = false;
-        private Color color = Color.White;
+        public string TextID; //ID for text stored in Dialog.txt
+        public string TabText; //Standard string to be drawn in the Window tab if this icon is open
+        public Interface Interface; //Reference to the Interface this icon is in
+        public MTexture Texture; //The icon's desktop texture
         public ComputerIcon(Interface inter, string name, string textID, string tabText = "")
         {
             Interface = inter;
-            Depth = Interface.BaseDepth - 1;
             Name = name;
-            Text = textID;
-            Visible = false;
+            TextID = textID;
+            TabText = tabText;
             Texture = GFX.Game["objects/PuzzleIslandHelper/interface/icons/" + Name.ToLower()];
-            if (!string.IsNullOrEmpty(tabText))
-            {
-                TabText = tabText;
-            }
+            Depth = Interface.BaseDepth - 1;
             Collider = new Hitbox(Texture.Width, Texture.Height);
+            Visible = false; //native to Entity.cs. An Entity only renders if Visible is true
         }
-        public override void Render()
+        public override void Render() //(Only called if base.Visible is true
         {
             base.Render();
-            Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, Position, color);
+            Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, Position, Color.White);
         }
-        public ComputerIcon(string textId)
-        {
-
-        }
-        /*        public bool IsDynamicText()
-                {
-                    return !StaticText.Contains(Name) && TextDictionary.Contains(Name);
-                }
-                public bool IsStaticText()
-                {
-                    return StaticText.Contains(Name);
-                }*/
-        /*        public bool IsText()
-                {
-                    return IsDynamicText() || IsStaticText();
-                }*/
-        /*        public string GetID()
-                {
-                    string result = "";
-                    if (IsStaticText())
-                    {
-                        result = Name;
-                    }
-                    else if (IsDynamicText() && !string.IsNullOrEmpty(Text))
-                    {
-                        result = Text;
-                    }
-                    return result;
-                }*/
     }
 }

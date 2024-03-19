@@ -28,9 +28,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             Console.WriteLine("Creating RenderTarget \"" + Name + "\"");
             return VirtualContent.CreateRenderTarget(Name, Width, Height);
         }
-        public static VirtualRenderTarget SimpleApply(this VirtualRenderTarget target, RenderTarget2D source, Effect eff)
+        public static VirtualRenderTarget SimpleApply(this VirtualRenderTarget target, RenderTarget2D source, Effect eff, bool apply = true)
         {
-            eff.ApplyStandardParameters();
+            if (apply)
+            {
+                eff.ApplyStandardParameters();
+            }
             Engine.Instance.GraphicsDevice.SetRenderTarget(target);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, eff);
             Draw.SpriteBatch.Draw(source, Vector2.Zero, Color.White);

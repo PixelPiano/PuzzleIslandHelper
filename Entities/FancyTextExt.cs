@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using Celeste.Mod;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 
 
@@ -364,7 +365,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private PixelFont font;
 
-        private PixelFontSize size;
+        public PixelFontSize size;
 
         private Color defaultColor;
 
@@ -402,6 +403,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private FancyTextExt(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade, Color defaultColor, Language language)
         {
+
             this.text = text;
             this.maxLineWidth = maxLineWidth;
             this.linesPerPage = ((linesPerPage < 0) ? int.MaxValue : linesPerPage);
@@ -677,17 +679,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                     if (text.Contains("offset:"))
                     {
+                        bool uv = text.Contains("screen");
                         string[] values = text.Substring(text.IndexOf(':') + 1).Split(',');
                         float x = 0, y = 0;
                         if (values.Length > 0)
                         {
-                            x = float.Parse(values[0], CultureInfo.InvariantCulture);
+                            x = float.Parse(values[0], NumberStyles.Any);
                         }
                         if (values.Length > 1)
                         {
-                            y = float.Parse(values[1], CultureInfo.InvariantCulture);
+                            y = float.Parse(values[1], NumberStyles.Any);
                         }
-                        currentOffset = new Vector2(x, y);
+                        float xMult = uv ? Engine.ViewWidth * 1.7f : 1;
+                        float yMult = uv ? Engine.ViewHeight : 1;
+                        currentOffset = new Vector2(x * xMult, y * yMult);
                         continue;
                     }
                     if (text.Equals("/offset"))
@@ -920,11 +925,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             return false;
         }
-
         private void orig_AddWord(string word)
         {
             float num = size.Measure(word).X * currentScale;
-            if (currentPosition + num > (float)maxLineWidth)
+            if (currentPosition + num > maxLineWidth)
             {
                 AddNewLine();
             }

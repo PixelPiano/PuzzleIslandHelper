@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities
         public string Text;
         public bool Pressing;
         public Collider ButtonCollider;
-        public const string DefaultPath = "objects/PuzzleIslandHelper/interface/icons/";
+        public const string DefaultPath = "objects/PuzzleIslandHelper/interface/";
         public BetterWindow Window => Interface.Window;
         public string Path
         {

@@ -66,7 +66,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private void Collect(Player player)
         {
-            //Play ding sound or something
+            //PlayEvent ding sound or something
             player.StateMachine.State = 11;
             Collected = true;
             sprite.Visible = false;

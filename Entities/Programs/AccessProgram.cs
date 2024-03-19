@@ -45,7 +45,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
 
             if (!success)
             {
-                Console.WriteLine("Unsuccessful");
                 yield break;
             }
             yield return TransitionRoutine(pass);
@@ -87,6 +86,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             {
                 return false;
             }
+            destination = destination.Trim();
             if(PianoModule.Session.Interface is null)
             {
                 return false;
@@ -95,7 +95,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
             {
                 return false;
             }
-            if(level.Session.MapData.Levels.Find(item => item.Name.Equals(destination)) == null)
+            if(level.Session.MapData.Levels.Find(item => item.Name.ToLower().Equals(destination.ToLower())) == null)
             {
                 return false;
             }
@@ -105,7 +105,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Programs
         {
             if (PianoModule.AccessData is null)
             {
-                Console.WriteLine("Access data is null");
                 return false;
             }
             bool valid = PianoModule.AccessData.HasID(pass);

@@ -16,17 +16,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class WaterDroplet : Entity
     {
-        private Player player;
         private const float MaxSpeed = 350f;
         private Rectangle PlayerRectangle = new(0, 0, 0, 0);
         private float wait;
-        private float startWait = Calc.Random.Range(0.1f, 0.5f);
         private ParticleSystem system;
-        private Water water;
-        private float InitialProgress;
         private Vector2 End;
         private Vector2 Start;
-        private bool wcol;
         private enum Dir
         {
             Right = 0,
@@ -54,21 +49,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public WaterDroplet(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
-            if (data.Bool("randomWaitTime"))
+
+            if (Calc.Random.Range(1, 3) == 1)
             {
-                if (Calc.Random.Range(1, 3) == 1)
-                {
-                    wait = Calc.Random.Range(0.5f, 1.5f);
-                }
-                else
-                {
-                    wait = Calc.Random.Range(1.5f, 5);
-                }
+                wait = Calc.Random.Range(0.5f, 1.5f);
             }
             else
             {
-                wait = data.Float("waitTime");
+                wait = Calc.Random.Range(1.5f, 5);
             }
+
             MoveDirection = data.Enum<Dir>("direction");
             Drip.Color = Color.Lerp(data.HexColor("baseColor", Color.Blue), Color.LightBlue, 0.7f);
             Drip.Color2 = Color.Lerp(data.HexColor("baseColor", Color.Blue), Color.LightBlue, 0.3f);
@@ -78,10 +68,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Awake(scene);
             scene.Add(system = new ParticleSystem(-1, 4));
-            player = (scene as Level).Tracker.GetEntity<Player>();
-            if (player is not null)
+            if (scene.GetPlayer() is Player player)
             {
-                PlayerRectangle = new Rectangle((int)(player.X - player.Width / 2), (int)(player.Y - player.Height - 5), (int)(player.Width), (int)(player.Height + 5));
+                PlayerRectangle.Create(player.X - player.Width / 2, player.Y - player.Height - 5, player.Width, player.Height + 5);
             }
             SetLimits();
             Add(new Coroutine(DropletJourney()));
@@ -90,6 +79,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.DebugRender(camera);
             if (Collider is not null) Draw.Rect(Collider, Color.Red);
+            Draw.Rect(PlayerRectangle,Color.Blue);
             Draw.Rect(End.X, End.Y, 1, 1, Color.Green);
             Draw.Rect(Start.X, Start.Y, 1, 1, Color.Magenta);
         }
@@ -100,6 +90,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void SetStart(bool snap)
         {
+
             Vector2 check = Position;
             Vector2 amount = MoveDirection switch
             {
@@ -111,6 +102,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             };
             if (snap)
             {
+                //snaps the droplet to the directional surface of any water it's touching
                 while (CollideCheck<Water>(check))
                 {
                     check += amount;
@@ -121,37 +113,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void SetEnd()
         {
-            Vector2 check = Position;
-            Vector2 amount = MoveDirection switch
-            {
-                Dir.Up => -Vector2.UnitY,
-                Dir.Down => Vector2.UnitY,
-                Dir.Left => -Vector2.UnitX,
-                Dir.Right => Vector2.UnitX,
-                _ => Vector2.Zero
-            };
             if (Scene is not Level level) return;
-            bool outside = false;
-            while (!CollideCheck<Solid>(check)) //while no collision found
+            Vector2 start = Position;
+            Vector2 end = MoveDirection switch
             {
-                if (!level.Bounds.Contains(check.ToPoint())) //if outside the level
-                {
-                    outside = true;
-                    break;
-                }
-                check += amount; //move in MoveDirection direction
-                if (CollideFirst<Water>(check) is Water water)
-                {
-                    wcol = true;
-                    this.water = water;
-                    break;
-                }
-            }
-            if (outside)
-            {
-                check += amount * 32; //extend the end point to offscreen
-            }
-            End = check;
+                Dir.Up => new Vector2(start.X, level.Bounds.Top - 16),
+                Dir.Down => new Vector2(start.X, level.Bounds.Bottom + 16),
+                Dir.Left => new Vector2(level.Bounds.Left - 16, start.Y),
+                Dir.Right => new Vector2(level.Bounds.Right + 16, start.Y),
+                _ => start
+            };
+            Vector2? ray = PianoUtils.DoRaycast(level, start, end);
+            End = ray.HasValue ? ray.Value : end;
         }
         private Vector2 DirectionAmount(float amount)
         {
@@ -169,10 +142,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             };
             return new Vector2(x, y) * amount;
         }
+        
         private IEnumerator DropletJourney()
         {
-            bool playerCollide = false;
             Vector2 collideOffset = Vector2.Zero;
+            Water collidedWater = null;
+            bool collidedWithPlayer = false;
+            bool collidedWithWater = false;
             while (true)
             {
                 yield return wait + Calc.Random.Range(0.2f, 0.4f);
@@ -197,9 +173,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     if (CollideRect(PlayerRectangle, pos))
                     {
-                        playerCollide = true;
-                        collideOffset = DirectionAmount(-5);
-                        yield return null;
+                        collidedWithPlayer = true;
+                        break;
+                    }
+                    else if (CollideFirst<Water>(pos) is Water water)
+                    {
+                        collidedWater = water;
+                        collidedWithWater = true;
                         break;
                     }
                     pos = Calc.Approach(pos, End, MaxSpeed * Engine.DeltaTime * Ease.QuadIn(lerp));
@@ -207,32 +187,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     lerp += Engine.DeltaTime;
                     yield return null;
                 }
+                if (collidedWithPlayer || collidedWithWater)
+                {
+                    collideOffset = DirectionAmount(-5);
+                }
                 //Splash and play audio
-                if (!playerCollide)
+                if (collidedWithWater || (!collidedWithWater && !collidedWithPlayer))
                 {
                     pos = End;
                     Audio.Play("event:/PianoBoy/Droplets/drip", pos);
-                    if (wcol && water is not null)
+                    if (collidedWater is not null)
                     {
                         switch (MoveDirection)
                         {
-                            case Dir.Down: water.TopSurface?.DoRipple(pos, 0.7f); break;
-                            case Dir.Up: water.BottomSurface?.DoRipple(pos, 0.7f); break;
+                            case Dir.Down: collidedWater.TopSurface?.DoRipple(pos, 0.7f); break;
+                            case Dir.Up: collidedWater.BottomSurface?.DoRipple(pos, 0.7f); break;
                             case Dir.Left:
-                                if (water is ColoredWater)
+                                if (collidedWater is ColoredWater)
                                 {
-                                    (water as ColoredWater).RightSurface?.DoRipple(pos, 0.7f);
+                                    (collidedWater as ColoredWater).RightSurface?.DoRipple(pos, 0.7f);
                                 }
                                 break;
                             case Dir.Right:
-                                if (water is ColoredWater)
+                                if (collidedWater is ColoredWater)
                                 {
-                                    (water as ColoredWater).LeftSurface?.DoRipple(pos, 0.7f);
+                                    (collidedWater as ColoredWater).LeftSurface?.DoRipple(pos, 0.7f);
                                 }
                                 break;
                         }
                     }
-
                 }
                 for (int i = 0; i < 3; i++)
                 {

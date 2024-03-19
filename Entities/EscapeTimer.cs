@@ -49,7 +49,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             bool flag = (scene as Level).Session.GetFlag("cameFromDigi");
             bool flag2 = (scene as Level).Session.Level.Contains("digiEscape");
-            bool flag3 = PianoModule.SaveData.Escaped;
+            bool flag3 = PianoModule.Session.Escaped;
             bool flag4 = SaveData.Instance.DebugMode;
 
             if ((!flag && !flag4) || !flag2 || (flag3 && !flag4))

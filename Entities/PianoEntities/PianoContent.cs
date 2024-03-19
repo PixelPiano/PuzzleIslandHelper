@@ -40,7 +40,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PianoEntities
         {
             Depth = BaseDepth;
             cursorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/piano/keys/");
-            cursorSprite.AddLoop("idle", "cursor", 0.1f);
+            cursorSprite.AddLoop("idle", "Cursor", 0.1f);
             Add(cursorSprite);
             cursorSprite.Play("idle");
             Collider = new Hitbox(1, 1, 0, 0);
@@ -118,7 +118,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PianoEntities
             base.Added(scene);
             Position = (scene as Level).Camera.Position;
             AddKeys();
-            scene.Add(Mouse = new Cursor("objects/PuzzleIslandHelper/piano/cursor"));
+            scene.Add(Mouse = new Cursor("objects/PuzzleIslandHelper/piano/Cursor"));
         }
         public override void SceneEnd(Scene scene)
         {

@@ -15,6 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             id = data.Attr("targetId");
             onGround = data.Bool("placePlayerOnGroundBelow");
+            Collider = new Hitbox(16,24);
         }
     }
 }

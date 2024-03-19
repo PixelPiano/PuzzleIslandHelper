@@ -1,12 +1,12 @@
-local cogDoorActivator= {}
-cogDoorActivator.justification = { 0, 0 }
-cogDoorActivator.name = "PuzzleIslandHelper/CogDoorActivator"
-cogDoorActivator.depth = 0
-cogDoorActivator.texture = "objects/PuzzleIslandHelper/cog/holder"
-cogDoorActivator.placements =
+local gearDoorActivator= {}
+gearDoorActivator.justification = { 0, 0 }
+gearDoorActivator.name = "PuzzleIslandHelper/GearDoorActivator"
+gearDoorActivator.depth = 0
+gearDoorActivator.texture = "objects/PuzzleIslandHelper/gear/holder"
+gearDoorActivator.placements =
 {
     {
-        name = "Cog Door Activator",
+        name = "Gear Door Activator",
         data =
         {
             spins = 1,
@@ -18,4 +18,4 @@ cogDoorActivator.placements =
 }
 
 
-return cogDoorActivator
+return gearDoorActivator
