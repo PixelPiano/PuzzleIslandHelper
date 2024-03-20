@@ -18,7 +18,7 @@ using System.Reflection;
 
 public static class PianoUtils
 {
-    public static Collider Boundaries(this IEnumerable<Vector2> positions)
+    public static Collider Boundaries(this IEnumerable<Vector2> positions, Vector2 offset, int mult = 1)
     {
         float left, top, right, bottom;
         left = top = float.MaxValue;
@@ -30,7 +30,7 @@ public static class PianoUtils
             top = Math.Min(vector.Y, top);
             bottom = Math.Max(vector.Y, bottom);
         }
-        return new Hitbox(right - left, bottom - top, left, top);
+        return new Hitbox((right - left) * mult, (bottom - top) * mult, (left * mult) + offset.X, (top * mult) + offset.Y);
     }
     public static FancySolidTiles Create(Vector2 position, float width, float height, string tileData, bool blendEdges)
     {
