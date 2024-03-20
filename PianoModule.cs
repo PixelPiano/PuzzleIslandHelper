@@ -19,6 +19,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
 using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.ShiftAreaEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {

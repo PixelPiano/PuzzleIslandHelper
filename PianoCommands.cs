@@ -3,6 +3,7 @@ using Celeste;
 using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.ShiftAreaEntities;
 using Microsoft.Xna.Framework;
 using Mono.Cecil;
 using Monocle;

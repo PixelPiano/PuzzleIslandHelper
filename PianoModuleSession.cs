@@ -8,7 +8,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections.Generic;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.ShiftArea;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.ShiftAreaEntities.ShiftArea;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
