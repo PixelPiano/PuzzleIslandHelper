@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FMOD;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -7,7 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     [Tracked]
     public class OnScreenText : Entity
@@ -89,7 +90,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             _visible = true;
             for (int i = 0; i < FText.Nodes.Count; i++)
             {
-                float _ypos = LineSpace - (FText.BaseSize / 8);
+                float _ypos = LineSpace - FText.BaseSize / 8;
 
                 FancyTextExt.Node Node = FText.Nodes[i];
                 CurrentNode = i + 1;

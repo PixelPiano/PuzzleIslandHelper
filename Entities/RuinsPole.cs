@@ -1,5 +1,5 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Transitions;
+
 using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;

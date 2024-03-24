@@ -1,9 +1,9 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using System.Collections;
 using System;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {

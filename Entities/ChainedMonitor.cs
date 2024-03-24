@@ -8,7 +8,7 @@ using System;
 using System.Collections;
 using System.Threading.Tasks;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/ChainedMonitor")]
     [Tracked]

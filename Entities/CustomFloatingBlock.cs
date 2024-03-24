@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using VivHelper.Colliders;
 // PuzzleIslandHelper.ArtifactSlot
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/CustomFloatingBlock")]
     [Tracked]

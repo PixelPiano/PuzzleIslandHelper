@@ -5,7 +5,7 @@ using Monocle;
 using System;
 using System.Collections;
 // PuzzleIslandHelper.FadeWarp
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/FadeWarp")]
     [Tracked]
@@ -169,7 +169,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (condition1)
             {
-                if (!string.IsNullOrEmpty(dialogue) && (!usesFlag || (usesFlag && !SceneAs<Level>().Session.GetFlag(flag))))
+                if (!string.IsNullOrEmpty(dialogue) && (!usesFlag || usesFlag && !SceneAs<Level>().Session.GetFlag(flag)))
                 {
                     yield return Textbox.Say(dialogue);
                 }
@@ -203,7 +203,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void Interact(Player player)
         {
-            if (isDoor || (usesFlag && !SceneAs<Level>().Session.GetFlag(flag)))
+            if (isDoor || usesFlag && !SceneAs<Level>().Session.GetFlag(flag))
             {
                 Add(new Coroutine(DialogCutscene(player, keyId, dialogue)));
             }

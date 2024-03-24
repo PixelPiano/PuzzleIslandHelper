@@ -1,12 +1,12 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Transitions;
+
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/RuinsJumpThru")]
     [Tracked]
@@ -20,17 +20,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Depth = -60;
             SurfaceSoundIndex = 13;
             MTexture tex = GFX.Game[path + "texture"];
-            Image left = new Image(tex.GetSubtexture(0,0,8,4));
+            Image left = new Image(tex.GetSubtexture(0, 0, 8, 4));
             Add(left);
             images.Add(left);
-            for(int i = 8; i<width; i += 8)
+            for (int i = 8; i < width; i += 8)
             {
-                Image mid = new Image(tex.GetSubtexture(8,0,8,4));
+                Image mid = new Image(tex.GetSubtexture(8, 0, 8, 4));
                 mid.Position.X = i;
                 Add(mid);
                 images.Add(mid);
             }
-            Image end = new Image(tex.GetSubtexture(16,0,2,4));
+            Image end = new Image(tex.GetSubtexture(16, 0, 2, 4));
             end.Position.X = Width;
             Add(end);
             images.Add(end);

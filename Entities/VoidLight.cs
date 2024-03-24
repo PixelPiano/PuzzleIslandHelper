@@ -8,7 +8,7 @@ using System.Drawing;
 using Color = Microsoft.Xna.Framework.Color;
 
 // PuzzleIslandHelper.VoidLight
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/VoidLight")]
     [Tracked]
@@ -71,18 +71,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Vector2 _offset = Vector2.One * 12;
             Radius = data.Int("radius");
             Opacity = data.Float("alpha");
-            StartFade = Radius - (Radius/3);
+            StartFade = Radius - Radius / 3;
             EndFade = Radius;
             Color = data.HexColor("color", Color.White);
             Add(new BloomPoint(_offset, Opacity, Radius));
             Add(Light = new VertexLight(_offset, Color, Opacity, StartFade, EndFade));
             Collider = new Hitbox(Radius + 10, Radius + 10, _offset.X - Radius / 2 - 5, _offset.Y - Radius / 2 - 5);
-            Sprite.Position += new Vector2(Sprite.Width/2,Sprite.Height/2);
+            Sprite.Position += new Vector2(Sprite.Width / 2, Sprite.Height / 2);
             Sprite.Color = Color.Lerp(Color.White, Color.Black, 0.3f);
         }
         private void DrawCircles(Color color)
         {
-            for(int i = 0; i<Shapes; i++)
+            for (int i = 0; i < Shapes; i++)
             {
                 Draw.Circle(Light.Center, Sizes[i], color * Alphas[i], Thickness, 1);
             }
@@ -96,7 +96,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void DiamondParticles()
         {
-            for(int i = 0; i<5; i++)
+            for (int i = 0; i < 5; i++)
             {
                 system.Emit(Diamond, Position + new Vector2(12, 12));
             }
@@ -107,32 +107,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             player = (scene as Level).Tracker.GetEntity<Player>();
             TargetRadius = Radius / 1.7f;
 
-            for(int i = 0; i < Shapes; i++)
+            for (int i = 0; i < Shapes; i++)
             {
-                Sizes[i] = i * (Thickness) + (i*10);
+                Sizes[i] = i * Thickness + i * 10;
                 InitialSizes[i] = Sizes[i];
             }
             CircleTween = Tween.Create(Tween.TweenMode.Looping, null, 1);
-            CircleTween.OnUpdate = (Tween t) =>
+            CircleTween.OnUpdate = (t) =>
             {
-                for(int i = 0; i<Shapes ; i++) 
+                for (int i = 0; i < Shapes; i++)
                 {
                     Sizes[i] = Calc.LerpClamp(InitialSizes[i], TargetRadius, t.Eased);
                     //Alphas[i] = Calc.LerpClamp(0.3f, 0, t.Eased);
                 }
-                
+
             };
             Tween OpacityTween = Tween.Create(Tween.TweenMode.YoyoLooping, null, 0.5f);
-            OpacityTween.OnUpdate = (Tween t) =>
+            OpacityTween.OnUpdate = (t) =>
             {
-                for(int i = 0; i<Shapes; i++)
+                for (int i = 0; i < Shapes; i++)
                 {
                     Alphas[i] = Calc.LerpClamp(0f, 0.3f, t.Eased);
                 }
             };
-            OpacityTween.OnStart = (Tween t) =>
+            OpacityTween.OnStart = (t) =>
             {
-                if(!spriteTracker)
+                if (!spriteTracker)
                 {
                     Sprite.Play("spin");
                     DiamondParticles();
@@ -149,13 +149,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-/*                Size += 2f;
-                Size %= (int)TargetRadius;
-                PulseOpacity = 1 - (1 / MathHelper.Distance(Size, TargetRadius));
-                if (Size == 0)
-                {
-                    PulseOpacity = BaseAlpha;
-                }*/
+            /*                Size += 2f;
+                            Size %= (int)TargetRadius;
+                            PulseOpacity = 1 - (1 / MathHelper.Distance(Size, TargetRadius));
+                            if (Size == 0)
+                            {
+                                PulseOpacity = BaseAlpha;
+                            }*/
         }
     }
 }

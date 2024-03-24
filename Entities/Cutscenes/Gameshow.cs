@@ -1,6 +1,5 @@
 ﻿using Celeste.Mod.Entities;
 using Celeste.Mod.LuaCutscenes;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Gameshow;
 using static Celeste.Mod.PuzzleIslandHelper.PuzzleData.GameshowData;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Microsoft.Xna.Framework;
@@ -10,8 +9,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using FMOD;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
     [Tracked]
     public class Gameshow : CutsceneEntity
@@ -221,7 +221,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 yield return FlashRoutine(true);
                 yield return 0.5f;
                 StopCheering();
-                yield return Correct((page * question.PerPage) + ChoicePrompt.Choice);
+                yield return Correct(page * question.PerPage + ChoicePrompt.Choice);
             }
             else
             {

@@ -1,17 +1,14 @@
 ﻿using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/CrystalElevator")]
     [Tracked]
@@ -63,7 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void Render()
         {
-            int frame = ((int)Position.Y / 6 % 2) + 1;
+            int frame = (int)Position.Y / 6 % 2 + 1;
             DrawGearFrame(frame);
             sparkSystem.Render();
             base.Render();
@@ -252,13 +249,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             InvertOverlay.HoldState = true;
             yield return null;
             player.StateMachine.State = Player.StDummy;
-            
+
             PianoModule.Session.FixedElevator = true;
-            
+
             Rocks.Play("shake");
             yield return 0.7f;
             Rocks.Play("crumble");
-            while(Rocks.CurrentAnimationID != "cleared")
+            while (Rocks.CurrentAnimationID != "cleared")
             {
                 yield return null;
             }

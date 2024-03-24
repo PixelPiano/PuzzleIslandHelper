@@ -1,10 +1,9 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 // PuzzleIslandHelper.CodeDoor
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/CodeDoor")]
     [Tracked]
@@ -67,7 +66,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 shake = !shake;
                 bufferProg--;
                 pos = (int)Calc.LerpClamp(origY, destination, Ease.QuintIn(i));
-                if(bufferProg == 0)
+                if (bufferProg == 0)
                 {
                     bufferProg = buffer;
                     Position.Y = pos;
@@ -102,7 +101,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Unlocking = true;
                 Audio.Play("event:/game/09_core/frontdoor_heartfill", Position);
                 doorSprite.Play("unlock");
-                doorSprite.OnChange = (string s, string s2) =>
+                doorSprite.OnChange = (s, s2) =>
                 {
                     if (s == "unlock" && s2 == "unlocked" && !Unlocked)
                     {

@@ -1,6 +1,6 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Transitions;
+
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;

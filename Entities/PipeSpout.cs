@@ -6,7 +6,7 @@ using Monocle;
 using System;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/PipeSpout")]
     [Tracked]
@@ -469,7 +469,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void DrawTextures(Vector2 pos, Color color)
         {
-            Vector2 retreatOffset = (HideMethod == VisibleTypes.Grow || InBreakRoutine ? hideOffset : Vector2.Zero);
+            Vector2 retreatOffset = HideMethod == VisibleTypes.Grow || InBreakRoutine ? hideOffset : Vector2.Zero;
             Vector2 DrawPosition = pos + offset + retreatOffset;
 
             int Length = Vertical ? (int)orig_Collider.Height : (int)orig_Collider.Width;
@@ -554,8 +554,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (HideMethod == VisibleTypes.Grow || ForceEnable)
             {
-                HurtBox.Width = (orig_Collider.Width - Math.Abs(hideOffset.X));
-                HurtBox.Height = (orig_Collider.Height - Math.Abs(hideOffset.Y));
+                HurtBox.Width = orig_Collider.Width - Math.Abs(hideOffset.X);
+                HurtBox.Height = orig_Collider.Height - Math.Abs(hideOffset.Y);
                 if (Direction == Directions.Up)
                 {
                     HurtBox.Position.Y = Math.Abs(hideOffset.Y);
@@ -580,9 +580,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void PickDissolveTexture(float lerp, float time)
         {
-            if (lerp < (time / 3) * 3)
+            if (lerp < time / 3 * 3)
             {
-                if (lerp < (time / 3) * 2)
+                if (lerp < time / 3 * 2)
                 {
                     if (lerp < time / 3)
                     {
@@ -657,7 +657,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             Hole.Rotation = Angle;
-            if (((PianoModule.Session.HasBrokenPipes || Broken) && (WasOn || PianoModule.Session.SpoutWreckage.Contains(ID))) || PianoModule.Session.GetPipeState() > 3)
+            if ((PianoModule.Session.HasBrokenPipes || Broken) && (WasOn || PianoModule.Session.SpoutWreckage.Contains(ID)) || PianoModule.Session.GetPipeState() > 3)
             {
                 Hole.Render();
             }

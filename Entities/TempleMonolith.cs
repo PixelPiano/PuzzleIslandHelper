@@ -4,7 +4,7 @@ using Monocle;
 using System;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/TempleMonolith")]
     [Tracked]
@@ -238,7 +238,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (Scene.CollideCheck<Solid>(BottomLeft + new Vector2(i, 3f)))
                 {
                     SceneAs<Level>().ParticlesFG.Emit(FallingBlock.P_FallDustA, 1, new Vector2(X + i, Bottom), Vector2.One * 4f, -(float)Math.PI / 2f);
-                    float direction = ((!(i < Width / 2f)) ? 0f : ((float)Math.PI));
+                    float direction = !(i < Width / 2f) ? 0f : (float)Math.PI;
                     SceneAs<Level>().ParticlesFG.Emit(FallingBlock.P_LandDust, 1, new Vector2(X + i, Bottom), Vector2.One * 4f, direction);
                 }
             }

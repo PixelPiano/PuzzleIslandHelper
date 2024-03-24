@@ -7,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 // PuzzleIslandHelper.TSwitch
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/TSwitch")]
     [Tracked]
@@ -29,8 +29,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private ParticleType Dust = new ParticleType
         {
             Size = 3,
-            Direction = MathHelper.Pi*3/4,
-            DirectionRange = MathHelper.Pi/6,
+            Direction = MathHelper.Pi * 3 / 4,
+            DirectionRange = MathHelper.Pi / 6,
             Color = Color.Black,
             Color2 = Color.Green,
             SpeedMin = 10f,
@@ -48,7 +48,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             this.id = id;
             startY = Position.Y;
             endY = Position.Y + 8;
-            Add(Bloom = new BloomPoint(new Vector2(12, 0),0,24));
+            Add(Bloom = new BloomPoint(new Vector2(12, 0), 0, 24));
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/tswitch/"));
             sprite.AddLoop("idle", "block", 1f);
             sprite.AddLoop("bright", "flash", 0.1f, 2);
@@ -69,7 +69,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             float angle1 = Calc.ToDeg(165);
             float angle2 = Calc.ToDeg(15);
-            for(int i = 0; i<8; i++)
+            for (int i = 0; i < 8; i++)
             {
                 system.Emit(Dust, Position + Vector2.UnitY * i, angle1);
             }
@@ -88,9 +88,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                foreach(KeyValuePair<EntityID,Vector2> entity in PianoModule.Session.PressedTSwitches)
+                foreach (KeyValuePair<EntityID, Vector2> entity in PianoModule.Session.PressedTSwitches)
                 {
-                    if(entity.Key.ID == id.ID)
+                    if (entity.Key.ID == id.ID)
                     {
                         Position = entity.Value;
                         Pressed = true;
@@ -106,7 +106,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 FirstContact = true;
                 sprite.Play("flash");
             }
-            if(FirstContact && !HasPlayerRider())
+            if (FirstContact && !HasPlayerRider())
             {
                 FirstContact = false;
                 sprite.Play("fadeBack");
@@ -118,7 +118,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private DashCollisionResults OnDash(Player player, Vector2 direction)
         {
-            if (direction.Y>0)
+            if (direction.Y > 0)
             {
                 Pressed = true;
             }
@@ -134,8 +134,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     if (Pressed || Used)
                     {
                         break;
-                    } 
-                    Bloom.Alpha = 1-i;
+                    }
+                    Bloom.Alpha = 1 - i;
                     MoveToY(startY + Calc.LerpClamp(0, 8, Ease.SineInOut(i)));
                     yield return null;
                 }
@@ -152,7 +152,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (!Used)
             {
-               
+
                 while (!CollideCheck<Solid>())
                 {
                     MoveToY(Position.Y + 4);

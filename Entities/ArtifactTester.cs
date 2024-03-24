@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using ExtendedVariants.Variants;
 
 // PuzzleIslandHelper.LabDoor
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.Puzzles
 {
     [CustomEntity("PuzzleIslandHelper/ArtifactTester")]
     [Tracked]
@@ -139,7 +139,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Boxes[i].Add("shine", "boxShine", 0.07f, "fill");
                 Boxes[i].Add("glitch", "boxGlitch", 0.05f, "shine");
                 Boxes[i].Position.Y = 13;
-                Boxes[i].Position.X = 7 + (14 * i);
+                Boxes[i].Position.X = 7 + 14 * i;
                 Boxes[i].Play("empty");
                 Boxes[i].Visible = false;
             }
@@ -212,7 +212,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             EasyRendering.MaskToObject(ScreenContent, Mask);
             ShaderFX.Static.ApplyStandardParameters(level);
         }
-     
+
         public override void Render()
         {
             base.Render();
@@ -227,7 +227,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.Draw(ScreenContent, level.Camera.Position, Color.White);
             Glow.Render();
         }
-          private void DrawScreenContent()
+        private void DrawScreenContent()
         {
             for (int i = 0; i < 8; i++)
             {
@@ -243,7 +243,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.Rect(level.Bounds, Color.Black);
             for (int i = 0; i < Lines; i++)
             {
-                Vector2 offsetY = new Vector2(0, (Spacing * i) + SpaceProgress);
+                Vector2 offsetY = new Vector2(0, Spacing * i + SpaceProgress);
                 Draw.Line(BottomLeft - offsetY, BottomRight - offsetY, Color.Green);
             }
 

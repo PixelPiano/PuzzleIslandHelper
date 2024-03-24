@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Color = Microsoft.Xna.Framework.Color;
 using Point = Microsoft.Xna.Framework.Point;
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/LabGenerator")]
     [Tracked]
@@ -37,7 +37,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 for (int i = 0; i < height / points; i++)
                 {
                     Points.Add(new Point(x, y));
-                    int added = (int)Calc.Random.Range(5, 20);
+                    int added = Calc.Random.Range(5, 20);
                     int xVariation = Calc.Random.Range(-range, range + 1);
 
                     totalHeight += added;

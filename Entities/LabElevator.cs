@@ -7,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/LabElevator")]
     public class LabElevator : Solid
@@ -90,7 +90,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             //play click sound
-            click.Position = (-Vector2.UnitY * buttonPanel.Height) + new Vector2(up ? 18 : 31, 40);
+            click.Position = -Vector2.UnitY * buttonPanel.Height + new Vector2(up ? 18 : 31, 40);
             click.UpdateSfxPosition();
             click.Play("event:/PianoBoy/Machines/ButtonPressC");
             PianoModule.Session.ButtonsPressed++;
@@ -226,7 +226,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             buttonPanel.Y -= buttonPanel.Height;
             buttonPanel.Play("idle");
 
-            buttonPanel.OnChange = (string s1, string s2) =>
+            buttonPanel.OnChange = (s1, s2) =>
                 {
                     animBuffer = 0;
                 };
@@ -300,7 +300,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 else
                 {
-                    float yBump = Position.Y + (direction * -4);
+                    float yBump = Position.Y + direction * -4;
                     float origY = Position.Y;
                     for (float i = 0; i < 1; i += 0.05f)
                     {

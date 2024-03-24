@@ -8,7 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/LabGeneratorPuzzle")]
     [Tracked]
@@ -38,9 +38,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(Texture = new Image(GFX.Game["objects/PuzzleIslandHelper/decisionMachine/puzzle/puzzleMachine"]));
             Collider = new Hitbox(Texture.Width, Texture.Height);
             Depth = 2;
-            Add(Talk = new DotX3(0, 0, Width, Height, Vector2.UnitX * Width/2, Interact));
+            Add(Talk = new DotX3(0, 0, Width, Height, Vector2.UnitX * Width / 2, Interact));
             Talk.Enabled = !LabGenerator.Laser;
-            Position +=  Vector2.UnitY * 8;
+            Position += Vector2.UnitY * 8;
         }
         public override void Update()
         {
@@ -333,7 +333,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     int width = 8; int height = 10;
                     CellLight.Render();
                     Draw.Rect(Position + offset, width, height, Color.Green);
-                    Draw.Rect(Position + offset, width, height - (Percent * height), Color.Gray);
+                    Draw.Rect(Position + offset, width, height - Percent * height, Color.Gray);
                     base.Render();
                 }
             }
@@ -398,7 +398,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                         if (Position.Y >= (Released ? End : Start))
                         {
-                            Position.Y = (Released ? End : Start);
+                            Position.Y = Released ? End : Start;
                             AtTarget = true;
                             Speed = 0;
 
@@ -562,8 +562,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     for (int i = 0; i < Max; i++)
                     {
                         Beads[i] = new Bead(x: Position.X - 1,
-                                            start: Position.Y - (4 * i) + Height / 8,
-                                            end: Position.Y + Height - 4 - (4 * i),
+                                            start: Position.Y - 4 * i + Height / 8,
+                                            end: Position.Y + Height - 4 - 4 * i,
                                             ended: i < BeadsToReset);
                     }
 
@@ -631,7 +631,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 }
             }
-            
+
             public const int Size = 24;
             public static int Columns = 8;
             public static int Rows = 5;
@@ -768,7 +768,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     for (int j = 0; j < Rows; j++)
                     {
-                        Nodes[i, j].Position = TopRightPosition + new Vector2(i * (Size + NodeSpace), j * (Size + NodeSpace)) + new Vector2(Nodes[i, j].Width / 2, Nodes[i, j].Height / 2) + (new Vector2(Size + NodeSpace) * new Vector2(colAdjust, rowAdjust));
+                        Nodes[i, j].Position = TopRightPosition + new Vector2(i * (Size + NodeSpace), j * (Size + NodeSpace)) + new Vector2(Nodes[i, j].Width / 2, Nodes[i, j].Height / 2) + new Vector2(Size + NodeSpace) * new Vector2(colAdjust, rowAdjust);
                     }
                 }
                 Vector2 position = TopRightPosition /*- new Vector2(Size + NodeSpace)*/ + new Vector2(data.GoalX * (Size + NodeSpace), data.GoalY * (Size + NodeSpace));

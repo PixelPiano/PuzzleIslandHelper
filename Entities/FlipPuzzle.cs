@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 // PuzzleIslandHelper.FlipPuzzle
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/FlipPuzzle")]
     public class FlipPuzzle : Solid
@@ -192,7 +192,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public IEnumerator checkDebug()
         {
-            while(debugger == new Vector2(-1, -1))
+            while (debugger == new Vector2(-1, -1))
             {
                 canActivate = false;
                 yield return null;

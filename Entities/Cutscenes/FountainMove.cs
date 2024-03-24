@@ -1,10 +1,11 @@
 using Celeste.Mod.CommunalHelper;
+using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
 using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
     public class FountainMove : CutsceneEntity
     {

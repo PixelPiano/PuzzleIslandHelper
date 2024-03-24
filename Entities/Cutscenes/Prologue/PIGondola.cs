@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using ExtendedVariants.Variants;
 
 // PuzzleIslandHelper.DecalEffects
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     [CustomEntity("PuzzleIslandHelper/PIGondola")]
     [Tracked]
@@ -24,7 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 
             public Rope()
             {
-                base.Depth = 8999;
+                Depth = 8999;
             }
 
             public override void Render()
@@ -95,11 +95,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             Lever.Origin = new Vector2(front.Width / 2f, 12f);
             Lever.Y = -52f;
             Lever.Play("idle");
-            (base.Collider as Hitbox).Position.X = (0f - base.Collider.Width) / 2f;
+            (Collider as Hitbox).Position.X = (0f - Collider.Width) / 2f;
             Start = Position;
             Destination = offset + data.Nodes[0];
             Halfway = (Position + Destination) / 2f;
-            base.Depth = -10500;
+            Depth = -10500;
             inCliffside = data.Bool("active", defaultValue: true);
             SurfaceSoundIndex = 28;
         }
@@ -132,9 +132,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             {
                 Position = Destination;
                 UpdatePositions();
-                JumpThru jumpThru = new JumpThru(Position + new Vector2((0f - base.Width) / 2f, -36f), (int)base.Width, safe: true);
+                JumpThru jumpThru = new JumpThru(Position + new Vector2((0f - Width) / 2f, -36f), (int)Width, safe: true);
                 jumpThru.SurfaceSoundIndex = 28;
-                base.Scene.Add(jumpThru);
+                Scene.Add(jumpThru);
             }
 
             top.Rotation = Calc.Angle(Start, Destination);
@@ -142,7 +142,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 
         public override void Update()
         {
-            float num = ((Math.Sign(Rotation) == Math.Sign(RotationSpeed)) ? 8f : 6f);
+            float num = Math.Sign(Rotation) == Math.Sign(RotationSpeed) ? 8f : 6f;
             if (Math.Abs(Rotation) < 0.5f)
             {
                 num *= 0.5f;
@@ -152,12 +152,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             {
                 num *= 0.5f;
             }
-            RotationSpeed += (float)(-Math.Sign(Rotation)) * num * Engine.DeltaTime;
+            RotationSpeed += -Math.Sign(Rotation) * num * Engine.DeltaTime;
             Rotation += RotationSpeed * Engine.DeltaTime;
             Rotation = Calc.Clamp(Rotation, -0.4f, 0.4f);
             if (Math.Abs(Rotation) < 0.02f && Math.Abs(RotationSpeed) < 0.2f)
             {
-                Rotation = (RotationSpeed = 0f);
+                Rotation = RotationSpeed = 0f;
             }
             UpdatePositions();
             base.Update();

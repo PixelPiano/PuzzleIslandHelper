@@ -1,10 +1,9 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 // PuzzleIslandHelper.LabDoor
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/LabDoor")]
     [Tracked]
@@ -102,10 +101,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             player = Scene.Tracker.GetEntity<Player>();
             if (player != null)
             {
-                if ((SceneAs<Level>().Session.GetFlag(flag) && !auto)
-                     || (player.Position.Y < Y + Height + 8 && player.Position.Y > Y - 8
-                     && ((player.Position.X <= X + Width + range && player.Position.X > X + Width)
-                     || (player.Position.X >= X - range && player.Position.X < X))))
+                if (SceneAs<Level>().Session.GetFlag(flag) && !auto
+                     || player.Position.Y < Y + Height + 8 && player.Position.Y > Y - 8
+                     && (player.Position.X <= X + Width + range && player.Position.X > X + Width
+                     || player.Position.X >= X - range && player.Position.X < X))
                 {
                     doorState = true;
                     doorSprite.Play("open");
@@ -126,13 +125,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             if (!auto)
             {
-                stateChange((SceneAs<Level>().Session.GetFlag(flag)));
+                stateChange(SceneAs<Level>().Session.GetFlag(flag));
             }
             else
             {
                 if (player.Position.Y < Y + Height + 8 && player.Position.Y > Y - 8
-                    && ((player.Position.X <= X + Width + range && player.Position.X > X + Width)
-                    || (player.Position.X >= X - range && player.Position.X < X)))
+                    && (player.Position.X <= X + Width + range && player.Position.X > X + Width
+                    || player.Position.X >= X - range && player.Position.X < X))
                 {
                     stateChange(true);
                 }

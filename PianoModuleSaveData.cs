@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Celeste;
-using Celeste.Mod;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.EscapeRoomEntities;
-using IL.Monocle;
-using Microsoft.Xna.Framework;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
+﻿using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {

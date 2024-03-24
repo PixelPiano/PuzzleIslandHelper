@@ -1,6 +1,6 @@
 ﻿using Celeste.Mod.Helpers;
 using Celeste.Mod.Meta;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Transitions;
+
 using FrostHelper;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -11,7 +11,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
     [Tracked]
     public class Duplicate : CutsceneEntity
@@ -34,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         {
             ExtraScene = new Scene();
             Level.Add(ExtraScene);
-            LoadLevel((ExtraScene as Level),Level.Session, Player.IntroTypes.None, false);
+            LoadLevel(ExtraScene as Level, Level.Session, Player.IntroTypes.None, false);
         }
         public void LoadLevel(Level level, Session session, Player.IntroTypes playerIntro, bool isFromLoader = false)
         {
@@ -104,7 +104,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         private IEnumerator Cutscene()
         {
-            
+
             yield return TeleportAndDraw("digiD1", "digiA1");
         }
         private IEnumerator TeleportAndDraw(string roomOne, string roomTwo)
@@ -112,15 +112,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             string thislevel = Level.Session.Level;
             AddNewScene(roomOne);
             yield return null;
-/*            Player.IntroTypes introType = Player.IntroTypes.None;
+            /*            Player.IntroTypes introType = Player.IntroTypes.None;
 
-            yield return TP(roomOne, introType);
-            yield return 1;
-            yield return TP(thislevel, introType);
-            yield return TP(roomOne, introType, Vector2.One * -16);
-            yield return 1;
-            yield return TP(thislevel, introType);
-            yield return null;*/
+                        yield return TP(roomOne, introType);
+                        yield return 1;
+                        yield return TP(thislevel, introType);
+                        yield return TP(roomOne, introType, Vector2.One * -16);
+                        yield return 1;
+                        yield return TP(thislevel, introType);
+                        yield return null;*/
 
         }
         private IEnumerator TP(string room, Player.IntroTypes introType, Vector2? cameraOffset = null)

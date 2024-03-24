@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Color = Microsoft.Xna.Framework.Color;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/EscapeTimer")]
     [Tracked]
@@ -52,7 +52,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             bool flag3 = PianoModule.Session.Escaped;
             bool flag4 = SaveData.Instance.DebugMode;
 
-            if ((!flag && !flag4) || !flag2 || (flag3 && !flag4))
+            if (!flag && !flag4 || !flag2 || flag3 && !flag4)
             {
                 Tag -= Tags.Global;
                 RemoveSelf();
@@ -97,7 +97,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            
+
             player = Scene.Tracker.GetEntity<Player>();
             if (player == null)
             {

@@ -1,6 +1,5 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
-using System;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.LabGeneratorPuzzle.LGPOverlay;
+﻿using System;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities.LabGeneratorPuzzle.LGPOverlay;
 using System.Collections.Generic;
 using System.Linq;
 using FMOD;

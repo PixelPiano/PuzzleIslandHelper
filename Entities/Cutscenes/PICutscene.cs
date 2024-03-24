@@ -1,6 +1,5 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -8,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
 
     [CustomEntity("PuzzleIslandHelper/PICutscene")]
@@ -32,15 +31,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 List<bool> bools = new();
                 foreach (string s in flags)
                 {
-        
-                    if(string.IsNullOrEmpty(s)) continue;
+
+                    if (string.IsNullOrEmpty(s)) continue;
                     bool inverted = s[0] == '!';
                     bool flagState = level.Session.GetFlag(s);
-                    bools.Add(flagState || (!flagState && inverted));
+                    bools.Add(flagState || !flagState && inverted);
                 }
-                foreach(bool b in bools)
+                foreach (bool b in bools)
                 {
-                    if(!b) return false;
+                    if (!b) return false;
                 }
                 return true;
             }
@@ -85,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         public override void OnEnter(Player player)
         {
             string name = "";
-            if (Part > 0 && (cutsceneName is "Prologue" or "GrassShift"))
+            if (Part > 0 && cutsceneName is "Prologue" or "GrassShift")
             {
                 name = cutsceneName + Part;
             }

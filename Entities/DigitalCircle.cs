@@ -9,7 +9,7 @@ using System.Collections;
 using System.IO.Ports;
 
 // PuzzleIslandHelper.DecalEffects
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/DigitalCircle")]
     public class DigitalCircle : Entity
@@ -105,7 +105,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             oval1.Play("idle");
             oval2.Play("idle");
 
-            rotationAdder.OnUpdate = (Tween t) => 
+            rotationAdder.OnUpdate = (t) =>
             {
                 rotationAdd = MathHelper.Lerp(0, 360, t.Eased);
             };
@@ -215,17 +215,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private IEnumerator OnComplete()
         {
             inEndSequence = true;
-            for(float i = 0; i<1; i+=0.002f)
+            for (float i = 0; i < 1; i += 0.002f)
             {
                 rotationAdd = Calc.LerpClamp(0, 0.75f, Ease.SineIn(i));
-                radius = Calc.LerpClamp(0,30, Ease.SineIn(i)*2);
+                radius = Calc.LerpClamp(0, 30, Ease.SineIn(i) * 2);
                 beamLength = Calc.LerpClamp(0, 320, Ease.SineIn(i));
                 yield return null;
             }
             float _radius = radius;
             for (float i = 0; i < 1; i += 0.01f)
             {
-                beamLength = Calc.LerpClamp(320, 0, Ease.SineIn(i)*2);
+                beamLength = Calc.LerpClamp(320, 0, Ease.SineIn(i) * 2);
                 radius = Calc.LerpClamp(_radius, 200, Ease.CubeIn(i));
                 yield return null;
             }

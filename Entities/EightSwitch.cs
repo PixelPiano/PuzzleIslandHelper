@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 // PuzzleIslandHelper.EightSwitch
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/EightSwitch")]
     public class EightSwitch : Solid
@@ -20,7 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool PressingButton = false;
         private bool FadingLight = false;
         private readonly float lightY = -48;
-        private int[,] placements = { 
+        private int[,] placements = {
                                     {0, 1, 0, 1, 0, 1, 0, 0},
                                     {0, 1, 0, 1, 0, 0, 0, 1},
                                     {0, 0, 1, 1, 0, 0, 1, 0},
@@ -77,7 +77,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator FadeLight(int a)
         {
-            if (a < 0 || a > 7||FadingLight)
+            if (a < 0 || a > 7 || FadingLight)
             {
                 yield break;
             }
@@ -86,9 +86,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (lightOn[i])
                 {
-                    for (float j = 0; j < 1; j+=0.1f)
+                    for (float j = 0; j < 1; j += 0.1f)
                     {
-                        if (placements[a,i] == 1)
+                        if (placements[a, i] == 1)
                         {
                             lights[i].SetColor(Color.Lerp(Color.Yellow, Color.White, j));
                             lightOn[i] = false;
@@ -117,7 +117,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool AllOn()
         {
             bool result = true;
-            for(int i=0; i<8; i++)
+            for (int i = 0; i < 8; i++)
             {
                 if (!lightOn[i])
                 {

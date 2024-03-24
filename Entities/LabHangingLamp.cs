@@ -8,7 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     public class LHLData
     {
@@ -323,8 +323,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 speed = (0f - entity.Speed.X) * 0.005f * ((entity.Y - Y) / Length);
                 if (!(Falling || Broken))
                 {
-                    LampSpeed.X = (entity.Speed.X / 100);
-                    LampSpeed.Y = (entity.Speed.Y / 200);
+                    LampSpeed.X = entity.Speed.X / 100;
+                    LampSpeed.Y = entity.Speed.Y / 200;
                 }
                 if (Math.Abs(speed) < 0.1f)
                 {
@@ -347,7 +347,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
 
-            float num = ((Math.Sign(rotation) == Math.Sign(speed)) ? 8f : 6f);
+            float num = Math.Sign(rotation) == Math.Sign(speed) ? 8f : 6f;
             if (Math.Abs(rotation) < 0.5f)
             {
                 num *= 0.5f;
@@ -359,12 +359,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
             float value = rotation;
-            speed += (-Math.Sign(rotation)) * num * Engine.DeltaTime;
+            speed += -Math.Sign(rotation) * num * Engine.DeltaTime;
             rotation += speed * Engine.DeltaTime;
             rotation = Calc.Clamp(rotation, -0.4f, 0.4f);
             if (Math.Abs(rotation) < 0.02f && Math.Abs(speed) < 0.2f)
             {
-                rotation = (speed = 0f);
+                rotation = speed = 0f;
             }
             else if (Math.Sign(rotation) != Math.Sign(value) && soundDelay <= 0f && Math.Abs(speed) > 0.5f)
             {
@@ -432,21 +432,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Vector2 a = RotatePoint(Collision.Position + new Vector2(4, 6), CenterPoint, Lamp.Rotation.ToDeg());
             Vector3 TopPoint = new Vector3(a, 0);
-            vertices[0] = (new VertexPositionColor(TopPoint, Color.White));
+            vertices[0] = new VertexPositionColor(TopPoint, Color.White);
             float MaxLength = 80;
 
 
             Vector3 LeftPoint = new Vector3(RotatePoint(TopPoint.XY() + Vector2.UnitX * MaxLength, TopPoint.XY(), 120 + Lamp.Rotation.ToDeg()), 0);
             Vector3 RightPoint = new Vector3(RotatePoint(TopPoint.XY() + Vector2.UnitX * MaxLength, TopPoint.XY(), 60 + Lamp.Rotation.ToDeg()), 0);
-            vertices[1] = (new VertexPositionColor(LeftPoint, Color.Transparent));
-            vertices[2] = (new VertexPositionColor(RightPoint, Color.Transparent));
+            vertices[1] = new VertexPositionColor(LeftPoint, Color.Transparent);
+            vertices[2] = new VertexPositionColor(RightPoint, Color.Transparent);
 
         }
         public override void Render()
         {
             foreach (Component component in Components)
             {
-                if ((component as Image) == Lamp)
+                if (component as Image == Lamp)
                 {
                     if (Lamp.Visible)
                     {

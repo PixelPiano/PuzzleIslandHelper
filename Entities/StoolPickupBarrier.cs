@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -8,7 +9,7 @@ using System.Drawing.Configuration;
 using System.Linq;
 using static MonoMod.InlineRT.MonoModRule;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/StoolPickupBarrier")]
     [Tracked]
@@ -93,8 +94,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             for (int i = -2; i < 8; i++)
             {
-                posX = Position.X + offset + (Width / 8 * i);
-                Draw.Line(new Vector2(posX, Position.Y), new Vector2(posX + (Width / 8), Position.Y + Height + 4), (Color.White * (Thickness + 0.3f)) * Opacity, Thickness + LineThickness);
+                posX = Position.X + offset + Width / 8 * i;
+                Draw.Line(new Vector2(posX, Position.Y), new Vector2(posX + Width / 8, Position.Y + Height + 4), Color.White * (Thickness + 0.3f) * Opacity, Thickness + LineThickness);
             }
         }
         private void MaskDrawing()
@@ -155,11 +156,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         if (MathHelper.Distance(Left, icon.Center.X) < MathHelper.Distance(Right, icon.Center.X))
                         {
-                            icon.MoveTowardsX(Position.X - (icon.Width * 1.5f), 2);
+                            icon.MoveTowardsX(Position.X - icon.Width * 1.5f, 2);
                         }
                         else
                         {
-                            icon.MoveTowardsX(Position.X + Width + (icon.Width * 1.5f), 2);
+                            icon.MoveTowardsX(Position.X + Width + icon.Width * 1.5f, 2);
                         }
                     }
                     if (CollideCheck(icon) && icon.Hold.IsHeld)
@@ -177,11 +178,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     if (MathHelper.Distance(Left, stool.Center.X) < MathHelper.Distance(Right, stool.Center.X))
                     {
-                        stool.MoveTowardsX(Position.X - (stool.Width * 1.5f), 2);
+                        stool.MoveTowardsX(Position.X - stool.Width * 1.5f, 2);
                     }
                     else
                     {
-                        stool.MoveTowardsX(Position.X + Width + (stool.Width * 1.5f), 2);
+                        stool.MoveTowardsX(Position.X + Width + stool.Width * 1.5f, 2);
                     }
                 }
 

@@ -12,7 +12,7 @@ using System.Linq;
 using IL.Celeste;
 
 // PuzzleIslandHelper.LabFallingBlock
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/LabFallingBlock")]
     [Tracked]
@@ -435,7 +435,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 for (int j = 0; j < Height / 16f; j++)
                 {
-                    Scene.Add(Engine.Pooler.Create<Debris>().Init(AABB.Center.ToVector2() - ((Vector2.UnitX * 8) + Vector2.UnitX * AABB.Width / 2) + new Vector2(4 + i * 8, 4 + j * 8) - Vector2.UnitY * 16, TileType, true).BlastFrom(BlastLocation));
+                    Scene.Add(Engine.Pooler.Create<Debris>().Init(AABB.Center.ToVector2() - (Vector2.UnitX * 8 + Vector2.UnitX * AABB.Width / 2) + new Vector2(4 + i * 8, 4 + j * 8) - Vector2.UnitY * 16, TileType, true).BlastFrom(BlastLocation));
                 }
             }
         }

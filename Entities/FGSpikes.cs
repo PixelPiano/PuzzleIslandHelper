@@ -6,7 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/FGSpikesUp = LoadUp", "PuzzleIslandHelper/FGSpikesDown = LoadDown", "PuzzleIslandHelper/FGSpikesLeft = LoadLeft", "PuzzleIslandHelper/FGSpikesRight = LoadRight")]
     [Tracked(false)]
@@ -56,19 +56,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             switch (direction)
             {
                 case Directions.Up:
-                    base.Collider = new Hitbox(size, 3f, 0f, -3f);
-                    Add(new LedgeBlocker((Player _) => CheckGravity(inverted: false)));
+                    Collider = new Hitbox(size, 3f, 0f, -3f);
+                    Add(new LedgeBlocker((_) => CheckGravity(inverted: false)));
                     break;
                 case Directions.Down:
-                    base.Collider = new Hitbox(size, 3f);
-                    Add(new LedgeBlocker((Player _) => CheckGravity(inverted: true)));
+                    Collider = new Hitbox(size, 3f);
+                    Add(new LedgeBlocker((_) => CheckGravity(inverted: true)));
                     break;
                 case Directions.Left:
-                    base.Collider = new Hitbox(3f, size, -3f);
+                    Collider = new Hitbox(3f, size, -3f);
                     Add(new LedgeBlocker());
                     break;
                 case Directions.Right:
-                    base.Collider = new Hitbox(3f, size);
+                    Collider = new Hitbox(3f, size);
                     Add(new LedgeBlocker());
                     break;
             }
@@ -137,7 +137,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 if (size / 8 % 2 == 1)
                 {
-                    AddTentacle((float)(size / 16) - 0.5f);
+                    AddTentacle(size / 16 - 0.5f);
                     return;
                 }
             }
@@ -151,19 +151,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         case Directions.Up:
                             image.JustifyOrigin(0.5f, 1f);
-                            image.Position = Vector2.UnitX * ((float)j + 0.5f) * 8f + Vector2.UnitY;
+                            image.Position = Vector2.UnitX * (j + 0.5f) * 8f + Vector2.UnitY;
                             break;
                         case Directions.Down:
                             image.JustifyOrigin(0.5f, 0f);
-                            image.Position = Vector2.UnitX * ((float)j + 0.5f) * 8f - Vector2.UnitY;
+                            image.Position = Vector2.UnitX * (j + 0.5f) * 8f - Vector2.UnitY;
                             break;
                         case Directions.Left:
                             image.JustifyOrigin(1f, 0.5f);
-                            image.Position = Vector2.UnitY * ((float)j + 0.5f) * 8f + Vector2.UnitX;
+                            image.Position = Vector2.UnitY * (j + 0.5f) * 8f + Vector2.UnitX;
                             break;
                         case Directions.Right:
                             image.JustifyOrigin(0f, 0.5f);
-                            image.Position = Vector2.UnitY * ((float)j + 0.5f) * 8f - Vector2.UnitX;
+                            image.Position = Vector2.UnitY * (j + 0.5f) * 8f - Vector2.UnitX;
                             break;
                     }
                     Add(image);
@@ -180,7 +180,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public void SetOrigins(Vector2 origin)
         {
-            foreach (Component component in base.Components)
+            foreach (Component component in Components)
             {
                 if (component is Image image)
                 {
@@ -197,13 +197,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             switch (direction)
             {
                 case Directions.Up:
-                    if ((!flag && player.Speed.Y >= 0f && player.Bottom <= base.Bottom) || (flag && player.Speed.Y <= 0f))
+                    if (!flag && player.Speed.Y >= 0f && player.Bottom <= Bottom || flag && player.Speed.Y <= 0f)
                     {
                         player.Die(new Vector2(0f, -1f));
                     }
                     break;
                 case Directions.Down:
-                    if ((!flag && player.Speed.Y <= 0f) || (flag && player.Speed.Y >= 0f && player.Top >= base.Top))
+                    if (!flag && player.Speed.Y <= 0f || flag && player.Speed.Y >= 0f && player.Top >= Top)
                     {
                         player.Die(new Vector2(0f, 1f));
                     }
@@ -225,7 +225,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private static int GetSize(EntityData data, Directions dir)
         {
-            return (dir > Directions.Down) ? data.Height : data.Width;
+            return dir > Directions.Down ? data.Height : data.Width;
         }
 
         private bool IsRiding(Solid solid)

@@ -5,7 +5,7 @@ using Monocle;
 using System.Collections;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/CustomWater")]
     [TrackedAs(typeof(Water))]
@@ -49,24 +49,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 surface.Update();
             }
 
-            foreach (WaterInteraction component in base.Scene.Tracker.GetComponents<WaterInteraction>())
+            foreach (WaterInteraction component in Scene.Tracker.GetComponents<WaterInteraction>())
             {
                 Rectangle bounds = component.Bounds;
                 bool flag = contains.Contains(component);
                 bool flag2 = CollideRect(bounds);
                 if (flag != flag2)
                 {
-                    if ((float)bounds.Center.Y <= base.Center.Y && TopSurface != null)
+                    if (bounds.Center.Y <= Center.Y && TopSurface != null)
                     {
                         TopSurface.DoRipple(bounds.Center.ToVector2(), 1f);
                     }
-                    else if ((float)bounds.Center.Y > base.Center.Y && BottomSurface != null)
+                    else if (bounds.Center.Y > Center.Y && BottomSurface != null)
                     {
                         BottomSurface.DoRipple(bounds.Center.ToVector2(), 1f);
                     }
 
                     bool flag3 = component.IsDashing();
-                    int num = (((float)bounds.Center.Y < base.Center.Y && !base.Scene.CollideCheck<Solid>(bounds)) ? 1 : 0);
+                    int num = bounds.Center.Y < Center.Y && !Scene.CollideCheck<Solid>(bounds) ? 1 : 0;
                     if (flag)
                     {
                         if (flag3)
@@ -115,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     continue;
                 }
 
-                if (flag2 && entity.Y > base.Bottom - 8f)
+                if (flag2 && entity.Y > Bottom - 8f)
                 {
                     if (playerBottomTension == null)
                     {
@@ -123,7 +123,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
 
                     playerBottomTension.Position = BottomSurface.GetPointAlong(entity.Position);
-                    playerBottomTension.Strength = Calc.ClampedMap(entity.Y, base.Bottom - 8f, base.Bottom + 4f);
+                    playerBottomTension.Strength = Calc.ClampedMap(entity.Y, Bottom - 8f, Bottom + 4f);
                 }
                 else if (playerBottomTension != null)
                 {

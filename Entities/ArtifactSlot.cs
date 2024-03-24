@@ -1,11 +1,11 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Transitions;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
 // PuzzleIslandHelper.ArtifactSlot
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/ArtifactSlot")]
     [Tracked]
@@ -74,7 +74,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 sprite.RenderPosition = player.Center - new Vector2(player.Width * 1.5f, player.Height);
                 sprite.Play("pop");
-                sprite.OnLastFrame = (string s) =>
+                sprite.OnLastFrame = (s) =>
                 {
                     RemoveSelf();
                 };
@@ -135,7 +135,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprite.Play("idle");
             Collider = new Hitbox(sprite.Width, sprite.Height);
             Add(new TalkComponent(new Rectangle(0, 0, (int)Width, (int)Height), Vector2.UnitX * Collider.HalfSize.X, Interact));
-            Transition = new SlotExit(true,"level-1a");
+            Transition = new SlotExit(true, "level-1a");
         }
         public IEnumerator ToSlot()
         {
@@ -181,11 +181,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
               Tween.Create(Tween.TweenMode.Oneshot, endcurve.Anim, 2f, false) //ending [6]
             };
 
-            tweens[0].OnUpdate = (Tween t) =>
+            tweens[0].OnUpdate = (t) =>
             {
                 artifact.Position.X = MathHelper.Lerp(from.X, target.X, t.Eased);
             };
-            tweens[1].OnUpdate = (Tween t) =>
+            tweens[1].OnUpdate = (t) =>
             {
                 artifact.Position.Y = MathHelper.Lerp(from.Y, target.Y, t.Eased);
                 if (artifact.Position.Y <= target.Y)
@@ -203,29 +203,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                 }
             };
-            tweens[2].OnUpdate = (Tween t) =>
+            tweens[2].OnUpdate = (t) =>
             {
                 artifactSprite.Rotation = MathHelper.Lerp(rotateFrom, rotateTarget, t.Eased);
             };
-            tweens[2].OnComplete = (Tween t) =>
+            tweens[2].OnComplete = (t) =>
             {
                 artifactSprite.Rotation = 0;
             };
 
-            tweens[3].OnUpdate = (Tween t) =>
+            tweens[3].OnUpdate = (t) =>
             {
                 artifactSprite.Rotation = MathHelper.Lerp(rotateTarget, rotateFrom, t.Eased);
             };
-            tweens[4].OnUpdate = (Tween t) =>
+            tweens[4].OnUpdate = (t) =>
             {
                 artifactSprite.Scale.X = MathHelper.Lerp(scaleFrom.X, scaleTarget2.X, t.Eased);
                 artifactSprite.Scale.Y = MathHelper.Lerp(scaleFrom.Y, scaleTarget2.Y, t.Eased);
             };
-            tweens[5].OnUpdate = (Tween t) =>
+            tweens[5].OnUpdate = (t) =>
             {
                 artifact.Position.Y = MathHelper.Lerp(from.Y, target.Y, t.Eased);
             };
-            tweens[6].OnUpdate = (Tween t) =>
+            tweens[6].OnUpdate = (t) =>
             {
                 artifact.Position.X = MathHelper.Lerp(from.X, target.X, t.Eased);
                 artifact.Position.Y = MathHelper.Lerp(from.Y, target.Y, t.Eased);

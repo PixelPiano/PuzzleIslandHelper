@@ -8,7 +8,7 @@ using System.Collections;
 using System.Runtime.InteropServices.ComTypes;
 using System.Xml.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/CustomFlagExitBlock")]
     [Tracked]
@@ -72,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             // hide the block if the flag is initially inactive.
             if (SceneAs<Level>().Session.GetFlag(flag) == inverted)
             {
-                if(newCutout != null) newCutout.Alpha = newTiles.Alpha = 0f;
+                if (newCutout != null) newCutout.Alpha = newTiles.Alpha = 0f;
 
                 Collidable = false;
             }
@@ -87,14 +87,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             timer += Engine.RawDeltaTime;
             seed = Calc.Random.NextFloat();
             // the block is only collidable if the flag is set.
-            glitch = (!wasCollidable && isCollidable) || (wasCollidable && !isCollidable);
+            glitch = !wasCollidable && isCollidable || wasCollidable && !isCollidable;
             if (glitch && !inRoutine && !forceChange)
             {
                 Add(new Coroutine(GlitchIncrement(isCollidable), true));
             }
             if (!glitch && playSound && !wasCollidable && isCollidable)
             {
-                Audio.Play(audio, base.Center);
+                Audio.Play(audio, Center);
             }
             if (forceChange && !inRoutine)
             {
@@ -124,7 +124,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            if (Scene as Level == null || (!inRoutine && !forceGlitch))
+            if (Scene as Level == null || !inRoutine && !forceGlitch)
             {
                 return;
             }

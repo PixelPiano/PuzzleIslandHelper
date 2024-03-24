@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FMOD;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -7,7 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     [Tracked]
     public class TheWorldScene : Entity
@@ -91,7 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             startOfNewSegment = false;
                             _forceHide = false;
                         }
-                        float _ypos = LineSpace + XOffset - (FText.BaseSize / 8);
+                        float _ypos = LineSpace + XOffset - FText.BaseSize / 8;
 
                         FancyTextExt.Node Node = FText.Nodes[i];
                         CurrentNode = i + 1;
@@ -161,7 +162,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             _visible = true;
             for (int i = 0; i < IsThatText.Nodes.Count; i++)
             {
-                float _ypos = (LineSpace) + XOffset - (IsThatText.BaseSize / 8);
+                float _ypos = LineSpace + XOffset - IsThatText.BaseSize / 8;
 
                 FancyTextExt.Node Node = IsThatText.Nodes[i];
                 CurrentIsThatNode = i + 1;
@@ -194,7 +195,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             _visible = true;
             for (int i = 0; i < WorldText.Nodes.Count; i++)
             {
-                float _ypos = (LineSpace) + XOffset - (WorldText.BaseSize / 8);
+                float _ypos = LineSpace + XOffset - WorldText.BaseSize / 8;
 
                 FancyTextExt.Node Node = WorldText.Nodes[i];
                 CurrentWorldNode = i + 1;

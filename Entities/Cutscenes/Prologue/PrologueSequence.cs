@@ -6,13 +6,15 @@ using System.Reflection;
 using System.Windows;
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using FMOD.Studio;
 using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
 using MonoMod.RuntimeDetour;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     public class PIPrologueSequence : CutsceneEntity
     {
@@ -158,7 +160,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         }
         public IEnumerator Cutscene4()
         {
-            TheWorldScene worldScene = new TheWorldScene("pTA","pTB","pTC","pTD","pTE");
+            TheWorldScene worldScene = new TheWorldScene("pTA", "pTB", "pTC", "pTD", "pTE");
             Level.Add(worldScene);
             while (worldScene.InCutscene)
             {
@@ -557,7 +559,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 yield return null;
             }
 
-            gondola.Rotation = (gondola.RotationSpeed = 0f);
+            gondola.Rotation = gondola.RotationSpeed = 0f;
             Level.Shake();
             player.StateMachine.State = 11;
             player.Position = player.Position.Floor();

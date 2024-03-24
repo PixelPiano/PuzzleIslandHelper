@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using static MonoMod.InlineRT.MonoModRule;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/BustedPipe")]
     [Tracked]
@@ -37,7 +37,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool UseForCutscene;
         public BustedPipe(Vector2 position, int width, int height, bool vertical, string flag, bool useForCutscene) : base(position, vertical ? 16 : width, vertical ? height : 16, true)
         {
-            
+
             Tag |= Tags.TransitionUpdate;
             UseForCutscene = useForCutscene;
             this.flag = flag;

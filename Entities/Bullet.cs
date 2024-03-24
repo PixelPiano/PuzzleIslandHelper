@@ -3,14 +3,14 @@ using Monocle;
 using System;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     public class Bullet : Entity
     {
         public Sprite Sprite;
         private Level level;
         private Player player;
-        
+
         public enum BulletType
         {
             Hot,
@@ -54,7 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return;
             }
-            system.Emit(Trail, 1, Center, Vector2.One * 3,(Position - Direction).Angle());
+            system.Emit(Trail, 1, Center, Vector2.One * 3, (Position - Direction).Angle());
         }
         private void BurstEmit()
         {
@@ -63,7 +63,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 system.Emit(Burst, 10, Center, new Vector2(Width, Height), Burst.Direction + MathHelper.ToDegrees(i));
             }
         }
-        public Bullet(Vector2 Position, Vector2 direction, bool XFlip = false, 
+        public Bullet(Vector2 Position, Vector2 direction, bool XFlip = false,
             bool CollideSolids = false, BulletType BulletType = BulletType.Default)
         {
             this.CollideSolids = CollideSolids;
@@ -92,7 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Trail.SpeedMin = Rate / 3f;
             Burst.SpeedMax = Rate * 3;
             Burst.SpeedMin = Rate * 1.5f;
-            
+
         }
         private void StartMotion()
         {
@@ -136,7 +136,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         return 2;
                     }
                 }
-                if(player is not null)
+                if (player is not null)
                 {
                     if (CollideCheck<Player>())
                     {
@@ -151,7 +151,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void Render()
         {
-            if(!HitPlayer && !(CollideSolids && SecondCollision))
+            if (!HitPlayer && !(CollideSolids && SecondCollision))
             {
                 Sprite.DrawSimpleOutline();
             }
@@ -163,7 +163,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             level = scene as Level;
             player = level.Tracker.GetEntity<Player>();
             scene.Add(system);
-            if(OnShot is not null)
+            if (OnShot is not null)
             {
                 OnShot();
             }
@@ -176,7 +176,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return;
             }
-            
+
             switch (PlayState())
             {
                 case 1:
@@ -193,7 +193,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     return;
             }
             Position += Direction * Rate;
-            TrailEmit(Scene.OnInterval(2f/60f));
+            TrailEmit(Scene.OnInterval(2f / 60f));
         }
     }
 

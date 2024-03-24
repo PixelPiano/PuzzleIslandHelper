@@ -1,17 +1,11 @@
 using Celeste.Mod.Entities;
-using FMOD;
-using FMOD.Studio;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using MonoMod.Utils;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using ExtendedVariants.Variants;
 
 // PuzzleIslandHelper.DecalEffects
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     [CustomEntity("PuzzleIslandHelper/PrologueBird")]
     [Tracked]
@@ -19,7 +13,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
     {
         public static ParticleType P_Feather;
 
-       
+
         public static string FlownFlag = "bird_fly_away_";
 
         public Facings Facing = Facings.Left;
@@ -59,7 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             Sprite.UseRawDeltaTime = true;
             Sprite.OnFrameChange = delegate (string spr)
             {
-                if (level != null && base.X > level.Camera.Left + 64f && base.X < level.Camera.Right - 64f && (spr.Equals("peck") || spr.Equals("peckRare")) && Sprite.CurrentAnimationFrame == 6)
+                if (level != null && X > level.Camera.Left + 64f && X < level.Camera.Right - 64f && (spr.Equals("peck") || spr.Equals("peckRare")) && Sprite.CurrentAnimationFrame == 6)
                 {
                     Audio.Play("event:/game/general/bird_peck", Position);
                 }
@@ -97,7 +91,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 
         public override bool IsRiding(Solid solid)
         {
-            return base.Scene.CollideCheck(new Rectangle((int)base.X - 4, (int)base.Y, 8, 2), solid);
+            return Scene.CollideCheck(new Rectangle((int)X - 4, (int)Y, 8, 2), solid);
         }
 
         public override void Update()
@@ -168,7 +162,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             Sprite.Play("fly");
             Facing = (Facings)(0 - Facing);
             Vector2 speed = new Vector2((int)Facing * 20, -40f * upwardsMultiplier);
-            while (Y > (float)level.Bounds.Top)
+            while (Y > level.Bounds.Top)
             {
                 speed += new Vector2((int)Facing * 140, -120f * upwardsMultiplier) * Engine.DeltaTime;
                 Position += speed * Engine.DeltaTime;
@@ -313,7 +307,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 Sprite.Play("fly");
                 Facing = Facings.Right;
                 Vector2 speed = new Vector2((int)Facing * 20, -40f);
-                while (Y > (float)(level.Bounds.Top - 200))
+                while (Y > level.Bounds.Top - 200)
                 {
                     speed += new Vector2((int)Facing * 140, -60f) * Engine.DeltaTime;
                     Position += speed * Engine.DeltaTime;
@@ -365,7 +359,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 
             string currentAnimationID = sprite.CurrentAnimationID;
             int currentAnimationFrame = sprite.CurrentAnimationFrame;
-            if ((currentAnimationID == "hover" && currentAnimationFrame == 0) || (currentAnimationID == "hoverStressed" && currentAnimationFrame == 0) || (currentAnimationID == "fly" && currentAnimationFrame == 0))
+            if (currentAnimationID == "hover" && currentAnimationFrame == 0 || currentAnimationID == "hoverStressed" && currentAnimationFrame == 0 || currentAnimationID == "fly" && currentAnimationFrame == 0)
             {
                 Audio.Play("event:/new_content/game/10_farewell/bird_wingflap", sprite.RenderPosition);
             }

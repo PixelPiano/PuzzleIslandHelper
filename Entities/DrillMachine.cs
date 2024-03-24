@@ -1,11 +1,10 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/DrillMachine")]
     [Tracked]
@@ -70,8 +69,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Batteries[i] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/drillMachine/");
                 BatteryFlash[i] = new Image(GFX.Game["objects/PuzzleIslandHelper/drillMachine/batteryFlash"]);
                 Batteries[i].AddLoop("idle", "batteryBoxSlot", 0.1f);
-                Batteries[i].AddLoop("lit","batteryBoxSlotLit",0.1f);
-                BatteryFlash[i].Position = Batteries[i].Position = Box.Position + new Vector2(1 + (i * (1 + Batteries[i].Width)), 2);
+                Batteries[i].AddLoop("lit", "batteryBoxSlotLit", 0.1f);
+                BatteryFlash[i].Position = Batteries[i].Position = Box.Position + new Vector2(1 + i * (1 + Batteries[i].Width), 2);
                 Batteries[i].Play("idle");
                 BatteryFlash[i].Color = Color.Transparent;
             }
@@ -116,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (BatteryFlash.Length < index) return;
             Tween t = Tween.Create(Tween.TweenMode.YoyoOneshot, Ease.SineIn, duration / 2);
-            t.OnUpdate = (Tween t) =>
+            t.OnUpdate = (t) =>
             {
                 BatteryFlash[index].Color = Color.Lerp(Color.Transparent, Color.White, t.Eased);
             };
@@ -239,7 +238,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Box.Visible = false;
             TempExplosion.Visible = true;
         }
-      
+
         public override void Update()
         {
             base.Update();

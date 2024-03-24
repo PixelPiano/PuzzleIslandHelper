@@ -1,6 +1,6 @@
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities;
 using ExtendedVariants.Variants;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -9,7 +9,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Triggers
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
 
     [CustomEntity("PuzzleIslandHelper/CrystalElevatorLevel")]
@@ -37,10 +37,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            
-            foreach(GearHolder holder in (scene as Level).Tracker.GetEntities<GearHolder>())
+
+            foreach (GearHolder holder in (scene as Level).Tracker.GetEntities<GearHolder>())
             {
-                if(holder.ID == FloorNum)
+                if (holder.ID == FloorNum)
                 {
                     Holders.Add(holder);
                 }
@@ -53,7 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         }
         public bool Fixed()
         {
-            if(Free) return true;
+            if (Free) return true;
             foreach (GearHolder holder in Holders)
             {
                 if (!holder.Fixed)

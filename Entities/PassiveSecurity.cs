@@ -10,7 +10,7 @@ using System.Security.AccessControl;
 using System.Windows;
 
 // PuzzleIslandHelper.PassiveSecurity
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/PassiveSecurity")]
     [Tracked]
@@ -170,7 +170,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (shootRoutine is not null && shootRoutine.Active && !Cancelled)
             {
-                if ((XFlip && player.Position.X < Center.X) || (!XFlip && player.Position.X > Center.X))
+                if (XFlip && player.Position.X < Center.X || !XFlip && player.Position.X > Center.X)
                 {
                     shootRoutine.Cancel();
                     Remove(shootRoutine);
@@ -180,7 +180,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (Cancelled)
             {
-                if ((XFlip && player.Position.X >= Center.X) || (!XFlip && player.Position.X <= Center.X))
+                if (XFlip && player.Position.X >= Center.X || !XFlip && player.Position.X <= Center.X)
                 {
                     Add(shootRoutine = new Coroutine(ShootRoutine()));
                     Cancelled = false;
@@ -201,7 +201,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     CheckState();
                 }
             }
-            if ((!Activated && !Set) || StartState)
+            if (!Activated && !Set || StartState)
             {
                 Add(new Coroutine(IntroRoutine(StartState)));
             }
@@ -302,7 +302,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void EmitSparks()
         {
-            for(int i = 0; i<6; i++)
+            for (int i = 0; i < 6; i++)
             {
                 system.Emit(Sparks, Position + Gun.Position);
             }
@@ -346,15 +346,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Vector2 VisionCoords(float theta, bool top)
         {
             Vector2 CircleCenter = Position + Gun.Position;
-            double x = CircleCenter.X + (Gun.Width / 2) * Math.Cos(theta * Math.PI / 180);
-            double y = CircleCenter.Y + (Gun.Width / 2) * Math.Sin(theta * Math.PI / 180);
+            double x = CircleCenter.X + Gun.Width / 2 * Math.Cos(theta * Math.PI / 180);
+            double y = CircleCenter.Y + Gun.Width / 2 * Math.Sin(theta * Math.PI / 180);
             return new Vector2((float)x, (float)y);
         }
         private Vector2 CircleCoords(float theta)
         {
             CircleCenter = Position + Gun.Position - Vector2.One * 4;
-            double x = CircleCenter.X + (Gun.Width / 2) * Math.Cos(theta * Math.PI / 180);
-            double y = CircleCenter.Y + (Gun.Width / 2) * Math.Sin(theta * Math.PI / 180);
+            double x = CircleCenter.X + Gun.Width / 2 * Math.Cos(theta * Math.PI / 180);
+            double y = CircleCenter.Y + Gun.Width / 2 * Math.Sin(theta * Math.PI / 180);
             return new Vector2((float)x, (float)y);
         }
         private IEnumerator ShootRoutine()
@@ -404,7 +404,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     BulletPosition.X += 23;
                 }
                 #endregion
-                if(Bullets > 1)
+                if (Bullets > 1)
                 {
 
                     float Dir = MathHelper.PiOver2 / Bullets;
@@ -412,7 +412,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         Bullet bullet = new Bullet(
                             CircleCoords(Direction.Angle().ToDeg()),
-                            Direction.Rotate(Dir * (i-(Bullets/2))),
+                            Direction.Rotate(Dir * (i - Bullets / 2)),
                             XFlip,
                             BulletCollideWithSolid,
                             BulletType);
@@ -489,15 +489,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator ShakeGun(int Bullets)
         {
-            int limit = Bullets < 6 ? Bullets : 5; 
+            int limit = Bullets < 6 ? Bullets : 5;
             Vector2 Pos = Gun.Position;
-            if(Bullets >= 5)
+            if (Bullets >= 5)
             {
                 EmitSparks();
             }
-            for(int i = 0; i < 4; i++)
+            for (int i = 0; i < 4; i++)
             {
-                Vector2 Random = new Vector2(Calc.Random.Range(-limit,limit),Calc.Random.Range(-limit,limit));
+                Vector2 Random = new Vector2(Calc.Random.Range(-limit, limit), Calc.Random.Range(-limit, limit));
                 Gun.Position = Pos + Random;
                 yield return null;
                 Gun.Position = Pos;

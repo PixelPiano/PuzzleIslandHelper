@@ -7,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 // PuzzleIslandHelper.VoidCritters
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/VoidCritters")]
     [Tracked]
@@ -41,7 +41,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float Size = 3;
         private ParticleType Critters = new ParticleType
         {
-            Size =2f,
+            Size = 2f,
             Color = Color.Black,
             ColorMode = ParticleType.ColorModes.Static,
             LifeMin = 0.2f,
@@ -65,7 +65,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Awake(scene);
             scene.Add(system = new ParticleSystem(-1, Limit));
             player = (scene as Level).Tracker.GetEntity<Player>();
-            Enabled = (UsesFlag && (scene as Level).Session.GetFlag(flag)) || !UsesFlag;
+            Enabled = UsesFlag && (scene as Level).Session.GetFlag(flag) || !UsesFlag;
         }
         private void HandlePosition()
         {
@@ -75,7 +75,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             foreach (Particle particle in Particles)
             {
                 Particle _Particle = particle;
-                if (particle.Life < Critters.LifeMin + ((Critters.LifeMax - Critters.LifeMin) / 1.5f))
+                if (particle.Life < Critters.LifeMin + (Critters.LifeMax - Critters.LifeMin) / 1.5f)
                 {
                     Vector2 Target = new Vector2(Calc.Random.Range(player.Center.X - player.Width, player.Center.X + player.Width), Calc.Random.Range(player.Center.Y - player.Height, player.Center.Y + player.Height));
                     Vector2 Rate = new Vector2(Calc.Random.Range(2, 5), Calc.Random.Range(2, 5));
@@ -86,8 +86,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     else
                     {
-                            _Particle.Position.X = Calc.Approach(particle.Position.X, Target.X, 6);
-                            _Particle.Position.Y = Calc.Approach(particle.Position.Y, Target.Y, 6);
+                        _Particle.Position.X = Calc.Approach(particle.Position.X, Target.X, 6);
+                        _Particle.Position.Y = Calc.Approach(particle.Position.Y, Target.Y, 6);
                     }
                 }
                 if (InLight && !SetLife)
@@ -104,12 +104,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            if(Scene as Level is null)
+            if (Scene as Level is null)
             {
                 return;
             }
             l = Scene as Level;
-            if(WhiteOut && CutsceneOnDeactivate)
+            if (WhiteOut && CutsceneOnDeactivate)
             {
                 Draw.Rect(l.Camera.X, l.Camera.Y, 320, 180, Color.White * WhiteOutFade);
                 if (WhiteOutFade < 1)
@@ -128,11 +128,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
 
             InRoutine = true;
-            for(int j = 0; j<5;  j++)
+            for (int j = 0; j < 5; j++)
             {
                 for (int i = 0; i < 12; i++)
                 {
-                    for(int k = 0; k<=j; k++)
+                    for (int k = 0; k <= j; k++)
                     {
                         CritterParticles();
                     }
@@ -140,7 +140,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             WhiteOut = true;
-          
+
             if (player is not null && !player.Dead)
             {
                 player.Die(Vector2.Zero);
@@ -153,7 +153,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             InRoutine = true;
             //yield return 0.5f;
-            for(int i = 0; i<10; i++)
+            for (int i = 0; i < 10; i++)
             {
                 CritterParticles();
                 system.Clear();
@@ -181,7 +181,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 CritterParticles();
                 yield return 0.01f;
             }
-            if(player is not null && !player.Dead)
+            if (player is not null && !player.Dead)
             {
                 player.Die(Vector2.Zero);
             }
@@ -193,9 +193,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Critters.LifeMax = Size;
             Critters.Direction = Calc.Random.NextAngle();
-            Vector2 offset = Calc.AngleToVector(Critters.Direction, Size * 4);            
+            Vector2 offset = Calc.AngleToVector(Critters.Direction, Size * 4);
             system.Emit(Critters, system.Center - offset);
-            if(player is not null)
+            if (player is not null)
             {
                 system.Center = player.Center;
             }
@@ -203,7 +203,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if(player is null)
+            if (player is null)
             {
                 return;
             }

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 // PuzzleIslandHelper.SecurityLaser
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/SecurityLaser")]
     [Tracked]
@@ -121,7 +121,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if(Scene is not Level level) return;
+            if (Scene is not Level level) return;
             Camera camera = level.Camera;
             Rectangle c = new Rectangle((int)camera.X, (int)camera.Y, 320, 180);
             OnScreen = Collide.RectToLine(c, Start, End);
@@ -209,7 +209,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else if (start.Y < hbox.Top || start.Y > hbox.Bottom) return null;
 
-            return (0 <= tmin && tmin <= tmax && tmin * tmin <= Vector2.DistanceSquared(start, end)) ? hbox.AbsolutePosition + start + tmin * dir : null;
+            return 0 <= tmin && tmin <= tmax && tmin * tmin <= Vector2.DistanceSquared(start, end) ? hbox.AbsolutePosition + start + tmin * dir : null;
         }
         public static Vector2? DoRaycast(Grid grid, Vector2 start, Vector2 end)
         {
@@ -323,7 +323,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (Visible)
             {
                 Tween LightTween = Tween.Create(Tween.TweenMode.Looping, Ease.SineInOut, 2);
-                LightTween.OnUpdate = (Tween t) =>
+                LightTween.OnUpdate = (t) =>
                 {
                     if (IsTimed)
                     {
@@ -332,7 +332,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Light.Position = Calc.LerpSnap(Start, End, t.Eased) - Position;
                 };
                 Tween ColorTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, 1);
-                ColorTween.OnUpdate = (Tween t) =>
+                ColorTween.OnUpdate = (t) =>
                 {
                     GoodColor = Color.Lerp(_G, Color.White, t.Eased / 4f);
                     BadColor = Color.Lerp(_B, Color.White, t.Eased / 4f);
@@ -366,7 +366,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (Visible)
             {
                 Tween colorTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.Follow(Ease.SineInOut, Ease.CubeInOut), 0.8f);
-                colorTween.OnUpdate = (Tween t) =>
+                colorTween.OnUpdate = (t) =>
                 {
                     colorLerp = Calc.LerpClamp(0.1f, 0.4f, t.Eased);
                 };

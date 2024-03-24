@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 // PuzzleIslandHelper.TSwitch
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/PillarBlock")]
     [Tracked]
@@ -135,7 +135,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if(Block is not null)
+            if (Block is not null)
             {
                 Cracks.Position = Block.Position - Position;
             }

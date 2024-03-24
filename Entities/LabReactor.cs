@@ -10,6 +10,7 @@ using System.IO;
 using VivHelper.Colliders;
 using System.Linq;
 using System.Net;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 // PuzzleIslandHelper.ArtifactSlot
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

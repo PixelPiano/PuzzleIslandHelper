@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -8,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     [CustomEntity("PuzzleIslandHelper/PrologueGlitchBlock")]
     [Tracked]
@@ -49,7 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             Add(new Coroutine(PrologueGlitchIncrement(), true));
             timer += Engine.RawDeltaTime;
             seed = Calc.Random.NextFloat();
-            Audio.Play(audio, base.Center);
+            Audio.Play(audio, Center);
             newCutout.Alpha = newTiles.Alpha = 1;
         }
         public IEnumerator PrologueGlitchIncrement()

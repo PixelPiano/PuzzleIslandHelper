@@ -7,7 +7,7 @@ using System.Collections;
 using VivHelper;
 using VivHelper.Entities;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/MovingJelly")]
     [TrackedAs(typeof(Glider))]
@@ -31,7 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return string.IsNullOrEmpty(sFlag) || (Scene is Level level && level.Session.GetFlag(sFlag));
+                return string.IsNullOrEmpty(sFlag) || Scene is Level level && level.Session.GetFlag(sFlag);
             }
         }
         private bool NoGravity;
@@ -57,8 +57,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return ((directionA == Direction.Up || directionA == Direction.Down) && flag)
-                 || ((directionB == Direction.Up || directionB == Direction.Down) && !flag);
+                return (directionA == Direction.Up || directionA == Direction.Down) && flag
+                 || (directionB == Direction.Up || directionB == Direction.Down) && !flag;
             }
         }
         private bool IsHorizontal
@@ -66,8 +66,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             get
             {
 
-                return ((directionA == Direction.Left || directionA == Direction.Right) && flag)
-                                || ((directionB == Direction.Left || directionB == Direction.Right) && !flag);
+                return (directionA == Direction.Left || directionA == Direction.Right) && flag
+                                || (directionB == Direction.Left || directionB == Direction.Right) && !flag;
 
             }
         }
@@ -87,8 +87,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public MovingJelly(EntityData data, Vector2 offset)
           : this(data.Position + offset, data.Bool("bubble"), data.Bool("tutorial"))
         {
-            directionA = data.Enum<Direction>("directionB", Direction.None);
-            directionB = data.Enum<Direction>("directionA", Direction.None);
+            directionA = data.Enum("directionB", Direction.None);
+            directionB = data.Enum("directionA", Direction.None);
             ToggleDirection = data.Bool("toggleDirection");
             NoGravity = data.Bool("disableGravity");
             StartActive = data.Bool("startActive");
@@ -234,7 +234,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (sprite is not null)
                 {
-                   sprite.Rotation = arrowSprite.Rotation;
+                    sprite.Rotation = arrowSprite.Rotation;
                 }
             }
             Player player = Scene.Tracker.GetEntity<Player>();
@@ -317,7 +317,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(coroutine);
             }
 
-            if ((!ToggleDirection && !flag) || (ToggleDirection && ((flag && directionA == Direction.None) || (!flag && directionB == Direction.None))))
+            if (!ToggleDirection && !flag || ToggleDirection && (flag && directionA == Direction.None || !flag && directionB == Direction.None))
             {
                 arrowSprite.Play("none");
             }
@@ -327,7 +327,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Direction temp = ToggleDirection ? flag ? directionA : directionB : directionA;
                 AdjustPosition(temp, Scene as Level);
 
-                if ((isHeld && isOpen) || !isHeld)
+                if (isHeld && isOpen || !isHeld)
                 {
                     AppearParticles(true);
                 }

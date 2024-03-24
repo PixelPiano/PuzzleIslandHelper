@@ -6,10 +6,11 @@ using System.Text;
 using System.Threading.Tasks;
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     public class PIPrologueEnding : CutsceneEntity
     {
@@ -50,7 +51,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 Add(new Coroutine(PrologueGlitchIncrement(), true));
                 timer += Engine.RawDeltaTime;
                 seed = Calc.Random.NextFloat();
-                Audio.Play(audio, base.Center);
+                Audio.Play(audio, Center);
                 newCutout.Alpha = newTiles.Alpha = 1;
             }
         }

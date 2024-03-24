@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Monocle;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [Tracked]
     public class SwitchPlateTex : Entity
@@ -144,7 +144,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             MTexture tex = GetTextureQuad(pipeTexture, CornerTextureQuads[cornerType.Key]);
             bool flipped = cornerType.Key is "upLeft" or "upRight";
             bool scaled = cornerType.Key is "upLeft" or "downLeft";
-            string flip = (flipped ? "Flip" : "");
+            string flip = flipped ? "Flip" : "";
             Image image = new Image(tex);
             Image image2 = new Image(GFX.Game["objects/PuzzleIslandHelper/drillMachine/cornerIndent" + flip]);
             Sprite sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/drillMachine/");
@@ -175,8 +175,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Direction pipeExitDirection2 = GetPipeExitDirection(nextNode, endNode);
             bool horizontal = pipeExitDirection == Direction.Right || pipeExitDirection == Direction.Left;
             bool vertical = pipeExitDirection == Direction.Down || pipeExitDirection == Direction.Up;
-            float num = ((!endNodeExit) ? (length - pipeWidth) : length);
-            float num2 = ((!endNodeExit && (pipeExitDirection == Direction.Up || pipeExitDirection == Direction.Left)) ? pipeWidth : 0f);
+            float num = !endNodeExit ? length - pipeWidth : length;
+            float num2 = !endNodeExit && (pipeExitDirection == Direction.Up || pipeExitDirection == Direction.Left) ? pipeWidth : 0f;
             float offset = 0;
             List<Image> images = new();
             List<FillAnim> fillAnims = new();
@@ -323,14 +323,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static SwitchPlateTex FromNodes(Vector2 startNode, Vector2 endNode, Vector2 nextNode, bool startNodeExit, bool endNodeExit, float pipeWidth, Color indentColor, Color spriteColor)
         {
-            
+
             Direction pipeExitDirection = GetPipeExitDirection(endNode, startNode);
             float num = (endNode - startNode).Length();
             Vector2 position = endNode;
             float num3 = 8f;
             float num4 = 8f;
 
-            return new SwitchPlateTex(position, num3, num4, num, pipeWidth, startNode, endNode, nextNode, startNodeExit, endNodeExit,indentColor,spriteColor);
+            return new SwitchPlateTex(position, num3, num4, num, pipeWidth, startNode, endNode, nextNode, startNodeExit, endNodeExit, indentColor, spriteColor);
         }
         public static KeyValuePair<string, string> getCornerType(Direction direction, Direction nextDirection)
         {

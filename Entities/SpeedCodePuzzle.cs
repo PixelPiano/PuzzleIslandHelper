@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 // PuzzleIslandHelper.SpeedCodePuzzle
 //Code is a modified combination of FrostHelper's "Dash Code Trigger" and XaphanHelper's "Custom Collectable Entity"
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/SpeedCodePuzzle")]
     public class SpeedCodePuzzle : Entity
@@ -82,7 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Add(Monitor = new Sprite(GFX.Game, folder));
             Monitor.AddLoop("idle", "marioxhk_monitor_longer", 0.1f);
-            duration = (1 / leadLerp) + lerpDelay + (1 / endLerp);
+            duration = 1 / leadLerp + lerpDelay + 1 / endLerp;
             gotCode = false;
             Add(dashListener = new DashListener());
             dashListener.OnDash = delegate (Vector2 dir)
@@ -193,14 +193,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private IEnumerator Fade()
         {
             inOpacityRoutine = true;
-            while(inLerpRoutine || inRoutine) //wait until other routines are finished
+            while (inLerpRoutine || inRoutine) //wait until other routines are finished
             {
                 yield return null;
             }
 
-            for(float i=0; i<1; i += 0.1f)
+            for (float i = 0; i < 1; i += 0.1f)
             {
-                opacity = Calc.LerpClamp(1, 0, i); 
+                opacity = Calc.LerpClamp(1, 0, i);
                 yield return null;
             }
             opacity = 0;

@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FMOD;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
@@ -11,7 +12,7 @@ using System.Linq;
 using static FrostHelper.Entities.GrowBlock;
 
 // PuzzleIslandHelper.DecalEffects
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     [CustomEntity("PuzzleIslandHelper/PrologueBlock")]
     [Tracked]
@@ -33,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public bool UsingEffect => !Tiles.Visible && !Instant && Amplitude < 1 && ControllerState;
         public bool Instant => Order < 0;
         public bool TilesVisible => Tiles is not null && Tiles.Visible;
-        public bool ControllerState => (WaitForController && ControllerResponded) || !WaitForController;
+        public bool ControllerState => WaitForController && ControllerResponded || !WaitForController;
 
         public TransitionListener Listener;
         public VirtualRenderTarget Target;
@@ -76,10 +77,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             Level level = SceneAs<Level>();
             Rectangle tileBounds = level.Session.MapData.TileBounds;
             VirtualMap<char> solidsData = level.SolidsData;
-            int x = (int)(base.X / 8f) - tileBounds.Left;
-            int y = (int)(base.Y / 8f) - tileBounds.Top;
-            int tilesX = (int)base.Width / 8;
-            int tilesY = (int)base.Height / 8;
+            int x = (int)(X / 8f) - tileBounds.Left;
+            int y = (int)(Y / 8f) - tileBounds.Top;
+            int tilesX = (int)Width / 8;
+            int tilesY = (int)Height / 8;
             Tiles = GFX.FGAutotiler.GenerateOverlay(tileType, x, y, tilesX, tilesY, solidsData).TileGrid;
             Add(Tiles);
             Add(new TileInterceptor(Tiles, highPriority: false));

@@ -5,7 +5,7 @@ using System;
 using System.Collections;
 using MonoMod.Utils;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/Stool")]
     [Tracked]
@@ -22,7 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                if(SceneAs<Level>() is not null)
+                if (SceneAs<Level>() is not null)
                 {
                     Level level = SceneAs<Level>();
                     if (Inverted)
@@ -71,14 +71,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Coroutine routine;
         public Entity GetRider()
         {
-            foreach (Stool entity in base.Scene.Tracker.GetEntities<Stool>())
+            foreach (Stool entity in Scene.Tracker.GetEntities<Stool>())
             {
                 if (entity.IsRiding(platform))
                 {
                     return entity;
                 }
             }
-            foreach (Actor entity in base.Scene.Tracker.GetEntities<Actor>())
+            foreach (Actor entity in Scene.Tracker.GetEntities<Actor>())
             {
                 if (entity.IsRiding(platform))
                 {
@@ -150,7 +150,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             LiftSpeedGraceTime = 0.1f;
             Add(Light = new VertexLight(Collider.Center, Color.White, 0.7f, 32, 64));
             Add(new MirrorReflection());
-            HoldingHitbox = new Hitbox(sprite.Width - 8, sprite.Height, (-sprite.Width * StoolJustify.X) + 2, (-sprite.Height * StoolJustify.Y));
+            HoldingHitbox = new Hitbox(sprite.Width - 8, sprite.Height, -sprite.Width * StoolJustify.X + 2, -sprite.Height * StoolJustify.Y);
             Collider = HoldingHitbox;
         }
         private void OnPickup()
@@ -195,7 +195,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 sprite.Play("extDown");
                 Audio.Play("event:/PianoBoy/stoolLower", Position);
-                
+
             }
             for (float i = 0; i < 1; i += 0.1f)
             {
@@ -293,9 +293,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public void Launched(Stool stool)
         {
-                stool.Speed.X *= 0.5f;
-                stool.Speed.Y = -200f;
-                stool.noGravityTimer = 0.3f;
+            stool.Speed.X *= 0.5f;
+            stool.Speed.Y = -200f;
+            stool.noGravityTimer = 0.3f;
 
         }
         public bool HitSpring(Spring spring)
@@ -346,7 +346,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (!Hold.IsHeld)
             {
-                Speed = (base.Center - seeker.Center).SafeNormalize(120f);
+                Speed = (Center - seeker.Center).SafeNormalize(120f);
             }
             Audio.Play("event:/PianoBoy/stool_hit_side", Position);
         }
@@ -377,7 +377,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private static void OnRefillCtor(On.Celeste.Refill.orig_ctor_EntityData_Vector2 orig, Refill self, EntityData data, Vector2 offset)
         {
             orig(self, data, offset);
-            self.Add(new HoldableCollider((Holdable hold) =>
+            self.Add(new HoldableCollider((hold) =>
             {
                 if (hold.Entity is Stool stool)
                 {
@@ -455,7 +455,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (OnGround())
                 {
-                    float target = ((!OnGround(Position + Vector2.UnitX * 3f)) ? 20f : (OnGround(Position - Vector2.UnitX * 3f) ? 0f : (-20f)));
+                    float target = !OnGround(Position + Vector2.UnitX * 3f) ? 20f : OnGround(Position - Vector2.UnitX * 3f) ? 0f : -20f;
                     Speed.X = Calc.Approach(Speed.X, target, 800f * Engine.DeltaTime);
                     Vector2 liftSpeed = LiftSpeed;
                     if (liftSpeed == Vector2.Zero && prevLiftSpeed != Vector2.Zero)
@@ -505,40 +505,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 MoveH(Speed.X * Engine.DeltaTime, onCollideH);
                 MoveV(Speed.Y * Engine.DeltaTime, onCollideV);
-                if (base.Center.X > (float)l.Bounds.Right)
+                if (Center.X > l.Bounds.Right)
                 {
                     MoveH(32f * Engine.DeltaTime);
-                    if (base.Left - 8f > (float)l.Bounds.Right)
+                    if (Left - 8f > l.Bounds.Right)
                     {
                         RemoveSelf();
                     }
                 }
-                else if (base.Left < (float)l.Bounds.Left)
+                else if (Left < l.Bounds.Left)
                 {
-                    base.Left = l.Bounds.Left;
+                    Left = l.Bounds.Left;
                     Speed.X *= -0.4f;
                 }
-                else if (base.Top < (float)(l.Bounds.Top - 4))
+                else if (Top < l.Bounds.Top - 4)
                 {
-                    base.Top = l.Bounds.Top + 4;
+                    Top = l.Bounds.Top + 4;
                     Speed.Y = 0f;
                 }
-                else if (base.Bottom > (float)l.Bounds.Bottom && SaveData.Instance.Assists.Invincible)
+                else if (Bottom > l.Bounds.Bottom && SaveData.Instance.Assists.Invincible)
                 {
-                    base.Bottom = l.Bounds.Bottom;
+                    Bottom = l.Bounds.Bottom;
                     Speed.Y = -300f;
                     Audio.Play("event:/game/general/assist_screenbottom", Position);
                 }
-                if (X < (l.Bounds.Left + 10))
+                if (X < l.Bounds.Left + 10)
                 {
                     MoveH(32f * Engine.DeltaTime);
                 }
-                Player entity = base.Scene.Tracker.GetEntity<Player>();
+                Player entity = Scene.Tracker.GetEntity<Player>();
                 TempleGate templeGate = CollideFirst<TempleGate>();
                 if (templeGate != null && entity != null)
                 {
                     templeGate.Collidable = false;
-                    MoveH((float)(Math.Sign(entity.X - base.X) * 32) * Engine.DeltaTime);
+                    MoveH(Math.Sign(entity.X - X) * 32 * Engine.DeltaTime);
                     templeGate.Collidable = true;
                 }
             }

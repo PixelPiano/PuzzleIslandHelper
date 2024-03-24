@@ -9,8 +9,9 @@ using Monocle;
 using vitmod;
 using System.Linq;
 using static vitmod.TimeCrystal;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     [CustomEntity("PuzzleIslandHelper/PIPrologueBridge")]
     [Tracked]
@@ -77,11 +78,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             int num2 = (int)Math.Floor(width / 8m);
             while (num < num2)
             {
-                int num3 = ((num != num2 - 1) ? Calc.Random.Next(tileSizes.Count) : Calc.Random.Next(tileSizes.Count - 2));
+                int num3 = num != num2 - 1 ? Calc.Random.Next(tileSizes.Count) : Calc.Random.Next(tileSizes.Count - 2);
                 PrologueBridgeTile customBridgeTile = new PrologueBridgeTile(Position + new Vector2(num * 8, 0f), tileSizes[num3], num3);
                 tiles.Add(customBridgeTile);
                 SceneAs<Level>().Add(customBridgeTile);
-                num = ((num3 < tileSizes.Count - 2) ? (num + 1) : (num + 2));
+                num = num3 < tileSizes.Count - 2 ? num + 1 : num + 2;
             }
 
             Calc.PopRandom();
@@ -133,7 +134,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             sfx.Play("event:/game/00_prologue/bridge_rumble_loop");
             for (int i = 0; i < tiles.Count; i++)
             {
-                int tileIndex = (left ? (tiles.Count - 1 - i) : i);
+                int tileIndex = left ? tiles.Count - 1 - i : i;
                 PrologueBridgeTile tile = tiles[tileIndex];
                 tile.Fall();
                 yield return actSpeed;

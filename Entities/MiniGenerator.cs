@@ -5,7 +5,7 @@ using Celeste.Mod.Entities;
 using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
 
     [CustomEntity("PuzzleIslandHelper/MiniGenerator")]

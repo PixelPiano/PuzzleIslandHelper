@@ -9,7 +9,7 @@ using FMOD;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
 
 
@@ -208,7 +208,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             for (int i = 0; i < 4; i++)
             {
-                Collider collider = new Hitbox(12, 12, 20 + (i * 15), 21);
+                Collider collider = new Hitbox(12, 12, 20 + i * 15, 21);
                 ColliderList.Add(collider);
                 Nodes[i] = ColliderList.colliders[i].Position + new Vector2(collider.Width / 2, collider.Height);
             }
@@ -367,7 +367,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     vectors[i] = ColliderList.colliders[i].AbsolutePosition + new Vector2(icon.Width / 2, icon.Height);
                 }
-                icon.SetPosition = Calc.ClosestTo(vectors, icon.Position);
+                icon.SetPosition = vectors.ClosestTo(icon.Position);
                 for (int i = 0; i < 4; i++)
                 {
                     if (vectors[i] == icon.SetPosition)
@@ -405,7 +405,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Console.WriteLine($"{this} could not find any SolidTiles below it to set it's Y Position to");
                 }
                 Position.Y -= 8;
-                Position.X += 20 - (sprite.Width / 2) - 8;
+                Position.X += 20 - sprite.Width / 2 - 8;
             }
         }
     }
@@ -751,7 +751,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (OnGround())
                 {
-                    float target = ((!OnGround(Position + Vector2.UnitX * 3f)) ? 20f : (OnGround(Position - Vector2.UnitX * 3f) ? 0f : (-20f)));
+                    float target = !OnGround(Position + Vector2.UnitX * 3f) ? 20f : OnGround(Position - Vector2.UnitX * 3f) ? 0f : -20f;
                     Speed.X = Calc.Approach(Speed.X, target, 800f * Engine.DeltaTime);
                     Vector2 liftSpeed = LiftSpeed;
                     if (liftSpeed == Vector2.Zero && prevLiftSpeed != Vector2.Zero)
@@ -801,12 +801,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 MoveH(Speed.X * Engine.DeltaTime, onCollideH);
                 MoveV(Speed.Y * Engine.DeltaTime, onCollideV);
-                Player entity = base.Scene.Tracker.GetEntity<Player>();
+                Player entity = Scene.Tracker.GetEntity<Player>();
                 TempleGate templeGate = CollideFirst<TempleGate>();
                 if (templeGate != null && entity != null)
                 {
                     templeGate.Collidable = false;
-                    MoveH((float)(Math.Sign(entity.X - base.X) * 32) * Engine.DeltaTime);
+                    MoveH(Math.Sign(entity.X - X) * 32 * Engine.DeltaTime);
                     templeGate.Collidable = true;
                 }
             }

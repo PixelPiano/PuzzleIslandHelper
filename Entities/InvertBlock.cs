@@ -11,14 +11,14 @@ using System.Threading.Tasks;
 using VivHelper.Entities;
 using VivHelper.Entities.Spinner2;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/InvertBlock")]
     [Tracked]
     public class InvertBlock : Solid
     {
         private TileGrid tiles;
-        
+
         private readonly string flag;
         private readonly bool startInverted;
         private readonly bool solidWhenOn;
@@ -116,8 +116,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-       
-      
+
+
         public override void Update()
         {
             base.Update();

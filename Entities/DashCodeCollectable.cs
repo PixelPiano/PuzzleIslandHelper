@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 // PuzzleIslandHelper.DashCodeCollectable
 //Code is a modified combination of FrostHelper's "Dash Code Trigger" and XaphanHelper's "Custom Collectable Entity"
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/DashCodeCollectable")]
     [TrackedAs(typeof(HeartGem))]
@@ -84,29 +84,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             spawned = SceneAs<Level>().Session.GetFlag(spawnedFlag);
             collected = SceneAs<Level>().Session.GetFlag(collectedFlag);
 
-            scene.Add(heart = new Entity(levelPosition+dataNode));
+            scene.Add(heart = new Entity(levelPosition + dataNode));
 
             float newX = Position.X;
             float newY = Position.Y;
             if (!usesBounds)
             {
-                newX =(scene as Level).Bounds.Left;
+                newX = (scene as Level).Bounds.Left;
                 xBound = (scene as Level).Bounds.Width;
                 newY = (scene as Level).Bounds.Top;
                 yBound = (scene as Level).Bounds.Height;
             }
-            bounds = new Rectangle((int)newX,(int)newY, (int)xBound, (int)yBound);
+            bounds = new Rectangle((int)newX, (int)newY, (int)xBound, (int)yBound);
             if (flagDebug)
             {
                 SceneAs<Level>().Session.SetFlag(flag, false);
             }
-            if(!collected && spawned)
+            if (!collected && spawned)
             {
                 SpawnCollectable(false);
             }
 
         }
-        public DashCodeCollectable(Vector2 position, bool isHeart):
+        public DashCodeCollectable(Vector2 position, bool isHeart) :
             base(position)
         {
             this.isHeart = isHeart;
@@ -114,18 +114,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public DashCodeCollectable(EntityData data, Vector2 offset, EntityID id)
         : this(data.Position + offset, data.Attr("Texture", "objects/PuzzleIslandHelper/dashCodeCollectable/miniHeart").Contains("miniHeart"))
         {
-            OnlyFlag        = data.Bool("noCollectable");
-            flagDebug       = data.Bool("flagDebug", true);
-            canRespawn      = data.Bool("canRespawn");
-            usesBounds      = data.Bool("usesBounds");
-            visibleBounds   = data.Bool("visibleBounds");
-            flag            = data.Attr("flagOnCollected");
-            code            = data.Attr("code").Split(',').Select(Convert.ToString).ToArray();
-            audio           = data.Attr("event", "event:/new_content/game/10_farewell/glitch_short");
-            spriteName      = data.Attr("Texture", "objects/PuzzleIslandHelper/dashCodeCollectable/miniHeart");
-            yBound          = data.Height;
-            xBound          = data.Width;
-            dataNode        = data.Nodes[0];
+            OnlyFlag = data.Bool("noCollectable");
+            flagDebug = data.Bool("flagDebug", true);
+            canRespawn = data.Bool("canRespawn");
+            usesBounds = data.Bool("usesBounds");
+            visibleBounds = data.Bool("visibleBounds");
+            flag = data.Attr("flagOnCollected");
+            code = data.Attr("code").Split(',').Select(Convert.ToString).ToArray();
+            audio = data.Attr("event", "event:/new_content/game/10_farewell/glitch_short");
+            spriteName = data.Attr("Texture", "objects/PuzzleIslandHelper/dashCodeCollectable/miniHeart");
+            yBound = data.Height;
+            xBound = data.Width;
+            dataNode = data.Nodes[0];
 
 
             Collider = new Hitbox
@@ -165,7 +165,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             gotCode = foo;
                             SpawnCollectable(true);
                         }
-                        
+
                     }
                 }
             };
@@ -231,8 +231,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 session.DoNotLoad.Add(ID);
             }
-            if(flag != "")
-            { 
+            if (flag != "")
+            {
                 SceneAs<Level>().Session.SetFlag(flag, true);
             }
             if (!PianoModule.Session.CollectedIDs.Contains(this))
@@ -243,7 +243,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             yield return null;
         }
-        public IEnumerator WaitBeforeRemoveRoutine() 
+        public IEnumerator WaitBeforeRemoveRoutine()
         {
             float timer = 0.02f;
             while (timer > 0)
@@ -257,7 +257,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (effectsAdded)
             {
-                sfx = Audio.Play(audio,heart.Position);
+                sfx = Audio.Play(audio, heart.Position);
                 (Scene as Level).Flash(Color.White, drawPlayerOver: true);
             }
             if (OnlyFlag)
@@ -286,7 +286,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             player = Scene.Tracker.GetEntity<Player>();
-            if(player == null)
+            if (player == null)
             {
                 return;
             }

@@ -4,6 +4,7 @@ using Monocle;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using System.Collections;
 using System.Collections.Generic;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {

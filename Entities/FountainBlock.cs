@@ -7,7 +7,7 @@ using System;
 using System.Collections;
 using static MonoMod.InlineRT.MonoModRule;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/FountainBlock")]
     [Tracked]
@@ -55,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 offset = new Vector2(width / 2 - Texture.Width / 2, 0);
                 Depth = -13001;
                 Tween colorTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, 4, true);
-                colorTween.OnUpdate = (Tween t) =>
+                colorTween.OnUpdate = (t) =>
                 {
                     TexColor = Color.Lerp(Color.White, Color.Black, t.Eased / 4);
                     BackOpacity = t.Eased / 2;

@@ -8,7 +8,7 @@ using System.Collections;
 using System.Data;
 using System.Runtime.InteropServices.ComTypes;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/PuzzlePillar")]
     [Tracked]

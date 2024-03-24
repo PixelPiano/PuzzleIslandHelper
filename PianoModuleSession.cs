@@ -1,14 +1,17 @@
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
-using Celeste.Mod.PuzzleIslandHelper.Entities.EscapeRoomEntities;
-using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WIP.EscapeRoomEntities;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections.Generic;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.ShiftAreaEntities.ShiftArea;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.WIP.ShiftArea;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {

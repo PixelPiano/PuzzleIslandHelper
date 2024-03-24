@@ -1,4 +1,5 @@
-﻿using FrostHelper;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
+using FrostHelper;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -7,7 +8,7 @@ using System.Collections;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
     [Tracked]
     public class GrassShift : CutsceneEntity

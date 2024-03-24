@@ -1,4 +1,5 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Entities.Transitions;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions;
 using FrostHelper;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -11,7 +12,7 @@ using System.Linq.Expressions;
 using VivHelper;
 using static Celeste.Trigger;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
     [Tracked]
     public class DuplicateCopy : CutsceneEntity

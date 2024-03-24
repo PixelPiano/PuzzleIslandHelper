@@ -1,25 +1,16 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Celeste.Mod.PuzzleIslandHelper.ModIntegration;
-using IL.Monocle;
-using Microsoft.Xna.Framework;
-using MonoMod.ModInterop;
 using System;
-using MonoMod.Utils;
-using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
-using System.Linq;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
-using Celeste.Mod.PuzzleIslandHelper.Helpers;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes;
-using static MonoMod.InlineRT.MonoModRule;
-using Microsoft.Xna.Framework.Graphics;
-using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
-using Celeste.Mod.PuzzleIslandHelper.Entities.BetterInterfaceEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.ShiftAreaEntities;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {

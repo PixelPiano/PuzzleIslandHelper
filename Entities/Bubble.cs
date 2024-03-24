@@ -5,7 +5,7 @@ using Monocle;
 using System;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [Tracked]
     public class BubbleParticleSystem : ParticleSystem
@@ -188,7 +188,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(new BloomPoint(0.1f, 16f));
             Add(wiggler = Wiggler.Create(0.5f, 4f, delegate (float f)
             {
-                scaleMult = (1f + f * 0.25f);
+                scaleMult = 1f + f * 0.25f;
             }));
             Add(new DashListener(OnPlayerDashed));
             Add(new MirrorReflection());
@@ -260,7 +260,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             player = scene.Tracker.GetEntity<Player>();
             JumpTween = Tween.Create(Tween.TweenMode.Oneshot, Ease.QuintOut, 1);
             JumpTween.OnStart = delegate { JumpOffset = JumpHeight; jumpScale = 0.80f; };
-            JumpTween.OnUpdate = (Tween t) =>
+            JumpTween.OnUpdate = (t) =>
             {
                 JumpOffset = Calc.LerpClamp(JumpHeight, 0, t.Eased);
             };
@@ -434,7 +434,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite.Play("idle");
             Sprite.Color = BubbleColor;
 
-            Sprite.OnFinish = (string s) =>
+            Sprite.OnFinish = (s) =>
                 {
                     if (s == "pop")
                     {
@@ -550,8 +550,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void FloatDownUpdate(Player player)
         {
-            float x = ((Speed * AimDir.X * speedLerp) + xOffset) * Engine.DeltaTime;
-            float y = ((Speed * AimDir.Y * speedLerp) + yOffset - JumpOffset) * Engine.DeltaTime;
+            float x = (Speed * AimDir.X * speedLerp + xOffset) * Engine.DeltaTime;
+            float y = (Speed * AimDir.Y * speedLerp + yOffset - JumpOffset) * Engine.DeltaTime;
             MoveH(x, OnCollideH);
             MoveV(y, OnCollideV);
         }
@@ -612,7 +612,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 player.RefillStamina();
 
-                float speed = (CanHold && InHold) ? int.MaxValue : Speed;
+                float speed = CanHold && InHold ? int.MaxValue : Speed;
                 player.Speed = Vector2.Zero;
                 player.MoveTowardsX((int)Math.Round(vector2.X), speed);
                 player.MoveTowardsY((int)Math.Round(vector2.Y), speed);
@@ -711,7 +711,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 speedLerp = 1 - Ease.SineOut(i / duration);
                 yield return null;
-                if (i > duration - (duration / 3f) && !added)
+                if (i > duration - duration / 3f && !added)
                 {
                     added = true;
                     Add(new Coroutine(FloatDown()));

@@ -1,5 +1,6 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;

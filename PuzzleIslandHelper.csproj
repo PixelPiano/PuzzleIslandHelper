@@ -22,7 +22,7 @@
     <ItemGroup>
       <Compile Remove="Entities\Destruct.cs" />
       <Compile Remove="Entities\ffffCassetteBlock.cs" />
-      <Compile Remove="Entities\Programs\LoadSequence.cs" />
+      <Compile Remove="Entities\InterfaceEntities\Programs\LoadSequence.cs" />
     </ItemGroup>
 
     <ItemGroup>

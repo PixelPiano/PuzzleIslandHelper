@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using Monocle;
 using vitmod;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     [Tracked]
-        public class PrologueBridgeTile : Solid
+    public class PrologueBridgeTile : Solid
     {
         private Image image;
 
@@ -41,7 +41,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             if (shakeTimer > 0f)
             {
                 shakeTimer -= Engine.DeltaTime;
-                if (base.Scene.OnInterval(0.02f))
+                if (Scene.OnInterval(0.02f))
                 {
                     shakeOffset = Calc.Random.ShakeVector();
                 }
@@ -61,7 +61,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 shakeOffset = Vector2.Zero;
                 speedY = Calc.Approach(speedY, 200f, 900f * Engine.DeltaTime);
                 MoveV(speedY * Engine.DeltaTime);
-                if (base.Top > (float)SceneAs<Level>().Bounds.Bottom)
+                if (Top > SceneAs<Level>().Bounds.Bottom)
                 {
                     DisableStaticMovers();
                     RemoveSelf();

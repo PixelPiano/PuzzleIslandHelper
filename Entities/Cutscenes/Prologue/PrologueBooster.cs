@@ -6,7 +6,7 @@ using System.Collections;
 using System.Reflection;
 using VivHelper.Entities;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
     [CustomEntity("PuzzleIslandHelper/PrologueBooster")]
     [Tracked]
@@ -35,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         }
         private static bool Player_get_CanDash(orig_Player_get_CanDash orig, Player self)
         {
-            if (self.LastBooster is PrologueBooster && (self.StateMachine.State == Player.StRedDash)) return false;
+            if (self.LastBooster is PrologueBooster && self.StateMachine.State == Player.StRedDash) return false;
             return orig(self);
         }
         private static Vector2 Input_GetAimVector(On.Celeste.Input.orig_GetAimVector orig, Facings defaultFacing)

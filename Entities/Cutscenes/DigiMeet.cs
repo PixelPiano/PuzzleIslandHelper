@@ -7,7 +7,7 @@ using Monocle;
 using System;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
 
     [Tracked]
@@ -158,7 +158,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             Add(new Coroutine(Walk(16, false, 2)));
             Calidus.LookDir = Calidus.Looking.Left;
             Calidus.Surprised(false);
-            yield return Calidus.Say("Ca17","surprised");
+            yield return Calidus.Say("Ca17", "surprised");
             yield return 0.5f;
             yield return Calidus.Say("Ca18", "normal");
 
@@ -223,7 +223,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             }
             level.Flash(Color.White, true);
             level.Remove(Calidus);
-            PianoUtils.InstantRelativeTeleport(level, "0-lcomp",true);
+            PianoUtils.InstantRelativeTeleport(level, "0-lcomp", true);
             //InstantTeleport(level, player, "0-lcomp", 254, 383);
             yield return null;
             player.Speed.X = -64;

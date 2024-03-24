@@ -5,7 +5,7 @@ using System.Collections;
 using Celeste.Mod.CherryHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 // PuzzleIslandHelper.MovingPlatform
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/MovingPlatform")]
     [Tracked]
@@ -371,7 +371,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator Sequence(Vector2 node)
         {
-            if (moving || (!canReturn && MovedOnce))
+            if (moving || !canReturn && MovedOnce)
             {
                 yield break;
             }

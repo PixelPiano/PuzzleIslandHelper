@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 // PuzzleIslandHelper.BinarySwitch
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/BinarySwitch")]
     public class BinarySwitch : Solid
@@ -83,7 +83,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private int[] GetRow(int[,] array)
         {
             int[] result = new int[array.GetLength(0)];
-            for(int i = 0; i<result.Length; i++)
+            for (int i = 0; i < result.Length; i++)
             {
                 result[i] = array[0, i];
             }
@@ -92,9 +92,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private int[,] CopyFrom(int[,] from)
         {
             int[,] result = new int[3, 5];
-            for(int i = 0; i<3; i++)
+            for (int i = 0; i < 3; i++)
             {
-                for(int j = 0; j<5; j++)
+                for (int j = 0; j < 5; j++)
                 {
                     result[i, j] = from[i, j];
                 }
@@ -110,7 +110,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 answerState[i] = lightOn[i] ? 1 : 0;
             }
             bool[] result = new bool[4];
-            for(int i = 0; i<4; i++)
+            for (int i = 0; i < 4; i++)
             {
                 result[i] = true;
             }
@@ -133,7 +133,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     result[3] = false;
                 }
             }
-            for(int i = 0; i<4; i++)
+            for (int i = 0; i < 4; i++)
             {
                 if (result[i])
                 {
@@ -165,7 +165,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             CheckForSwitchLevel();
             bool empty = true;
-            for (int i = 0; i<5; i++)
+            for (int i = 0; i < 5; i++)
             {
                 if (lightOn[i])
                 {
@@ -308,13 +308,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(minis[i] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));
                 minis[i].AddLoop("idle", "levelLight", 1f);
                 minis[i].Position.Y = lights[0].Position.Y - 16;
-                minis[i].Position.X = lights[2].Position.X + 3 + ((minis[i].Width + 1) * i);
+                minis[i].Position.X = lights[2].Position.X + 3 + (minis[i].Width + 1) * i;
                 minis[i].Play("idle");
 
                 Add(mains[i] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));
                 mains[i].AddLoop("idle", "mainLevelLight", 1f);
                 mains[i].Position.Y = minis[0].Position.Y + 5;
-                mains[i].Position.X = minis[0].Position.X - 8 + ((mains[i].Width + 2) * i);
+                mains[i].Position.X = minis[0].Position.X - 8 + (mains[i].Width + 2) * i;
                 mains[i].Play("idle");
             }
             Add(sprites[5] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));

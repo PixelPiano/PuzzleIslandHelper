@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [CustomEntity("PuzzleIslandHelper/CollectableIndicator")]
 
@@ -54,7 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(SpriteLeft);
             SpriteLeft.Play("idle");
             Add(SpriteRight);
-            SpriteRight.Position.X += (Collectables * 11) + SpriteLeft.Width;
+            SpriteRight.Position.X += Collectables * 11 + SpriteLeft.Width;
             SpriteRight.Play("idle");
         }
         public override void Awake(Scene scene)
@@ -62,8 +62,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Awake(scene);
             for (int i = 0; i < Collectables; i++)
             {
-                Body[i].Position.X += (i * 11) + SpriteLeft.Width;
-                BloomPoints.Add(new BloomPoint(Body[i].Position + new Vector2(6, 9),1, 8));
+                Body[i].Position.X += i * 11 + SpriteLeft.Width;
+                BloomPoints.Add(new BloomPoint(Body[i].Position + new Vector2(6, 9), 1, 8));
                 BloomPoints[i].Visible = false;
             }
             Add(BloomPoints.ToArray());

@@ -4,9 +4,9 @@ using Monocle;
 using Celeste.Mod.PandorasBox;
 using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Programs;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
     [CustomEntity("PuzzleIslandHelper/ChargedWater")]
     [TrackedAs(typeof(ColoredWater))]
