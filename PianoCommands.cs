@@ -14,11 +14,6 @@ using System.Text.RegularExpressions;
 
 public class PianoCommands
 {
-    [Command("clear_savedtiles","too tired to explain this")]
-    private static void ClearTiles()
-    {
-        ShiftArea.TilesLookup.Clear();
-    }
     [Command("add_batteryid", "debug shiz")]
     private static void AddBatteryID(string id)
     {
