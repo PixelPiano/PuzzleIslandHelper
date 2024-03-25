@@ -1,17 +1,8 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+﻿using Celeste.Mod.Entities;
+using Microsoft.Xna.Framework;
 using Monocle;
-using Celeste.Mod.Entities;
 using System.Collections;
-using FMOD.Studio;
-using System.Windows.Media.Imaging;
 using System.Collections.Generic;
-using System;
-using System.IO;
-using System.Windows.Media.Media3D;
-using IL.MonoMod;
-using static MonoMod.InlineRT.MonoModRule;
-using System.Security.Policy;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities
 {
