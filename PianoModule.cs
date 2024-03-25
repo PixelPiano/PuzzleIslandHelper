@@ -11,6 +11,8 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
+using FrostHelper;
+using Celeste.Mod.PuzzleIslandHelper.Attributes;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -99,7 +101,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
             ShaderFX.Load();
             PrologueBooster.Load();
             PIPrologueSequence.Load();
+            ShiftAreaRenderer.Load();
         }
+
+
         public override void Unload()
         {
             InputBox.Unload();
