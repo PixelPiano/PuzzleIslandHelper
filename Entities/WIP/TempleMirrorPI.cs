@@ -3,10 +3,8 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Windows.Media.Media3D;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

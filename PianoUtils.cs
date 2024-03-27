@@ -3,18 +3,16 @@ using Celeste;
 using Celeste.Mod;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
-using FrostHelper;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
-using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 
 public static class PianoUtils
 {
@@ -66,6 +64,18 @@ public static class PianoUtils
     {
         rect = new Rectangle((int)x, (int)y, (int)width, (int)height);
         return rect;
+    }
+    public static Rectangle CreateRectangle(float x, float y, float width, float height)
+    {
+        return new Rectangle((int)x, (int)y, (int)width, (int)height);
+    }
+    public static Rectangle CreateRectangle(Vector2 topLeft, Vector2 bottomRight)
+    {
+        return new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)bottomRight.X - (int)topLeft.X, (int)bottomRight.Y - (int)topLeft.Y);
+    }
+    public static Rectangle CloneRectangle(Rectangle from)
+    {
+        return new Rectangle(from.Left, from.Top, from.Width, from.Height);
     }
     public static Color Random(this Color color, bool r, bool g, bool b, bool a)
     {

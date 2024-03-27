@@ -1,8 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
 using Monocle;
-using vitmod;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {

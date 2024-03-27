@@ -1,8 +1,6 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP.PianoEntities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {

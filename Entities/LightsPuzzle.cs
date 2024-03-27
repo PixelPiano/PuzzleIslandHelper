@@ -4,8 +4,6 @@ using Celeste.Mod.Entities;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using FMOD.Studio;
-using FMOD;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using System.Linq;
 

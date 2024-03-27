@@ -2,7 +2,6 @@ using System;
 using Microsoft.Xna.Framework;
 using Monocle;
 using Celeste.Mod.Entities;
-using static MonoMod.InlineRT.MonoModRule;
 // PuzzleIslandHelper.GrapherEntity
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

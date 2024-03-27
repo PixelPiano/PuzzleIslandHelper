@@ -1,7 +1,4 @@
-using Microsoft.Xna.Framework;
 using Monocle;
-using System.ComponentModel;
-using static Celeste.Trigger;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {

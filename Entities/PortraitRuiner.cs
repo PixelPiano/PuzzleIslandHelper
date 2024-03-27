@@ -1,4 +1,3 @@
-using Celeste.Mod.Entities;
 using FrostHelper;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;

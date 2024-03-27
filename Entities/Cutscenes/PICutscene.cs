@@ -1,9 +1,9 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -52,7 +52,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             cutsceneName = data.Attr("cutscene");
             Cutscene = cutsceneName switch
             {
-                "Prologue" => new PIPrologueSequence(Part),
+                "Prologue" => new TransferScene(),
                 "Calidus1" => new DigiMeet(),
                 "GetInvert" => new InvertCutsceneTrigger(),
                 "GrassShift" => new GrassShift(Part),

@@ -4,10 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
-using MonoMod.Utils;
-using Celeste.Mod.PuzzleIslandHelper.ModIntegration;
 using System.Collections.Generic;
-using ExtendedVariants.Variants;
 
 // PuzzleIslandHelper.LabDoor
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Puzzles

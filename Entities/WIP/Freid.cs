@@ -3,9 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

@@ -1,14 +1,6 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
-using ExtendedVariants.Variants;
-using FMOD;
+﻿using FMOD;
 using FMOD.Studio;
-using FrostHelper;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs
 {

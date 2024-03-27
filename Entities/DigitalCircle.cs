@@ -1,12 +1,9 @@
 using Celeste.Mod.Entities;
-using FMOD;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
 using System.Collections;
-using System.IO.Ports;
 
 // PuzzleIslandHelper.DecalEffects
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities

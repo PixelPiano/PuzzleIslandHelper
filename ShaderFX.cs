@@ -1,15 +1,9 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
 using Celeste.Mod;
-using Celeste.Mod.PuzzleIslandHelper;
-using Celeste.Mod.PuzzleIslandHelper.Effects;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 public class ShaderFX
 {

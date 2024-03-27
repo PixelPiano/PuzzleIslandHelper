@@ -1,10 +1,5 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
-using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {

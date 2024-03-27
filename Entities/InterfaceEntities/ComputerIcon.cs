@@ -1,7 +1,4 @@
-using Microsoft.Xna.Framework;
 using Monocle;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using Color = Microsoft.Xna.Framework.Color;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities

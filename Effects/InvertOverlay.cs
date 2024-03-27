@@ -1,12 +1,7 @@
 using Celeste.Mod.Backdrops;
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects

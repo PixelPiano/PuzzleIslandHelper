@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {

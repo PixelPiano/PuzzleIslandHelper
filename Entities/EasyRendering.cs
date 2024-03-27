@@ -5,7 +5,6 @@ using System;
 using System.Collections;
 using System.Runtime.InteropServices;
 using FrostHelper.ModIntegration;
-using Celeste.Mod.PuzzleIslandHelper.Components;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's namespace
 {

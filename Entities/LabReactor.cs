@@ -1,15 +1,7 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.FancyTileEntities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using VivHelper.Colliders;
-using System.Linq;
-using System.Net;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 // PuzzleIslandHelper.ArtifactSlot
 namespace Celeste.Mod.PuzzleIslandHelper.Entities

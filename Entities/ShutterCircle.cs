@@ -1,14 +1,8 @@
 ﻿
 using Celeste.Mod.Entities;
-using ExtendedVariants.Entities.ForMappers;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

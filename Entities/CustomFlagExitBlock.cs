@@ -5,8 +5,6 @@ using Monocle;
 using MonoMod;
 using MonoMod.Utils;
 using System.Collections;
-using System.Runtime.InteropServices.ComTypes;
-using System.Xml.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {

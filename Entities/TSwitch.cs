@@ -1,11 +1,8 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Monocle;
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 // PuzzleIslandHelper.TSwitch
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {

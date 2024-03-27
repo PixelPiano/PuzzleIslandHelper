@@ -1,14 +1,7 @@
 using Celeste.Mod.Entities;
-using FMOD;
-using FMOD.Studio;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using MonoMod.Utils;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using ExtendedVariants.Variants;
 
 // PuzzleIslandHelper.DecalEffects
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue

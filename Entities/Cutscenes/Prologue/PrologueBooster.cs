@@ -2,9 +2,7 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using MonoMod.RuntimeDetour;
-using System.Collections;
 using System.Reflection;
-using VivHelper.Entities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {

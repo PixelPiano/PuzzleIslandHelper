@@ -3,7 +3,6 @@ using Celeste.Mod.PuzzleIslandHelper.Entities;
 using System;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities;
@@ -11,8 +10,6 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
-using FrostHelper;
-using Celeste.Mod.PuzzleIslandHelper.Attributes;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -100,7 +97,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             SceneSwitch.Load();
             ShaderFX.Load();
             PrologueBooster.Load();
-            PIPrologueSequence.Load();
+            PrologueSequence.Load();
             ShiftAreaRenderer.Load();
         }
 
@@ -136,7 +133,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             SceneSwitch.Unload();
             BetaCube.Unload();
             PrologueBooster.Unload();
-            PIPrologueSequence.Unload();
+            PrologueSequence.Unload();
             PrologueBlock.Unload();
             ShiftAreaRenderer.Unload();
         }

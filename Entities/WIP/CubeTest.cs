@@ -1,14 +1,8 @@
-﻿using Celeste.Mod.corkr900Graphics.EfficientRendering;
-using Celeste.Mod.Entities;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using VivHelper.Entities;
-using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

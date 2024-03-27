@@ -1,10 +1,7 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
-using System.Collections;
-using System.Drawing;
 using Color = Microsoft.Xna.Framework.Color;
 
 // PuzzleIslandHelper.MovingVoidLight

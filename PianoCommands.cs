@@ -7,10 +7,8 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
-using Mono.Cecil;
 using Monocle;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 public class PianoCommands
 {

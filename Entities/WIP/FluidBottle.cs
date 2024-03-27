@@ -4,7 +4,6 @@ using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.WIP.PotionFluid;

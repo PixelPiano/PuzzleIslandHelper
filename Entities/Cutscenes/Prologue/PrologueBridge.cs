@@ -1,14 +1,10 @@
 ﻿using System.Collections;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using BepInEx.AssemblyPublicizer;
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using vitmod;
 using System.Linq;
-using static vitmod.TimeCrystal;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue

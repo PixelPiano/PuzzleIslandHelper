@@ -2,14 +2,10 @@
 using Celeste.Mod.FancyTileEntities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using VivHelper.Entities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

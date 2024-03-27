@@ -3,8 +3,6 @@ using Monocle;
 using Celeste.Mod.Entities;
 using System;
 using System.Collections;
-using MonoMod.Utils;
-using System.Security.Cryptography.X509Certificates;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

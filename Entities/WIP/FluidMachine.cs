@@ -7,7 +7,6 @@ using MonoMod.RuntimeDetour;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 // PuzzleIslandHelper.FluidMachine
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP

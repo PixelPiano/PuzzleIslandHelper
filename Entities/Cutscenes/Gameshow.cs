@@ -1,14 +1,10 @@
-﻿using Celeste.Mod.Entities;
-using Celeste.Mod.LuaCutscenes;
+﻿using Celeste.Mod.LuaCutscenes;
 using static Celeste.Mod.PuzzleIslandHelper.PuzzleData.GameshowData;
-using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using FMOD;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes

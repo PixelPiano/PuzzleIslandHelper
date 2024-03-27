@@ -2,8 +2,6 @@ using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
-using FMOD.Studio;
-using FrostHelper.Helpers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;

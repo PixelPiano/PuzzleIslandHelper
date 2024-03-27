@@ -1,16 +1,8 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions;
-using FrostHelper;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using PrismaticHelper.Entities.Panels;
-using System;
 using System.Collections;
-using System.Linq;
-using System.Linq.Expressions;
-using VivHelper;
-using static Celeste.Trigger;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {

@@ -1,7 +1,5 @@
-using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 
@@ -15,9 +13,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public static VirtualRenderTarget BGTarget => _BGTarget ??= VirtualContent.CreateRenderTarget("ShiftAreaBGTarget", 320, 180);
         public static VirtualRenderTarget FGTarget => _FGTarget ??= VirtualContent.CreateRenderTarget("ShiftAreaFGTarget", 320, 180);
         public VirtualRenderTarget Target => FG ? FGTarget : BGTarget;
-        public static bool UsedTemp;
         public bool FG;
         private bool doNotRender;
+        public static void ChangeDepth(bool fg, int depth)
+        {
+            if (Engine.Scene is not Level level) return;
+            foreach (ShiftAreaRenderer area in level.Tracker.GetEntities<ShiftAreaRenderer>())
+            {
+                if (area.FG == fg)
+                {
+                    area.Depth = depth;
+                }
+            }
+        }
         public ShiftAreaRenderer(bool fg) : base(Vector2.Zero)
         {
             FG = fg;
@@ -30,55 +38,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         {
             base.Render();
             if (Scene is not Level level || doNotRender) return;
-            UsedTemp = false;
             Draw.SpriteBatch.Draw(Target, level.Camera.Position, Color.White);
-        }
-        private bool levelHasAreas(Level level)
-        {
-            List<Entity> list = level.Tracker.GetEntities<ShiftArea>();
-            return !(list is null || list.Count <= 0);
         }
         public void BeforeRender()
         {
             if (Scene is not Level level) return;
             doNotRender = !levelHasAreas(level);
             Position = level.Camera.Position;
-            if(doNotRender) return;
-
+            if (doNotRender) return;
             Matrix matrix = Matrix.Identity;
-
-            if (!UsedTemp) //only draw masks once, since both renderers are running at the same time
-            {
-                Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.TempA);
-                Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-
-                Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
-
-                foreach (ShiftArea area in level.Tracker.GetEntities<ShiftArea>())
-                {
-                    area.DrawMask(matrix);
-                }
-                Draw.SpriteBatch.End();
-                UsedTemp = true;
-            }
-
-
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
-
             foreach (ShiftArea area in level.Tracker.GetEntities<ShiftArea>())
             {
-                Vector2 offset = area.origLevelOffset - level.Camera.Position;
-                area.RenderTiles(FG, level);
+                if(!area.OnScreen) continue;
+                area.BeforeRender(FG, !FG);
+                Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
+                Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, matrix);
+                Draw.SpriteBatch.Draw(FG ? area.FGTarget : area.BGTarget, Vector2.Zero, Color.White);
+                Draw.SpriteBatch.End();
             }
-
-            Draw.SpriteBatch.End();
-
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, EasyRendering.AlphaMaskBlendState, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, Matrix.Identity);
-            Draw.SpriteBatch.Draw(GameplayBuffers.TempA, Vector2.Zero, Color.White);
-            Draw.SpriteBatch.End();
+        }
+        private bool levelHasAreas(Level level)
+        {
+            foreach (ShiftArea area in level.Tracker.GetEntities<ShiftArea>())
+            {
+                if ((FG && area.HasFG) || (!FG && area.HasBG)) return true;
+            }
+            return false;
+        }
+        public override void SceneEnd(Scene scene)
+        {
+            base.SceneEnd(scene);
+            Depth = FG ? -10001 : 9999;
         }
         public static void Unload()
         {

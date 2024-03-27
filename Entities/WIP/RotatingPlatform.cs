@@ -1,7 +1,6 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Monocle;
 using System.Collections;
 // PuzzleIslandHelper.MovingPlatform

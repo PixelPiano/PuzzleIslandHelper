@@ -1,15 +1,10 @@
 ﻿using Celeste.Mod.Helpers;
 using Celeste.Mod.Meta;
-
-using FrostHelper;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using MonoMod.Utils;
-using PrismaticHelper.Entities.Panels;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {

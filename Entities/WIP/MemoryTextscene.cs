@@ -1,5 +1,4 @@
 using Celeste.Mod.Entities;
-using FMOD;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;

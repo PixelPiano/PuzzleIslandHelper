@@ -2,13 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Windows;
 using Celeste.Mod.CommunalHelper;
-using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
-using FMOD.Studio;
 using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -16,7 +12,7 @@ using MonoMod.RuntimeDetour;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 {
-    public class PIPrologueSequence : CutsceneEntity
+    public class PrologueSequence : CutsceneEntity
     {
         private class EndingCutsceneDelay : Entity
         {
@@ -47,7 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
         private int Part;
         private List<CustomFlagExitBlock> blocks = new();
         public const string glitchEvent = "event:/PianoBoy/invertGlitch2";
-        public PIPrologueSequence(int part)
+        public PrologueSequence(int part)
             : base(fadeInOnSkip: false, endingChapterAfter: part >= 4)
         {
             Tag |= Tags.TransitionUpdate;

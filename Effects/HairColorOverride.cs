@@ -1,12 +1,6 @@
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Mono.Cecil.Cil;
 using Monocle;
-using MonoMod.Cil;
-using MonoMod.RuntimeDetour;
-using System;
 using System.Collections.Generic;
-using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {

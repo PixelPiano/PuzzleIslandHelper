@@ -1,9 +1,6 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PandorasBox;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Collections.Generic;
-using System.Linq;
 // PuzzleIslandHelper.ArtifactSlot
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

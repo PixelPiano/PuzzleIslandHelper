@@ -17,7 +17,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
-        public Dictionary<string, LevelTiles> TilesLookup = new();
         public bool ModeratorEscape;
         public bool MonitorActivated;
         public string CurrentAreaFlag;

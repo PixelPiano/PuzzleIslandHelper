@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Collections.Generic;
 
 // PuzzleIslandHelper.TransitionEvent
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions

@@ -9,7 +9,6 @@ using VivHelper.Colliders;
 using System.IO;
 using System;
 using System.Linq;
-using IL.Celeste;
 
 // PuzzleIslandHelper.LabFallingBlock
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities

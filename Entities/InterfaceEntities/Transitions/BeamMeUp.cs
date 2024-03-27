@@ -4,9 +4,7 @@ using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
-using System.Reflection.Emit;
 
 // PuzzleIslandHelper.TransitionEvent
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions

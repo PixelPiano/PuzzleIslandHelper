@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.CompilerServices;
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
 using Microsoft.Xna.Framework;

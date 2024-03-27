@@ -1,9 +1,6 @@
 ﻿using System;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities.LabGeneratorPuzzle.LGPOverlay;
 using System.Collections.Generic;
-using System.Linq;
 using Monocle;
-using FMOD;
 
 namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
 {

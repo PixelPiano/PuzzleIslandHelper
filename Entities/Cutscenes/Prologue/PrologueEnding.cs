@@ -1,10 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 using FMOD.Studio;

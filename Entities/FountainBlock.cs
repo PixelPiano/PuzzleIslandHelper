@@ -1,11 +1,7 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.FancyTileEntities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
 using System.Collections;
-using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {

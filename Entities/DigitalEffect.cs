@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Xml.Schema;
 using Celeste.Mod.Entities;
-using ExtendedVariants.Entities.ForMappers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;

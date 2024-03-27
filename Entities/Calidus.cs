@@ -3,11 +3,7 @@ using Monocle;
 using Celeste.Mod.Entities;
 using System;
 using System.Collections;
-using System.Reflection;
-using Microsoft.SqlServer.Server;
 using System.Linq;
-using System.Collections.Generic;
-using System.IO;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

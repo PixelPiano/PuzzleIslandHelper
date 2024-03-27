@@ -1,9 +1,7 @@
-using System;
 using Celeste.Mod.Backdrops;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {

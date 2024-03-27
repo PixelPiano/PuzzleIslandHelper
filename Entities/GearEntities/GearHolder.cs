@@ -5,10 +5,6 @@ using Celeste.Mod.Entities;
 using System.Collections;
 using System;
 using System.Collections.Generic;
-using Celeste.Mod.CommunalHelper;
-using System.IO;
-using MonoMod.Cil;
-using System.Runtime.CompilerServices;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities
 {

@@ -1,13 +1,8 @@
 
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
-using ExtendedVariants.Variants;
 using Microsoft.Xna.Framework;
 using Monocle;
-using MonoMod.Utils;
-using System;
 using System.Collections.Generic;
-using static Celeste.Trigger;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {

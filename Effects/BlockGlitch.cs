@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.Backdrops;
 using MonoMod.Cil;
@@ -8,7 +7,6 @@ using Mono.Cecil.Cil;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using System.Linq;
-using FrostHelper;
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {
     [CustomBackdrop("PuzzleIslandHelper/BlockGlitch")]

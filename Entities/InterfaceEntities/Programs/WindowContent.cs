@@ -1,4 +1,3 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
 using Monocle;
 using System.Collections;
 

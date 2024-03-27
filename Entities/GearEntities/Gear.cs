@@ -2,13 +2,7 @@
 using Monocle;
 using Celeste.Mod.Entities;
 using System;
-using System.Collections;
-using MonoMod.Utils;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using System.Collections.Generic;
-using FrostHelper;
-using System.Windows.Media.Imaging;
-using static Celeste.Mod.PuzzleIslandHelper.PuzzleData.AccessData;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities
 {

@@ -1,7 +1,6 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Mono.Cecil;
 using Monocle;
 using System;
 using System.Collections;

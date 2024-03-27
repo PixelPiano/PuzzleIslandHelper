@@ -1,12 +1,6 @@
-
-using FrostHelper;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
-using System;
-using System.CodeDom;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP.PianoEntities
 {

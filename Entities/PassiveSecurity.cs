@@ -1,13 +1,8 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.FancyTileEntities;
-using Celeste.Mod.Helpers;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Security.AccessControl;
-using System.Windows;
 
 // PuzzleIslandHelper.PassiveSecurity
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities

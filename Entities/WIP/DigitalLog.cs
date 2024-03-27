@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Reflection;
 using Color = Microsoft.Xna.Framework.Color;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;

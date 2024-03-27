@@ -2,13 +2,9 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
-using FMOD;
-using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {

@@ -1,13 +1,9 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PandorasBox;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
-using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
-using MonoMod.Utils;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 
 // PuzzleIslandHelper.WaterDroplet
 namespace Celeste.Mod.PuzzleIslandHelper.Entities

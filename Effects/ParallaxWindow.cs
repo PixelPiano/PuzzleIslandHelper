@@ -3,11 +3,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing.Text;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {

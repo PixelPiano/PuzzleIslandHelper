@@ -1,12 +1,6 @@
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Monocle;
-using MonoMod.Utils;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 
 // PuzzleIslandHelper.WaterDroplet
 namespace Celeste.Mod.PuzzleIslandHelper.Entities

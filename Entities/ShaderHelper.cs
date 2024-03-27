@@ -1,14 +1,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
-using Celeste.Mod.Backdrops;
-using MonoMod.Cil;
-using Mono.Cecil.Cil;
 using Microsoft.Xna.Framework;
-using System.Collections.Generic;
-using System.Linq;
-using FrostHelper;
-using FrostHelper.ModIntegration;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

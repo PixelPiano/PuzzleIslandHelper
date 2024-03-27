@@ -2,8 +2,6 @@
 using Monocle;
 using Celeste.Mod.Entities;
 using System;
-using System.Collections;
-using MonoMod.Utils;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

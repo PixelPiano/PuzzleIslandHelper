@@ -1,11 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Monocle;
-using MonoMod.Utils;
 using System;
 using Celeste.Mod.Entities;
 using System.Collections;
-using VivHelper;
-using VivHelper.Entities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {

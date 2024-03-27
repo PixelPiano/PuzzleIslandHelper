@@ -1,13 +1,8 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
-using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Collections;
 using System.Collections.Generic;
-using System.Drawing.Configuration;
-using System.Linq;
-using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {

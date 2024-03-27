@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {

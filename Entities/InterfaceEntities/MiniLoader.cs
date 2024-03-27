@@ -1,12 +1,8 @@
 
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing.Text;
-using System.Reflection;
-using System.Windows.Media.TextFormatting;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {

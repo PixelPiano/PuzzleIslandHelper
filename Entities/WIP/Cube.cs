@@ -1,8 +1,6 @@
-﻿using Celeste.Mod.Backdrops;
-using Celeste.Mod.CommunalHelper.Utils;
+﻿using Celeste.Mod.CommunalHelper.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System.Linq;
 using Monocle;
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Helpers;

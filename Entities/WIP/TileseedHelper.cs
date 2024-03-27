@@ -7,11 +7,7 @@ using MonoMod.Cil;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
-using System.Drawing.Drawing2D;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Xml;
-using VivHelper.Effects;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

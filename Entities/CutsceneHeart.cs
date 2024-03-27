@@ -4,10 +4,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 // PuzzleIslandHelper.CutsceneHeart
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
