@@ -38,7 +38,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             /*            Freid = level.Tracker.GetEntity<Freid>();
                         Played = true;
 
-                        Add(new Coroutine(OpenPassage(player)));*/
+                        Add(new Coroutine(OpenPassage(Player)));*/
             //level.Add(new MemoryTextscene(Vector2.Zero));
         }
         private IEnumerator Cutscene(Player player)

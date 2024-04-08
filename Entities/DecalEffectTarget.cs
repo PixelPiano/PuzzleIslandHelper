@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public DecalEffectTarget(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
-            Depth = data.Int("depth", 2);
+            Depth = data.Int("nDepth", 2);
             float delay = 1f / (data.Float("fps")/2f);
             sprite = new Sprite(GFX.Game, "decals/");
             string path = data.Attr("decalPath");

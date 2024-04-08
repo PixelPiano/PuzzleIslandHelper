@@ -227,9 +227,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (HasPlayerOnTop())
                 {
                     //float adjust = Dir == -1 ? -2 : 1;
-                    //player.MoveTowardsX((int)(CenterX + adjust), (int)Speed.X);
-                    //player.CenterX = Calc.LerpClamp(player.CenterX, CenterX, playerLerp);
-                    //player.Speed = Speed;
+                    //Player.MoveTowardsX((int)(CenterX + adjust), (int)Speed.X);
+                    //Player.CenterX = Calc.LerpClamp(Player.CenterX, CenterX, playerLerp);
+                    //Player.Speed = Speed;
                 }
                 if (Dir == 1 && Speed.X <= 0 || Dir == -1 && Speed.X >= 0)
                 {

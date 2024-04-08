@@ -170,7 +170,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             Player player = level.Tracker.GetEntity<Player>();
 
-            // Do nothing if there's no player entity, instead of crashing
+            // Do nothing if there's no Player entity, instead of crashing
             if (player == null)
             {
                 return;

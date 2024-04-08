@@ -306,7 +306,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 
 
         private void FluidEffect(PotionEffects effect, Player player)
-        { //player is affected if they are above or to the side of the fluid, lasts for the duration 
+        { //Player is affected if they are above or to the side of the fluid, lasts for the duration 
 
             bool Colliding = CollideCheck<Player>();
 

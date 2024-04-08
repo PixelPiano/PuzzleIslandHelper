@@ -12,29 +12,19 @@ uniform float4x4 ViewMatrix;
 uniform float2 Center = float2(0.5,0.5);
 uniform float Speed = 0.035;
 uniform float Amplitude;
-float length(float2 pos)
-{
-    return sqrt(pos.x * pos.x + pos.y * pos.y);
-}
-float2 Circle(float2 uv, float2 center, float2 size)
-{
-    float2 r = size; //define the radius of the circle
-    float invAr = Dimensions.x / Dimensions.y;
-	float x = (center.x-uv.x)*invAr;
-	float y = (center.y-uv.y);
-    float2 d = x*x + y*y; //pythagoreum theorum to find hypoteneuse(dist to middle)
-    d = d * 2 - r; // subtract the radius from the dist
-    return d;
-}
+uniform float2 TopLeft;
+uniform float2 BottomRight;
 DECLARE_TEXTURE(text, 0);
 float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 {
 	float2 worldPos = (uv * Dimensions) + CamPos;
     float amplitude = sin(Time);
-    float4 color = SAMPLE_TEXTURE(text, uv);
-    float dist = distance(circle,uv);
-    float4 y = float4(0.1,0,0.1,0.4);
-    return lerp(color,y, 0.7 / dist + (sin(Time) * 0.2));
+    if(uv.x >= TopLeft.x && uv.y >= TopLeft.y && uv.x <= BottomRight.x && uv.y <=BottomRight.y)
+    {
+        uv.x += uv.y / (Dimensions.y / 10) * Amplitude;
+    }
+    float4 color =  SAMPLE_TEXTURE(text, uv);
+    return color;
 }
 
 

@@ -15,6 +15,9 @@ public class ShaderFX
     public static Effect CurvedScreen;
     public static Effect FuzzyNoise;
     public static Effect FuzzyAppear;
+    public static Effect Shine;
+    public static Effect PlayerStatic;
+    public static Effect Sway;
 
     public static void LoadFXs()
     {
@@ -26,6 +29,10 @@ public class ShaderFX
         CurvedScreen = LoadFx("curvedScreen");
         FuzzyNoise = LoadFx("fuzzyNoise");
         FuzzyAppear = LoadFx("fuzzyAppear");
+        Shine = LoadFx("shine");
+        PlayerStatic = LoadFx("playerStatic");
+        Sway = LoadFx("huskSway");
+
     }
     public static void DisposeFXs()
     {
@@ -37,6 +44,9 @@ public class ShaderFX
         CurvedScreen?.Dispose();
         FuzzyNoise?.Dispose();
         FuzzyAppear?.Dispose();
+        Shine?.Dispose();
+        PlayerStatic?.Dispose();
+        Sway?.Dispose();
     }
     public static void Load()
     {

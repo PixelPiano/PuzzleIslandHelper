@@ -165,7 +165,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             GameplayRenderer.Begin(); // setup drawing again with standard properties
 
             // ...
-            // draw your mask (here, the player)
+            // draw your mask (here, the Player)
             player.Render();
             Draw.SpriteBatch.End();
 

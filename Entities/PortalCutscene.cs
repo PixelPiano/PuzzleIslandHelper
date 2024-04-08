@@ -17,16 +17,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool EventComplete = false;
         private float particleDistance = 8;
         private bool holdPosition;
+        private string room;
+        public bool TimerCanGlitch;
+        public bool InEndEvent;
         private bool Escaped => PianoModule.Session.Escaped;
         private readonly float[] freezeTimes = new float[] { 1, 1, 0.8f, 0.7f, 0.5f, 0.38f, 0.2f, 0.1f, 0.15f, 0.2f, 2 };
         private List<Entity> blockList;
 
         private TrianglePortal Portal;
-        public PortalCutscene(TrianglePortal portal, bool first) : base()
+        public PortalCutscene(TrianglePortal portal, bool first, string room) : base()
         {
             Tag = Tags.TransitionUpdate;
             First = first;
             Portal = portal;
+            this.room = room;
         }
         public override void OnBegin(Level level)
         {
@@ -40,23 +44,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 yield break;
             }
+            if (First)
+            {
+                InEndEvent = true;
+            }
             inEvent = true;
             Vector2 _position = player.Position;
+            player.StateMachine.State = Player.StDummy;
+            player.DummyAutoAnimate = false;
             player.DummyGravity = true;
             for (float i = 0; i < 1; i += 0.01f)
             {
                 player.Speed.Y = 5;
-                player.MoveToX(Calc.LerpClamp(_position.X, Center.X, i));
-                player.MoveToY(Calc.LerpClamp(_position.Y, Center.Y + 16, i));
+                player.MoveToX(Calc.LerpClamp(_position.X, Portal.Center.X, i));
+                player.MoveToY(Calc.LerpClamp(_position.Y, Portal.Center.Y + 16, i));
                 yield return null;
             }
             holdPosition = true;
-            Portal.StartRotating();
+            //Portal.StartRotating();
             yield return 1f;
-            while (!Portal.scaleStart)
+/*            while (!Portal.scaleStart)
             {
                 yield return null;
-            }
+            }*/
 
             for (float i = 0; i < 1; i += 0.08f)
             {
@@ -74,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             player.Visible = false;
             for (int i = 0; i < 16; i++)
             {
-                Portal.PoofParticles();
+                //Portal.PoofParticles();
                 yield return null;
             }
             yield return First ? 2 : 1;
@@ -85,6 +95,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             //teleport to digiC3
             inEvent = false;
             EventComplete = true;
+            if (First)
+            {
+                Level.Session.SetFlag("allDigitalAreasCleared");
+                Level.Session.SetFlag("becomeNormal");
+                Level.Session.SetFlag("GlitchCutsceneEnd");
+            }
+            PianoUtils.TeleportTo(Level, player, room, Player.IntroTypes.WakeUp);
         }
         public override void Update()
         {
@@ -92,8 +109,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (Scene is not Level level || level.GetPlayer() is not Player player) return;
             if ((holdPosition && inEvent) || EventComplete)
             {
-                player.MoveToX(Center.X);
-                player.MoveToY(Center.Y + 16);
+
+                player.MoveToX(Portal.Center.X);
+                player.MoveToY(Portal.Center.Y + 16);
             }
             //fadeLight
             if (Escaped)
@@ -127,7 +145,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return index != -1 ? freezeTimes[index] : Calc.Random.Range(0.01f, 0.1f);
                 index = index != -1 ? index != freezeTimes.Length - 1 ? index + 1 : -1 : -1;
             }
-
+            TimerCanGlitch = true;
             float _amount = Glitch.Value;
             Glitch.Value = 1;
             yield return 5;
@@ -138,7 +156,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public override void OnEnd(Level level)
         {
-          
+
         }
         #endregion
     }

@@ -64,7 +64,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             EventName = data.Attr("event");
             flag = data.Attr("flag");
             Thickness = data.Int("thickness");
-            Depth = data.Int("depth");
+            Depth = data.Int("nDepth");
             Collider = new Hitbox(data.Width, data.Height);
             Scale = new Vector2(data.Float("scaleX"), data.Float("scaleY"));
             Dangerous = data.Bool("dangerous");

@@ -244,7 +244,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                 {
                     if (playerAdjust)
                     {
-                        //player.Speed.X = (int)player.Facing * adjustSpeed;
+                        //Player.Speed.X = (int)Player.Facing * adjustSpeed;
                         player.Speed.X = Input.MoveX.Value * adjustSpeed;
                         Position.X = player.Position.X;
                     }

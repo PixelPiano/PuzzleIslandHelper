@@ -1,7 +1,9 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -9,8 +11,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class TrianglePortal : Entity
     {
-        //for the love of god do not use this entity in your map
-        #region BasicVariables
         private bool First;
         private float rectColorRate = 0;
         private float innerFlashRate = 0;
@@ -56,9 +56,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static VirtualRenderTarget PortalMask => _PortalMask ??= VirtualContent.CreateRenderTarget("PortalMask", 320, 180);
         public static VirtualRenderTarget PortalObject => _PortalObject ??= VirtualContent.CreateRenderTarget("PortalObject", 320, 180);
         public static VirtualRenderTarget ParticleObject => _ParticleObject ??= VirtualContent.CreateRenderTarget("PortalObject", 320, 180);
-        #endregion
-
-        #region EventVariables
+        
+        private float[] freezeTimes = new float[] { 1, 1, 0.8f, 0.7f, 0.5f, 0.38f, 0.2f, 0.1f, 0.15f, 0.2f, 2 };
+        private List<Entity> blockList;
         public bool scaleStart = false;
         private bool inRotateEvent = false;
         private bool EventComplete = false;
@@ -115,7 +115,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float angle2;
         private float angle3;
         private bool cutsceneAdded;
-        #endregion
+        private string teleportTo;
+        
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
@@ -135,7 +136,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 lightFlags[i] = data.Attr($"light{i + 1}flag");
             }
-            Depth = 1;
+            teleportTo = data.Attr("room");
+            Depth = 2;
             flag = data.Attr("flag");
             usesFlags = data.Bool("usesFlags", false);
             PortalState = !usesFlags;
@@ -215,9 +217,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            #region Sprites
             Add(triangle = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/portal/"));
-            SceneAs<Level>().Session.SetFlag("startWaiting",false);
+            SceneAs<Level>().Session.SetFlag("startWaiting", false);
             scene.Add(nodeEntity = new Entity(Position));
             scene.Add(nodeLight = new Entity(Position));
             for (int i = 0; i < nodes.Length; i++)
@@ -277,7 +278,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             triangle.SetColor(Color.Green);
             triangle.Visible = false;
             triangle.Play("idle");
-            #endregion
+            
             lightRenderA = lights[0].Position + Position + new Vector2(lights[0].Width / 2, lights[0].Height / 2);
             lightRenderB = lights[1].Position + Position + new Vector2(lights[1].Width / 2, lights[1].Height / 2);
             lightRenderC = lights[2].Position + Position + new Vector2(lights[2].Width / 2, lights[2].Height / 2);
@@ -300,68 +301,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            //SceneAs<Level>().Session.SetFlag("TimerEvent", false);
+            SceneAs<Level>().Session.SetFlag("TimerEvent", false);
+            SceneAs<Level>().Session.SetFlag("GlitchCutsceneEnd", false);
             scene.Add(system = new ParticleSystem(Depth + 1, 1000));
         }
-        public void StartRotating()
-        {
-            Add(new Coroutine(RotateCutscene()));
-        }
-        public override void Update()
-        {
-            base.Update();
-            player = Scene.Tracker.GetEntity<Player>();
-            if (player == null || SceneAs<Level>().Session.GetFlag(flag))
-            {
-                return;
-            }
-            
-            firstColor = Color.Lerp(Color.SpringGreen, Color.White, Calc.Random.Range(minColor, maxColor));
-            secondColor = Color.Lerp(Color.Turquoise, Color.White, Calc.Random.Range(minColor, maxColor));
-            thirdColor = Color.Lerp(Color.Green, Color.White, Calc.Random.Range(minColor, maxColor));
-            for (int i = 0; i < randomColors.Length; i++)
-            {
-                randomColors[i] = Calc.Random.Range(0.7f, 1);
-            }
-            if (EventComplete)
-            {
-                player.MoveToX(Center.X);
-                player.MoveToY(Center.Y + 16);
-            }
-            if (CollideCheck(player) && !cutsceneAdded && !EventComplete && PortalState)
-            {
-                SceneAs<Level>().Session.SetFlag("TimerEvent");
-                SceneAs<Level>().Add(new PortalCutscene(this, First));
-                cutsceneAdded = true;
-            }
-            for (int i = 1; i < innerTriangle.Length + 1; i++)
-            {
-                innerTriangle[i - 1].Rotation += 0.01f - i * rate;
-                rects[i - 1].Rotation += 0.01f;
-            }
-            for (int i = 0; i < 3; i++)
-            {
-                if (usesFlags)
-                {
-                    lightBools[i] = SceneAs<Level>().Session.GetFlag(lightFlags[i]);
-                    if (lightBools[i])
-                    {
-                        lights[i].Visible = true;
-                    }
-
-                    if (lightBools[0] && lightBools[1] && lightBools[2])
-                    {
-                        PortalState = true;
-                    }
-                }
-                else
-                {
-                    lights[i].Visible = true;
-                }
-            }
-
-        }
-        #region Particles
         private void AppearParticles()
         {
             if (!PortalState)
@@ -406,9 +349,175 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 particlesBG.Emit(PlayerPoof, 4, player.Center, new Vector2(player.Width / 2, player.Height));
             }
         }
-        #endregion
+        
 
-        #region Coroutines
+        public override void Update()
+        {
+            base.Update();
+            player = Scene.Tracker.GetEntity<Player>();
+            if (player == null || SceneAs<Level>().Session.GetFlag(flag))
+            {
+                return;
+            }
+
+            firstColor = Color.Lerp(Color.SpringGreen, Color.White, Calc.Random.Range(minColor, maxColor));
+            secondColor = Color.Lerp(Color.Turquoise, Color.White, Calc.Random.Range(minColor, maxColor));
+            thirdColor = Color.Lerp(Color.Green, Color.White, Calc.Random.Range(minColor, maxColor));
+            for (int i = 0; i < randomColors.Length; i++)
+            {
+                randomColors[i] = Calc.Random.Range(0.7f, 1);
+            }
+            if (EventComplete)
+            {
+                player.MoveToX(Center.X);
+                player.MoveToY(Center.Y + 16);
+            }
+            if (CollideCheck(player) && !inEvent && !EventComplete && PortalState)
+            {
+                SceneAs<Level>().Session.SetFlag("TimerEvent");
+                Add(new Coroutine(EndingEvent(), true));
+            }
+            for (int i = 1; i < innerTriangle.Length + 1; i++)
+            {
+                innerTriangle[i - 1].Rotation += 0.01f - i * rate;
+                rects[i - 1].Rotation += 0.01f;
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                if (usesFlags)
+                {
+                    lightBools[i] = SceneAs<Level>().Session.GetFlag(lightFlags[i]);
+                    if (lightBools[i])
+                    {
+                        lights[i].Visible = true;
+                    }
+
+                    if (lightBools[0] && lightBools[1] && lightBools[2])
+                    {
+                        PortalState = true;
+                    }
+                }
+                else
+                {
+                    lights[i].Visible = true;
+                }
+            }
+
+        }
+
+        private IEnumerator GlitchCutscene()
+        {
+            //audio glitching here is unintentional but makes the event 100% better because of it
+            int index = 0;
+            foreach (CustomFlagExitBlock block in blockList)
+            {
+                Celeste.Freeze(Calc.Random.Range(0.3f, 0.7f));
+                block.forceChange = true;
+                block.forceState = true;
+                yield return index != -1 ? freezeTimes[index] : Calc.Random.Range(0.01f, 0.1f);
+                index = index != -1 ? index != freezeTimes.Length - 1 ? index + 1 : -1 : -1;
+            }
+
+            float _amount = Glitch.Value;
+            Glitch.Value = 1;
+            SceneAs<Level>().Session.SetFlag("BigGlitching");
+            yield return 5;
+            Glitch.Value = _amount;
+            SceneAs<Level>().Session.SetFlag(flag);
+            SceneAs<Level>().Session.SetFlag("BigGlitching", false);
+            SceneAs<Level>().Session.SetFlag("GlitchCutsceneEnd");
+            yield return null;
+        }
+        private IEnumerator fadeLight()
+        {
+            //sorry i forgor to capitalize the f
+            while (true)
+            {
+                player = Scene.Tracker.GetEntity<Player>();
+                if (player == null)
+                {
+                    yield break;
+                }
+                if (SceneAs<Level>().Session.GetFlag(flag))
+                {
+                    player.Light.Alpha = 1;
+                    yield break;
+                }
+                if (player.Position.X < Center.X + Width && player.Position.X > Center.X - Width)
+                {
+                    if (player.Light.Alpha != 0)
+                    {
+                        player.Light.Alpha -= Engine.DeltaTime;
+                    }
+                }
+                else
+                {
+                    if (player.Light.Alpha < 1)
+                    {
+                        player.Light.Alpha += Engine.DeltaTime;
+                    }
+                    else
+                    {
+                        player.Light.Alpha = 1;
+                    }
+                }
+
+                yield return null;
+            }
+        }
+        private bool inEvent = false;
+        private IEnumerator EndingEvent()
+        {
+            if (SceneAs<Level>().Session.GetFlag(flag))
+            {
+                yield break;
+            }
+            //maddie get out of there oh no she cant hear us she's eating binary too loudly
+            inEvent = true;
+            player = Scene.Tracker.GetEntity<Player>();
+            Vector2 _position = player.Position;
+            player.DummyGravity = true;
+            for (float i = 0; i < 1; i += 0.01f)
+            {
+                player.Speed.Y = 5;
+                player.MoveToX(Calc.LerpClamp(_position.X, Center.X, i));
+                player.MoveToY(Calc.LerpClamp(_position.Y, Center.Y + 16, i));
+                yield return null;
+            }
+            Add(new Coroutine(HoldPosition(), true));
+            Add(new Coroutine(RotateCutscene(), true));
+            yield return 1f;
+            SceneAs<Level>().Session.SetFlag("startWaiting");
+            while (!scaleStart)
+            {
+                yield return null;
+            }
+
+            for (float i = 0; i < 1; i += 0.08f)
+            {
+                player.Sprite.Scale.X = Calc.LerpClamp(1, 2f, i);
+                yield return null;
+            }
+            for (float i = 0; i < 1; i += 0.1f)
+            {
+
+                player.Sprite.Scale.X = Calc.LerpClamp(2, 0, i);
+                player.Sprite.Scale.Y = Calc.LerpClamp(1, 0, i);
+                yield return null;
+            }
+            for (int i = 0; i < 16; i++)
+            {
+                PoofParticles();
+                player.Visible = false;
+                yield return null;
+            }
+            player.Visible = false;
+            yield return 1f;
+
+            Add(new Coroutine(GlitchCutscene(), true));
+            inEvent = false;
+            EventComplete = true;
+        }
         private IEnumerator RotateCutscene()
         {
             //SPEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEN
@@ -443,6 +552,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             inRotateEvent = false;
 
         }
+        private IEnumerator HoldPosition()
+        {
+            while (inEvent)
+            {
+                player.MoveToX(Center.X);
+                player.MoveToY(Center.Y + 16);
+                yield return null;
+            }
+        }
         private IEnumerator RotationLerp()
         {
             //The cooler Speen
@@ -473,6 +591,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 rate = _rate;
             }
         }
-        #endregion
+        
     }
 }

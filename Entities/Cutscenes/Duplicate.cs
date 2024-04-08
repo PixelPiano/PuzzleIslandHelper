@@ -21,7 +21,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private void BeforeRender()
         {
-            //if (Scene is not Level level || level.GetPlayer() is not Player player) return;
+            //if (Scene is not Level level || level.GetPlayer() is not Player Player) return;
 
         }
         public Scene ExtraScene;

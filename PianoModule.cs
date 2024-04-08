@@ -99,6 +99,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
             PrologueBooster.Load();
             PrologueSequence.Load();
             ShiftAreaRenderer.Load();
+
+            //PaintRenderer.Load();
         }
 
 
@@ -136,6 +138,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             PrologueSequence.Unload();
             PrologueBlock.Unload();
             ShiftAreaRenderer.Unload();
+            //PaintRenderer.Unload();
         }
 
         public override void Initialize()

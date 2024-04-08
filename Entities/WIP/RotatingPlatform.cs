@@ -258,7 +258,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 Speed = Vector2.Zero;
             }
             offset = newTiles.Position;
-            timer = moving && timer > 0 ? timer - Engine.DeltaTime : 0;
+            scaleTimer = moving && scaleTimer > 0 ? scaleTimer - Engine.DeltaTime : 0;
             switch (detectMode)
             {
                 case DetectMode.Position:

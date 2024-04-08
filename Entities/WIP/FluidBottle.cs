@@ -473,7 +473,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Vector2 Current = Position;
             bool condition1 = Current.Y < ReleasedPosition.Y; //aka if it hit the ceiling 
             bool condition2 = ReleasedPosition != Vector2.Zero; //if it opened at all
-            bool condition3 = MathHelper.Distance(Current.Y, ReleasedPosition.Y) > 17; //if the player isn't just dropping it
+            bool condition3 = MathHelper.Distance(Current.Y, ReleasedPosition.Y) > 17; //if the Player isn't just dropping it
             bool condition4 = MathHelper.Distance(Current.X, ReleasedPosition.X) > 0;
             if (Released && condition2 && !InTightSpaceWhenThrown && (condition3 || condition1 || condition4))
             {
@@ -681,7 +681,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             {
                 ThrowTimeDelay -= Engine.DeltaTime;
             }
-            /*            player.Border.Rate = Effect == PotionEffects.Sticky && PlayerOnTop ? PianoModule.Session.PotionSpeedMult.X == Slowed ? 0.4f : PianoModule.Session.PotionSpeedMult.X == Slower ? 0.2f : 0 : 1;
+            /*            Player.Border.Rate = Effect == PotionEffects.Sticky && PlayerOnTop ? PianoModule.Session.PotionSpeedMult.X == Slowed ? 0.4f : PianoModule.Session.PotionSpeedMult.X == Slower ? 0.2f : 0 : 1;
                         PianoModule.Session.PotionJumpMult = Effect == PotionEffects.Sticky && PlayerOnTop ? 0.4f : 1;*/
 
             if (Broken)

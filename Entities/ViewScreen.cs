@@ -20,7 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         public void Interact(Player player)
         {
             Scene?.Add(Content = new ViewContent((Scene as Level).Camera.Position.ToInt(), screen, Dialogs, true));
-            //player.StateMachine.FlagState = 11;
+            //Player.StateMachine.FlagState = 11;
         }
         public ViewScreen(float width, float height, Rectangle screen, string[] dialogs) : base(new Rectangle(0, 0, (int)width, (int)height), Vector2.UnitX * width / 2, null)
         {

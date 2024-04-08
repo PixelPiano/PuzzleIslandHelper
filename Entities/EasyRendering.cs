@@ -178,13 +178,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             Draw.SpriteBatch.Draw(drawing, Vector2.Zero, Color.White);
             return output;
         }
-        public static VirtualRenderTarget AddGlitch(VirtualRenderTarget obj, [Optional] float glitchAmount, [Optional] float glitchAmplitude)
+        public static VirtualRenderTarget AddGlitch(VirtualRenderTarget obj)
         {
             float glitchSave = Glitch.Value;
-            float val1 = glitchAmount == 0 ? Calc.Random.Range(0.2f, 1.0f) : glitchAmount;
-            float val2 = glitchAmplitude == 0 ? Calc.Random.Range(2, 30) : glitchAmplitude;
+            float val1 = Calc.Random.Range(0.2f, 1.0f);
+            float val2 = Calc.Random.Range(2, 30);
             Glitch.Value = val1;
             Glitch.Apply(obj, timer, seed, val2);
+            Glitch.Value = glitchSave;
+            return obj;
+        }
+        public static VirtualRenderTarget AddGlitch(VirtualRenderTarget obj, float glitchAmount, float glitchAmplitude)
+        {
+            float glitchSave = Glitch.Value;
+            Glitch.Value = glitchAmount;;
+            Glitch.Apply(obj, timer, seed, glitchAmplitude);
             Glitch.Value = glitchSave;
             return obj;
         }

@@ -220,7 +220,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             level.Flash(Color.White, true);
             level.Remove(Calidus);
             PianoUtils.InstantRelativeTeleport(level, "0-lcomp", true);
-            //InstantTeleport(level, player, "0-lcomp", 254, 383);
+            //InstantTeleport(level, Player, "0-lcomp", 254, 383);
             yield return null;
             player.Speed.X = -64;
             player.StateMachine.State = Player.StDummy;

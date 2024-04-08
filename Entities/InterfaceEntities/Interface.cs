@@ -249,8 +249,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             scene.Add(Cursor = new InterfaceCursor());
             scene.Add(Border = new InterfaceBorder());
 
-            //since the game renders entities in order based on their depth
-            //these three generic entities have to be made, since sprites don't have a depth field of their own.
+            //since the game renders entities in order based on their nDepth
+            //these three generic entities have to be made, since sprites don't have a nDepth field of their own.
             scene.Add(Power = new Entity());
             scene.Add(NightDay = new Entity());
             scene.Add(Monitor = new Entity());
@@ -283,7 +283,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             //the "screen" hasn't started up yet, so don't draw certain sprites until it has
             cursorSprite.Visible = PowerSprite.Visible = SunMoon.Visible = false;
 
-            //set depth values for rendering
+            //set nDepth values for rendering
             Power.Depth = BaseDepth - 1;
             NightDay.Depth = Power.Depth;
             Monitor.Depth = BaseDepth;
@@ -582,14 +582,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             if (Scene is not Level level) yield break;
             if (PianoModule.Session.CollectedDisks.Count == 0 && Version == Versions.Lab) //if it's the computer in the lab area
             {
-                if (!PianoModule.Session.HasFirstFloppy) //if player has not collected the floppy disk inside the computer by default
+                if (!PianoModule.Session.HasFirstFloppy) //if Player has not collected the floppy disk inside the computer by default
                 {
-                    yield return CollectFirstFloppyDisk(player); //play a cutscene where the player collects it
+                    yield return CollectFirstFloppyDisk(player); //play a cutscene where the Player collects it
                 }
                 yield break; //abort the rest of the interaction 
             }
 
-            player.StateMachine.State = Player.StDummy; //prevent the player from moving
+            player.StateMachine.State = Player.StDummy; //prevent the Player from moving
             string preset = "";
 
             //currently overengineered switch statement
@@ -602,8 +602,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                     level.Add(FloppyHUD = new FloppyHUD());
                     yield return FloppyHUD.Sequence();
 
-                    //if entity is removed or the player backs out of the hud
-                    //reset the player's state back to normal and ensure the hud gets removed from the scene, then abort the interaction
+                    //if entity is removed or the Player backs out of the hud
+                    //reset the Player's state back to normal and ensure the hud gets removed from the scene, then abort the interaction
                     if (FloppyHUD is null || FloppyHUD.LeftEarly)
                     {
                         player.StateMachine.State = Player.StNormal;
@@ -621,7 +621,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
             PianoModule.Session.Interface = this; //safety check for the next couple of methods
 
-            //create and add sprites, assign depth values so everything is displayed correctly
+            //create and add sprites, assign nDepth values so everything is displayed correctly
             LoadModules(level); //see image 2
 
             //load programs associated with the preset name (see image 3)

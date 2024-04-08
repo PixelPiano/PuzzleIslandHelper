@@ -2,6 +2,8 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
+using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
@@ -15,6 +17,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public VirtualRenderTarget Target => FG ? FGTarget : BGTarget;
         public bool FG;
         private bool doNotRender;
+        public PolygonScreen Screen
+        {
+            get
+            {
+                if (Scene is not Level level) return null;
+                return level.Tracker.GetEntity<PolygonScreen>();
+            }
+        }
+        public List<ShiftArea> Areas = new();
         public static void ChangeDepth(bool fg, int depth)
         {
             if (Engine.Scene is not Level level) return;
@@ -32,7 +43,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Depth = fg ? -10001 : 9999;
             Tag |= Tags.TransitionUpdate | Tags.Global;
             Add(new BeforeRenderHook(BeforeRender));
-            Collider = new Hitbox(320, 180);
         }
         public override void Render()
         {
@@ -43,29 +53,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public void BeforeRender()
         {
             if (Scene is not Level level) return;
-            doNotRender = !levelHasAreas(level);
+            doNotRender = !LevelHasAreas(level);
             Position = level.Camera.Position;
             if (doNotRender) return;
-            Matrix matrix = Matrix.Identity;
+            GetAllAreas(level);
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-            foreach (ShiftArea area in level.Tracker.GetEntities<ShiftArea>())
+            foreach (ShiftArea area in Areas)
             {
-                if(!area.OnScreen) continue;
-                area.BeforeRender(FG, !FG);
-                Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
-                Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, matrix);
-                Draw.SpriteBatch.Draw(FG ? area.FGTarget : area.BGTarget, Vector2.Zero, Color.White);
-                Draw.SpriteBatch.End();
+                RenderArea(area);
             }
         }
-        private bool levelHasAreas(Level level)
+        public void RenderArea(ShiftArea area)
         {
+            Level level = Scene as Level;
+            if (!area.Visible) return;
+            Vector2 add = area.Position - level.Camera.Position + (area.FollowCamera ? level.Camera.Position - level.LevelOffset : Vector2.Zero);
+            area.BeforeRender(FG, !FG);
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, Matrix.Identity);
+            if (area.OnScreen)
+            {
+                Draw.SpriteBatch.Draw(FG ? area.FGTarget : area.BGTarget, add, area.AreaColor * area.Alpha);
+            }
+            area.AfterRender(level);
+            Draw.SpriteBatch.End();
+        }
+        private bool LevelHasAreas(Level level)
+        {
+            return level.Tracker.GetEntities<ShiftArea>() is List<Entity> list && list.Count > 0;
+        }
+        private void GetAllAreas(Level level)
+        {
+            Areas.Clear();
             foreach (ShiftArea area in level.Tracker.GetEntities<ShiftArea>())
             {
-                if ((FG && area.HasFG) || (!FG && area.HasBG)) return true;
+                if ((FG && area.HasFG) || (!FG && area.HasBG))
+                {
+                    Areas.Add(area);
+                }
             }
-            return false;
+            Areas = Areas.OrderByDescending(item => item.AreaDepth).ToList();
         }
         public override void SceneEnd(Scene scene)
         {

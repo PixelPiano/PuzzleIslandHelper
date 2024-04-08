@@ -102,7 +102,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             Alert alarm = Alert.Create(Alert.AlarmMode.Oneshot,
                                 delegate
                                 {
-                                    if (Booster is not null && !InRoutine)
+                                    if (Booster is not null && !StartedRepairing)
                                     {
                                         SceneAs<Level>().Remove(Booster);
                                     }

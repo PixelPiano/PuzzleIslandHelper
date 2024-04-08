@@ -144,7 +144,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                     #region Shrink
                     for (float i = 0; i < 1; i += Engine.DeltaTime * 1.5f)
                     {
-                        PianoModule.Session.CurrentScale = Calc.LerpClamp(1, ShrinkMult, i); //shrink the player
+                        PianoModule.Session.CurrentScale = Calc.LerpClamp(1, ShrinkMult, i); //shrink the Player
                         HairAlpha = 1 - i * 1.5f;
                         yield return null;
                     }
@@ -165,7 +165,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                     }
                     for (float i = 0; i < 1; i += Engine.DeltaTime * 1.5f)
                     {
-                        PianoModule.Session.CurrentScale = Calc.LerpClamp(ShrinkMult, 1, i); //revert the player's size
+                        PianoModule.Session.CurrentScale = Calc.LerpClamp(ShrinkMult, 1, i); //revert the Player's size
                         HairAlpha = i * 1.5f;
                         yield return null;
                     }

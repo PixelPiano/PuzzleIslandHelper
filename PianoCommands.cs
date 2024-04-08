@@ -142,7 +142,7 @@ public class PianoCommands
     {
         PianoModule.Session.Escaped = state;
     }
-    [Command("printcollect", "Displays how many Puzzle Island collectables the player has")]
+    [Command("printcollect", "Displays how many Puzzle Island collectables the Player has")]
     private static void PrintCollectables()
     {
         int hearts = 0;
@@ -181,7 +181,7 @@ public class PianoCommands
         }
         Engine.Commands.Log(output);
     }
-    [Command("pi_collect", "Gives the player x amount of Puzzle Island collectables you CHEATER :3")]
+    [Command("pi_collect", "Gives the Player x amount of Puzzle Island collectables you CHEATER :3")]
     private static void GiveCollectable(int amount, bool heart = true)
     {
         for (int i = 0; i < amount; i++)
@@ -319,7 +319,7 @@ public class PianoCommands
     {
         Engine.Commands.Log($"{PianoModule.Session.HasInvert}");
     }
-    [Command("pi_setinvertdelay", "Changes how long the player needs to hold down dash before the invert ability activates")]
+    [Command("pi_setinvertdelay", "Changes how long the Player needs to hold down dash before the invert ability activates")]
     private static void SetInvert(float time)
     {
         InvertOverlay.WaitTime = time;

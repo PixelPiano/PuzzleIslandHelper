@@ -40,7 +40,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities
                 }
                 foreach (GearDoor door in LinkedDoors)
                 {
-                    door.CheckRegister(); //add the door state to a list to prevent open doors from closing if the player re-enters the room
+                    door.CheckRegister(); //add the door state to a list to prevent open doors from closing if the Player re-enters the room
                 }
             }
             yield return 0.2f;

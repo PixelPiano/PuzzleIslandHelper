@@ -1,14 +1,18 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
 using Celeste.Mod;
+using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
+using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -16,6 +20,123 @@ using System.Security.Cryptography;
 
 public static class PianoUtils
 {
+    public static float ClampRange(float value, float range)
+    {
+        float min = Calc.Min(range, -range);
+        float max = Calc.Max(range, -range);
+        return Calc.Clamp(value, min, max);
+    }
+    public static Vector2 ClampRange(Vector2 value, Vector2 range)
+    {
+        return new Vector2(ClampRange(value.X, range.X),ClampRange(value.Y, range.Y));
+    }
+    public static void TeleportTo(Scene scene, Player player, string room, Player.IntroTypes introType = Player.IntroTypes.Transition, Vector2? nearestSpawn = null)
+    {
+        if (scene is Level level)
+        {
+            level.OnEndOfFrame += delegate
+            {
+                level.TeleportTo(player, room, introType, nearestSpawn);
+            };
+        }
+    }
+
+    public static Vector2[] GetNodes(BinaryPacker.Element element, bool withPosition = false, Vector2 offset = default)
+    {
+        List<Vector2> output = new();
+        if (withPosition)
+        {
+            output.Add(Vector2.Zero);
+        }
+        for (int i = 0; i < (element.Children != null ? element.Children.Count : 0); i++)
+        {
+            Vector2 nodePosition = Vector2.Zero;
+            foreach (KeyValuePair<string, object> attribute2 in element.Children[i].Attributes)
+            {
+                if (attribute2.Key == "x")
+                {
+                    nodePosition.X = Convert.ToSingle(attribute2.Value, CultureInfo.InvariantCulture);
+                }
+                else if (attribute2.Key == "y")
+                {
+                    nodePosition.Y = Convert.ToSingle(attribute2.Value, CultureInfo.InvariantCulture);
+                }
+            }
+            output.Add(nodePosition);
+        }
+        for (int i = 0; i < output.Count; i++)
+        {
+            output[i] += offset;
+        }
+
+        return output.ToArray();
+    }
+    public static T[] Initialize<T>(Func<T> setValue, int length)
+    {
+        T[] array = new T[length];
+        if (setValue is null || setValue.Invoke() == null) return null;
+        for (int i = 0; i < length; i++)
+        {
+            array[i] = setValue.Invoke();
+        }
+        return array;
+    }
+    public static T[] Initialize<T>(T value, int length)
+    {
+        T[] array = new T[length];
+        if (value is null) return null;
+        for (int i = 0; i < length; i++)
+        {
+            array[i] = value;
+        }
+        return array;
+    }
+    public static Vector2 RandomFrom(this Vector2 vec, float xMin, float xMax, float yMin, float yMax)
+    {
+        vec = Random(xMin, xMax, yMin, yMax) + vec;
+        return vec;
+    }
+    public static Vector2 Center(this IEnumerable<VertexPositionColor> list)
+    {
+        Vector2 center = Vector2.Zero;
+        foreach (VertexPositionColor v in list)
+        {
+            center += v.Position.XY();
+        }
+        center /= list.Count();
+        return center;
+    }
+    public static Vector2 Sum(this IEnumerable<Vector2> positions)
+    {
+        Vector2 val = Vector2.Zero;
+        foreach (Vector2 v in positions)
+        {
+            val += v;
+        }
+        return val;
+    }
+    public static VertexPositionColor SetPosition(this VertexPositionColor vertex, Vector2 position)
+    {
+        vertex.Position.X = position.X;
+        vertex.Position.Y = position.Y;
+        return vertex;
+    }
+
+    public static VertexPositionColor Create(Vector2 position, Color color)
+    {
+        return new VertexPositionColor(new Vector3(position, 0), color);
+    }
+    public static int Modulas(int input, int divisor)
+    {
+        return (input % divisor + divisor) % divisor;
+    }
+    public static VirtualRenderTarget DrawBounds(this VirtualRenderTarget target, Vector2 position, Color color, bool hollow)
+    {
+        if (hollow) Draw.HollowRect(position.X, position.Y, target.Width, target.Height, color);
+        else Draw.Rect(position.X, position.Y, target.Width, target.Height, color);
+
+        return target;
+    }
     public static Collider Boundaries(this IEnumerable<Vector2> positions, Vector2 offset, int mult = 1)
     {
         float left, top, right, bottom;

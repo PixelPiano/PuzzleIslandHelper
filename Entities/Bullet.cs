@@ -108,7 +108,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         {
             //0: Moving in level
             //1: Went past the level bounds
-            //2: Hit the player
+            //2: Hit the Player
             Level level = Scene as Level;
             if (level is null)
             {

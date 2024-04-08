@@ -252,7 +252,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             this.offset = offset;
             #region Finished
             GunState = data.Bool("gunState");
-            Timer = data.Float("timer", 1);
+            Timer = data.Float("scaleTimer", 1);
             timeDelay = data.Float("WaitTime", 0);
             RespectCollision = data.Bool("respectCollisions", true);
             crossedFlag = data.Attr("flagOnCrossed");

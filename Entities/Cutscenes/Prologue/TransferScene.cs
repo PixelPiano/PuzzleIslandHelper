@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.CommunalHelper;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
@@ -7,27 +8,29 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing.Drawing2D;
 using System.Linq;
-using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 {
     [Tracked]
     public class TransferScene : CutsceneEntity
     {
-        public static FieldInfo lookupFieldInfo = typeof(Autotiler).GetField("lookup", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo terrainTypeInfo = typeof(Autotiler).GetField("TerrainType", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static List<char> validBgTiles;
+        public static List<char> validBgTiles = new()
+        {
+            '8','9','t','f','o','p','q','r','E','a','D','b','c','d','e','L','T','P','R','Y'
+        };
 
         public class Fader : Entity
         {
             public float Target;
             public bool Ended;
             public float fade;
+            public VirtualRenderTarget Helper;
             public Fader()
             {
-                Depth = -1000000;
+                Depth = -100000;
+                Helper = VirtualContent.CreateRenderTarget("FaderHelper", 320, 180);
+                Add(new BeforeRenderHook(BeforeRender));
             }
 
             public override void Update()
@@ -39,20 +42,46 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 }
                 base.Update();
             }
-
+            public override void Removed(Scene scene)
+            {
+                base.Removed(scene);
+                Helper?.Dispose();
+                Helper = null;
+            }
+            public void BeforeRender()
+            {
+                UnbornHusk husk = Scene.Tracker.GetEntity<UnbornHusk>();
+                if (husk is null || !husk.DoPulseGlitch) return;
+                Helper.DrawToObject(husk.RenderAllPulsesForTarget, Matrix.Identity, true);
+                Helper = EasyRendering.AddGlitch(Helper);
+            }
             public override void Render()
             {
-                Camera camera = (base.Scene as Level).Camera;
+                Level level = Scene as Level;
+                Camera camera = level.Camera;
                 if (fade > 0f)
                 {
                     Draw.Rect(camera.X - 10f, camera.Y - 10f, 340f, 200f, Color.Black * fade);
                 }
 
-                Player entity = base.Scene.Tracker.GetEntity<Player>();
-                if (entity != null)
+                UnbornHusk husk = Scene.Tracker.GetEntity<UnbornHusk>();
+                if (husk != null)
                 {
-                    entity.Render();
+                    level.SnapColorGrade("none");
+                    if (husk.DoPulseGlitch)
+                    {
+                        Draw.SpriteBatch.Draw(Helper, camera.Position, Color.White);
+                    }
+                    if (!husk.RenderStuff)
+                    {
+                        husk.RenderAllPulses();
+                    }
+                    level.SnapColorGrade("PuzzleIslandHelper/prologue");
                 }
+
+
+                Player entity = base.Scene.Tracker.GetEntity<Player>();
+                entity?.Render();
             }
         }
         public class CutsceneShiftAreas : Entity
@@ -161,7 +190,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                             break;
                         }
                     }
-                    if(collided) continue;
+                    if (collided) continue;
                     foreach (ShiftArea area2 in level.Tracker.GetEntities<ShiftArea>())
                     {
                         if (area2 is null) continue;
@@ -214,7 +243,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             }
             public static char RandTile()
             {
-                cacheValidTiles();
                 char result = '0';
                 while (result == '0')
                 {
@@ -222,24 +250,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 }
                 return result;
             }
-            public static void cacheValidTiles()
-            {
-                if (validBgTiles == null)
-                {
-                    IDictionary dictionary = lookupFieldInfo.GetValue(GFX.BGAutotiler) as IDictionary;
-                    validBgTiles = dictionary.Keys.Cast<char>().ToList();
-                }
-            }
         }
         public Fader fader;
         public Player player;
         private SineWave wave;
         private CutsceneShiftAreas Helper;
+        public PolygonScreen Screen;
         public TransferScene() : base(true, true)
         {
             Add(wave = new SineWave(1));
         }
-
         public override void OnBegin(Level level)
         {
             if (level.GetPlayer() is Player player)
@@ -250,7 +270,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             {
                 return;
             }
+            if (level.Tracker.GetEntity<PolygonScreen>() is PolygonScreen screen)
+            {
+                Screen = screen;
+            }
+            else
+            {
+                RemoveSelf();
+            }
             level.Add(fader = new Fader());
+
             Add(new Coroutine(Cutscene(level)));
         }
         private IEnumerator Cutscene(Level level)
@@ -258,10 +287,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             player.StateMachine.State = 11;
             player.StateMachine.Locked = true;
             player.DummyAutoAnimate = false;
+            player.DummyGravity = false;
             player.Dashes = 1;
             player.ForceStrongWindHair.X = 0f;
             fader.Target = 1f;
-            yield return 2f;
+            //yield return 2f;
             level.Camera.Position = player.Center - new Vector2(160, 90);
             player.Sprite.Play("sleep");
             yield return 1f;
@@ -277,16 +307,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                     yield return null;
                 }
             }
-            Helper = new(10);
-            level.Add(Helper);
+            //Helper = new(10);
+            //level.Add(Helper);
+            Add(new Coroutine(GlitchRoutine()));
+
+            yield return 1f;
+            yield return HuskSequence(level);
+            EndCutscene(level);
+        }
+        private IEnumerator HuskSequence(Level level)
+        {
+            UnbornHusk husk = new UnbornHusk(player.Position);
+            level.Add(husk);
+            yield return null;
+            while (!husk.WaitingForPolygonScreen)
+            {
+                yield return null;
+            }
+            Screen.Start();
+            yield return null;
+            husk.State = UnbornHusk.States.InControl;
+            while (!husk.Finished)
+            {
+                yield return null;
+            }
+        }
+        private IEnumerator GlitchRoutine()
+        {
             float value = Glitch.Value;
             while (true)
             {
-                Glitch.Value = value + (0.02f * wave.Value);
+                Glitch.Value = value + (0.02f * (wave.Value / 3));
                 yield return null;
             }
-
-            EndCutscene(level);
         }
         public override void OnEnd(Level level)
         {

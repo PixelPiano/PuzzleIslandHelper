@@ -982,7 +982,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                 {
                     return;
                 }
-                //Run a DFS (depth first search)
+                //Run a DFS (nDepth first search)
                 Stack<Tuple<int, int>> dfsStack = new Stack<Tuple<int, int>>();
                 dfsStack.Push(new Tuple<int, int>(0, 0));
                 while (dfsStack.Count > 0)

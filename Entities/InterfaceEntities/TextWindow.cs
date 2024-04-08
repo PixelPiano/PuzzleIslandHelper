@@ -111,7 +111,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
         }
 
-        // a small entity that just ensures the font loaded by the timer unloads upon leaving the map.
+        // a small entity that just ensures the font loaded by the scaleTimer unloads upon leaving the map.
         private class FontHolderEntity : Entity
         {
             public FontHolderEntity()

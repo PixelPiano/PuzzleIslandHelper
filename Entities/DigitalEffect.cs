@@ -147,6 +147,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool backFlicker;
 
         private bool lineFlicker;
+        private bool started;
 
         private float currentLineOpacity = 1;
 
@@ -210,6 +211,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Awake(scene);
             if (scene.GetPlayer() is not Player player) return;
+            Start(player);
+        }
+        public void Start(Player player)
+        {
+            started = true;
             IgnoreHair = true;
             Collider = new Hitbox(player.Width + 40, player.Height + 32, -(player.Width / 2) - (player.Facing == Facings.Right ? 19 : 18), player.Height - 22);
             for (int i = 0; i < Glitches.Length; i++)
@@ -253,7 +259,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Render();
             if (Scene is not Level level || ForceStop) return;
-            if (level.GetPlayer() is not Player player)
+            if (level.GetPlayer() is not Player player || !player.Visible)
             {
                 //Draw.Rect(Collider,Color.Red);
                 return;
@@ -298,6 +304,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             if (Scene is not Level level || level.GetPlayer() is not Player player) return;
+            if (!started)
+            {
+                Start(player);
+            }
             Position = player.Position;
             Collider.Position = new Vector2(-(player.Width / 2) - (player.Facing == Facings.Right ? 19 : 18), -player.Height - 22);
             currentLineOpacity = lineFlicker && Calc.Random.Range(0, 2) == 0 ? Calc.Random.Range(0, 2) == 0 ? 0.2f : 0.5f : 1;

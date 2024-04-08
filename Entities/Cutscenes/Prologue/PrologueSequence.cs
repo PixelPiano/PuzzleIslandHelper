@@ -259,7 +259,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             yield return player.DummyWalkTo(Level.Bounds.Width - 8);
             yield return null;
             yield return FadeStart();
-            //InstantTeleport(level, player, "temple", false, gondolaStart.X + gondolaPlayerOffset, gondolaStart.Y + 52);
+            //InstantTeleport(level, Player, "temple", false, gondolaStart.X + gondolaPlayerOffset, gondolaStart.Y + 52);
             yield return FadeEnd();
             yield return null;
         }
@@ -400,7 +400,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
         public IEnumerator FadeToTemple()
         {
             yield return FadeStart();
-            //InstantTeleport(level, player, "temple", false, gondolaStart.X + gondolaPlayerOffset, gondolaStart.Y + 52);
+            //InstantTeleport(level, Player, "temple", false, gondolaStart.X + gondolaPlayerOffset, gondolaStart.Y + 52);
             yield return FadeEnd();
             while (player is null || player.Dead || !gondola.Collider.Bounds.Contains(player.Position.ToPoint()))
             {

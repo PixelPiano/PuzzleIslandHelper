@@ -89,7 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             //flag = data.Attr("flag");
             
             shouldFade = data.Bool("cameraFade");
-            Depth = data.Int("depth", 1);
+            Depth = data.Int("nDepth", 1);
             float delay = 1f / data.Float("fps");
             sprite = new Sprite(GFX.Game, "decals/");
             effectString = data.Attr("gfxEffect");
