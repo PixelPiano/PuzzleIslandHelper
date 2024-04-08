@@ -1,16 +1,12 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections;
 using Celeste.Mod.CommunalHelper;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
-using System.Linq;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using FrostHelper;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

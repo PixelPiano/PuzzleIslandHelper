@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework;
 using Monocle;
 using Microsoft.Xna.Framework.Graphics;
-using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP.PianoEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP

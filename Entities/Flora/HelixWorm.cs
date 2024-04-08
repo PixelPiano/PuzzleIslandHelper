@@ -6,9 +6,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using static Celeste.Mod.PuzzleIslandHelper.Components.Segment;
-using System.Net.Sockets;
-using static Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs.Osc;
-using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 {

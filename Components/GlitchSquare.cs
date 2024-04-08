@@ -1,12 +1,8 @@
-﻿using Celeste.Mod.Entities;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities.TempleMonolith;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {

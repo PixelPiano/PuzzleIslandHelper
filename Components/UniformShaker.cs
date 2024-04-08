@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Reflection;
-using BepInEx.AssemblyPublicizer;
 using Microsoft.Xna.Framework;
 using Monocle;
 

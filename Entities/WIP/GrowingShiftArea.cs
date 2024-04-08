@@ -2,10 +2,7 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
-using System.Collections.Generic;
-using Microsoft.Xna.Framework.Graphics;
 using System.Collections;
-using Celeste.Mod.CommunalHelper;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

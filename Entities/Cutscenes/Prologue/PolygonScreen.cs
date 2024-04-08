@@ -1,12 +1,6 @@
-﻿using Celeste.Mod.Entities;
-using Celeste.Mod.PandorasBox;
-using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
-using FrostHelper;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Mono.Collections.Generic;
 using Monocle;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;

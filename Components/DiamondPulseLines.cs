@@ -1,12 +1,5 @@
-﻿using Celeste.Mod.Entities;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Graphics.PackedVector;
+﻿using Microsoft.Xna.Framework;
 using Monocle;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.InteropServices.Expando;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {

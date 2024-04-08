@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections;
-using System.Reflection;
-using BepInEx.AssemblyPublicizer;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
-using FMOD;
 using Microsoft.Xna.Framework;
 using Monocle;
 

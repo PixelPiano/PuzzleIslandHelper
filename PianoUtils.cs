@@ -8,7 +8,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
-using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -16,7 +15,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
 
 public static class PianoUtils
 {

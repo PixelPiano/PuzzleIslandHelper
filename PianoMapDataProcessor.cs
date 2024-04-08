@@ -1,11 +1,5 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
-using Microsoft.Xna.Framework;
-using PrismaticHelper.Effects;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Security;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {

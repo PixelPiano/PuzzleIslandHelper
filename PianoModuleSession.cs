@@ -11,7 +11,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections.Generic;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WIP.ShiftArea;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {

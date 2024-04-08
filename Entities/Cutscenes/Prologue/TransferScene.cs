@@ -1,6 +1,4 @@
 ﻿using Celeste.Mod.CommunalHelper;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
