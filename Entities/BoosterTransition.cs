@@ -19,18 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool RightSide;
         private bool UpSide;
         private bool DownSide;
-        private bool State
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(flag))
-                {
-                    return !inverted;
-                }
-                bool flagState = SceneAs<Level>().Session.GetFlag(flag);
-                return inverted ? !flagState : flagState;
-            }
-        }
+        private bool State => Scene is Level level && (string.IsNullOrEmpty(flag) || level.Session.GetFlag(flag) == inverted);
         public bool PlayerIsBoosting
         {
             get
@@ -53,7 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             RoomName = data.Attr("roomName");
             flag = data.Attr("flag");
-            inverted = data.Bool("invertFlag");
+            inverted = data.Bool("inverted");
             Collider = new Hitbox(data.Width, data.Height);
             LeftSide = data.Bool("fromLeft");
             RightSide = data.Bool("fromRight");

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
     [TrackedAs(typeof(WindowContent))]
+    [CustomProgram("PipeProgram")]
     public class PipeProgram : WindowContent
     {
         private string path => Flipped ? "01" : "00";

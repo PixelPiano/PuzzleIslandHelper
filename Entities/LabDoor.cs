@@ -21,17 +21,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 
         public string start;
 
-        public static int openSpeed = 100;
+        public int openSpeed = 100;
 
-        public static int closeSpeed = 30;
+        public int closeSpeed = 30;
 
         private int height = 48;
 
-        private bool moving = false;
-
-        private bool doorState;
-
         private Player player;
+
+        public enum States
+        {
+            Closed,
+            Closing,
+            Open,
+            Opening
+        }
+        public States State;
+        public States prevState;
         public LabDoor(EntityData data, Vector2 offset)
             : base(data.Position + offset, 8, 48, false)
         {
@@ -39,7 +45,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             flag = data.Attr("flag");
             start = data.Attr("startState");
             // TODO: read properties from data
-            Add(doorSprite = GFX.SpriteBank.Create("labDoor"));
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/machineDoor/"));
             doorSprite.AddLoop("idle", "idle", 0.1f);
             doorSprite.AddLoop("open", "open", 0.1f, 8);
@@ -52,80 +57,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             Depth = -8500;
             Add(new LightOcclude());
         }
-        public IEnumerator Open()
-        {
-            doorState = true;
-            doorSprite.Play("opening");
-            while (Collider.Height != 0)
-            {
-                Collider.Height = Calc.Approach(Collider.Height, 0, openSpeed * Engine.DeltaTime);
-                yield return null;
-            }
-
-            moving = false;
-        }
-        public IEnumerator Close()
-        {
-            doorState = false;
-            doorSprite.Play("closing");
-            while (Collider.Height != height)
-            {
-                Collider.Height = Calc.Approach(Collider.Height, height, closeSpeed * Engine.DeltaTime);
-                closeSpeed += 7;
-                yield return null;
-            }
-            closeSpeed = 30;
-            moving = false;
-        }
-        public void stateChange(bool state)
-        {
-            if (!moving)
-            {
-                if (state && !doorState)
-                {
-                    moving = true;
-                    Add(new SoundSource("event:/PianoBoy/labDoorOpen"));
-                    Add(new Coroutine(Open()));
-                }
-                else if (!state && doorState)
-                {
-                    moving = true;
-                    Add(new SoundSource("event:/PianoBoy/labDoorClose"));
-                    Add(new Coroutine(Close()));
-                }
-            }
-        }
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            player = Scene.Tracker.GetEntity<Player>();
-            if (player != null)
-            {
-                if (SceneAs<Level>().Session.GetFlag(flag) && !auto
-                     || player.Position.Y < Y + Height + 8 && player.Position.Y > Y - 8
-                     && (player.Position.X <= X + Width + range && player.Position.X > X + Width
-                     || player.Position.X >= X - range && player.Position.X < X))
-                {
-                    doorState = true;
-                    doorSprite.Play("open");
-                    Collider = new Hitbox(8, 0, 0, 0);
-                }
-                else
-                {
-                    doorState = false;
-                    doorSprite.Play("idle");
-                    Collider = new Hitbox(8, 48, 0, 0);
-                }
-            }
-        }
         public override void Update()
         {
-            base.Update();
-            player = Scene.Tracker.GetEntity<Player>();
 
+            prevState = State;
             if (!auto)
             {
-                stateChange(SceneAs<Level>().Session.GetFlag(flag));
+                bool flagState = SceneAs<Level>().Session.GetFlag(flag);
+                if (flagState && State != States.Open)
+                {
+                    State = States.Opening;
+                }
+                else if (!flagState && State != States.Closed)
+                {
+                    State = States.Closing;
+                }
             }
             else
             {
@@ -133,14 +79,62 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                     && (player.Position.X <= X + Width + range && player.Position.X > X + Width
                     || player.Position.X >= X - range && player.Position.X < X))
                 {
-                    stateChange(true);
+                    State = States.Opening;
                 }
                 if ((player.Position.Y > Y + Height + 8 || player.Position.Y < Y - 8)
                     && (player.Position.X > X + Width + range || player.Position.X < X - range))
                 {
-                    stateChange(false);
+                    State = States.Closing;
                 }
             }
+            if (prevState != State)
+            {
+                switch (State)
+                {
+                    case States.Opening:
+                        Add(new SoundSource("event:/PianoBoy/labDoorOpen"));
+                        doorSprite.Play("opening");
+                        break;
+                    case States.Closing:
+                        Add(new SoundSource("event:/PianoBoy/labDoorClose"));
+                        doorSprite.Play("closing");
+                        break;
+                }
+            }
+            switch (State)
+            {
+                case States.Closed:
+                    Collider.Height = height;
+                    closeSpeed = 30;
+                    doorSprite.Play("closed");
+                    break;
+                case States.Open:
+                    Collider.Height = 0;
+                    doorSprite.Play("open");
+                    break;
+                case States.Closing:
+                    Collider.Height = Calc.Approach(Collider.Height, height, closeSpeed * Engine.DeltaTime);
+                    closeSpeed += 7;
+                    break;
+                case States.Opening:
+                    Collider.Height = Calc.Approach(Collider.Height, 0, openSpeed * Engine.DeltaTime);
+                    break;
+            }
+            if (Collider.Height == height)
+            {
+                State = States.Closed;
+            }
+            if (Collider.Height == 0)
+            {
+                State = States.Open;
+            }
+            base.Update();
+        }
+
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            player = Scene.Tracker.GetEntity<Player>();
         }
     }
 }

@@ -4,7 +4,8 @@ using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
-    [TrackedAs(typeof(WindowContent))]
+    [Tracked]
+    [CustomProgram("GameOfLifeProgram")]
     public class GameOfLifeProgram : WindowContent
     {
         public const int W = 22;

@@ -41,6 +41,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
         public BetterWindow(Vector2 position, Interface inter)
         {
+
             Interface = inter;
             Depth = Interface.BaseDepth - 4;
             Position = position;

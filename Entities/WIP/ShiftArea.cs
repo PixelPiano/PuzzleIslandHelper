@@ -73,6 +73,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public bool Glitchy;
         public bool ConnectLines;
         public bool WasFixed;
+        public bool SwapBG;
+        public bool SwapFG;
 
         public bool Shrinking;
         public bool LinesConnected;
@@ -105,11 +107,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public VertexBreath[] VertexBreathing;
         public SineWave LineAlphaFader;
 
-        public ShiftArea(EntityData data, Vector2 offset) : this(data.Position, offset, data.Char("bgFrom", '0'), data.Char("bgTo", '0'), data.Char("fgFrom", '0'), data.Char("fgTo", '0'), data.NodesWithPosition(Vector2.One * 4), GetIndices(data, false))
+        public ShiftArea(EntityData data, Vector2 offset) : this(data.Position, offset, data.Char("bgFrom", '0'), data.Char("bgTo", '0'), data.Char("fgFrom", '0'), data.Char("fgTo", '0'), data.NodesWithPosition(Vector2.One * 4), GetIndices(data, false), data.Bool("swapBg"), data.Bool("swapFg"))
         {
         }
-        public ShiftArea(Vector2 position, Vector2 offset, char bgFrom, char bgTo, char fgFrom, char fgTo, Vector2[] nodes, int[] indices) : this(position + offset)
+        public ShiftArea(Vector2 position, Vector2 offset, char bgFrom, char bgTo, char fgFrom, char fgTo, Vector2[] nodes, int[] indices, bool swapBG = true, bool swapFG = true) : this(position + offset)
         {
+            SwapBG = swapBG;
+            SwapFG = swapFG;
             BgFrom = bgFrom;
             BgTo = bgTo;
             FgFrom = fgFrom;
@@ -118,6 +122,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             CreateArrays(nodes);
             Add(VertexBreathing);
             Box = PianoUtils.Boundaries(Points, offset);
+            SwapBG = swapBG;
+            SwapFG = swapFG;
         }
         public ShiftArea(Vector2 position) : base(position)
         {
@@ -631,7 +637,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                         if (x4 > 0 && x4 < fgTexes.Columns && y3 > 0 && y3 < fgTexes.Rows && (allowAir || fgData[x4, y3] != '0'))
                         {
                             char c = fgData[x4, y3];
-                            newFgData[x4 - ox + 1, y3 - oy + 1] = c == FgFrom ? FgTo : c == FgTo ? FgFrom : c;
+                            newFgData[x4 - ox + 1, y3 - oy + 1] = c == FgFrom ? FgTo : c == FgTo && SwapFG ? FgFrom : c;
                         }
                     }
                 }
@@ -661,7 +667,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                                 cY = y - oy + 1;
                                 if (cX >= 0 && cY >= 0 && cX < newBgData.Columns && cY < newBgData.Rows)
                                 {
-                                    newBgData[cX, cY] = c == BgFrom ? BgTo : c == BgTo ? BgFrom : c;
+                                    newBgData[cX, cY] = c == BgFrom ? BgTo : c == BgTo && SwapBG ? BgFrom : c;
                                 }
                             }
                         }

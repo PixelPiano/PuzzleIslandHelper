@@ -6,7 +6,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
 {
     public class StageData
     {
-
         public int CurrentStage { get; set; }
         public bool Completed
         {

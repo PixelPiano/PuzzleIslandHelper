@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
 
@@ -27,10 +28,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public Vector2 Speed = default;
         public Vector2 Curve;
         public Vector2 orig;
+        public Vector2 origRenderPosition;
         public float Left, Top, Right, Bottom;
         public float LeftExt, TopExt, RightExt, BottomExt;
-
+        public float RenderLeft => origRenderPosition.X + Left;
+        public float RenderRight => origRenderPosition.X + Right;
+        public float RenderTop => origRenderPosition.Y + Top;
+        public float RenderBottom => origRenderPosition.Y + Bottom;
         public Segment Previous;
+
+        public float Width => RenderRight - RenderLeft;
+        public float Height => RenderBottom - RenderTop;
         public Vector2 RenderPosition
         {
             get
@@ -55,18 +63,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         private float shockTimer;
         private float shockTime = 4;
         private float wiggleAmount = 1;
-
+        public bool IgnoreBounds;
         public Vector2 TargetOffset;
-        private Vector2 targetOffset;
         public bool Wiggling;
         public Vector2 Target;
         public float RetractAmount;
+        public Rectangle Bounds;
+        public Vector2 Momentum;
+        public Vector2 CurveExtend;
+        public float CurveExtendX;
+        public float CurveExtendY;
         public float TurningSpeed => 60f * Engine.DeltaTime;
         public static MTexture Head = GFX.Game["objects/PuzzleIslandHelper/flora/helixWorm/head"];
         public Segment(Vector2 position, Limbs limb) : base(true, true)
         {
+
             orig = Position = position;
             Limb = limb;
+
         }
         public override void Added(Entity entity)
         {
@@ -75,6 +89,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             Right += orig.X;
             Top += orig.Y;
             Bottom += orig.Y;
+            origRenderPosition = RenderPosition;
+            Bounds = new Rectangle((int)Left, (int)Top, (int)Width, (int)Height);
         }
         public Segment(Segment previous, Vector2 position, Limbs limb) : this(position, limb)
         {
@@ -84,7 +100,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         {
             base.DebugRender(camera);
             if (Limb == Limbs.Base) return;
-            Draw.Line(RenderPosition, Previous.RenderPosition, Color.Lerp(Color.Brown, Color.Orange, (Speed.X + Speed.Y) / 2));
+            Draw.Line(RenderPosition.Round(), Previous.RenderPosition.Round(), Color.Lerp(Color.Brown, Color.Orange, (Speed.X + Speed.Y) / 2));
+            Draw.HollowRect(RenderLeft, RenderTop, Width, Height, Color.Blue);
+            if (Limb == Limbs.Head)
+            {
+                Draw.HollowRect(Target, 4, 4, Color.LightGreen);
+                Draw.HollowRect(RenderPosition, 4, 4, Color.White);
+            }
+        }
+        private const float Epsilon = 0.1f;
+        public void StartWander()
+        {
+            SpeedMult = 0.2f;
         }
         public override void Update()
         {
@@ -95,10 +122,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 waveTimer = Parent.waveTimer;
                 Behavior = Parent.Behavior;
                 FacingTarget = Parent.FacingTarget;
-                Target = Parent.Target;
                 RetractAmount = Parent.RetractAmount;
-                Anger = Parent.Anger;
-                TargetOffset = Approach(targetOffset, Parent.TargetOffset, 10f * Engine.DeltaTime);
+                TargetOffset = Parent.TargetOffset;
+                Target = Parent.Target + TargetOffset;
             }
             if (Limb == Limbs.Base) return;
             switch (Behavior)
@@ -113,19 +139,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     SleepingUpdate();
                     break;
             }
+
             FacingAmount = Calc.Approach(FacingAmount, -(int)Facing * FacingTarget, TurningSpeed);
-            Vector2 direction = (Target - RenderPosition).SafeNormalize();
-            Speed.X += Math.Sign(direction.X);
-            Speed.Y += Math.Sign(direction.Y);
+            if (Vector2.Distance(Target, RenderPosition) > Epsilon)
+            {
+                Vector2 direction = (Target - RenderPosition).SafeNormalize();
+                Speed.X = Math.Abs(direction.X) * Engine.DeltaTime;
+                Speed.Y = Math.Abs(direction.Y) * Engine.DeltaTime;
 
-            Vector2 speed = Speed * Engine.DeltaTime * SpeedMult;
-            Position += speed;
-            float offX = Math.Abs(TargetOffset.X);
-            float offY = Math.Abs(TargetOffset.Y);
-            Position = Calc.Clamp(Position, Left - offX, Top - offY, Right + offX, Bottom + offY);
-            RenderPosition = Vector2.Lerp(RenderPosition, Previous.RenderPosition - Vector2.UnitY * 4, RetractAmount);
-            Speed = Approach(Speed, Vector2.Zero, 600f * Engine.DeltaTime);
+                float x = Calc.LerpClamp(RenderPosition.X, Target.X, Speed.X * SpeedMult);
+                float y = Calc.LerpClamp(RenderPosition.Y, Target.Y, Speed.Y * SpeedMult);
+                RenderPosition = new Vector2(x,y);
 
+                Position = Calc.Clamp(Position, Left, Top, Right, Bottom);
+
+            }
+            if (Behavior is HelixWorm.Behaviors.WakingUp or HelixWorm.Behaviors.Sleeping)
+            {
+                RenderPosition = Vector2.Lerp(RenderPosition, Previous.RenderPosition - Vector2.UnitY * 4, RetractAmount);
+            }
+            Momentum = Vector2.Lerp(Momentum, Vector2.Zero, Engine.DeltaTime);
         }
         public void SleepingUpdate()
         {
@@ -138,6 +171,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         }
         public void WanderingUpdate()
         {
+            SpeedMult = Calc.LerpClamp(SpeedMult, 1, Engine.DeltaTime);
         }
         public void LookingAtPlayerUpdate()
         {
@@ -156,6 +190,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     Shocked = false;
                 }
             }
+            SpeedMult = 1 + Calc.Clamp(0.5f - FacingAmount,0,1);
         }
         public void Wiggle(float time, int wiggles, float amount)
         {
@@ -222,6 +257,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         }
         public void DrawCurve(Vector2 from, Vector2 to, Vector2 control)
         {
+            from = from.Round();
+            to = to.Round();
             SimpleCurve curve = new SimpleCurve(from, to, (from + to) / 2f + control);
             Vector2 vector = curve.Begin;
             int steps = (int)Vector2.Distance(from, to);
@@ -230,7 +267,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 float percent = (float)j / steps;
                 float colorAmount = Calc.Clamp(MathHelper.Distance(0.5f, percent), 0.15f, 0.85f) / 0.35f;
                 Vector2 point = curve.GetPoint(percent).Round();
-                Draw.Line(vector, point, Color.Lerp(Color.White, Color.Gray,1 - colorAmount), 2);
+                Draw.Line(vector, point, Color.Lerp(Color.White, Color.Gray, 1 - colorAmount), 2);
                 vector = point + (vector - point).SafeNormalize();
             }
         }
@@ -238,14 +275,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         {
             base.Render();
             if (Previous is null) return;
-
+            //Vector2 extend = new Vector2(CurveExtend.X * FacingAmount, CurveExtend.Y * FacingAmount);
             Vector2 scaled = new Vector2(Curve.X * FacingAmount, Curve.Y) * wiggleAmount;
             float sine = (1 + (float)Math.Sin(waveTimer) / 2f);
-            if(Limb == Limbs.Body)
+            if (Limb == Limbs.Body)
             {
                 sine *= 1.5f;
             }
-            Vector2 stress = Vector2.UnitY * Stress * 2;
             Vector2 a = Previous.RenderPosition + Previous.ShockAmount;
             Vector2 b = RenderPosition + ShockAmount;
 

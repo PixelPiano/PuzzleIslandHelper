@@ -5,6 +5,7 @@ using Monocle;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
     [TrackedAs(typeof(WindowContent))]
+    [CustomProgram("Fountain")]
     public class FountainProgram : WindowContent
     {
         public bool Flipped;

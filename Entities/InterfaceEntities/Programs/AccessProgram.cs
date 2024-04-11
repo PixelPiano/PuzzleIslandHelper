@@ -7,7 +7,8 @@ using static Celeste.Mod.PuzzleIslandHelper.PuzzleData.AccessData;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
-    [TrackedAs(typeof(WindowContent))]
+    [Tracked]
+    [CustomProgram("Access")]
     public class AccessProgram : WindowContent
     {
         public static bool AccessTeleporting;

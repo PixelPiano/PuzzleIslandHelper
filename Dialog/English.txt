@@ -24,6 +24,8 @@ lifeInfo=It's Conway's Game of Life (with some bonus features):{n}Randomize: Doe
 accessInfo=This program lets the user type in a phrase. In another file, there is a dictionary of keys that link to the names of various levels (rooms) in the map. If the user inputs the correct key, they will activate a sequence where an animation plays and they are teleported to the cooresponding level. 
 
 
+interfaceNoPower=It won't turn on.
+interfaceNoFloppy=There's nothing on the screen.
 
 elevatorRocks=
 A cluster of rocks is embeded in the main control panel.

@@ -13,11 +13,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private DynamicData cobwebData;
         private Color fColor;
         private string hex;
-        public FloatingCobweb(EntityData data, Vector2 offset) : base(data, offset)
+        public static EntityData CreateData(Vector2 position, Vector2[] nodes)
         {
+            EntityData data = new EntityData();
+            data.Position = position;
+            data.Nodes = nodes;
+            return data;
+        }
+        public FloatingCobweb(EntityData data, Vector2 offset) : this(data.Position, offset, data.Nodes, data.HexColor("color"))
+        {
+        }
+        public FloatingCobweb(Vector2 position, Vector2 offset, Vector2[] nodes, Color color) : base(CreateData(position, nodes), offset)
+        {
+            fColor = color;
             cobwebData = DynamicData.For(this);
-            hex = data.Attr("color");
-            fColor = Calc.HexToColor(hex);
         }
         public override void Added(Scene scene)
         {
@@ -28,10 +37,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 areaData.CobwebColor = OverrideColors;
             }
-            
+
             cobwebData.Set("color", fColor);
-            
-            cobwebData.Set("edge",Color.Lerp(cobwebData.Get<Color>("color"), Calc.HexToColor("0f0e17"), 0.2f));
+
+            cobwebData.Set("edge", Color.Lerp(cobwebData.Get<Color>("color"), Calc.HexToColor("0f0e17"), 0.2f));
             areaData.CobwebColor = cobwebColor;
         }
 

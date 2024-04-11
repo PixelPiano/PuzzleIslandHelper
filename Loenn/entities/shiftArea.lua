@@ -25,8 +25,10 @@ shiftArea.placements = {
         height = 8,
         bgFrom = "",
         bgTo = "",
+        swapBg = false,
         fgFrom = "",
         fgTo = "",
+        swapFg = false,
         indices = ""
     }
 }

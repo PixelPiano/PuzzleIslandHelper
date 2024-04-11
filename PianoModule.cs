@@ -26,6 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static InterfaceData InterfaceData { get; set; }
         public static GameshowData GameshowData { get; set; }
         public static AccessData AccessData { get; set; }
+        public static MazeData MazeData { get; set; }
         public PianoModule()
         {
             Instance = this;
@@ -41,6 +42,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
             InterfaceData = GetContent<InterfaceData>("InterfacePresets");
             GameshowData = GetContent<GameshowData>("GameshowQuestions");
             AccessData = GetContent<AccessData>("AccessLinks");
+            MazeData = GetContent<MazeData>("GrassMaze");
+            MazeData?.ParseData();
             StageData?.ParseData();
             GameshowData?.ParseData();
             AccessData?.ParseData();
@@ -99,6 +102,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             PrologueBooster.Load();
             PrologueSequence.Load();
             ShiftAreaRenderer.Load();
+            ProgramLoader.Load();
 
             //PaintRenderer.Load();
         }
@@ -138,6 +142,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             PrologueSequence.Unload();
             PrologueBlock.Unload();
             ShiftAreaRenderer.Unload();
+            GrassMazeOverlay.Unload();
             //PaintRenderer.Unload();
         }
 

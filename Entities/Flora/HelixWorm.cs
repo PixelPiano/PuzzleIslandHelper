@@ -1,5 +1,6 @@
 ﻿using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using ExtendedVariants.Entities.ForMappers;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -13,6 +14,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
     [Tracked]
     public class HelixWorm : Entity
     {
+        private Vector2 aHeadPosition => Head is not null ? Head.Position : Vector2.Zero;
+        private Vector2 aHeadSpeed => Head is not null ? Head.Speed : Vector2.Zero;
+        private Vector2 aHeadSpeedMultiplied => Head is not null ? aHeadSpeed * Head.SpeedMult * Engine.DeltaTime : Vector2.Zero;
         public const float BaseSpeed = 500f;
         public float MaxHeight = 32;
         public float waveTimer;
@@ -21,27 +25,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public Vector2 Scale;
         public Player Player;
         public float Stress = 1;
-        public Segment BaseSegment;
-        public Segment NeckSegment;
-        public Segment HeadSegment;
+        public Segment Base;
+        public Segment Neck;
+        public Segment Head;
         public List<Segment> Segments = new();
         public Collider HeadCollider;
         public enum Behaviors
         {
             LookingAtPlayer,
             Sleeping,
-            Wandering
+            Wandering,
+            WakingUp
         }
         public Behaviors Behavior;
         public Vector2 TargetOffset;
-        public float Anger;
         public Vector2 TestPoint;
         public Vector2 LineStart;
         public Vector2 LineEnd;
         public Vector2 DodgeEnd;
+        private float wanderTimer;
+
 
         public bool Shocked;
-
+        public float WanderAmount;
         public float Energy;
         public float EnergyRate;
 
@@ -61,14 +67,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 
         private float maxRunTimer;
 
+        public Coroutine WanderRoutine;
+
         public float RetractAmount;
         public bool Sleeping;
         public float outOfRangeTimer;
 
         public Vector2 Target;
+        public Vector2 WanderTarget;
         public Collider SenseBox;
         public float ShockRate;
+        public bool UpdateSegmentPosition;
         public Behaviors PreviousBehavior;
+
+        private IEnumerator WanderLerp(float time)
+        {
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                WanderAmount = Ease.SineInOut(i);
+                yield return null;
+            }
+            WanderAmount = 1;
+        }
         public void Sleep()
         {
             if (Behavior == Behaviors.Sleeping) return;
@@ -77,21 +97,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public void Wake(float energyMult)
         {
-            //Energy = 1 * energyMult;
-            Energy = 0;
+            Energy = 1 * energyMult;
+            Behavior = Behaviors.WakingUp;
+        }
+        public void LookAtPlayer()
+        {
             Behavior = Behaviors.LookingAtPlayer;
+        }
+        public void Wander()
+        {
+            if (Behavior != Behaviors.Wandering)
+            {
+                wanderTimer = 0;
+                //Add(WanderRoutine = new Coroutine(Wandering()));
+            }
+            Behavior = Behaviors.Wandering;
+        }
+        public bool SensesPlayer()
+        {
+            return Math.Abs(PlayerDistance) < 1.5f && Awareness > 0.5f;
         }
         public void LookingAtPlayerUpdate()
         {
-            if (Anger > 0.5f)
-            {
-                Anger -= Engine.DeltaTime / 2;
-            }
-            else
-            {
-                Anger -= Engine.DeltaTime;
-            }
-            RetractAmount = Calc.Clamp(RetractAmount - Engine.DeltaTime, 0, 1);
             if (Math.Abs(PlayerDistance) > 2)
             {
                 outOfRangeTimer += Engine.DeltaTime;
@@ -102,50 +129,65 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             if (outOfRangeTimer > 3)
             {
-                Behavior = Behaviors.Sleeping;
+                Wander();
                 outOfRangeTimer = 0;
                 return;
             }
-            //Energy += LookingEnergyRate * Engine.DeltaTime;
-            Target = Player.Center + TargetOffset.Round();
+            Energy += LookingEnergyRate * Engine.DeltaTime;
+            Target = Player.Center;
             LeftAwarenessMult = RightAwarenessMult = LookingAwareness;
-            Facing = (Facings)(Player.X < CenterX ? -1 : 1);
         }
         public void WanderingUpdate()
         {
-            Anger -= Engine.DeltaTime;
-            RetractAmount = Calc.Clamp(RetractAmount - Engine.DeltaTime, 0, 1);
-            outOfRangeTimer = 0;
-            if (Awareness >= 0.4f)
+            wanderTimer -= Engine.DeltaTime;
+            if (wanderTimer <= 0)
             {
-                Behavior = Behaviors.LookingAtPlayer;
+                wanderTimer = Calc.Random.Range(4, 8f);
+                float third = Head.Width / 3;
+                int mult = Calc.Random.Choose(0, 2);
+                float x = (mult * third) + Calc.Random.Range(0, third);
+                Target = new Vector2(Head.RenderLeft + x, Head.RenderBottom - Calc.Random.Range(0f, Head.Height));
+                Add(new Coroutine(WanderLerp(Calc.Random.Range(4, 8f))));
+                foreach (Segment s in Segments)
+                {
+                    s.StartWander();
+                }
+            }
+
+            outOfRangeTimer = 0;
+            if (SensesPlayer())
+            {
+                LookAtPlayer();
                 return;
             }
-            //Energy += WanderingEnergyRate * Engine.DeltaTime;
+            Energy += WanderingEnergyRate * Engine.DeltaTime;
             LeftAwarenessMult = WanderingAwareness * (Facing is Facings.Right ? 0.5f : 1);
             RightAwarenessMult = WanderingAwareness * (Facing is Facings.Right ? 1 : 0.5f);
         }
         public void SleepingUpdate()
         {
-            Anger -= 0.05f * Engine.DeltaTime;
             RetractAmount = Calc.Clamp(RetractAmount + Engine.DeltaTime, 0, 1);
             Energy += SleepingEnergyRate * Engine.DeltaTime;
-            //LeftAwarenessMult = RightAwarenessMult = SleepingAwareness;
-            //Target = new Vector2(Position.X, Bottom);
-            if (Anger < 0.5f)
+            LeftAwarenessMult = RightAwarenessMult = SleepingAwareness;
+            if (Energy >= 1)
             {
-                if (Shocked)
-                {
-                    Wake(3);
-                    return;
-                }
-                if (Energy >= 1)
-                {
-                    Wake(2);
-                }
+                Wake(4);
+            }
+            if (Awareness >= 1)
+            {
+                Wake(2);
             }
             Shocked = false;
             ShockRate = 0;
+        }
+        public void WakingUpUpdate()
+        {
+            RetractAmount = Calc.Clamp(RetractAmount - Engine.DeltaTime, 0, 1);
+            if (RetractAmount == 0)
+            {
+                if (SensesPlayer()) LookAtPlayer();
+                else Wander();
+            }
         }
         public void UpdateBehavior()
         {
@@ -160,34 +202,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 case Behaviors.Wandering:
                     WanderingUpdate();
                     break;
+                case Behaviors.WakingUp:
+                    WakingUpUpdate();
+                    break;
             }
-            /*             if (Math.Abs(PlayerDistance) <= 2)
-                        {
-                            if (Math.Abs(Player.Speed.X) >= Player.MaxRun)
-                            {
-                                float mult = Math.Sign(PlayerDistance) == -1 ? LeftAwarenessMult : RightAwarenessMult;
-                                mult *= 1 + Math.Abs(Player.Speed.X) / Player.MaxRun;
-                                Awareness += Engine.DeltaTime * mult;
-                            }
-                            else
-                            {
-                                Awareness -= Engine.DeltaTime;
-                            }
-                        }
-                        Awareness = Calc.Clamp(Awareness, 0, 1);
-                        if (Awareness >= 1)
-                        {
-                            Behavior = Behaviors.LookingAtPlayer;
-                        }
-                       if (Shocked)
-                        {
-                            Energy += ShockedEnergyRate * Engine.DeltaTime;
-                        }
-                        Energy = Calc.Max(Energy, 0);
-                        if (Energy <= 0)
-                        {
-                            Sleep();
-                        }*/
+            if (Math.Abs(PlayerDistance) <= 2)
+            {
+                if (Math.Abs(Player.Speed.X) >= Player.MaxRun)
+                {
+                    float mult = Math.Sign(PlayerDistance) == -1 ? LeftAwarenessMult : RightAwarenessMult;
+                    mult *= 1 + Math.Abs(Player.Speed.X) / Player.MaxRun;
+                    Awareness += Engine.DeltaTime * mult;
+                }
+                else
+                {
+                    Awareness -= Engine.DeltaTime;
+                }
+            }
+            Awareness = Calc.Clamp(Awareness, 0, 1);
+            Energy = Calc.Max(Energy, 0);
+            if (!Shocked && Energy <= 0)
+            {
+                Sleep();
+            }
             PreviousBehavior = Behavior;
         }
         public override void Update()
@@ -195,18 +232,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             waveTimer += Engine.DeltaTime * Stress;
             PlayerDistance = (Player.CenterX - CenterX) / Width;
             PlayerSpeedX = Player.Speed.X;
-            if (Scene.OnInterval(4))
-            {
-                //TargetOffset = Calc.AngleToVector(Calc.Random.NextAngle(), 4);
-            }
-
-            float targetDistance = (Target.X - CenterX) / Width;
+            HeadCollider.Position = Head.RenderPosition.Round() - new Vector2(6, 8) + Head.ShockAmount;
+            float targetDistance = (HeadCollider.CenterX - CenterX) / Width / 2;
             FacingTarget = Calc.Clamp(Math.Abs(targetDistance), 0, 1f);
-            HeadCollider.Position = HeadSegment.RenderPosition.Round() - new Vector2(6, 8) + HeadSegment.ShockAmount;
+            Facing = (Facings)(HeadCollider.CenterX < CenterX ? -1 : 1);
             UpdateBehavior();
-            Anger = Calc.Max(Anger, 0);
+            TargetOffset = TargetOffset.Round();
             base.Update();
- 
+
             if (Shocked)
             {
                 foreach (Segment s in Segments)
@@ -230,6 +263,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             DashListener listener = new DashListener();
             listener.OnDash = OnDash;
             Add(listener);
+            Add(WanderRoutine = new Coroutine(false));
         }
 
         public override void DebugRender(Camera camera)
@@ -238,6 +272,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             Draw.HollowRect(HeadCollider, Color.Orange);
             Draw.Rect(Position.X, Position.Y - 8, 8, 8, Color.Lerp(Color.Gray, Color.Red, Awareness));
             Draw.Rect(Position.X + 8, Position.Y - 8, 8, 8, Color.Lerp(Color.Gray, Color.Green, Energy));
+
+            Draw.Point(Target, Color.White);
+            Draw.Point(WanderTarget, Color.Yellow);
+
+
         }
 
         private IEnumerator WiggleChecker()
@@ -301,7 +340,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public void Shock(Vector2 dir)
         {
             Shocked = true;
-            Anger += 0.1f;
             foreach (Segment s in Segments)
             {
                 s.Shock(dir);
@@ -311,35 +349,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         {
             base.Awake(scene);
             Player = scene.GetPlayer();
-            BaseSegment = new Segment(new Vector2(Width / 2, Height), Limbs.Base)
+            Base = new Segment(new Vector2(Width / 2, Height), Limbs.Base)
             {
-                SpeedMult = 5
             };
-            NeckSegment = new Segment(BaseSegment, Vector2.UnitY * -Height, Limbs.Body)
+            Neck = new Segment(Base, Vector2.UnitY * -Height, Limbs.Body)
             {
-                Curve = Vector2.UnitX * 20,
+                Curve = new Vector2(35,-8),
                 Left = -8,
                 Right = 8,
                 Top = -16,
                 Bottom = -8,
-                SpeedMult = 30,
                 Track = Player
             };
-            HeadSegment = new Segment(NeckSegment, Vector2.UnitY * 8, Limbs.Head)
+            Head = new Segment(Neck, Vector2.UnitY * 8, Limbs.Head)
             {
                 Curve = Vector2.UnitY * -8,
                 Left = -12,
                 Right = 12,
                 Top = -16,
                 Bottom = 8,
-                SpeedMult = 30,
                 Track = Player
             };
-            HeadCollider = new Hitbox(12, 12, HeadSegment.RenderPosition.X - 6, HeadSegment.RenderPosition.Y - 8);
-            Segments.Add(BaseSegment);
-            Segments.Add(NeckSegment);
-            Segments.Add(HeadSegment);
-            Add(BaseSegment, NeckSegment, HeadSegment);
+            HeadCollider = new Hitbox(12, 12, Head.RenderPosition.X - 6, Head.RenderPosition.Y - 8);
+            Segments.Add(Base);
+            Segments.Add(Neck);
+            Segments.Add(Head);
+            Add(Base, Neck, Head);
             Add(new Coroutine(WiggleChecker()));
         }
         public float AmountBetween(float input, float a, float b)

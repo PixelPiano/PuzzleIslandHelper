@@ -16,7 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         public FadeWarpKey(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
-            Depth = data.Int("nDepth");
+            Depth = data.Int("depth");
             id = data.Int("keyId");
             Standing = data.Bool("standing");
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/fadeWarp/"));

@@ -1,5 +1,7 @@
+using Celeste.Mod.Core;
 using Monocle;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {

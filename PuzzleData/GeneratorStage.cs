@@ -2,6 +2,7 @@
 using static Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities.LabGeneratorPuzzle.LGPOverlay;
 using System.Collections.Generic;
 using System.Linq;
+using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
 {
@@ -87,5 +88,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
         public int Columns { get; set; }
         public string Direction { get; set; }
     }
+ 
 
 }

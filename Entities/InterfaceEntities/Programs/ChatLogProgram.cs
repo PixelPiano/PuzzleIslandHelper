@@ -4,6 +4,7 @@ using Monocle;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
     [TrackedAs(typeof(WindowContent))]
+    [CustomProgram("ChatLog","chatlog","chat log","Chat log","Chat Log")]
     public class ChatLogProgram : WindowContent
     {
         public string DialogID;

@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
     //[Tracked]
     public class CubeTest : Entity
     {
-        private float nDepth;
+        private float depth;
         private float rate = 1.5f;
         public float angleX, angleY, angleZ;
         public float angleSpeedX, angleSpeedY, angleSpeedZ;
@@ -68,14 +68,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             float limit = 5;
             while (true)
             {
-                while (nDepth < limit)
+                while (depth < limit)
                 {
-                    nDepth += Engine.DeltaTime;
+                    depth += Engine.DeltaTime;
                     yield return null;
                 }
-                while (nDepth > -limit)
+                while (depth > -limit)
                 {
-                    nDepth -= Engine.DeltaTime;
+                    depth -= Engine.DeltaTime;
                     yield return null;
                 }
             }

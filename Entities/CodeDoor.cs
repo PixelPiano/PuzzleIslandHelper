@@ -20,17 +20,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 
         private Level level;
         private bool Buffer;
+
+        private bool Sideways;
         public CodeDoor(EntityData data, Vector2 offset)
             : base(data.Position + offset, 8, 48, false)
         {
             Tag |= Tags.TransitionUpdate;
             flag = data.Attr("flag");
+            Sideways = data.Bool("sideways");
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/machineDoor/"));
             doorSprite.AddLoop("idle", "codeIdle", 0.1f);
             doorSprite.AddLoop("unlocked", "codeUnlock", 0.1f, 10);
             doorSprite.Add("unlock", "codeUnlock", 0.1f, "unlocked");
             doorSprite.Rate = 1.5f;
-            Collider = new Hitbox(8, 48);
+            if (Sideways)
+            {
+                doorSprite.CenterOrigin();
+                doorSprite.Position += new Vector2(doorSprite.Width / 2, doorSprite.Height / 2);
+                doorSprite.Rotation = 90f.ToRad();
+            }
+            Collider = new Hitbox(Sideways ? 48 : 8, Sideways ? 8 : 48);
             Add(new LightOcclude());
             orig_Position = Position;
             Depth = -1;
@@ -40,13 +49,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         {
             Unlocked = true;
             float speed = 5;
-            float destination = orig_Position.Y - doorSprite.Height;
+            float destination = Sideways ? orig_Position.X - doorSprite.Width : orig_Position.Y - doorSprite.Height;
 
             float origY = Position.Y;
             float origX = Position.X;
             bool left = true;
             bool shake = true;
-            float pos = Position.Y;
+            float pos = Sideways ? Position.X : Position.Y;
             int buffer = 6;
             int bufferProg = buffer;
             for (float i = 0; i < 1; i += Engine.DeltaTime * speed)
@@ -55,26 +64,49 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                 {
                     if (left)
                     {
-                        Position.X--;
+                        if (Sideways)
+                        {
+                            Position.X--;
+                        }
+                        else
+                        {
+                            Position.Y--;
+                        }
+
                     }
                     else
                     {
-                        Position.X++;
+                        if (Sideways)
+                        {
+                            Position.X++;
+                        }
+                        else
+                        {
+                            Position.Y++;
+                        }
                     }
                     left = !left;
                 }
                 shake = !shake;
                 bufferProg--;
-                pos = (int)Calc.LerpClamp(origY, destination, Ease.QuintIn(i));
+                pos = (int)Calc.LerpClamp(Sideways ? origX : origY, destination, Ease.QuintIn(i));
                 if (bufferProg == 0)
                 {
                     bufferProg = buffer;
-                    Position.Y = pos;
+                    if (Sideways)
+                    {
+                        Position.X = pos;
+                    }
+                    else
+                    {
+                        Position.Y = pos;
+                    }
+
                 }
                 yield return null;
             }
-            Position.Y = destination;
-            Position.X = origX;
+            Position.Y = Sideways ? origY : destination;
+            Position.X = Sideways ? destination : origX;
         }
 
         public override void Awake(Scene scene)
@@ -92,7 +124,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                     Unlocking = true;
                     Unlocked = true;
                     doorSprite.Play("unlocked");
-                    Position = orig_Position - Vector2.UnitY * doorSprite.Height;
+                    Position = orig_Position - (Sideways ? Vector2.UnitX * doorSprite.Width : Vector2.UnitY * doorSprite.Height);
                 }
                 Buffer = true;
             }
