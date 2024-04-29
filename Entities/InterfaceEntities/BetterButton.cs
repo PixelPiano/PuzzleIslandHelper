@@ -102,14 +102,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 return DefaultPath;
             }
         }
-        public BetterButton(Interface inter, Circle circle, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : this(inter, customPath, OnClicked, Routine)
+        public BetterButton(BetterWindow window, Circle circle, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : this(window, customPath, OnClicked, Routine)
         {
             Circle = circle;
             UsesCircleCollider = true;
         }
-        public BetterButton(Interface inter, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : base(GFX.Game[GetPath(customPath) + "button"], true)
+        public BetterButton(BetterWindow window, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : base(GFX.Game[GetPath(customPath) + "button"], true)
         {
-            Interface = inter;
+            Interface = window.Interface;
             this.customPath = customPath;
             this.OnClicked = OnClicked;
             this.Routine = Routine;
@@ -170,7 +170,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             if (Scene is Level level && TextRenderer is not null)
             {
-                TextRenderer.RenderPosition = (level.Camera.CameraToScreen(RenderPosition + new Vector2(2, 1))).ToInt() * 6;
+                TextRenderer.RenderPosition = (level.Camera.CameraToScreen(RenderPosition + new Vector2(2, 1))).Floor() * 6;
             }
             if (Disabled)
             {

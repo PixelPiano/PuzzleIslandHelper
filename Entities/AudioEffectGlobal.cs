@@ -47,7 +47,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static void RemoveAll()
         {
-            for(int i = 0; i<StaticDsps.Count; i++)
+            for (int i = 0; i < StaticDsps.Count; i++)
             {
                 RemoveEffect(StaticDsps[i]);
             }

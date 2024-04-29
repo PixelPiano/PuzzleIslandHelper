@@ -1,8 +1,16 @@
 
+using Celeste.Mod.Core;
+using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
+using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
+using MonoMod.Utils;
+using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
@@ -33,6 +41,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public bool Drawing = false;
         public Rectangle TabArea;
         public TextWindow TextWindow;
+        public WindowContent CurrentProgram;
         private bool WaitForClickRelease;
         private bool CanCloseWindow;
         public List<BetterWindowButton> Buttons => Components.GetAll<BetterWindowButton>().ToList();
@@ -41,7 +50,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
         public BetterWindow(Vector2 position, Interface inter)
         {
-
             Interface = inter;
             Depth = Interface.BaseDepth - 4;
             Position = position;
@@ -70,23 +78,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 base.Render();
                 return;
             }
-            UpdateWindow();
+            int x = (int)Position.X, y = (int)Position.Y;
             TabArea.Width = (int)CaseWidth - (int)xSprite.Width;
-            TabArea.X = (int)Position.X;
-            TabArea.Y = (int)Position.Y - tabHeight;
+            TabArea.X = x;
+            TabArea.Y = y - tabHeight;
             Draw.Rect(Position, (int)CaseWidth, (int)CaseHeight, Interface.NightMode ? Color.DarkSlateGray : Color.White);
             Draw.HollowRect(Position, (int)CaseWidth, (int)CaseHeight, Color.Gray);
-            Draw.Rect(new Vector2((int)Position.X, (int)Position.Y - tabHeight), (int)CaseWidth, tabHeight, TabColor);
+            CurrentProgram?.WindowRender();
+            Draw.Rect(new Vector2(TabArea.X, TabArea.Y), (int)CaseWidth, tabHeight, TabColor);
             base.Render();
-            x.Position = new Vector2(TabArea.X + (int)CaseWidth - 8, TabArea.Y + 1); //must be adjusted after rectangles are drawn
+            this.x.Position = new Vector2(TabArea.X + (int)CaseWidth - 8, TabArea.Y + 1); //must be adjusted after rectangles are drawn
             xSprite.Play("idle");
             xSprite.Render();
             TextWindow.TextWidth = (int)TextCaseWidth;
             TextWindow.Drawing = true;
-            /*            if (ComputerIcon.TextDictionary.Contains(Name) || ComputerIcon.StaticText.Contains(Name))
-                        {
-                            TextWindow.Drawing = true;
-                        }*/
         }
         public void DisableButtons()
         {
@@ -105,7 +110,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Update()
         {
             UpdateWindow();
-            Position = Position.ToInt();
+            Position = Position.Floor();
             DrawPosition = Position;
             Visible = Drawing;
             x.Visible = Drawing;
@@ -114,7 +119,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 x.Collider = backupCollider;
             }
-            TextWindow.TextPosition = Position.ToInt() + TextOffset * Vector2.One;
+            TextWindow.TextPosition = Position.Floor() + TextOffset * Vector2.One;
 
             WasDrawing = Drawing;
             base.Update();
@@ -159,46 +164,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             TabColor = Color.Lerp(lower == "unknown" ? Color.Red : Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
         }
-        public void ParseData(string iconName)
-        {
-            string name = iconName.ToLower();
-            Color color = Color.Blue;
 
-            switch (name) //set variables based on iconName
-            {
-                case "unknown" or "invalid":
-                    color = Color.Red;
-                    CaseWidth *= 0.5f;
-                    CaseHeight *= 0.25f;
-                    TextCaseWidth *= 0.7f;
-                    break;
-                case "access":
-                    Add(new InputBox(Interface, CaseWidth / 2, CaseHeight / 2, Interface.AccessProgram.CheckIfValidPass));
-                    break;
-                case "ram":
-                    Add(new StartButton(Interface));
-                    Add(new QuitButton(Interface));
-                    break;
-                case "memory":
-                    Add(new StartButton(Interface));
-                    break;
-                case "pipe":
-                    Add(new CustomButton(Interface, "Switch", 35f, Vector2.Zero, Interface.PipeProgram.Switch));
-                    break;
-                case "life" or "gameoflife":
-                    CaseWidth++;
-                    CaseHeight++;
-                    Add(new StartButton(Interface, delegate { Interface.GameOfLifeProgram.Simulating = true; }));
-                    Add(new CustomButton(Interface, "StopEvent", 35f, Vector2.Zero, Interface.GameOfLifeProgram.Stop));
-                    Add(new CustomButton(Interface, "Clear", 35f, Vector2.Zero, Interface.GameOfLifeProgram.Clear));
-                    Add(new CustomButton(Interface, "Rand", 35f, Vector2.Zero, Interface.GameOfLifeProgram.Randomize));
-                    Add(new CustomButton(Interface, "Store", 35f, Vector2.Zero, Interface.GameOfLifeProgram.Store));
-                    Add(new CustomButton(Interface, "Load", 35f, Vector2.Zero, Interface.GameOfLifeProgram.LoadPreset));
-                    break;
-            }
-            TabColor = Color.Lerp(color, Color.Black, Interface.NightMode ? 0.5f : 0);
-        }
-        public void PrepareWindow()
+
+        public void PrepareWindow(ComputerIcon icon)
         {
             if (Drawing) return;
             RemoveComponents();
@@ -206,8 +174,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             CaseWidth = WindowWidth;
             CaseHeight = WindowHeight;
             TextCaseWidth = WindowWidth;
-            TextWindow.Initialize(Interface.CurrentIconName);
-            ParseData(Name.ToLower());
+            TextWindow.Initialize(icon.Name);
+            string name = icon.Name.ToLower();
+            Color color = Color.Blue;
+            WindowContent content = name switch
+            {
+                "access" => Interface.GetProgram<AccessProgram>(),
+                //"ram" => Interface.GetProgram<>
+                "pipe" => Interface.GetProgram<PipeProgram>(),
+                "life" or "gameoflife" => Interface.GetProgram<GameOfLifeProgram>(),
+                _ => null
+            };
+            if (content != null)
+            {
+                content.OnOpened(this);
+            }
+            CurrentProgram = content;
+
+            TabColor = Color.Lerp(color, Color.Black, Interface.NightMode ? 0.5f : 0);
         }
         public void Close()
         {

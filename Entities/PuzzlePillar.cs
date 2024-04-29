@@ -36,9 +36,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             }
             return DashCollisionResults.NormalCollision;
         }
-
-        // In regular C# code we can't just call the parent's base method...
-        // but with MonoMod magic we can do it anyway.
         [MonoModLinkTo("Celeste.Solid", "System.Void Update()")]
         public void base_Update()
         {
@@ -60,7 +57,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            // get some variables from the parent class.
             DynData<ExitBlock> self = new DynData<ExitBlock>(this);
             tiles = self.Get<TileGrid>("newTiles");
             cutout = self.Get<EffectCutout>("newCutout");

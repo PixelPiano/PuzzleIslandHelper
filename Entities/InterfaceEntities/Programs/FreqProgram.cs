@@ -63,11 +63,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         }
         public override void Update()
         {
-            if (!IsActive)
-            {
-                base.Update();
-                return;
-            }
+            Dial.Visible = Window.Drawing;
+            if(!Window.Drawing) return;
             if (Interface.LeftClicked)
             {
                 if (DialCollider.Collide(Interface))
@@ -79,20 +76,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             {
                 Holding = false;
             }
-            DialCollider.Position = Dial.RenderPosition.ToInt();
+            DialCollider.Position = Dial.RenderPosition.Floor();
             base.Update();
         }
-        public override void Render()
+        public override void WindowRender()
         {
-            if (!IsActive)
-            {
-                Dial.Visible = false;
-                base.Render();
-                return;
-            }
-            Dial.Visible = true;
             DrawTicks();
-            base.Render();
+            base.WindowRender();
         }
         public void DrawTicks()
         {
@@ -100,14 +90,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             Vector2 offset = new Vector2(2, -1);
             for (int i = (int)Position.X; i < (int)Window.DrawPosition.X + (int)Window.CaseWidth - 4; i += TickSpace)
             {
-                Vector2 start = new Vector2(i, y).ToInt();
+                Vector2 start = new Vector2(i, y).Floor();
 
-                Vector2 end = new Vector2(i, start.Y + TickHeight).ToInt();
+                Vector2 end = new Vector2(i, start.Y + TickHeight).Floor();
                 if (i + TickSpace < (int)Window.DrawPosition.X + (int)Window.CaseWidth - 1)
                 {
                     for (int j = 1; j <= 3; j++)
                     {
-                        Vector2 shortStart = start + new Vector2(j * 2, TickHeight - 3).ToInt();
+                        Vector2 shortStart = start + new Vector2(j * 2, TickHeight - 3).Floor();
                         Draw.Line(shortStart, shortStart - Vector2.UnitY * 3, Color.DarkGray);
                     }
                 }
@@ -115,7 +105,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             }
             Vector2 longStart = new Vector2(Position.X - 3, y + TickHeight) + offset;
 
-            Draw.Line(longStart.ToInt() + offset, longStart.ToInt() + offset + Vector2.UnitX * ((int)Window.CaseWidth - 2), Color.Black, 2);
+            Draw.Line(longStart.Floor() + offset, longStart.Floor() + offset + Vector2.UnitX * ((int)Window.CaseWidth - 2), Color.Black, 2);
         }
 
     }

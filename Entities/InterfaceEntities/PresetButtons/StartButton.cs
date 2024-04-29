@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     [TrackedAs(typeof(BetterWindowButton))]
     public class StartButton : BetterWindowButton
     {
-        public StartButton(Interface entityInterface, Action OnClicked = null, IEnumerator Routine = null) : base(entityInterface,null, OnClicked, Routine)
+        public StartButton(BetterWindow window, Action OnClicked = null, IEnumerator Routine = null) : base(window, null, OnClicked, Routine)
         {
             Text = "Start";
             TextSize = 35f;
@@ -19,7 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Update()
         {
             base.Update();
-            
+
         }
     }
 }

@@ -9,19 +9,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
     public class WindowContent : Entity
     {
         public static BetterWindow LastWindow;
-        public Interface Interface => Window.Interface;
         public BetterWindow Window;
         public MiniLoader MiniLoader;
+        public Interface Interface;
+        public List<Component> ProgramComponents = new();
         public bool Preserve;
         public string Name;
-        public bool IsActive => Window != null && Window.Drawing && Interface.CurrentIconName.ToLower() == Name.ToLower();
 
         public WindowContent(BetterWindow window)
         {
             Window = window;
-            Depth = Window.Depth - 1;
+            Interface = window.Interface;
             Collider = new Hitbox(Window.CaseWidth, Window.CaseHeight);
-            Position = Window.DrawPosition.ToInt();
+            Position = Window.DrawPosition.Floor();
         }
         public IEnumerator PlayAndWait(SoundSource source, string audio)
         {
@@ -40,25 +40,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (Interface == null)
+            if (Window.Interface == null)
             {
                 RemoveSelf();
             }
         }
-        public virtual void OnAdded()
+        public virtual void WindowRender()
         {
 
         }
-        public virtual void OnRemoved()
+        public virtual void OnOpened(BetterWindow window)
         {
-
+            Window = window;
+            foreach (Component c in ProgramComponents)
+            {
+                Window.Add(c);
+            }
+            Depth = Window.Depth - 1;
         }
         public override void Update()
         {
             Collider.Width = Window.CaseWidth;
             Collider.Height = Window.CaseHeight;
-            Visible = IsActive;
-            Position = Window.DrawPosition.ToInt();
+            Position = Window.DrawPosition.Floor();
             base.Update();
         }
         public override void Render()

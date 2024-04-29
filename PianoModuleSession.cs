@@ -16,6 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public bool GrassMazeCompleted;
         public bool ModeratorEscape;
         public bool MonitorActivated;
         public string CurrentAreaFlag;
@@ -187,10 +188,18 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             get
             {
+                if (Engine.Scene is Level level)
+                {
+                    level.Session.SetFlag("RestoredPower", PianoModule.Session.GeneratorStarted);
+                }
                 return PianoModule.Session.GeneratorStarted;
             }
             set
             {
+                if (Engine.Scene is Level level)
+                {
+                    level.Session.SetFlag("RestoredPower", value);
+                }
                 PianoModule.Session.GeneratorStarted = value;
             }
         }

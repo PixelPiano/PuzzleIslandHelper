@@ -1,36 +1,67 @@
 ﻿using System;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities.LabGeneratorPuzzle.LGPOverlay;
 using System.Collections.Generic;
-using System.Linq;
+using System.Text.RegularExpressions;
 using Monocle;
+
 
 namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
 {
     public class MazeData
     {
-        public string Grid { get; set; }
-        public int[,] Data { get; set; }
+        public List<string> Data { get; set; }
         public int Columns { get; set; }
         public int Rows { get; set; }
+        
+        public string[,] Grid;
         public void ParseData()
         {
-            Data = new int[Columns, Rows];
-            int column = 0;
-            int row = 0;
+            Grid = new string[Rows, Columns];
 
-            foreach (char c in Grid.Replace(" ", ""))
+            for (int i = 0; i < Rows; i++)
             {
-                if (char.IsDigit(c))
+                string[] data = Data[i].Split(',');
+                for (int j = 0; j < data.Length; j++)
                 {
-                    if (row >= Rows) break;
-                    if (column >= Columns)
-                    {
-                        row++;
-                        column = 0;
-                    }
-                    Data[column, row] = Calc.Clamp((int)char.GetNumericValue(c), 0, 1);
+                    if(j >= Columns) break;
+                    string d = data[j].Replace(" ", "");
+                    Grid[i,j] = d;
                 }
             }
         }
+        public static void Load()
+        {
+            Everest.Content.OnUpdate += Content_OnUpdate;
+        }
+        public static void Unload()
+        {
+            Everest.Content.OnUpdate -= Content_OnUpdate;
+        }
+        private static void Content_OnUpdate(ModAsset from, ModAsset to)
+        {
+            if (to.Format == "yml" || to.Format == ".yml")
+            {
+                try
+                {
+                    AssetReloadHelper.Do("Reloading Maze Data", () =>
+                    {
+                        if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/MazeData", out var asset)
+                            && asset.TryDeserialize(out MazeData myData))
+                        {
+                            PianoModule.MazeData = myData;
+                        }
+                    }, () =>
+                    {
+                        (Engine.Scene as Level)?.Reload();
+                    });
+
+                }
+                catch (Exception e)
+                {
+                    Logger.LogDetailed(e, "Unable to reload Maze Data");
+                }
+            }
+
+        }
     }
+
 }

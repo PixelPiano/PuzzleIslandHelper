@@ -152,7 +152,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 
             // Rotation
             Matrix rotation = RotationMatrix;
-            // Scale
+            // Size
             Matrix scale = Matrix.CreateScale(Scale);
             Matrix clamp = Matrix.CreateScale(new Vector3(1, 1, 0));
             Matrix translation = Matrix.CreateTranslation(Offset);

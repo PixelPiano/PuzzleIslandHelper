@@ -9,6 +9,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
@@ -39,25 +40,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public bool Invalid;
         public bool Interacting;
         private bool Interacted;
+        private bool draggingWindow;
         public bool MouseOnBounds
         {
             get
             {
                 MouseState mouseState = Mouse.GetState();
 
-
                 float mouseX = Calc.Clamp(mouseState.X, 0, Engine.ViewWidth);
                 float mouseY = Calc.Clamp(mouseState.Y, 0, Engine.ViewHeight);
                 return mouseX == BorderX || mouseX == Engine.ViewWidth - BorderX || mouseY == BorderY || mouseY == Engine.ViewHeight - BorderY;
             }
         }
-        public bool LeftClicked => Mouse.GetState().LeftButton == ButtonState.Pressed;
+
+        private float oobTimer;
+        public bool LeftClicked
+        {
+            get
+            {
+                bool value = MouseIsFocused && Mouse.GetState().LeftButton == ButtonState.Pressed;
+                return value && !Buffering;
+            }
+        }
+        private bool prevLeftClicked;
+        private bool leftClicked;
+        public bool FirstFrameClick => leftClicked && !prevLeftClicked;
+
+        public bool MouseIsFocused;
         private bool intoIdle = false;
         private bool CanClickIcons = true;
         private bool SetDragOffset = false;
         private bool Closing = false;
         private bool GlitchPlayer = false;
         private bool RemovePlayer = false;
+        private float clickTimer;
 
         public string CurrentIconName = "invalid";
 
@@ -67,28 +83,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private Entity Monitor;
         private Entity Power;
         private Entity MachineEntity;
-
-        public AccessProgram AccessProgram;
         public BetterWindow Window;
         public InterfaceCursor Cursor;
         private InterfaceBorder Border;
         private Sprite MonitorSprite;
-        private Sprite BorderSprite; //change to image
-        public Sprite cursorSprite; //change to image
-        private Sprite PowerSprite; //change to image
-        private Sprite SunMoon; //change to image
+        private Sprite BorderSprite;
+        public Sprite cursorSprite;
+        private Sprite PowerSprite;
+        private Sprite SunMoon;
         private Sprite Machine;
         private SoundSource whirringSfx;
-        private FreqProgram FreqProgram;
-        public PipeProgram PipeProgram;
-        public FountainProgram FountainProgram;
-        public GameOfLifeProgram GameOfLifeProgram;
+
         private ComputerIcon[] Icons;
         public List<WindowContent> Content = new();
         private Level level;
         private Player player;
         public DotX3 Talk;
         public FloppyHUD FloppyHUD;
+        private float cursorAlpha = 1;
 
         public bool FakeStarting;
         public enum Versions
@@ -103,6 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         {
             get
             {
+                if (!MouseIsFocused) return prevMousePos;
                 if (Closing)
                 {
                     return Vector2.Zero;
@@ -112,9 +125,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 float mouseY = Calc.Clamp(mouseState.Y, 0, Engine.ViewHeight);
                 float scale = (float)Engine.Width / Engine.ViewWidth;
                 Vector2 position = new Vector2(mouseX, mouseY) * scale;
+                prevMousePos = position;
                 return position;
             }
         }
+        private Vector2 prevMousePos;
         public Vector2 MouseWorldPosition
         {
             get
@@ -142,7 +157,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
 
         public MTexture Keyboard = GFX.Game["objects/PuzzleIslandHelper/interface/keyboard"];
-
+        public void AddProgram<T>(T content) where T : WindowContent
+        {
+            Content.Add(content);
+        }
+        public T GetProgram<T>() where T : WindowContent
+        {
+            foreach (WindowContent c in Content)
+            {
+                if (c is T)
+                {
+                    return c as T;
+                }
+            }
+            return null;
+        }
         public void LightCleanup(Scene scene, bool full = false, bool empty = false)
         {
             if (!empty)
@@ -322,47 +351,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public void AddPrograms(Scene scene, List<string> ids)
         {
-
-
             foreach (string id in ids)
             {
-                /*               if (ProgramLoader.ContentLoaders.TryGetValue(id, out var value))
-                               {
-                                   WindowContent program = value(Window);
-                                   if (program != null)
-                                   {
-                                       level.Add(program);
-                                   }
-                               }*/
-
                 switch (id.ToLower())
                 {
                     case "access":
-                        if (AccessProgram != null)
+                        if (GetProgram<AccessProgram>() is AccessProgram accessprogram)
                         {
-                            AccessProgram.Window = Window;
+                            accessprogram.Window = Window;
                             break;
                         }
-                        scene.Add(AccessProgram = new AccessProgram(Window));
+                        AddProgram(new AccessProgram(Window));
                         break;
                     case "freq":
-                        scene.Add(FreqProgram = new FreqProgram(Window));
+                        AddProgram(new FreqProgram(Window));
                         break;
                     case "pipe":
-                        if (PipeProgram != null)
+                        if (GetProgram<PipeProgram>() is PipeProgram pipeprogram)
                         {
-                            PipeProgram.Window = Window;
+                            pipeprogram.Window = Window;
                             break;
                         }
-                        scene.Add(PipeProgram = new PipeProgram(Window));
+                        AddProgram(new PipeProgram(Window));
                         break;
                     case "gameoflife":
-                        scene.Add(GameOfLifeProgram = new GameOfLifeProgram(Window));
+                        AddProgram(new GameOfLifeProgram(Window));
                         break;
                     case "fountain":
-                        scene.Add(FountainProgram = new FountainProgram(Window));
+                        AddProgram(new FountainProgram(Window));
                         break;
                 }
+            }
+            foreach (WindowContent c in Content)
+            {
+                scene.Add(c);
             }
         }
         public void AddIcons(Scene scene)
@@ -421,20 +443,46 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             if (InControl)
             {
+                MouseState state = Mouse.GetState();
+                bool inWindow = (state.X >= BorderX && state.X <= Engine.ViewWidth - BorderX && state.Y >= BorderY && state.Y <= Engine.ViewHeight - BorderY);
+
+                MouseIsFocused = Engine.Instance.IsActive && inWindow;
+                if (!MouseIsFocused)
+                {
+                    if (oobTimer > 1f) cursorAlpha = Calc.Max(cursorAlpha - Engine.DeltaTime * 1.3f, 0);
+                    else
+                    {
+                        oobTimer += Engine.DeltaTime;
+                        cursorAlpha = Calc.Min(cursorAlpha + Engine.DeltaTime * 2, 1);
+                    }
+                }
+                else
+                {
+                    cursorAlpha = Calc.Min(cursorAlpha + Engine.DeltaTime * 2, 1);
+                    oobTimer = 0;
+                }
+                cursorSprite.Color = Color.White * cursorAlpha;
                 if (!MouseOnBounds)
                 {
-                    Cursor.Position = MousePosition.ToInt();
+                    Cursor.Position = MousePosition.Floor();
                 }
                 //Enforce CursorBoundsA and CursorBoundsB if bounds are exceeded
-                Cursor.Position.X = Cursor.Position.X < CursorBoundsA.X ? CursorBoundsA.X : Cursor.Position.X > CursorBoundsB.X ? CursorBoundsB.X : Cursor.Position.X;
-                Cursor.Position.Y = Cursor.Position.Y < CursorBoundsA.Y ? CursorBoundsA.Y : Cursor.Position.Y > CursorBoundsB.Y ? CursorBoundsB.Y : Cursor.Position.Y;
+                Cursor.Position = Vector2.Clamp(Cursor.Position, CursorBoundsA, CursorBoundsB);
+
                 if (Collider is not null)
                 {
-                    Collider.Position = new Vector2(Monitor.Position.X - Position.X + Cursor.Position.X / 6, Monitor.Position.Y - Position.Y + Cursor.Position.Y / 6).ToInt();
+                    Collider.Position = new Vector2(Monitor.Position.X - Position.X + Cursor.Position.X / 6, Monitor.Position.Y - Position.Y + Cursor.Position.Y / 6).Floor();
                 }
-                if (LeftClicked && !MouseOnBounds && !Buffering) //If the mouse is clicked
+                prevLeftClicked = leftClicked;
+                if (MouseIsFocused)
                 {
-                    if (CollideCheck(NightDay) && timer <= 0 && !Closing)
+                    //don't reset click state if the mouse is not in play
+                    leftClicked = LeftClicked;
+                }
+
+                if (leftClicked && !MouseOnBounds) //If the mouse is clicked
+                {
+                    if (CollideCheck(NightDay) && !Closing && FirstFrameClick)
                     {
                         NightMode = !NightMode;
                         SunMoon.Play(NightMode ? "moon" : "sun");
@@ -445,15 +493,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                     {
                         OnClicked(); //if Window isn't being drawn, run OnClicked
                     }
-                    if (Window != null && Window.Drawing) //if the Window is valid...
+                    else if (!DraggingWindow && FirstFrameClick)
                     {
                         if (CollideRect(Window.TabArea))
                         {
                             DraggingWindow = true;
                         }
-                        if (CollideCheck(Window.x) && CanCloseWindow && !DraggingWindow)
+                        //x button overlaps with tab area, have to check it after just to be safe
+                        if (CanCloseWindow && CollideCheck(Window.x))
                         {
-                            Window.Drawing = false;
+                            //remove button collider, stop drawing Window, and allow user to click icons again
+                            RemoveWindow();
+                            return;
+
                         }
                     }
                 }
@@ -521,6 +573,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 return;
             }
+            DraggingWindow = false;
+            SetDragOffset = false;
             IconText.CurrentIcon = null;
             Window.Close();
             Add(new Coroutine(WaitForClickRelease(delegate { CanClickIcons = true; })));
@@ -539,7 +593,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         private void OnClicked()
         {
-            if (Closing)
+            if (Closing || !FirstFrameClick)
             {
                 return;
             }
@@ -557,17 +611,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                     Add(new Coroutine(CloseInterface(false), true));
                 }
             }
-            #region Check for x button clicked
-            if (CanCloseWindow && CollideCheck(Window.x)) //If "close Window" button was clicked
-            {
-                if (!DraggingWindow)
-                {
-                    //remove button collider, stop drawing Window, and allow user to click icons again
-                    RemoveWindow();
-                    return;
-                }
-            }
-            #endregion
 
             #region Check for icon clicked
             if (CanClickIcons && Window is not null && !Window.Drawing)
@@ -590,7 +633,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             CanCloseWindow = CanClickIcons = false;
             CurrentIconName = Window.Name = icon.Name;
             Add(new Coroutine(WaitForClickRelease(delegate { CanCloseWindow = true; })));
-            Window.PrepareWindow();
+            Window.PrepareWindow(icon);
             Window.TextWindow.CurrentID = icon.TextID;
             Window.Drawing = true;
         }

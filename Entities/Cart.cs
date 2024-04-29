@@ -134,7 +134,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             L.Position = Position;
             R.Position = Position + Vector2.UnitX * (Width - SideWidth);
             wheels.Rate = Speed.X / (RideSpeed / 2);
-            Position = Position.ToInt();
+            Position = Position.Floor();
             WheelCollider.Position = Position + Vector2.UnitY * 6;
             collideTimer = Calc.Approach(collideTimer, 0, Engine.DeltaTime);
             if (collideTimer <= 0)

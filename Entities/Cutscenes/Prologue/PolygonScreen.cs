@@ -16,7 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public static FieldInfo terrainTypeInfo = typeof(Autotiler).GetField("TerrainType", BindingFlags.Instance | BindingFlags.NonPublic);
         public static List<char> validBgTiles = new()
         {
-            '8','9','t','f','o','p','q','r','E','a','D','b','c','d','e','L','T','P','R','Y'
+            '8','9','t','f','o','p','q','r','E',
         };
         public float ConnectAmount;
         public int ConnectingArea;

@@ -3,7 +3,9 @@ using Celeste;
 using Celeste.Mod;
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.FancyTileEntities;
+using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using FrostHelper;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -18,6 +20,31 @@ using System.Reflection;
 
 public static class PianoUtils
 {
+    internal static void InvokeAllWithAttribute(Type attributeType)
+    {
+        Type attributeType2 = attributeType;
+        Type[] typesSafe = typeof(PianoModule).Assembly.GetTypesSafe();
+        for (int i = 0; i < typesSafe.Length; i++)
+        {
+            checkType(typesSafe[i]);
+        }
+
+        void checkType(Type type)
+        {
+            MethodInfo[] methods = type.GetMethods(BindingFlags.Static | BindingFlags.Public);
+            foreach (MethodInfo methodInfo in methods)
+            {
+                foreach (CustomAttributeData customAttribute in methodInfo.CustomAttributes)
+                {
+                    if (customAttribute.AttributeType == attributeType2)
+                    {
+                        methodInfo.Invoke(null, null);
+                        return;
+                    }
+                }
+            }
+        }
+    }
     public static float ClampRange(float value, float range)
     {
         float min = Calc.Min(range, -range);
@@ -26,7 +53,7 @@ public static class PianoUtils
     }
     public static Vector2 ClampRange(Vector2 value, Vector2 range)
     {
-        return new Vector2(ClampRange(value.X, range.X),ClampRange(value.Y, range.Y));
+        return new Vector2(ClampRange(value.X, range.X), ClampRange(value.Y, range.Y));
     }
     public static void TeleportTo(Scene scene, Player player, string room, Player.IntroTypes introType = Player.IntroTypes.Transition, Vector2? nearestSpawn = null)
     {
@@ -277,18 +304,18 @@ public static class PianoUtils
             session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
             level.Session.FirstLevel = false;
             level.LoadLevel(Player.IntroTypes.Transition);
-            level.Camera.Position = level.LevelOffset + val3 + offset.ToInt();
+            level.Camera.Position = level.LevelOffset + val3 + offset.Floor();
             level.Add(player);
             if (snapToSpawnPoint && session.RespawnPoint.HasValue)
             {
-                player.Position = session.RespawnPoint.Value + offset.ToInt();
+                player.Position = session.RespawnPoint.Value + offset.Floor();
             }
             else
             {
-                player.Position = level.LevelOffset + val2 + offset.ToInt();
+                player.Position = level.LevelOffset + val2 + offset.Floor();
             }
             player.Facing = facing;
-            player.Hair.MoveHairBy(level.LevelOffset - levelOffset + offset.ToInt());
+            player.Hair.MoveHairBy(level.LevelOffset - levelOffset + offset.Floor());
             if (level.Wipe != null)
             {
                 level.Wipe.Cancel();
@@ -579,7 +606,7 @@ public static class PianoUtils
         float curDst = float.PositiveInfinity;
         foreach (Collider c in cols)
         {
-            if (!(DoRaycast(c, start, end) is Vector2 intersectionPoint)) continue;
+            if (DoRaycast(c, start, end) is not Vector2 intersectionPoint) continue;
             float dst = Vector2.DistanceSquared(start, intersectionPoint);
             if (dst < curDst)
             {
@@ -624,9 +651,15 @@ public static class PianoUtils
 
         return (0 <= tmin && tmin <= tmax && tmin * tmin <= Vector2.DistanceSquared(start, end)) ? hbox.AbsolutePosition + start + tmin * dir : null;
     }
+    public static bool CheckSolidsGrid(Vector2 at)
+    {
+        if (Engine.Scene is not Level level) return false;
+        Grid grid = level.SolidTiles.Grid;
+        at = (at - grid.AbsolutePosition) / new Vector2(grid.CellWidth, grid.CellHeight);
+        return grid[(int)at.X, (int)at.Y];
+    }
     public static Vector2? DoRaycast(Grid grid, Vector2 start, Vector2 end)
     {
-
         start = (start - grid.AbsolutePosition) / new Vector2(grid.CellWidth, grid.CellHeight);
         end = (end - grid.AbsolutePosition) / new Vector2(grid.CellWidth, grid.CellHeight);
         Vector2 dir = Vector2.Normalize(end - start);

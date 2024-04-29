@@ -6,38 +6,222 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Xml.Serialization;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
 {
     [Tracked]
     public class GrassMazeOverlay : Entity
     {
+        public class Icon : Component
+        {
+            public Vector2 RenderPosition
+            {
+                get
+                {
+                    return ((Entity == null) ? Vector2.Zero : Entity.Position) + Position + GridOffset - Vector2.UnitX;
+                }
+                set
+                {
+                    Position = value - ((Entity == null) ? Vector2.Zero : Entity.Position);
+                }
+            }
+            public Vector2 Position;
+            public Vector2 GridOffset;
+            public int CellSize;
+            public float MaxSpeed = 60f;
+            public const float ControlSpeed = 60f;
+            public const float MoveBackSpeed = 100f;
+            public Vector2 Target;
+            public float Alpha = 1;
+            public float Alpha2 = 1;
+            public bool MovingBack;
+            public bool MovingToUnsafe;
+            public Node Start;
+            public Node Current;
+            public Node Previous;
+            public bool InControl => !MovingToUnsafe && AtTarget && !MovingBack;
+            public bool AtTarget => GridOffset == Target;
+            public static MTexture Texture = GFX.Game["objects/PuzzleIslandHelper/grassMaze/icon"];
+            public Icon(int cellSize, Node start) : base(true, true)
+            {
+                CellSize = cellSize;
+                Start = start;
+                Current = start;
+                Previous = start;
+                MoveToCell(start.Col, start.Row, true);
+            }
+            public override void DebugRender(Camera camera)
+            {
+                base.DebugRender(camera);
+                if (Previous is not null && Current is not null)
+                {
+                    Draw.Line(Current.Center, Previous.Center, Color.Magenta);
+                }
+            }
+            public void MoveToCell(int x, int y, bool instant = false)
+            {
+                Target = new Vector2(x, y) * CellSize;
+                if (instant) GridOffset = Target;
+            }
+            public Vector2 GetDirectionalVector(Node.Direction direction)
+            {
+                return direction switch
+                {
+                    Node.Direction.Up => -Vector2.UnitY,
+                    Node.Direction.Down => Vector2.UnitY,
+                    Node.Direction.Left => -Vector2.UnitX,
+                    Node.Direction.Right => Vector2.UnitX,
+                    _ => Vector2.Zero
+                };
+            }
+            public void Complete()
+            {
+                if (Current.IsSubEnd)
+                {
+                    MaxSpeed = ControlSpeed / 2;
+                    Target += GetDirectionalVector(Current.EndDir) * CellSize;
+                }
+            }
+            public void MoveTo(int col, int row)
+            {
+                Target = new Vector2(col, row) * CellSize;
+            }
+            public void MoveToNode(Node node)
+            {
+                if (node is null) return;
+                Previous = Current;
+                Current = node;
+                Target = new Vector2(node.Col, node.Row) * CellSize;
+
+            }
+            public void MoveBack(Node node)
+            {
+                MoveToNode(Current.Connect);
+            }
+            public void BeginMoveBack()
+            {
+                MovingBack = true;
+                MaxSpeed = MoveBackSpeed;
+                MovingToUnsafe = false;
+                MoveToNode(Previous);
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (MovingToUnsafe)
+                {
+                    if (AtTarget)
+                    {
+                        BeginMoveBack();
+                    }
+                }
+                else
+                {
+                    if (MovingBack && AtTarget)
+                    {
+                        if (Current == Start)
+                        {
+                            Reset();
+                            return;
+                        }
+                        else
+                        {
+                            if (Current.Connect is not null)
+                            {
+                                MoveToNode(Current.Connect);
+                            }
+                        }
+                    }
+                }
+                if (GridOffset.X != Target.X) GridOffset.X = Calc.Approach(GridOffset.X, Target.X, MaxSpeed * Engine.DeltaTime);
+                if (GridOffset.Y != Target.Y) GridOffset.Y = Calc.Approach(GridOffset.Y, Target.Y, MaxSpeed * Engine.DeltaTime);
+
+            }
+            public void Reset()
+            {
+                MovingBack = false;
+                MaxSpeed = ControlSpeed;
+                GridOffset = Target;
+                Previous = Start;
+            }
+            public override void Render()
+            {
+                if (Texture != null)
+                {
+                    Texture.Draw(RenderPosition, Vector2.Zero, Color.White * Alpha * Alpha2);
+                }
+            }
+        }
+        public float DebugOpacity;
         public class Node : Entity
         {
             public bool Lead;
+            public bool IsStart;
+            public bool IsSubEnd;
+            public string Data;
             public bool Safe;
             public Type NodeType;
             public bool Selected;
-            public List<Side> Sides;
             public int Col;
             public int Row;
             public string Path;
             public Image Texture;
-
             public Color BaseColor = Color.Black;
+            public float ColorAlpha = 0;
             private float buffer;
             private float waitTime;
-            public Node(Vector2 position, bool safe) : base(position)
+            public Node Connect;
+            public bool Flashing => ColorAlpha > 0;
+            public char move;
+            public enum Direction
             {
-                Safe = safe;
-                Add(Texture = GetTexture(""));
+                None, Up = 'U', Down = 'D', Left = 'L', Right = 'R'
+            }
+            public Direction Dir;
+            public Direction EndDir;
+            public Node(Vector2 position, string data) : base(position)
+            {
+                Data = data;
+                Safe = data[0].Equals('1');
+                if (Safe)
+                {
+                    IsStart = data.Contains("S");
+                    Dir = (Direction)data[1];
+                    if (data.Contains("E") && data.IndexOf('E') + 1 < data.Length)
+                    {
+                        IsSubEnd = true;
+                        EndDir = (Direction)data[data.IndexOf('E') + 1];
+                    }
+                }
+                Texture = GetTexture("");
                 Collider = new Hitbox(Texture.Width, Texture.Height, -Texture.Width / 2, -Texture.Height / 2);
                 Texture.CenterOrigin();
                 Visible = false;
             }
 
+            public void Flash(Color color, float alphaFrom, float alphaTo, float fadeTime, float holdTime)
+            {
+                Add(new Coroutine(FlashRoutine(color, alphaFrom, alphaTo, fadeTime, holdTime)));
+            }
+            public IEnumerator FlashRoutine(Color color, float alphaFrom, float alphaTo, float fadeTime, float holdTime)
+            {
+                Color c = BaseColor;
+                BaseColor = color;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / fadeTime)
+                {
+                    ColorAlpha = Calc.LerpClamp(alphaFrom, alphaTo, i);
+                    yield return null;
+                }
+                ColorAlpha = alphaTo;
+                yield return holdTime;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / fadeTime)
+                {
+                    ColorAlpha = Calc.LerpClamp(alphaTo, alphaFrom, i);
+                    yield return null;
+                }
+                ColorAlpha = alphaFrom;
+                BaseColor = c;
+            }
             public override void Update()
             {
                 base.Update();
@@ -46,6 +230,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                 if (buffer > waitTime)
                 {
                     buffer = 0;
+                }
+            }
+            public override void DebugRender(Camera camera)
+            {
+                Color color = Safe ? Color.Green : Color.Red;
+                Draw.HollowRect(Collider, color);
+                if (Connect != null)
+                {
+                    Draw.Line(Center, Connect.Center, Color.White);
                 }
             }
 
@@ -58,85 +251,51 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             public override void Render()
             {
                 base.Render();
-            }
-        }
-
-        public class Goal : Entity
-        {
-            public Image Battery;
-            public int CatalystX;
-            public int CatalystY;
-            public Goal(Vector2 position, Side side, float fillTime = 2) : this(0, 0, position, side, fillTime)
-            {
-            }
-            public Goal(int fromX, int fromY, Vector2 position, Side side, float fillTime = 2) : base(position)
-            {
-                CatalystX = fromX;
-                CatalystY = fromY;
-
-                Add(Battery = new Image(GFX.Game["objects/PuzzleIslandHelper/decisionMachine/puzzle/battery"]));
-
-                Collider = new Hitbox(Battery.Width, Battery.Height);
-                Visible = false;
-            }
-
-            public override void Update()
-            {
-                base.Update();
-                Battery.Color = Color.White;
-            }
-
-            public override void Render()
-            {
-                base.Render();
+                if (ColorAlpha > 0) Draw.Rect(Collider, BaseColor * ColorAlpha);
             }
         }
 
         public const int Size = 24;
-        public static int Columns = 8;
-        public static int Rows = 5;
-        private const float MoveDelay = 0.15f;
+        public int Columns = 8;
+        public int Rows = 5;
+
+        public int StartRow;
+        public int StartCol;
+        public int EndRow;
+        public int EndCol;
         public static float Opacity;
         public static bool Loading;
         private int CurrentRow;
         private int CurrentCol;
         private int NodeSpace = 4;
         private float SavedAlpha;
-        private float MoveTimer = MoveDelay;
         public Collider NodeBounds;
         public bool Completed;
         private bool Removing;
         private bool Resetting;
         public Image Background;
-        private Node[,] Nodes = new Node[Columns, Rows];
-        private Goal Battery;
-        public bool HitDanger;
+        private Node[,] Nodes;
         private Vector2 TopRightPosition;
         public float BackgroundOpacity;
         private static VirtualRenderTarget _Target;
-
-        public Image Icon;
+        public Node Start;
 
         public bool AboveExit;
         public bool InCompleteRoutine;
         public static VirtualRenderTarget Target => _Target ??= VirtualContent.CreateRenderTarget("GrassMazeTarget", 320, 180);
         public static readonly Color CellColor = Color.White * 0.4f;
-        public enum Side { Right, Down, Left, Up }
+        private Icon icon;
+        public Node.Direction EndDirection;
         public GrassMazeOverlay(Vector2 Position) : base(Position)
         {
+            Depth = -100000;
             Loading = true;
             Collider = new Hitbox(320, 180);
             Collidable = false;
-            Add(Background = new Image(GFX.Game["objects/PuzzleIslandHelper/decisionMachine/puzzle/background"]));
+            Add(Background = new Image(GFX.Game["objects/PuzzleIslandHelper/grassMaze/background"]));
             Opacity = 0;
             Add(new BeforeRenderHook(BeforeRender));
         }
-        public MazeData GetMaze()
-        {
-            return PianoModule.MazeData;
-        }
-
-
         public override void Added(Scene scene)
         {
             base.Added(scene);
@@ -152,75 +311,121 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             {
                 Removed(scene);
             }
-            MazeData myData = GetMaze();
-            if (myData is not null)
-            {
-                CreateNodesFromMazeData(myData);
-            }
-            else
-            {
-                Removed(scene);
-            }
+            CreateNodes(PianoModule.MazeData);
+            Add(icon = new Icon(Size + NodeSpace, Nodes[CurrentRow, CurrentCol]));
+            icon.Position = (TopRightPosition - Position).Round();
             Add(new Coroutine(Setup()));
         }
-        private void CreateNodesFromMazeData(MazeData data)
+        private void CreateNodes(MazeData data)
         {
             TopRightPosition = Position + new Vector2(65, 22);
-            Rows = data.Rows;
-
             Columns = data.Columns;
-            Nodes = new Node[Columns, Rows];
-
-            for (int i = 0; i < Columns; i++)
+            Rows = data.Rows;
+            Nodes = new Node[data.Rows, data.Columns];
+            for (int i = 0; i < Rows; i++)
             {
-                for (int k = 0; k < Rows; k++)
+                for (int k = 0; k < Columns; k++)
                 {
-                    Scene.Add(Nodes[i, k] = CreateNode(data.Data[i, k] == 1, i, k));
+                    Node node = Nodes[i, k] = CreateNode(data.Grid[i, k], i, k);
+
+                    if (node.IsStart)
+                    {
+                        StartRow = i;
+                        StartCol = k;
+                    }
+                    if (node.IsSubEnd)
+                    {
+                        EndRow = i;
+                        EndCol = k;
+                        EndDirection = node.EndDir;
+                    }
+                    Scene.Add(node);
                 }
             }
-            Nodes[0, 0].Selected = true;
-            CurrentCol = 0;
-            CurrentRow = 0;
+
+            CurrentCol = StartCol;
+            CurrentRow = StartRow;
             Vector2 offset = new Vector2(Nodes[0, 0].Width / 2, Nodes[0, 0].Height / 2);
 
-            for (int i = 0; i < Columns; i++)
+            for (int i = 0; i < Rows; i++)
             {
-                for (int j = 0; j < Rows; j++)
+                for (int j = 0; j < Columns; j++)
                 {
-                    Nodes[i, j].Position = TopRightPosition + new Vector2(i * (Size + NodeSpace), j * (Size + NodeSpace)) + offset;
+                    Nodes[i, j].Position = TopRightPosition.Round() + new Vector2(j * (Size + NodeSpace), i * (Size + NodeSpace)) + offset;
+                    if (Nodes[i, j].Dir is not Node.Direction.None)
+                    {
+                        int x = 0, y = 0;
+                        switch ((char)Nodes[i, j].Dir)
+                        {
+                            case 'U': y = -1; break;
+                            case 'D': y = 1; break;
+                            case 'L': x = -1; break;
+                            case 'R': x = 1; break;
+                        }
+
+                        Nodes[i, j].Connect = Nodes[i + y, j + x];
+
+                    }
                 }
             }
-            Vector2 position = TopRightPosition;
-            Battery.Position = position;
         }
 
-        private Node CreateNode(bool safe, int col, int row)
-        {
-            Vector2 position = Center + new Vector2(col * (Size + NodeSpace), row * (Size + NodeSpace));
-            Vector2 offset = new Vector2(Columns / 2f, Rows / 2f) * (Size + NodeSpace);
-            Vector2 justify = new Vector2(Size / 2, Size / 2);
-            Node n = new Node(position - offset + justify, safe)
-            {
-                Col = col,
-                Row = row
-            };
-            return n;
-
-        }
         public override void Update()
         {
             base.Update();
+            icon.Alpha2 = Opacity;
             Background.Color = Color.White * BackgroundOpacity;
             if (Scene is not Level level || Resetting || Completed || Removing || InCompleteRoutine) return;
-            Position = level.Camera.Position;
+            Position = level.Camera.Position.Round();
             CheckInputs();
         }
-        public override void DebugRender(Camera camera)
+        public void BeforeRender()
         {
-            base.DebugRender(camera);
-            Draw.Circle(Center, 10, Color.Red, 20);
+            if (Scene is not Level level) return;
+            Target.DrawToObject(Drawing, level.Camera.Matrix, true);
         }
-        public virtual void OnClear()
+        public override void Render()
+        {
+            base.Render();
+            if (Target is null || Scene is not Level level) return;
+            Draw.SpriteBatch.Draw(Target, level.Camera.Position, Color.White * (1 - DebugOpacity) * Opacity);
+        }
+
+        private void CheckInputs()
+        {
+            if (!Loading)
+            {
+                if (Input.Jump)
+                {
+                    Complete();
+                    return;
+                }
+                if (Input.Dash || Input.MoveX.Value != 0 || Input.MoveY.Value != 0)
+                {
+                    if (icon.InControl)
+                    {
+                        if (Input.MoveX.Value != 0)
+                        {
+                            CurrentCol = Calc.Clamp(CurrentCol + Input.MoveX.Value, 0, Columns - 1);
+                            icon.MoveToNode(Nodes[CurrentRow, CurrentCol]);
+                        }
+                        else if (Input.MoveY.Value != 0)
+                        {
+                            CurrentRow = Calc.Clamp(CurrentRow + Input.MoveY.Value, 0, Rows - 1);
+                            icon.MoveToNode(Nodes[CurrentRow, CurrentCol]);
+                        }
+                        CheckCurrentNode();
+                    }
+                }
+            }
+
+        }
+        public void Complete()
+        {
+            InCompleteRoutine = true;
+            Add(new Coroutine(CompleteRoutine()));
+        }
+        public void OnClear()
         {
             if (Completed || Resetting)
             {
@@ -229,113 +434,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             Completed = true;
             Add(new Coroutine(EndRoutine(true)));
         }
-
-        private void CheckInputs()
-        {
-            if (Loading)
-            {
-                return;
-            }
-            if (Input.Jump)
-            {
-                Exit();
-                return;
-            }
-            MoveTimer += Engine.DeltaTime;
-            if (Input.Dash || Input.MoveX.Value != 0 || Input.MoveY.Value != 0)
-            {
-                if (MoveTimer > MoveDelay)
-                {
-                    MoveTimer = 0;
-                    if (Input.MoveX.Value != 0 || Input.MoveY.Value != 0)
-                    {
-                        CurrentCol = Calc.Clamp(CurrentCol + Input.MoveX.Value, 0, Columns - 1);
-                        CurrentRow = Calc.Clamp(CurrentRow + Input.MoveY.Value, 0, Rows - 1);
-                        if (AboveExit && Input.MoveY.Value == 1)
-                        {
-                            InCompleteRoutine = true;
-                            Add(new Coroutine(CompleteRoutine()));
-                            return;
-                        }
-                        CheckCurrentNode();
-                    }
-
-                }
-            }
-        }
-        private IEnumerator CompleteRoutine()
-        {
-            /*
-             * todo: make icon texture, make icon subclass, make new background texture, make machine texture
-             * Vector2 prev = Icon.Position;
-             * for(float i = 0; i<1; i+=Engine.DeltaTime / moveTime)
-             * {
-             *      Icon.Position = Vector2.Lerp(prev, exitPosition, i);
-             *      yield return null;
-             * }
-             * Audio.Play("event:/PianoBoy/GrassMazeComplete");
-             * for(int i = 0; i<Columns; i++)
-             * {
-             *      int row = 0;
-             *      int col = i;
-             *      while(row < Rows && col >= 0)
-             *      {
-             *          Add(new Coroutine(FlashCell(col, row, Color.Green, 0.8f, 0.2f)));
-             *          row++;
-             *          col--;
-             *      }
-             *      yield return 0.1f;
-             * }
-             * yield return 0.5f;
-             * SceneAs<Level>().SetFlag("CompletedGrassMaze");
-             * Exit();
-             */
-            yield return null;
-        }
-        private IEnumerator FlashCell(int column, int row, Color color, float time, float hold)
-        {
-            if (column < Columns && column >= 0 && row < Rows && row >= 0 && Nodes[column, row] is not null)
-            {
-                Color orig = Nodes[column, row].BaseColor;
-                for (float i = 0; i < 1; i += Engine.DeltaTime / time)
-                {
-                    Nodes[column, row].BaseColor = Color.Lerp(orig, color, i);
-                    yield return null;
-                }
-                Nodes[column, row].BaseColor = color;
-                yield return hold;
-                for (float i = 0; i < 1; i += Engine.DeltaTime / time)
-                {
-                    Nodes[column, row].BaseColor = Color.Lerp(color, orig, i);
-                    yield return null;
-                }
-                Nodes[column, row].BaseColor = orig;
-            }
-            yield return null;
-        }
         public void CheckCurrentNode()
         {
-            if (!Nodes[CurrentCol, CurrentRow].Safe)
+            if (!Nodes[CurrentRow, CurrentCol].Safe)
             {
                 Reset();
+            }
+            else if (Nodes[CurrentRow, CurrentCol].IsSubEnd && icon.AtTarget)
+            {
+                Complete();
             }
         }
         private void Reset()
         {
-            if (!Resetting)
-            {
-                Resetting = true;
-                Add(new Coroutine(ResetRoutine()));
-            }
-        }
-        private IEnumerator ResetRoutine()
-        {
-            //todo
-            //fade selector out
-            //do BEEP BOOP YOU WRONG
-            //fade selector in at start position
-
-            yield return null;
+            icon.MovingToUnsafe = true;
+            CurrentCol = StartCol;
+            CurrentRow = StartRow;
+            icon.Alpha = 1;
         }
         private void Exit()
         {
@@ -345,10 +460,95 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                 Add(new Coroutine(ExitRoutine()));
             }
         }
+        #region Routines
+        private IEnumerator CompleteRoutine()
+        {
+
+            //todo: make new background texture
+            //Audio.Play("event:/PianoBoy/GrassMazeComplete");
+            while (!icon.AtTarget)
+            {
+                yield return null;
+            }
+            icon.Complete();
+            while (!icon.AtTarget)
+            {
+                yield return null;
+            }
+            yield return 0.05f;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 1.2f)
+            {
+                icon.Alpha = 1 - i;
+                yield return null;
+            }
+            icon.Alpha = 0;
+            yield return FlashBoard(Color.Green, 0, 0.8f, 0.4f, 0.2f, 0.1f);
+            yield return 0.4f;
+            yield return FlashBoard(Color.Green, 0, 0.8f, 0.4f, 0.2f, 0.1f);
+            yield return 0.4f;
+            foreach (Node node in Nodes)
+            {
+                while (node.Flashing)
+                {
+                    yield return null;
+                }
+            }
+            yield return 0.1f;
+
+            //SceneAs<Level>().Session.SetFlag("CompletedGrassMaze");
+            Exit();
+
+            yield return null;
+        }
+        private IEnumerator FlashBoard(Color color, float fromAlpha, float toAlpha, float time, float hold, float delay)
+        {
+            for (int i = 0; i < Rows; i++)
+            {
+                Add(new Coroutine(FlashRow(i, color, fromAlpha, toAlpha, time, hold, delay)));
+                yield return delay;
+            }
+        }
+        private IEnumerator FlashRow(int row, Color color, float fromAlpha, float toAlpha, float time, float hold, float delay)
+        {
+            if (row >= Rows) yield break;
+            for (int i = 0; i < Columns; i++)
+            {
+                Add(new Coroutine(FlashCell(i, row, color, fromAlpha, toAlpha, time, hold)));
+                yield return delay;
+            }
+        }
+        private IEnumerator FlashCell(int column, int row, Color color, float fromAlpha, float toAlpha, float time, float hold)
+        {
+            if (column < Columns && column >= 0 && row < Rows && row >= 0 && Nodes[row, column] is not null)
+            {
+                Node node = Nodes[row, column];
+                Color orig = node.BaseColor;
+                node.BaseColor = color;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+                {
+                    node.ColorAlpha = Calc.LerpClamp(fromAlpha, toAlpha, i);
+                    yield return null;
+                }
+                node.ColorAlpha = toAlpha;
+                yield return hold;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+                {
+                    node.ColorAlpha = Calc.LerpClamp(toAlpha, fromAlpha, i);
+                    yield return null;
+                }
+                node.ColorAlpha = fromAlpha;
+                node.BaseColor = orig;
+            }
+            yield return null;
+        }
         private IEnumerator ExitRoutine()
         {
             yield return FadeOut();
             yield return null;
+            if (Scene is Level level && level.GetPlayer() is Player player)
+            {
+                player.StateMachine.State = Player.StNormal;
+            }
             RemoveSelf();
         }
         public IEnumerator FadeOut()
@@ -381,7 +581,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             }
             Opacity = 1;
         }
-        #region Routines
+
         private IEnumerator EndRoutine(bool complete)
         {
             Removing = true;
@@ -410,6 +610,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             yield return null;
         }
         #endregion
+        private Node CreateNode(string data, int row, int col)
+        {
+            Vector2 position = Center + new Vector2(col * (Size + NodeSpace), row * (Size + NodeSpace));
+            Vector2 offset = new Vector2(Columns / 2f, Rows / 2f) * (Size + NodeSpace);
+            Vector2 justify = new Vector2(Size / 2, Size / 2);
+            Node n = new Node(position.Round() - offset + justify, data)
+            {
+                Col = col,
+                Row = row
+            };
+            return n;
+
+        }
         public static void Unload()
         {
             _Target?.Dispose();
@@ -429,10 +642,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                     scene.Remove(node);
                 }
             }
-            if (Battery is not null)
-            {
-                scene.Remove(Battery);
-            }
             base.Removed(scene);
         }
         private void Drawing()
@@ -441,16 +650,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             {
                 node.Render();
             }
-            Battery?.Render(); //Goal
-        }
-        public void BeforeRender()
-        {
-            Target.DrawToObject(Drawing, SceneAs<Level>().Camera.Matrix, true);
-        }
-        public override void Render()
-        {
-            base.Render();
-            Draw.SpriteBatch.Draw(Target, SceneAs<Level>().Camera.Position, Color.White * Opacity);
+            icon.Render();
         }
     }
 }

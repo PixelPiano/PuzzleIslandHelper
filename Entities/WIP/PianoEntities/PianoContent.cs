@@ -56,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP.PianoEntities
         public override void Update()
         {
             base.Update();
-            cursorSprite.Position = Cursor.MousePosition.ToInt() / 6;
+            cursorSprite.Position = Cursor.MousePosition.Floor() / 6;
             MouseRectangle.X = (int)cursorSprite.RenderPosition.X;
             MouseRectangle.Y = (int)cursorSprite.RenderPosition.Y;
         }

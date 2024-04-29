@@ -107,7 +107,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         {
             for (int i = 0; i < NumPoints; i++)
             {
-                Vector2 xyPosition = Center + Calc.AngleToVector((360f / NumPoints * i).ToRad(), (int)Size / 2).ToInt();
+                Vector2 xyPosition = Center + Calc.AngleToVector((360f / NumPoints * i).ToRad(), (int)Size / 2).Floor();
                 Points.Add(new DepthPoint(xyPosition.X, xyPosition.Y, BaseDepth, Color));
 
             }
@@ -116,7 +116,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         {
             for (int i = 0; i < NumPoints; i++)
             {
-                Vector2 xyPosition = Center + Calc.AngleToVector((360f / NumPoints * i).ToRad(), Vector2.Distance(Points[i].Position, Center)).ToInt();
+                Vector2 xyPosition = Center + Calc.AngleToVector((360f / NumPoints * i).ToRad(), Vector2.Distance(Points[i].Position, Center)).Floor();
                 Points[i] = new DepthPoint(xyPosition.X, xyPosition.Y, BaseDepth, Color);
 
             }

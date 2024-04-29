@@ -62,7 +62,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities
             {
                 base.Render();
                 if (Scene is not Level level || noHolders) return;
-                Draw.SpriteBatch.Draw(Target, level.Camera.Position.ToInt(), Color.White);
+                Draw.SpriteBatch.Draw(Target, level.Camera.Position.Floor(), Color.White);
                 foreach (GearHolder holder in level.Tracker.GetEntities<GearHolder>())
                 {
                     Draw.SpriteBatch.Draw(Outline.Texture.Texture_Safe, holder.Position + Offset, null, holder.BackColor, 0, Origin, 1, SpriteEffects.None, 0);
@@ -232,7 +232,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities
             if (useFakeGearImage)
             {
                 MTexture gear = GFX.Game["objects/PuzzleIslandHelper/Gear/fakeGear"];
-                Vector2 gearOffset = new Vector2(gear.Width / 2, gear.Height / 2).ToInt();
+                Vector2 gearOffset = new Vector2(gear.Width / 2, gear.Height / 2).Floor();
                 Draw.SpriteBatch.Draw(gear.Texture.Texture_Safe, Position - Vector2.One * 4 + gearOffset, null, Color.White, Rotation.ToRad(), gearOffset, 1, SpriteEffects.None, 0);
             }
         }

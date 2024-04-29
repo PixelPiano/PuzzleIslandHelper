@@ -27,12 +27,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs
         }
         private float rate = 220;
         public Wave WaveType;
-        public Osc(Wave wave, float rate) : base(DSP_TYPE.OSCILLATOR)
+        public Osc(Wave wave = Wave.Sine, float rate = 220) : base(DSP_TYPE.OSCILLATOR)
         {
             WaveType = wave;
             Rate = rate;
         }
-        public Osc() : this(Wave.Sine, 220) { }
         public override void SetParams()
         {
             base.SetParams();

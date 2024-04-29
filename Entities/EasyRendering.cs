@@ -57,7 +57,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             }
         }
         /// <summary>  
-        /// Returns a render target with masked content
+        /// Returns a render Target with masked content
         /// </summary>  
         public static VirtualRenderTarget DrawThenMask(this VirtualRenderTarget obj, object MaskDraw, object Drawing, Matrix matrix, Effect effect = null)
         {
@@ -95,7 +95,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             return obj;
         }
         /// <summary>  
-        /// Returns a render target with masked content
+        /// Returns a render Target with masked content
         /// </summary>  
         public static VirtualRenderTarget DrawThenMask(this VirtualRenderTarget obj, Action MaskDraw, Action Drawing, Matrix matrix, Effect effect = null)
         {
@@ -197,7 +197,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             return obj;
         }
         /// <summary>  
-        /// Draws a VirtualRenderTarget to the GameplayBuffers.Gameplay render target  
+        /// Draws a VirtualRenderTarget to the GameplayBuffers.Gameplay render Target  
         /// </summary>  
         public static void DrawToGameplay(VirtualRenderTarget obj, Level l, [Optional] Color color)
         {
@@ -208,7 +208,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             Draw.SpriteBatch.Draw(obj, l.Camera.Position, col);
         }
         /// <summary>  
-        /// Draws a Texture to the specified target  
+        /// Draws a Texture to the specified Target  
         /// </summary>  
         public static VirtualRenderTarget SetRenderMask(VirtualRenderTarget RenderTarget, Sprite sprite, Level l)
         {
@@ -252,7 +252,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
         }
 
         /// <summary>  
-        /// Masks over the obj target with the mask target's contents 
+        /// Masks over the obj Target with the mask Target's contents 
         /// </summary>  
         public static VirtualRenderTarget MaskToObject(VirtualRenderTarget obj, VirtualRenderTarget mask)
         {
@@ -283,7 +283,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             return obj;
         }
         /// <summary>  
-        /// Draws whatever is in the draw method to the obj target and then masks over the obj target with the mask target's contents 
+        /// Draws whatever is in the draw method to the obj Target and then masks over the obj Target with the mask Target's contents 
         /// </summary>  
         public static VirtualRenderTarget MaskToObject(VirtualRenderTarget obj, VirtualRenderTarget mask, Action drawing)
         {
@@ -297,7 +297,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             return obj;
         }
         /// <summary>  
-        /// Draws whatever is in the draw method to the obj target
+        /// Draws whatever is in the draw method to the obj Target
         /// </summary>  
         public static VirtualRenderTarget DrawToObject(VirtualRenderTarget obj, Action drawing, Level l, bool clear = false, bool useIdentity = false)
         {

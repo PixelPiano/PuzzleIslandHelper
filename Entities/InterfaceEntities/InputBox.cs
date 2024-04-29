@@ -59,10 +59,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 return Entity.Position + Position - new Vector2(Width / 2, Height / 2);
             }
         }
-        public InputBox(Interface inter, float x, float y, Func<string, bool> onSubmit = null) : base(true, true)
+        public InputBox(BetterWindow window, float x, float y, Func<string, bool> onSubmit = null) : base(true, true)
         {
-            Interface = inter;
-            Window = inter.Window;
+            Interface = window.Interface;
+            Window = window;
             this.onSubmit = onSubmit;
             Position = new Vector2(x, y);
 
@@ -106,7 +106,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 return;
             }
-            Collider.Position = RenderPosition.ToInt();
+            Collider.Position = RenderPosition.Floor();
             Collider.Width = Width;
             Collider.Height = Height;
 

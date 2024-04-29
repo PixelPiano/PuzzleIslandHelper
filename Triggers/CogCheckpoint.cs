@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities;
 using Microsoft.Xna.Framework;
 using Monocle;

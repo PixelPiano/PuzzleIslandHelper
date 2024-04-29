@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         private void CheckLight()
         {
             if(Scene is not Level level) return;
-            level.Session.SetFlag("PuzzleIslandRestoredPower", PianoModule.Session.RestoredPower);
+            level.Session.SetFlag("RestoredPower", PianoModule.Session.RestoredPower);
             float num = level.Session.LightingAlphaAdd = PianoModule.Session.RestoredPower ? PianoModule.Session.MinDarkness : PianoModule.Session.MaxDarkness;
             level.Lighting.Alpha = level.BaseLightingAlpha + num;
         }

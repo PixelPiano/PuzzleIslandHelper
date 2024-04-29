@@ -58,7 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions
             Effect.Parameters["BoxCenter"]?.SetValue(GlobalBoxCenter);
             Effect.Parameters["StartSize"]?.SetValue(StartSize);
             Effect.Parameters["MaxSize"]?.SetValue(MaxSize);
-            Effect.Parameters["Offset"]?.SetValue(level.LevelOffset + Offset);
+            Effect.Parameters["CurveOffset"]?.SetValue(level.LevelOffset + Offset);
         }
     }
 }

@@ -138,11 +138,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP.PianoEntities
             if (Helper != null)
             {
                 TimeHeld = Helper.Clicking ? TimeHeld + Engine.DeltaTime : 0;
-                Helper.Position = (level.Camera.Position + MousePosition / 6).ToInt();
+                Helper.Position = (level.Camera.Position + MousePosition / 6).Floor();
             }
             if (!MouseOnBounds)
             {
-                Position = MousePosition.ToInt();
+                Position = MousePosition.Floor();
             }
             base.Update();
             if (LeftClicked && !MouseOnBounds) //if mouse is clicked

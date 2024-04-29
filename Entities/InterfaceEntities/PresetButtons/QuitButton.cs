@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     [TrackedAs(typeof(BetterWindowButton))]
     public class QuitButton : BetterWindowButton
     {
-        public QuitButton(Interface entityInterface, Action OnClicked = null, IEnumerator Routine = null) : base(entityInterface,null, OnClicked, Routine)
+        public QuitButton(BetterWindow window, Action OnClicked = null, IEnumerator Routine = null) : base(window,null, OnClicked, Routine)
         {
             Text = "Quit";
             TextSize = 35f;

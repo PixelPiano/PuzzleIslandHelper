@@ -41,7 +41,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 return Vector2.Zero;
             }
-            return (level.Camera.CameraToScreen(Window.DrawPosition) + new Vector2(1, -Window.tabHeight)).ToInt() * 6;
+            return (level.Camera.CameraToScreen(Window.DrawPosition) + new Vector2(1, -Window.tabHeight)).Floor() * 6;
         }
     }
 }

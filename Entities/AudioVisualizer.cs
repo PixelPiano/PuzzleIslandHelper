@@ -75,8 +75,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            Add(Sound = new AudioEffect());
-            Sound.Add(FFT = new FFT(WindowSize, WindowType));
+            Add(Sound = new AudioEffect(FFT = new FFT(WindowSize, WindowType)));
             if (FlagState)
             {
                 Sound.PlayEvent(EventName);

@@ -19,15 +19,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 
         private Sprite doorSprite;
 
-        public string start;
+        public int closeRate = 7;
+        public int openRate = 7;
 
-        public int openSpeed = 100;
+        public int openSpeed = 30;
 
         public int closeSpeed = 30;
 
         private int height = 48;
 
         private Player player;
+
 
         public enum States
         {
@@ -37,14 +39,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             Opening
         }
         public States State;
-        public States prevState;
+        public Collider Detect;
         public LabDoor(EntityData data, Vector2 offset)
             : base(data.Position + offset, 8, 48, false)
         {
             auto = data.Bool("automatic");
             flag = data.Attr("flag");
-            start = data.Attr("startState");
-            // TODO: read properties from data
+            State = data.Bool("startState") ? States.Open : States.Closed;
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/machineDoor/"));
             doorSprite.AddLoop("idle", "idle", 0.1f);
             doorSprite.AddLoop("open", "open", 0.1f, 8);
@@ -56,84 +57,74 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             range = data.Float("range") * 8;
             Depth = -8500;
             Add(new LightOcclude());
+            Detect = new Hitbox(Width + range * 2, Height + 16, Position.X - range, Position.Y - 8);
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            Draw.HollowRect(Detect, Color.Blue);
+        }
+        public void Open()
+        {
+            Add(new SoundSource("event:/PianoBoy/labDoorOpen"));
+            doorSprite.Play("opening");
+            State = States.Opening;
+        }
+        public void Close()
+        {
+            Add(new SoundSource("event:/PianoBoy/labDoorClose"));
+            doorSprite.Play("closing");
+            State = States.Closing;
         }
         public override void Update()
         {
-
-            prevState = State;
-            if (!auto)
-            {
-                bool flagState = SceneAs<Level>().Session.GetFlag(flag);
-                if (flagState && State != States.Open)
-                {
-                    State = States.Opening;
-                }
-                else if (!flagState && State != States.Closed)
-                {
-                    State = States.Closing;
-                }
-            }
-            else
-            {
-                if (player.Position.Y < Y + Height + 8 && player.Position.Y > Y - 8
-                    && (player.Position.X <= X + Width + range && player.Position.X > X + Width
-                    || player.Position.X >= X - range && player.Position.X < X))
-                {
-                    State = States.Opening;
-                }
-                if ((player.Position.Y > Y + Height + 8 || player.Position.Y < Y - 8)
-                    && (player.Position.X > X + Width + range || player.Position.X < X - range))
-                {
-                    State = States.Closing;
-                }
-            }
-            if (prevState != State)
-            {
-                switch (State)
-                {
-                    case States.Opening:
-                        Add(new SoundSource("event:/PianoBoy/labDoorOpen"));
-                        doorSprite.Play("opening");
-                        break;
-                    case States.Closing:
-                        Add(new SoundSource("event:/PianoBoy/labDoorClose"));
-                        doorSprite.Play("closing");
-                        break;
-                }
-            }
+            bool state = string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag);
+            bool collided = Detect.Collide(player);
             switch (State)
             {
                 case States.Closed:
                     Collider.Height = height;
                     closeSpeed = 30;
                     doorSprite.Play("closed");
-                    break;
-                case States.Open:
-                    Collider.Height = 0;
-                    doorSprite.Play("open");
+                    if ((!auto && state) || (auto && collided))
+                    {
+                        Open();
+                    }
                     break;
                 case States.Closing:
                     Collider.Height = Calc.Approach(Collider.Height, height, closeSpeed * Engine.DeltaTime);
-                    closeSpeed += 7;
+                    closeSpeed += closeRate;
+                    if (Collider.Height >= height)
+                    {
+                        Collider.Height = height;
+                        State = States.Closed;
+                    }
+                    break;
+                case States.Open:
+                    Collider.Height = 0;
+                    openSpeed = 30;
+                    doorSprite.Play("open");
+                    if ((!auto && !state) || (auto && !collided))
+                    {
+                        Close();
+                    }
                     break;
                 case States.Opening:
                     Collider.Height = Calc.Approach(Collider.Height, 0, openSpeed * Engine.DeltaTime);
+                    openSpeed += openRate;
+                    if (Collider.Height <= 0)
+                    {
+                        Collider.Height = 0;
+                        State = States.Open;
+                    }
                     break;
             }
-            if (Collider.Height == height)
-            {
-                State = States.Closed;
-            }
-            if (Collider.Height == 0)
-            {
-                State = States.Open;
-            }
+
             base.Update();
         }
-
-        public override void Added(Scene scene)
+        public override void Awake(Scene scene)
         {
-            base.Added(scene);
+            base.Awake(scene);
             player = Scene.Tracker.GetEntity<Player>();
         }
     }

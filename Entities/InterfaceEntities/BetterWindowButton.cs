@@ -11,10 +11,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     public class BetterWindowButton : BetterButton
     {
         private Interface entityInterface;
-        public BetterWindowButton(Interface entityInterface, string path = null, Action OnClicked = null, IEnumerator Routine = null)
-            : base(entityInterface, path, OnClicked, Routine)
+        public BetterWindowButton(BetterWindow window, string path = null, Action OnClicked = null, IEnumerator Routine = null)
+            : base(window, path, OnClicked, Routine)
         {
-            this.entityInterface = entityInterface;
+            this.entityInterface = window.Interface;
             this.OnClicked = OnClicked;
             this.Routine = Routine;
             ButtonCollider = new Hitbox(Texture.Width, Texture.Height);
@@ -26,7 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             ButtonCollider.Position = RenderPosition;
             if (Scene is Level level && TextRenderer is not null)
             {
-                TextRenderer.RenderPosition = (level.Camera.CameraToScreen(RenderPosition + new Vector2(2, 1))).ToInt() * 6;
+                TextRenderer.RenderPosition = (level.Camera.CameraToScreen(RenderPosition + new Vector2(2, 1))).Floor() * 6;
             }
             if (Disabled)
             {

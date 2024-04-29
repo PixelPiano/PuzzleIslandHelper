@@ -15,7 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Matrix? camera = level.Camera.Matrix;
             parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
             parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
-            parameters["CamPos"]?.SetValue(level.Camera.Position.ToInt());
+            parameters["CamPos"]?.SetValue(level.Camera.Position.Floor());
             parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
             parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
 

@@ -12,7 +12,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
     {
         private Image Texture;
         public const int BaseDepth = -13000;
-        public static bool Completed;
+        public static bool Completed
+        {
+            get
+            {
+                return PianoModule.Session.GrassMazeCompleted;
+            }
+            set
+            {
+                PianoModule.Session.GrassMazeCompleted = value;
+            }
+        }
         public static bool Reset;
         private CustomTalkComponent Talk;
         private GrassMazeOverlay Maze;
@@ -36,7 +46,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         public override void Update()
         {
             base.Update();
-            if(Maze is null || Scene is not Level level || level.GetPlayer() is not Player player) return;
+            if (Maze is null || Scene is not Level level || level.GetPlayer() is not Player player) return;
             if (Maze.Completed)
             {
                 player.StateMachine.State = Player.StNormal;

@@ -19,7 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         public string[] Dialogs;
         public void Interact(Player player)
         {
-            Scene?.Add(Content = new ViewContent((Scene as Level).Camera.Position.ToInt(), screen, Dialogs, true));
+            Scene?.Add(Content = new ViewContent((Scene as Level).Camera.Position.Floor(), screen, Dialogs, true));
             //Player.StateMachine.FlagState = 11;
         }
         public ViewScreen(float width, float height, Rectangle screen, string[] dialogs) : base(new Rectangle(0, 0, (int)width, (int)height), Vector2.UnitX * width / 2, null)
@@ -111,7 +111,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                 parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
                 parameters["CamPos"]?.SetValue(level.Camera.Position);
                 parameters["Dimensions"]?.SetValue(new Vector2(Screen.Width * 6, Screen.Height * 6));
-                parameters["Offset"]?.SetValue(new Vector2(Screen.X * 6, Screen.Y * 6));
+                parameters["CurveOffset"]?.SetValue(new Vector2(Screen.X * 6, Screen.Y * 6));
                 parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
 
                 Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
@@ -248,7 +248,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            //TextHelper = new ViewContentText(Position + Offset, Dialogs, 35f, (int)Dimensions.X, 0, Screen);
+            //TextHelper = new ViewContentText(Position + CurveOffset, Dialogs, 35f, (int)Dimensions.X, 0, Screen);
         }
         public void Fade(bool fadeIn, Ease.Easer ease = null, float duration = 1)
         {
@@ -330,7 +330,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
             parameters["CamPos"]?.SetValue(level.Camera.Position);
             parameters["Dimensions"]?.SetValue(new Vector2(320, 180));// * (GameplayBuffers.Gameplay.Width / 320));
-            //parameters["Offset"]?.SetValue(Offset);
+            //parameters["CurveOffset"]?.SetValue(CurveOffset);
             parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
             parameters["TransformMatrix"]?.SetValue(projection);
             parameters["ViewMatrix"]?.SetValue(level.Camera.Matrix);

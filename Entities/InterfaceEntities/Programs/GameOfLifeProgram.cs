@@ -32,6 +32,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             PianoModule.Session.AddLifeGrid(currentCells);
         }
+        public override void OnOpened(BetterWindow window)
+        {
+            ProgramComponents = new()
+            {
+                new StartButton(window, delegate { Simulating = true; }),
+                new CustomButton(window, "StopEvent", 35f, Vector2.Zero, Stop),
+                new CustomButton(window, "Clear", 35f, Vector2.Zero, Clear),
+                new CustomButton(window, "Rand", 35f, Vector2.Zero, Randomize),
+                new CustomButton(window, "Store", 35f, Vector2.Zero, Store),
+                new CustomButton(window, "Load", 35f, Vector2.Zero, LoadPreset),
+            };
+            base.OnOpened(window);
+            window.CaseWidth++;
+            window.CaseHeight++;
+        }
         public void LoadPreset()
         {
             bool wasSimulating = Simulating;
@@ -51,7 +66,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public const int CellSize = 9;
         public override void Update()
         {
-            Position = Window.DrawPosition.ToInt();
+            Position = Window.DrawPosition.Floor();
             base.Update();
             if (!Window.Drawing)
             {
@@ -59,7 +74,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             }
             if (!Simulating)
             {
-                Vector2 cPos = Interface.Cursor.WorldPosition;
+                Vector2 cPos = Window.Interface.Cursor.WorldPosition;
                 if (Collider.Bounds.Contains((int)cPos.X, (int)cPos.Y) && !Window.PressingButton)
                 {
                     if (!Cursor.LeftClicked && !Cursor.RightClicked)
@@ -104,14 +119,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             }
         }
 
-
-        public override void Render()
+        public override void WindowRender()
         {
-            base.Render();
-            if (!Window.Drawing)
-            {
-                return;
-            }
+            base.WindowRender();
             MTexture texture = GFX.Game["objects/PuzzleIslandHelper/gameOfLife/cell"];
             Vector2 offset = new Vector2(2, 2);
             for (int i = 0; i < W + 1; i++) //Vertical lineColors (UD)

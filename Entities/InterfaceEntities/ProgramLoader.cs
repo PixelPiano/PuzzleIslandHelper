@@ -17,9 +17,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     {
         public delegate WindowContent ContentLoader(BetterWindow window);
         public static readonly Dictionary<string, ContentLoader> ContentLoaders = new Dictionary<string, ContentLoader>();
+        public static bool LoadCustomEntity(ComputerIcon icon,BetterWindow window, Level level)
+        {
+            LevelData levelData = level.Session.LevelData;
+            Vector2 offset = new Vector2(levelData.Bounds.Left, levelData.Bounds.Top);
+            if (ContentLoaders.TryGetValue(icon.Name, out var value))
+            {
+                WindowContent program = value(window);
+                if (program != null)
+                {
+                    level.Add(program);
+                    return true;
+                }
+            }
+            return false;
+        }
         public static void Load()
         {
-            Assembly assembly = typeof(CoreModule).Assembly;
+            Assembly assembly = typeof(PianoModule).Assembly;
             Type[] types = assembly.GetTypesSafe();
             bool flag = false;
             foreach (Type type in types)

@@ -4,6 +4,7 @@ using FMOD.Studio;
 using Monocle;
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
 {
@@ -15,6 +16,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
         public bool injecting;           //if currently attempting to add the dsps to the event instance (sometimes takes multiple frames)
         public ChannelGroup ActiveGroup; //the channel group the event instance is playing from
         public float TimePlaying;        //how long the event instance has been playing for
+        public DSP Capture;
+        public DSP_READCALLBACK ReadCallback;
+        public GCHandle ObjHandle;
+        public float[] DataBuffer;
+        public uint BufferLength;
+        public bool UseCapture;
+        public int Channels = 0;
+        public float DspVolume = 1;
         public virtual void OnEject() //Called once after the dsps have been removed from the event instance
         {
 
@@ -23,12 +32,87 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
         {
 
         }
-
-        public AudioEffect(params DSP_TYPE[] types) : base()
+        
+        public AudioEffect(params AEDSP[] aedsps) : base()
         {
-            foreach (DSP_TYPE type in types)
+            UseCapture = false;
+            foreach (AEDSP dsp in aedsps)
             {
-                AddDSP(type);
+                Add(dsp);
+            }
+        }
+        public AudioEffect(bool useCapture) : base()
+        {
+            UseCapture = useCapture;
+        }
+        public static RESULT CaptureDSPReadCallback(ref DSP_STATE dsp_state, IntPtr inbuffer, IntPtr outbuffer, uint length, int inchannels, ref int outchannels)
+        {
+            DSP_STATE_FUNCTIONS functions = (DSP_STATE_FUNCTIONS)Marshal.PtrToStructure(dsp_state.functions, typeof(FMOD.DSP_STATE_FUNCTIONS));
+
+            IntPtr userData;
+            functions.getuserdata(ref dsp_state, out userData);
+
+            GCHandle objHandle = GCHandle.FromIntPtr(userData);
+            AudioEffect obj = objHandle.Target as AudioEffect;
+
+            // Save the channel count out for the update function
+            obj.Channels = inchannels;
+
+            // Copy the incoming buffer to process later
+            int lengthElements = (int)length * inchannels;
+            Marshal.Copy(inbuffer, obj.DataBuffer, 0, lengthElements);
+
+            // Copy the inbuffer to the outbuffer so we can still hear it
+            Marshal.Copy(obj.DataBuffer, 0, outbuffer, lengthElements);
+
+            return RESULT.OK;
+        }
+        public void CreateCaptureDSP(ChannelGroup group)
+        {
+            ReadCallback = CaptureDSPReadCallback;
+            uint bufferLength;
+            int numBuffers;
+            if (Audio.System.getLowLevelSystem(out FMOD.System system) == RESULT.OK)
+            {
+                system.getDSPBufferSize(out bufferLength, out numBuffers);
+                DataBuffer = new float[bufferLength * 8];
+                BufferLength = bufferLength;
+                ObjHandle = GCHandle.Alloc(this);
+                if (ObjHandle != null)
+                {
+                    DSP_DESCRIPTION desc = new DSP_DESCRIPTION()
+                    {
+                        numinputbuffers = 1,
+                        numoutputbuffers = 1,
+                        read = ReadCallback,
+                        userdata = GCHandle.ToIntPtr(ObjHandle)
+                    };
+
+                    if (system.createDSP(ref desc, out Capture) == RESULT.OK)
+                    {
+                        if (group.addDSP(0, Capture) != RESULT.OK)
+                        {
+                            Logger.Log("AudioEffect", "Unable to add Capture to the channel group");
+                        }
+                    }
+                }
+            }
+        }
+        public void DestroyCaptureDSP(ChannelGroup group)
+        {
+            if (ObjHandle != null && group != null)
+            {
+                if (Audio.System.getLowLevelSystem(out _) == RESULT.OK)
+                {
+                    // Remove the capture DSP from the channel group
+                    if (Capture.isValid())
+                    {
+                        group.removeDSP(Capture);
+                        // Release the DSP and free the object handle
+                        Capture.release();
+                    }
+                    ObjHandle.Free();
+                }
             }
         }
         public void AddDSP(DSP_TYPE type)
@@ -49,7 +133,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
         }
         public void SetAllParams()
         {
-            if (Dsps is null || Dsps.Count == 0) return; 
+            if (Dsps is null || Dsps.Count == 0) return;
             for (int i = 0; i < Dsps.Count; i++)
             {
                 if (Dsps[i] is null || !Dsps[i].Injected) continue;
@@ -64,6 +148,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
                     case DSP_TYPE.ECHO: (Dsps[i] as Echo).SetParams(); break;
                     case DSP_TYPE.FLANGE: (Dsps[i] as Flange).SetParams(); break;
                 }
+                Dsps[i].SetVolume(DspVolume);
             }
         }
         public void Add(AEDSP dsp)
@@ -93,43 +178,60 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
         }
         private void InjectDSPs()
         {
-            Audio.System.getLowLevelSystem(out FMOD.System system);
-            if (system is null) throw new Exception("Error: Low Level System is null!");
-            foreach (AEDSP aedsp in Dsps)
+            if (Audio.System.getLowLevelSystem(out FMOD.System system) == RESULT.OK)
             {
-                if (!aedsp.Injected)
+                foreach (AEDSP aedsp in Dsps)
                 {
-                    aedsp.Initialize(system, aedsp.Type);
-                    aedsp.ActiveGroup = ActiveGroup;
-                    aedsp.Inject(instance);
+                    if (!aedsp.Injected)
+                    {
+                        aedsp.Initialize(system, aedsp.Type);
+                        aedsp.ActiveGroup = ActiveGroup;
+                        aedsp.Inject(instance);
+                    }
                 }
+                if (UseCapture)
+                {
+                    CreateCaptureDSP(ActiveGroup);
+                }
+                SetAllParams();
+                OnInject();
+                injecting = false;
+                DSPsInjected = true;
             }
-            SetAllParams();
-            OnInject();
-            injecting = false;
-            DSPsInjected = true;
         }
         public void EjectDsp(AEDSP dsp)
         {
             if (Dsps is null || dsp is null || !Dsps.Contains(dsp)) return;
             dsp.Eject();
-            Dsps.Remove(dsp);
+        }
+        private void FreeDSPs()
+        {
+            for (int i = 0; i < Dsps.Count; i++)
+            {
+                Dsps[i].Dsp.release();
+            }
         }
         private void EjectDSPs()
         {
-            if (ActiveGroup is null || Dsps is null || Dsps.Count == 0) return;
-            List<AEDSP> toRemove = new();
-            for (int i = 0; i < Dsps.Count; i++)
+            if (ActiveGroup is null) return;
+            if (Dsps is not null && Dsps.Count > 0)
             {
-                if (!Dsps[i].Injected || Dsps[i].Dsp == null) continue;
-                toRemove.Add(Dsps[i]);
+                List<AEDSP> toRemove = new();
+                for (int i = 0; i < Dsps.Count; i++)
+                {
+                    if (!Dsps[i].Injected || Dsps[i].Dsp == null) continue;
+                    toRemove.Add(Dsps[i]);
+                }
+                foreach (AEDSP aedsp in toRemove)
+                {
+                    EjectDsp(aedsp);
+                }
             }
-            foreach (AEDSP aedsp in toRemove)
+            if (UseCapture)
             {
-                EjectDsp(aedsp);
+                DestroyCaptureDSP(ActiveGroup);
             }
             OnEject();
-            Dsps.Clear();
             ActiveGroup = null;
             DSPsInjected = false;
 
@@ -138,6 +240,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
         {
             base.Removed(entity);
             EjectDSPs();
+            FreeDSPs();
         }
         public SoundSource PlayEvent(string path, string param = null, float value = 0)
         {
@@ -200,6 +303,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
         }
         public static ChannelGroup GetActiveChannelGroup(EventInstance instance, bool volSearch = false)
         {
+            if (instance is null) return null;
             if (!volSearch)
             {
                 instance.getChannelGroup(out ChannelGroup searchgroup);

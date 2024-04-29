@@ -86,6 +86,10 @@
           <HintPath>libs\PandorasBox.dll</HintPath>
         </Reference>
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Deprecated\" />
+    </ItemGroup>
     <Choose>
         <When Condition="'$(CelesteType)' == 'FNA'">
             <ItemGroup>

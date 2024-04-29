@@ -29,6 +29,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             base.Update();
         }
+        public override void OnOpened(BetterWindow window)
+        {
+            ProgramComponents.Add(new InputBox(window, window.CaseWidth / 2, window.CaseHeight / 2, CheckIfValidPass));
+            base.OnOpened(window);
+        }
         private IEnumerator WaitAnimation(float time)
         {
             Interface.Buffering = true;

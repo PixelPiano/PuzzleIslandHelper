@@ -134,7 +134,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                     currentY += SpacingY;
 
                 }
-            } //Draw to render target
+            } //Draw to render Target
             if (VerticalLines)
             {
                 for (float i = 0; i < level.Bounds.Width + compensation.X + DiagonalOffsetX; i += SpacingX)
@@ -167,7 +167,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                                    RasterizerState.CullNone,
                                    effect,
                                    level.Camera.Matrix);
-            Draw.SpriteBatch.Draw(GridRenderTarget, Vector2.Zero, Color.White); //Draw content of render target to level
+            Draw.SpriteBatch.Draw(GridRenderTarget, Vector2.Zero, Color.White); //Draw content of render Target to level
         }
     }
 }
