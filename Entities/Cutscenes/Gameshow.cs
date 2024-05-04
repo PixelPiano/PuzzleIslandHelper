@@ -6,12 +6,17 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
+using System.Reflection;
+using Celeste.Mod.Entities;
+using Microsoft.Xna.Framework.Graphics;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
     [Tracked]
     public class Gameshow : CutsceneEntity
     {
+        private Player player;
         public int WrongAnswers;
         public bool Lost;
         public RandomRoutines Random;
@@ -24,58 +29,180 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private const string Song = "event:/PianoBoy/ThatsMyMerleeIntro";
         private const string Drum = "event:/PianoBoy/drumroll";
 
-        private const string path = "objects/PuzzleIslandHelper/gameshow/screen/";
-        private const string screen = path + "display";
-        private const string x = path + "x";
-        private const string check = path + "check";
+        private const string path = "objects/PuzzleIslandHelper/gameshow/";
+
         private string currentPath;
         private Vector2 resultOffset = new Vector2(144, 24);
-
+        private Screen screen;
+        private Background background;
+        private Blackout blackout;
         public Gameshow() : base()
         {
+            Depth = -10000;
             RemoveOnSkipped = false;
             Random = new();
             SnareLoop = new SoundSource();
             Add(SnareLoop);
         }
+        public class Screen : Entity
+        {
+            private Image check;
+            private Image x;
+            public Screen(Vector2 position) : base(position)
+            {
+                Add(new Image(GFX.Game[path + "display"]));
+                Add(check = new Image(GFX.Game[path + "check"]));
+                Add(x = new Image(GFX.Game[path + "x"]));
+                check.Visible = x.Visible = false;
+                Visible = false;
+                Depth = 10001;
+            }
+            public IEnumerator FlashResult(bool correct, float waitTime)
+            {
+                x.Visible = false;
+                check.Visible = false;
+                for (int i = 0; i < 4; i++)
+                {
+                    check.Visible = correct;
+                    x.Visible = !correct;
+                    yield return waitTime;
+                    yield return waitTime;
+                }
+                x.Visible = false;
+                check.Visible = false;
+            }
 
+        }
 
+        public class Background : Entity
+        {
+            private Image IntroCurtains;
+            private Image Seats;
+            private Image BgCurtains;
+            private bool Rising;
+            public Background(Vector2 position) : base(position)
+            {
+                Depth = 10002;
+                Add(BgCurtains = new Image(GFX.Game[path + "curtainBG"]));
+                Add(Seats = new Image(GFX.Game[path + "seats"]));
+                Add(IntroCurtains = new Image(GFX.Game[path + "redCurtainsStock"]));
+                Seats.Visible = false;
+                BgCurtains.Visible = false;
+                IntroCurtains.Scale = new Vector2(320 / IntroCurtains.Width, 180 / IntroCurtains.Height);
+            }
+            public override void Update()
+            {
+                base.Update();
+
+                if (Rising)
+                {
+                    if (IntroCurtains.Position.Y < -320)
+                    {
+                        IntroCurtains.Visible = false;
+                        Rising = false;
+                        return;
+                    }
+                    IntroCurtains.Position.Y -= 5 * Engine.DeltaTime;
+                }
+            }
+            public void RaiseCurtain()
+            {
+                Rising = true;
+            }
+            public void Reveal()
+            {
+                Seats.Visible = BgCurtains.Visible = true;
+
+            }
+        }
+        public class Blackout : Entity
+        {
+            public Blackout(Vector2 position) : base(position)
+            {
+                Depth = -10000;
+            }
+
+            public override void Render()
+            {
+                base.Render();
+                Draw.Rect(Position, 320, 180, Color.Lerp(Color.Black, Color.White, 0.1f));
+            }
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            Level.Session.SetFlag("gameshowReveal", false);
+
+            screen = new Screen(Level.LevelOffset);
+            background = new Background(Level.LevelOffset);
+            blackout = new Blackout(Level.LevelOffset);
+            Level.Add(blackout, background, screen);
+        }
         public IEnumerator FlashRoutine(bool correct)
         {
             float waitTime = 0.15f;
             Audio.Play("event:/PianoBoy/" + (correct ? "correct" : "incorrect"));
-            for (int i = 0; i < 4; i++)
-            {
-                currentPath = correct ? check : x;
-                yield return waitTime;
-                currentPath = null;
-                yield return waitTime;
-            }
-        }
-        public override void Render()
-        {
-            Draw.SpriteBatch.Draw(GFX.Game[screen].Texture.Texture_Safe, Level.LevelOffset, Color.White);
-            if (!string.IsNullOrEmpty(currentPath))
-            {
-                Draw.SpriteBatch.Draw(GFX.Game[currentPath].Texture.Texture_Safe, Level.LevelOffset + resultOffset, Color.White);
-            }
-            base.Render();
+            yield return screen.FlashResult(correct, waitTime);
         }
 
         public override void OnBegin(Level level)
         {
-            Player player = level.GetPlayer();
+            player = level.GetPlayer();
+            player.Visible = false;
             player.StateMachine.State = Player.StDummy;
-            SavedLighting = level.Lighting.Alpha;
-            level.Lighting.Alpha = 1;
+            //GameshowSpotlight.GSRenderer.BlendState = BlendState.AlphaBlend;
+            foreach (Blinker blinker in Level.Tracker.GetEntities<Blinker>())
+            {
+                blinker.TurnOff();
+                blinker.Visible = false;
+            }
+            foreach (AudienceMember face in Level.Tracker.GetEntities<AudienceMember>())
+            {
+                face.Visible = false;
+            }
+            foreach (LifeDisplay display in Level.Tracker.GetEntities<LifeDisplay>())
+            {
+                display.Visible = false;
+            }
+            //SavedLighting = Level.Lighting.Alpha;
+            //Level.Lighting.Alpha = 1;
             PrevMusic = Audio.CurrentMusic;
-            Audio.currentMusicEvent.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-            Add(new Coroutine(Skipped()));
-        }
-        public void Sequence()
-        {
-            Audio.currentMusicEvent.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+            Audio.currentMusicEvent?.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
 
+            Add(new Coroutine(Cutscene()));
+        }
+        public void Reveal()
+        {
+            //Level.Lighting.Alpha = SavedLighting;
+            Level.Remove(blackout);
+            GameshowSpotlight.GSRenderer.BlendState = BlendState.Additive;
+            foreach (Blinker blinker in Level.Tracker.GetEntities<Blinker>())
+            {
+                blinker.Visible = true;
+                blinker.StartContinuous(0.1f);
+            }
+            /*            foreach (StageLight light in Level.Tracker.GetEntities<StageLight>())
+                        {
+                            if (!light.Activated)
+                            {
+                                light.Activate();
+                            }
+                        }*/
+            foreach (AudienceMember face in Level.Tracker.GetEntities<AudienceMember>())
+            {
+                face.Visible = true;
+            }
+            foreach (LifeDisplay display in Level.Tracker.GetEntities<LifeDisplay>())
+            {
+                display.Visible = true;
+            }
+            Level.Session.SetFlag("gameshowReveal");
+            if (Level.GetPlayer() is Player player)
+            {
+                player.Visible = true;
+            }
+            background.Reveal();
+            screen.Visible = true;
         }
         public override void OnEnd(Level level)
         {
@@ -83,6 +210,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 InstantTeleportToSpawn(level, level.GetPlayer(), "GameshowLose");
             }
+
             Audio.SetMusic(PrevMusic);
         }
 
@@ -99,31 +227,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public IEnumerator Intro()
         {
             Player player = Level.GetPlayer();
-            if (player is not null)
-            {
-                SnareLoop.Position = player.Center;
-            }
-            else
-            {
-                SnareLoop.Position = Level.Camera.Position + new Vector2(160, 90);
-            }
+            SnareLoop.Position = player is null ? Level.Camera.Position + new Vector2(160, 90) : player.Center;
             SnareLoop.UpdateSfxPosition();
             SnareLoop.Play(Drum);
-
             yield return 2;
             float[] waitTimes = { 1.5f, 1, 0.7f, 0.5f, 1.5f };
             for (int i = 0; i < 5; i++)
             {
-                SetLights(i + 1);
+                //SetLights(i);
                 yield return Textbox.Say("gameshowStart" + (i + 1));
-                yield return waitTimes[i];
+                //yield return waitTimes[i];
             }
-            SetLights(6);
+            Reveal();
             SnareLoop.Stop(false);
             Audio.Play("event:/PianoBoy/crashCymbal");
             Audio.SetMusic(Song);
             Audio.SetMusicParam("fade", 1);
-            Level.Lighting.Alpha = SavedLighting;
             yield return Textbox.Say("gameshowStart", SayTitle, WaitALittle, Cheer);
         }
         public IEnumerator SayTitle()
@@ -358,10 +477,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     found = true;
                 }
             }
-            if (found)
-            {
-                Audio.Play("event:/PianoBoy/spotlight");
-            }
+            if (found) Audio.Play("event:/PianoBoy/spotlight");
         }
         public static void InstantTeleportToSpawn(Scene scene, Player player, string room)
         {

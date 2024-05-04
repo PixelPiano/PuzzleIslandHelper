@@ -12,6 +12,13 @@ using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+    public class ForkAmpState
+    {
+        public float[] Rates = new float[4];
+        public float[] Effectiveness = new float[4];
+        public bool CanPlay;
+        public int Unlocked;
+    }
     [CustomEntity("PuzzleIslandHelper/ForkAmp")]
     [Tracked]
     public class ForkAmp : Entity
@@ -19,7 +26,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Sprite Sprite;
         public bool Played;
         public DotX3 Talk;
-        private string flagOnFinish;
         public string[] flags;
         public Oscillator[] Oscillators;
         public bool Playing;
@@ -78,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public float SavedVolume;
         public bool PlayedOnce;
-        public int DisplaysUnlocked = 1;
+        public int DisplaysUnlocked;
         public const float TargetRange = 15;
         public ForkAmp(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
@@ -106,52 +112,43 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 data.Attr("firstFlag"),data.Attr("secondFlag"),data.Attr("thirdFlag"),data.Attr("fourthFlag")
             };
         }
-        public void InitializeDisplays()
-        {
-            int count = 0;
-            for (int i = 0; i < 4; i++)
-            {
-                if (SceneAs<Level>().Session.GetFlag(flags[i])) count++;
-                else break;
-            }
-            for (int i = count; i < Oscillators.Length; i++)
-            {
-                Oscillators[i].InPlay = false;
-            }
-            DisplaysUnlocked = count;
-        }
-        public void SetSpinners()
-        {
-            if (Scene is not Level level) return;
-            foreach (SoundSpinner spinner in level.Tracker.GetEntities<SoundSpinner>())
-            {
-                for (int i = 0; i < 4; i++)
-                {
-                    if (spinner.Amps[i] > 0)
-                    {
-                        spinner.Amps[i] = Oscillators[i].Effectiveness;
-                    }
-                }
-            }
-        }
         public override void Update()
         {
             base.Update();
-
-            if (CollideFirst<ForkAmpBattery>() is ForkAmpBattery battery)
+            
+            DisplaysUnlocked = 0;
+            for (int i = 0; i < 4; i++)
             {
-                if (!battery.Hold.IsHeld)
+                if (!string.IsNullOrEmpty(flags[i]) && SceneAs<Level>().Session.GetFlag(flags[i]))
                 {
-                    DisplaysUnlocked = (int)Calc.Min(DisplaysUnlocked + 1, 4);
-                    SceneAs<Level>().Session.SetFlag(battery.FlagOnSet);
-                    battery.RemoveSelf();
+                    Oscillators[i].InPlay = true;
+                    
                 }
+                else
+                {
+                    Oscillators[i].InPlay = false;
+                }
+            }
+            PianoModule.Session.ForkAmpState.Unlocked = DisplaysUnlocked;
+            for (int i = 0; i < 4; i++)
+            {
+                PianoModule.Session.ForkAmpState.Effectiveness[i] = Oscillators[i].Effectiveness;
             }
             if (SelectTimer <= 0)
             {
                 if (Input.MoveX != 0)
                 {
-                    CurrentIndex = Calc.Clamp(CurrentIndex + Input.MoveX.Value, 0, DisplaysUnlocked - 1);
+                    if(Input.MoveX.Value != 0)
+                    {
+                        for(int i = CurrentIndex + Input.MoveX.Value; i<4 && i >= 0; i+= Input.MoveX.Value)
+                        {
+                            if (Oscillators[i].InPlay)
+                            {
+                                CurrentIndex = Oscillators[i].Index;
+                                
+                            }
+                        }
+                    }
                     for (int i = 0; i < 4; i++)
                     {
                         Oscillators[i].SetSelected(CurrentIndex);
@@ -168,7 +165,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public void Interact(Player player)
         {
             player.StateMachine.State = Player.StDummy;
-            InitializeDisplays();
             Scene.Add(Oscillators);
             PlayedOnce = true;
             Add(new Coroutine(Routine(player)));
@@ -212,13 +208,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public IEnumerator Routine(Player player)
         {
-            Level level = Scene as Level;
             StartOscillators();
             while (!Input.Jump)
             {
                 for (int i = 0; i < 4; i++)
                 {
                     Sound.Param("Osc " + (i + 1), Oscillators[i].Rate);
+                    PianoModule.Session.ForkAmpState.Rates[i] = Oscillators[i].Rate;
                 }
                 yield return null;
             }

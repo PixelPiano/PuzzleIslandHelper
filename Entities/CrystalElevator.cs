@@ -1,12 +1,14 @@
 ﻿using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
+using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using VivHelper.Entities.Spinner2;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 {
@@ -56,6 +58,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             {
                 AddTag(Tags.TransitionUpdate);
                 Add(new LightOcclude());
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (Scene is Level level)
+                {
+                    foreach (CustomSpinner spinner in level.Tracker.GetEntities<CustomSpinner>())
+                    {
+                        if (InRange(spinner) && CollideCheck(spinner))
+                        {
+                            spinner.Destroy();
+                        }
+                    }
+                }
+            }
+            public bool InRange(CustomSpinner spinner)
+            {
+                Vector2 center = Center;
+                float radius = 30;
+                if (spinner.Right > center.X - Width / 2 - radius && spinner.Bottom > center.Y - Height / 2 - radius && spinner.Left < center.X + Width / 2 + radius)
+                {
+                    return spinner.Top < center.Y + Width / 2 + radius;
+                }
+
+                return false;
             }
         }
         public override void Render()

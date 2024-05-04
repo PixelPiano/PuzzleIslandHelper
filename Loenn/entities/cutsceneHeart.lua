@@ -16,7 +16,8 @@ cutsceneHeart.placements =
             room = "",
             returnRoom = "",
             flag = "greenMiniHeart",
-            teleportsPlayer=true
+            teleportsPlayer=true,
+            flipped = false,
         }
     }
 }

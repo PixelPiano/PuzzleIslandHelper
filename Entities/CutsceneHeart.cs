@@ -57,7 +57,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprite.AddLoop("idle", spriteName, 0.08f);
             sprite.AddLoop("static", spriteName, 1f, 0);
             sprite.X = -(sprite.Width - 12);
-
+            if (data.Bool("flipped"))
+            {
+                sprite.CenterOrigin();
+                sprite.Position += new Vector2(sprite.Width/2, sprite.Height/2);
+                sprite.Scale = -Vector2.One;
+            }
             Add(scaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f)
             {
                 sprite.Scale = Vector2.One * (1f + f * 0.3f);
@@ -204,7 +209,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 player = level.Tracker.GetEntity<Player>();
                 yield return null;
             }
-            SoundEmitter.Play(collectSound, heart);
+            SoundEmitter.Play(collectSound, player);
             for (int i = 0; i < 10; i++)
             {
                 Scene.Add(new AbsorbOrb(Position + new Vector2(8f, 8f), player));

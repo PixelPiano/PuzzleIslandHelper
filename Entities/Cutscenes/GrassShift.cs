@@ -9,7 +9,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
     [Tracked]
     public class GrassShift : CutsceneEntity
     {
-        public ShaderOverlay Shader;
+        public static ShaderOverlay Shader;
         private float max = 0.05f;
         public bool Shaking;
         private int part;
@@ -47,11 +47,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
-            if (Shader is not null)
-            {
-                scene.Remove(Shader);
-                Shader = null;
-            }
         }
         public IEnumerator CutscenePart1(Level level)
         {
@@ -110,16 +105,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public void TeleportToRuinsBeforePipes(bool skipped = false)
         {
             Player player = Level.GetPlayer();
+            
             if (!skipped)
             {
                 Level.Session.SetFlag("mustHaveSeenPart1");
             }
-            if (skipped)
+            else
             {
-                //AddTag(Tags.Global);
                 RemoveOnSkipped = false;
             }
-            InstantTeleport(Level, player, room, skipped ? OnSkipTeleport : OnTeleport, skipped);
+            InstantTeleport(Level, player, room, null/*skipped ? OnSkipTeleport : OnTeleport*/, skipped);
         }
         public void OnSkipTeleport(Level level)
         {
@@ -150,7 +145,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             Shaking = true;
             Add(new Coroutine(ShakeRoutine()));
-            //Event.PlayEvent(GrassShiftRumble);
             yield return null;
         }
         public IEnumerator ShakeRoutine()

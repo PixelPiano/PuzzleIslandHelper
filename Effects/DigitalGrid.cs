@@ -109,12 +109,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         }
         public override void Render(Scene scene)
         {
-            if ((!HorizontalLines && !VerticalLines) || Opacity == 0)
+            if (scene is not Level level || level.Session is null || level.Session.LevelData is null || (!HorizontalLines && !VerticalLines) || Opacity == 0)
             {
+                base.Render(scene);
                 return;
             }
-            Level level = scene as Level;
-            if (level is null) return;
             currentY = level.Bounds.Top - compensation.Y;
             currentX = level.Bounds.Left - compensation.X;
             GameplayRenderer.End();
@@ -125,11 +124,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 for (float i = 0; i < level.Bounds.Height + compensation.Y + DiagonalOffsetY; i += SpacingY)
                 {
-                    Draw.Line(level.Bounds.Left - compensation.X,
-                              currentY + renderOffsetY,
-                              level.Bounds.Right + compensation.X,
-                              currentY + renderOffsetY - DiagonalOffsetX,
-                              color, LineHeight);
+                    Draw.Line(level.Bounds.Left - compensation.X, currentY + renderOffsetY,level.Bounds.Right + compensation.X, currentY + renderOffsetY - DiagonalOffsetX, color, LineHeight);
 
                     currentY += SpacingY;
 
@@ -139,12 +134,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 for (float i = 0; i < level.Bounds.Width + compensation.X + DiagonalOffsetX; i += SpacingX)
                 {
-                    Draw.Line(currentX + renderOffsetX,
-                              level.Bounds.Top - compensation.Y,
-                              currentX + renderOffsetX + DiagonalOffsetY,
-                              level.Bounds.Bottom + compensation.Y,
-                              color, LineWidth);
-
+                    Draw.Line(currentX + renderOffsetX, level.Bounds.Top - compensation.Y, currentX + renderOffsetX + DiagonalOffsetY,level.Bounds.Bottom + compensation.Y, color, LineWidth);
                     currentX += SpacingX;
                 }
             }

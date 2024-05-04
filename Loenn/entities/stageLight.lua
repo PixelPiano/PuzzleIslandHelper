@@ -3,7 +3,7 @@ stageLight.justification = { 0, 0 }
 
 stageLight.name = "PuzzleIslandHelper/StageLight"
 
-stageLight.depth = -8500
+stageLight.depth = -10501
 
 stageLight.texture = "objects/PuzzleIslandHelper/gameshow/stageLight/stageLight00"
 

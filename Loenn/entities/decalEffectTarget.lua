@@ -19,13 +19,18 @@ decalEffectTarget.placements = {
         scaleY = 1
     }
 }
-function decalEffectTarget.texture(room, entity)
+function decalEffectTarget.sprite(room, entity)
+    local sprite = drawableSprite.fromTexture(getTex(entity), entity)
+        sprite:setScale(entity.scaleX or 1, entity.scaleY or 1)
+        sprite:setJustification(0.5, 0.5)
+    return sprite
+end
+function getTex(entity)
     if drawableSprite.fromTexture("decals/" .. entity.decalPath .. "00") ~= nil then
         return "decals/" .. entity.decalPath .. "00"
     else
         return "decals/" .. entity.decalPath
     end
 end
-
 
 return decalEffectTarget

@@ -16,6 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public ForkAmpState ForkAmpState = new();
         public bool GrassMazeCompleted;
         public bool ModeratorEscape;
         public bool MonitorActivated;

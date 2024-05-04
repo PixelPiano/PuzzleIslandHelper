@@ -4,6 +4,7 @@ using Celeste.Mod.Entities;
 using System;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities;
+using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -30,10 +31,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Collider HoldingHitbox;
         public Collider IdleHitbox;
 
-        public string FlagOnSet;
+        public string FlagOnFinish;
         public ForkAmpBattery(EntityData data, Vector2 offset, EntityID entityID) : base(data.Position + offset)
         {
-            FlagOnSet = data.Attr("flagOnSet");
+            FlagOnFinish = data.Attr("flagOnFinish");
             Depth = 1;
             Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/forkAmp/"));
             Sprite.AddLoop("idle", "battery", 0.1f, 0);
@@ -41,11 +42,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite.JustifyOrigin(Justify);
             EntityID = entityID;
         }
+        public IEnumerator Approach(float x)
+        {
+            while (Center.X != x)
+            {
+                CenterX = Calc.Approach(Center.X, x, 20f * Engine.DeltaTime);
+                yield return null;
+            }
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
 
-            if (!string.IsNullOrEmpty(FlagOnSet) && (scene as Level).Session.GetFlag(FlagOnSet))
+            if (!string.IsNullOrEmpty(FlagOnFinish) && (scene as Level).Session.GetFlag(FlagOnFinish))
             {
                 RemoveSelf();
             }

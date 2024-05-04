@@ -35,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (orig.Values.ContainsKey("bloomAlpha"))
             {
-                orig.Values["bloomAlpha"] = Calc.Random.Range(0,1f);
+                orig.Values["bloomAlpha"] = Calc.Random.Range(0, 1f);
             }
             if (orig.Values.ContainsKey("bloomRadius"))
             {
@@ -62,27 +62,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 point.Alpha = data.Float("bloomAlpha") - Calc.Random.Range(0, 0.3f);
             }
         }
-        public float Amplitude()
+        public void SetAmplitude()
         {
+            float[] rates = PianoModule.Session.ForkAmpState.Rates;
+            if(rates is null || rates.Length <= 0) return;
             int count = 0;
             float amount = 0;
             float maxRange = 15;
-            float halfRange = maxRange / 2;
-            if (Scene is not Level level) return 0;
-            foreach (ForkAmp amp in level.Tracker.GetEntities<ForkAmp>())
+            for (int i = 0; i < 4; i++)
             {
-                for (int i = 0; i < 4; i++)
-                {
-                    if (Amps[i] < 0) continue;
-                    if (amp.Oscillators[i] is ForkAmp.Oscillator osc)
-                    {
-                        float dist = MathHelper.Distance(osc.Rate, Amps[i]);
-                        amount += UserAmpLimit - (Calc.Clamp(dist, 0, maxRange) / maxRange) * UserAmpLimit;
-                        count++;
-                    }
-                }
+                if (Amps[i] < 0) continue;
+                float dist = MathHelper.Distance(rates[i], Amps[i]);
+                amount += UserAmpLimit - (Calc.Clamp(dist, 0, maxRange) / maxRange) * UserAmpLimit;
+                count++;
             }
-            return count == 0 ? 0 : amount / count;
+            ShakeAmount = (count == 0 ? 0 : amount / count) + ShakeAddAmount;
         }
         private IEnumerator ColorFlash()
         {
@@ -123,7 +117,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             DoCycle();
-            ShakeAmount = Amplitude() + ShakeAddAmount;
+            SetAmplitude();
             if (MathHelper.Distance(ShakeAmount - ShakeAddAmount, UserAmpLimit) <= AmpRange)
             {
                 ShakeAddAmount = Math.Min(ShakeAddAmount + Engine.DeltaTime / 3, (1 - UserAmpLimit) * 2);

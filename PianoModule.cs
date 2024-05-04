@@ -10,6 +10,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -104,8 +105,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
             ShiftAreaRenderer.Load();
             ProgramLoader.Load();
             MazeData.Load();
-
-            //PaintRenderer.Load();
         }
 
 
@@ -145,7 +144,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             ShiftAreaRenderer.Unload();
             GrassMazeOverlay.Unload();
             MazeData.Unload();
-            //PaintRenderer.Unload();
+            GameshowSpotlight.Unload();
         }
 
         public override void Initialize()

@@ -59,6 +59,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             Add(new LightOcclude());
             Detect = new Hitbox(Width + range * 2, Height + 16, Position.X - range, Position.Y - 8);
         }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            player = Scene.Tracker.GetEntity<Player>();
+            if (State == States.Open)
+            {
+                doorSprite.Play("open");
+            }
+            else
+            {
+                doorSprite.Play("closed");
+            }
+        }
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
@@ -121,11 +134,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             }
 
             base.Update();
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            player = Scene.Tracker.GetEntity<Player>();
         }
     }
 }
