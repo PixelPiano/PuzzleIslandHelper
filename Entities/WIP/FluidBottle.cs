@@ -609,7 +609,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Fluid.Justify = StoolJustify;
             Casing.JustifyOrigin(StoolJustify);
             Fluid.JustifyOrigin(StoolJustify);
-            //Fluid.Color = color or smthn
+            //Fluid.From = color or smthn
 
             Fluid.Color = Effect switch
             {

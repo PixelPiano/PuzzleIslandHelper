@@ -15,7 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         Vector2 Control1, Control2;
         List<Vector2> Samples;
 
-        // Sampling: Number of samples taken
+        // Sampling: QuestionNumber of samples taken
         // Tolerancy:
         //   The ratio of tolerated distance error between samples to the ideal distance
         //   1 is full tolerancy - any value is accepted

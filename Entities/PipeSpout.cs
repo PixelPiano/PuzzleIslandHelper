@@ -246,7 +246,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                 Moving = true;
                 RenderTextures = true;
                 CanCollide = true;
-                //Start
+                //start
                 AdjustHideOffset(1);
                 switch (HideMethod)
                 {
@@ -538,7 +538,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                         {
                             if (!sfx.InstancePlaying)
                             {
-                                sfx.PlayEvent(sfx.EventName);
+                                sfx.PlayEvent(sfx.Text);
                             }
                         }*/
             Collidable = (!IsTimed || IsOn) && CanCollide && Enabled;

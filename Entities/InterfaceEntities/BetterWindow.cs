@@ -44,7 +44,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public WindowContent CurrentProgram;
         private bool WaitForClickRelease;
         private bool CanCloseWindow;
-        public List<BetterWindowButton> Buttons => Components.GetAll<BetterWindowButton>().ToList();
+        public List<BetterButton> Buttons => Components.GetAll<BetterButton>().ToList();
+        public List<WindowComponent> CustomComponents = new();
         private Color TabColor = Color.Blue;
         public Interface Interface;
 
@@ -60,16 +61,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             float y = CaseHeight - 3;
             float x = CaseWidth - 3;
             float xSpace = 8;
-            foreach (BetterWindowButton button in Components.GetAll<BetterWindowButton>())
+            foreach (BetterButton button in Buttons)
             {
-                button.Position.X = x - (button.Width + xSpace);
-                button.Position.Y = y - button.Height;
-                x -= button.Width + xSpace;
+                if (button.AutoPosition)
+                {
+                    button.Position.X = x - (button.Width + xSpace);
+                    button.Position.Y = y - button.Height;
+                    x -= button.Width + xSpace;
+                }
             }
         }
         public void ChangeWindowText(string dialog)
         {
             TextWindow?.ChangeCurrentID(dialog);
+        }
+        public void Add(WindowComponent component)
+        {
+            Components.Add(component);
+            CustomComponents.Add(component);
+
+        }
+        public void Remove(WindowComponent component)
+        {
+            Components.Remove(component);
+            CustomComponents.Remove(component);
         }
         public override void Render()
         {
@@ -95,14 +110,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public void DisableButtons()
         {
-            foreach (BetterWindowButton button in Components.GetAll<BetterWindowButton>())
+            foreach (BetterButton button in Buttons)
             {
                 button.Disabled = true;
             }
         }
         public void EnableButtons()
         {
-            foreach (BetterWindowButton button in Components.GetAll<BetterWindowButton>())
+            foreach (BetterButton button in Buttons)
             {
                 button.Disabled = false;
             }
@@ -127,16 +142,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 SetButtonPosition();
             }
-            bool pressed = false;
-            foreach (BetterButton b in Components.GetAll<BetterButton>())
+            foreach (BetterButton b in Buttons)
             {
                 if (b.Pressing)
                 {
-                    pressed = true;
+                    PressingButton = true;
                     break;
                 }
+                PressingButton = false;
             }
-            PressingButton = pressed;
         }
 
         public override void Added(Scene scene)
@@ -163,60 +177,68 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 }
             }
             TabColor = Color.Lerp(lower == "unknown" ? Color.Red : Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
+            foreach (WindowComponent c in CustomComponents)
+            {
+                c.Active = Drawing;
+            }
+
         }
 
 
-        public void PrepareWindow(ComputerIcon icon)
+        public void OpenWindow(ComputerIcon icon)
         {
             if (Drawing) return;
-            RemoveComponents();
-
+/*            if (Scene is Level level)
+            {
+                Position.X = Calc.Clamp(Position.X, level.Camera.Position.X, level.Camera.Position.X + CaseWidth / 2);
+            }*/
+            CurrentProgram = null;
             CaseWidth = WindowWidth;
             CaseHeight = WindowHeight;
             TextCaseWidth = WindowWidth;
             TextWindow.Initialize(icon.Name);
-            string name = icon.Name.ToLower();
             Color color = Color.Blue;
-            WindowContent content = name switch
-            {
-                "access" => Interface.GetProgram<AccessProgram>(),
-                //"ram" => Interface.GetProgram<>
-                "pipe" => Interface.GetProgram<PipeProgram>(),
-                "life" or "gameoflife" => Interface.GetProgram<GameOfLifeProgram>(),
-                _ => null
-            };
-            if (content != null)
+
+            removeComponents();
+            WindowContent content = Interface.GetProgram(icon);
+            if (content is not null)
             {
                 content.OnOpened(this);
+                CurrentProgram = content;
+                addProgramComponents();
             }
-            CurrentProgram = content;
-
             TabColor = Color.Lerp(color, Color.Black, Interface.NightMode ? 0.5f : 0);
+        }
+
+        private void addProgramComponents()
+        {
+            if (CurrentProgram is null) return;
+            foreach (WindowComponent c in CurrentProgram.ProgramComponents)
+            {
+                Add(c);
+                c.OnOpened(Scene);
+            }
+        }
+        private void removeComponents()
+        {
+            bool programValid = CurrentProgram is not null;
+            List<WindowComponent> toRemove = new();
+            foreach (WindowComponent c in CustomComponents)
+            {
+                toRemove.Add(c);
+            }
+            foreach (WindowComponent c in toRemove)
+            {
+                c.OnClosed(Scene);
+                Remove(c);
+            }
         }
         public void Close()
         {
-            RemoveComponents();
+            removeComponents();
+            CurrentProgram?.OnClosed(this);
             x.Collider = null;
             Drawing = false;
-        }
-        public void RemoveComponents()
-        {
-            List<Component> toRemove = new();
-            foreach (Component c in Components)
-            {
-                if (c is BetterWindowButton)
-                {
-                    toRemove.Add(c);
-                }
-                if (c is InputBox)
-                {
-                    toRemove.Add(c);
-                }
-            }
-            if (toRemove.Count > 0)
-            {
-                Components.Remove(toRemove);
-            }
         }
     }
 }

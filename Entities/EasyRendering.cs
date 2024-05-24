@@ -20,7 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             AlphaDestinationBlend = Blend.SourceColor
         };
         private static VirtualRenderTarget _MaskRenderTarget;
-        private static VirtualRenderTarget MaskRenderTarget => _MaskRenderTarget ??=
+        public static VirtualRenderTarget MaskRenderTarget => _MaskRenderTarget ??=
                       CreateRenderTargetAndLog("Mask", 320, 180);
         private static VirtualRenderTarget CreateRenderTargetAndLog(string Name, int Width, int Height)
         {

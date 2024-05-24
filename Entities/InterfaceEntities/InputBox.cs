@@ -9,7 +9,7 @@ using Mono.Cecil.Cil;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
     [Tracked]
-    public class InputBox : Component
+    public class InputBox : WindowComponent
     {
         public InputBoxText Helper;
         public Color BoxColor
@@ -26,15 +26,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 }
             }
         }
-        public Vector2 Position;
         public Collider Collider;
         public int Width = 120;
         public int Height = 14;
         public static bool Selected;
         private bool consumedButton;
         private Func<string, bool> onSubmit;
-        public Interface Interface;
-        public BetterWindow Window;
         public Vector2 ScreenSpacePosition
         {
             get
@@ -48,24 +45,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 return (box - cam) * 6;
             }
         }
-        public Vector2 RenderPosition
+        public InputBox(BetterWindow window, Func<string, bool> onSubmit = null) : base(window)
         {
-            get
-            {
-                if (Entity is null)
-                {
-                    return Vector2.Zero;
-                }
-                return Entity.Position + Position - new Vector2(Width / 2, Height / 2);
-            }
-        }
-        public InputBox(BetterWindow window, float x, float y, Func<string, bool> onSubmit = null) : base(true, true)
-        {
-            Interface = window.Interface;
-            Window = window;
             this.onSubmit = onSubmit;
-            Position = new Vector2(x, y);
 
+        }
+        public override void OnOpened(Scene scene)
+        {
+            base.OnOpened(scene);
+            Position = new Vector2(Window.CaseWidth / 2, Window.CaseHeight / 2) - Collider.HalfSize;
         }
         public void ClearText()
         {
@@ -113,11 +101,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             bool collidingWithMouse = Interface.MouseOver(Collider);
 
 
-            if (collidingWithMouse && Interface.LeftClicked)
+            if (collidingWithMouse && Interface.LeftPressed)
             {
                 Selected = true;
             }
-            else if (Interface.LeftClicked)
+            else if (Interface.LeftPressed)
             {
                 Selected = false;
             }

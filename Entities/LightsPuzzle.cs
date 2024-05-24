@@ -108,7 +108,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             {
                 if (i < LightMachineInfo.PreviousColors.Length)
                 {
-                    //Windows[i].Color = LightMachineInfo.PreviousColors[i];
+                    //Windows[i].From = LightMachineInfo.PreviousColors[i];
                 }
             }
             foreach (WindowDecal window in Windows)

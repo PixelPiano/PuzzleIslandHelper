@@ -214,7 +214,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                             Shader.Alpha = t.Eased;
                         };
                         Add(alphaTween);
-                        alphaTween.Start();
+                        alphaTween.start();
                         float longWait;
                         float shortWait;
                         float midAmp = 0;

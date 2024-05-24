@@ -17,6 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             Sprite.AddLoop("cheer", faceType + "Laugh", 0.1f);
             Add(Sprite);
             Sprite.Play("idle");
+            Depth = 4;
         }
         public void Cheer()
         {

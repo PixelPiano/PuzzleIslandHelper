@@ -10,18 +10,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
     [Tracked]
     public class LifeDisplay : Entity
     {
-        public Sprite[] Lives = new Sprite[5];
+        public const int MaxLives = 4;
+        public Sprite[] Lives = new Sprite[MaxLives];
         public Image Image;
         public int Dead;
         public bool GameOver;
         public LifeDisplay(EntityData data, Vector2 offset) : this(data.Position + offset) { }
         public LifeDisplay(Vector2 position) : base(position)
         {
+            Depth = 4;
             Image = new Image(GFX.Game["objects/PuzzleIslandHelper/gameshow/lifeDisplay/marioxhk_monitor"]);
             Add(Image);
             Vector2 start = new Vector2(4, 0);
-            int space = (int)((Image.Width - 26) / 5);
-            for (int i = 0; i < 5; i++)
+            int space = (int)((Image.Width - 26) / MaxLives);
+            for (int i = 0; i < MaxLives; i++)
             {
                 float offset = i * (space + 4);
                 Lives[i] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/gameshow/playerLife/");
@@ -49,14 +51,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
 
         public void TurnOn()
         {
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < MaxLives; i++)
             {
                 Lives[i].Visible = true;
             }
         }
         public void TurnOff()
         {
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < MaxLives; i++)
             {
                 Lives[i].Visible = false;
             }

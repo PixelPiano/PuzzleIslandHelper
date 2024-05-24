@@ -1,8 +1,11 @@
 
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.FancyTextExt;
+using Char = Celeste.Mod.PuzzleIslandHelper.Entities.FancyTextExt.Char;
 using Color = Microsoft.Xna.Framework.Color;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
@@ -21,12 +24,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             // Fonts.paths is private static and never instantiated besides in the static constructor, so we only need to get the reference to it once.
             fontPaths = (Dictionary<string, List<string>>)typeof(Fonts).GetField("paths", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
         }
-
-        private Level l;
         public List<FancyTextExt.Node> Nodes => activeText.Nodes;
 
-        public static Vector2 TextPosition;
-        public static int TextWidth = 0;
+        public Vector2 TextPosition;
+        public int TextWidth = 0;
         public float textScale = 0.7f;
         #endregion
         public Interface Interface;
@@ -48,7 +49,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 return;
             }
-            activeText = FancyTextExt.Parse(dialog ? Dialog.Get(text) : text, (int)Window.CaseWidth * 8, 15, Vector2.Zero, 1);
+            activeText = Parse(dialog ? Dialog.Get(text) : text, (int)Window.CaseWidth * 8, 15, Vector2.Zero, 1);
             LastUsedID = text;
             CurrentID = text;
         }
@@ -64,9 +65,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             if (Drawing && !string.IsNullOrEmpty(CurrentID) && activeText != null)
             {
                 activeText.Font ??= ActiveFont.Font;
-                activeText?.Draw(ToInt(level.Camera.CameraToScreen(TextPosition)) * 6, Vector2.Zero, Vector2.One * textScale, 1f, Interface.NightMode ? Color.White : Color.Black);
+                activeText?.Draw((level.Camera.CameraToScreen(TextPosition)).Floor() * 6, Vector2.Zero, Vector2.One * textScale,1f, Interface.NightMode ? Color.White : Color.Black);
 
             }
+        }
+        public float GetAlpha(float fromY, float thresh, float offset)
+        {
+            float top = fromY + offset;
+            float bottom = fromY + Height - offset;
+            if (top < 0 || bottom > Window.CaseHeight) return 0;
+            else if (top < thresh) return 1 - MathHelper.Distance(top, thresh) / thresh;
+            else if (bottom > Window.CaseHeight - thresh) return MathHelper.Distance(bottom, Window.CaseHeight) / thresh;
+            else return 1;
         }
         public override void Update()
         {

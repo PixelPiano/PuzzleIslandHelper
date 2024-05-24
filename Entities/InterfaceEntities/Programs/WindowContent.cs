@@ -1,4 +1,5 @@
 using Celeste.Mod.Core;
+using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,8 +13,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public BetterWindow Window;
         public MiniLoader MiniLoader;
         public Interface Interface;
-        public List<Component> ProgramComponents = new();
+        public List<WindowComponent> ProgramComponents = new();
         public bool Preserve;
+
         public string Name;
 
         public WindowContent(BetterWindow window)
@@ -40,29 +42,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (Window.Interface == null)
-            {
-                RemoveSelf();
-            }
+
         }
         public virtual void WindowRender()
         {
 
         }
+        public virtual void OnClosed(BetterWindow window)
+        {
+        }
+        
         public virtual void OnOpened(BetterWindow window)
         {
             Window = window;
-            foreach (Component c in ProgramComponents)
-            {
-                Window.Add(c);
-            }
             Depth = Window.Depth - 1;
         }
         public override void Update()
         {
-            Collider.Width = Window.CaseWidth;
-            Collider.Height = Window.CaseHeight;
-            Position = Window.DrawPosition.Floor();
+            if (Window != null)
+            {
+                Collider.Width = Window.CaseWidth;
+                Collider.Height = Window.CaseHeight;
+                Position = Window.DrawPosition.Floor();
+            }
             base.Update();
         }
         public override void Render()

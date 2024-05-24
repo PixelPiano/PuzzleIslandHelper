@@ -265,7 +265,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                     Detector.X = (int)(X - DetectRadius.X);
                     Detector.Y = (int)(Y - DetectRadius.Y);
                     break;
-                case DetectMode.Start:
+                case DetectMode.start:
                     Detector.X = (int)(startPosition.X - DetectRadius.X);
                     Detector.Y = (int)(startPosition.Y - DetectRadius.Y);
                     break;

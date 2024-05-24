@@ -9,9 +9,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
     public class GravityParticle : Actor
     {
-        private Player player;
-        private bool debugColl;
-        private Rectangle PlayerRectangle;
         public const float LifetimeMin = 4f;
 
         public const float LifetimeMax = 8f;
@@ -28,11 +25,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private Vector2 speed;
 
+        public bool CanFadeAway = true;
         private Vector2 previousLiftSpeed;
 
-        private Level level;
-
-        private float alpha;
+        public float Alpha = 1;
         private bool startFade;
 
         private bool outline;
@@ -42,34 +38,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private float OnGroundTimer;
 
-        public GravityParticle(Vector2 position, Vector2 initialSpeed, Color color)
+        public GravityParticle(Vector2 position, Vector2 initialSpeed, Color color, float colorLerp = -1)
         : base(position)
         {
             int rand = Calc.Random.Choose(1, 1, 1, 1, 1, 1, 1, 2, 2, 3);
             Collider = new Hitbox(rand, rand);
             speed = initialSpeed;
             Color = color;
-            colorLerp = Calc.Random.Range(0, 0.4f);
+            this.colorLerp = colorLerp < 0 ? Calc.Random.Range(0, 0.4f) : colorLerp;
         }
         private bool OutsideBounds()
         {
+            if (Scene is not Level level) return true;
             return Top >= (level.Bounds.Bottom + 5) || Bottom <= (level.Bounds.Top - 5) || Left >= (level.Bounds.Right + 5) || Right <= (level.Bounds.Left - 5);
         }
         public override void Update()
         {
             base.Update();
-            if (player is not null)
-            {
-                PlayerRectangle.X = (int)(player.X - player.Width / 2);
-                PlayerRectangle.Y = (int)(player.Y - player.Height - 5);
-                PlayerRectangle.Height = (int)(player.Height + 5);
-                //debugColl = CollideRect(PlayerRectangle);
-            }
             Collidable = true;
             bool onGround = OnGround();
-
             float y = speed.Y;
-            float num = (onGround ? 75f : 5f);
+            float num = onGround ? 75f : 5f;
             speed.X = Calc.Approach(speed.X, 0f, num * Engine.DeltaTime);
             if (!onGround)
             {
@@ -92,27 +81,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 if (speed.X != 0f)
                 {
-                    if (onGround)
-                    {
-                        speed.X = Calc.Approach(speed.X, 0, Engine.DeltaTime * GroundFriction);
-                        //speed.X -= Engine.DeltaTime * GroundFriction;
-                    }
-                    else
-                    {
-                        //speed.X -= Engine.DeltaTime * AirFriction;
-                        speed.X = Calc.Approach(speed.X, 0, Engine.DeltaTime * AirFriction);
-                    }
-
+                    speed.X = Calc.Approach(speed.X, 0, Engine.DeltaTime * (onGround ? GroundFriction : AirFriction));
                 }
                 if (OnGroundTimer > 5)
                 {
                     startFade = true;
                 }
-                if (startFade)
+                if (startFade && CanFadeAway)
                 {
-                    alpha -= Engine.DeltaTime;
+                    Alpha -= Engine.DeltaTime;
                 }
-                if (OutsideBounds() || alpha <= 0)
+                if (OutsideBounds() || Alpha <= 0)
                 {
                     RemoveSelf();
                 }
@@ -153,26 +132,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            Draw.Rect(Collider, Color.Lerp(Color.White, Color, colorLerp) * alpha);
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            alpha = 1;
-            level = scene as Level;
-            player = level.Tracker.GetEntity<Player>();
-            if (player is not null)
+            Draw.Rect(Collider, Color.Lerp(Color.White, Color, colorLerp) * Alpha);
+            if (outline)
             {
-                PlayerRectangle = new Rectangle((int)(player.X - player.Width / 2), (int)(player.Y - player.Height - 5), (int)(player.Width), (int)(player.Height + 5));
-            }
-        }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            //Draw.Rect(Collider, Color.Red);
-            if (player is not null)
-            {
-                Draw.HollowRect(PlayerRectangle, Color.Black);
+                Draw.HollowRect(Collider.AbsolutePosition - Vector2.One, Width + 2, Height + 2, Color.Black);
             }
         }
     }

@@ -24,14 +24,18 @@ floppyDisk.fieldInformation = {
     color = {
         fieldType = "color",
         allowXNAColors = true,
-    }
+    },
+    --data = {
+      --  fieldType = "PuzzleIslandHelper.objectList",
+    --}
 }
 floppyDisk.placements =
 {
     {
         name = "Floppy Disk",
-        data = 
+        data =
         {
+            data = {},
             preset = "Default",
             color = "FFFFFF"
         }

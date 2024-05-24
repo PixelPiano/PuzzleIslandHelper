@@ -289,8 +289,8 @@ public static class PianoUtils
         level.OnEndOfFrame += delegate
         {
             Vector2 levelOffset = level.LevelOffset;
-            Vector2 val2 = player.Position - level.LevelOffset;
-            Vector2 val3 = level.Camera.Position - level.LevelOffset;
+            Vector2 val2 = player.Position - levelOffset;
+            Vector2 val3 = level.Camera.Position - levelOffset;
             Vector2 offset = new Vector2(positionY, positionX);
             Facings facing = player.Facing;
             level.Remove(player);
@@ -303,7 +303,8 @@ public static class PianoUtils
             bounds = level.Bounds;
             session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
             level.Session.FirstLevel = false;
-            level.LoadLevel(Player.IntroTypes.Transition);
+            level.LoadLevel(Player.IntroTypes.None);
+
             level.Camera.Position = level.LevelOffset + val3 + offset.Floor();
             level.Add(player);
             if (snapToSpawnPoint && session.RespawnPoint.HasValue)
@@ -314,6 +315,7 @@ public static class PianoUtils
             {
                 player.Position = level.LevelOffset + val2 + offset.Floor();
             }
+
             player.Facing = facing;
             player.Hair.MoveHairBy(level.LevelOffset - levelOffset + offset.Floor());
             if (level.Wipe != null)

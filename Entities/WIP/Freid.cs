@@ -169,7 +169,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             for (int i = 0; i < Eyes.Length; i++)
             {
 
-                Eyes[i].SetColor(/*i % 2 == 0 ? Color.Pink :*/ Color.White);
+                Eyes[i].SetColor(/*i % 2 == 0 ? From.Pink :*/ Color.White);
                 orig_Colors[i] = Eyes[i].Color;
             }
 

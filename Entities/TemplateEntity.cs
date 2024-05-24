@@ -114,7 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         //Handles drawing and rendering. Not called if Entity.Visible is false.
         public override void Render()
         {
-            //base.Render() renders all the components the Entity is managing, including our Sprite component.
+            //base.Render() renders all the components the Entity is managing, including our Machine component.
             //Any component that isn't Visible won't be rendered.
             base.Render();
         }

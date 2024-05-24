@@ -32,7 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
         {
 
         }
-        
+
         public AudioEffect(params AEDSP[] aedsps) : base()
         {
             UseCapture = false;
@@ -45,6 +45,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
         {
             UseCapture = useCapture;
         }
+        public void SetVolume(float volume)
+        {
+            if (Playing)
+            {
+                instance.setVolume(volume);
+            }
+        }
         public static RESULT CaptureDSPReadCallback(ref DSP_STATE dsp_state, IntPtr inbuffer, IntPtr outbuffer, uint length, int inchannels, ref int outchannels)
         {
             DSP_STATE_FUNCTIONS functions = (DSP_STATE_FUNCTIONS)Marshal.PtrToStructure(dsp_state.functions, typeof(FMOD.DSP_STATE_FUNCTIONS));
@@ -54,66 +61,67 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
 
             GCHandle objHandle = GCHandle.FromIntPtr(userData);
             AudioEffect obj = objHandle.Target as AudioEffect;
+            if (obj is not null)
+            {
+                // Save the channel count out for the update function
+                obj.Channels = inchannels;
 
-            // Save the channel count out for the update function
-            obj.Channels = inchannels;
+                // Copy the incoming buffer to process later
+                int lengthElements = (int)length * inchannels;
+                Marshal.Copy(inbuffer, obj.DataBuffer, 0, lengthElements);
 
-            // Copy the incoming buffer to process later
-            int lengthElements = (int)length * inchannels;
-            Marshal.Copy(inbuffer, obj.DataBuffer, 0, lengthElements);
-
-            // Copy the inbuffer to the outbuffer so we can still hear it
-            Marshal.Copy(obj.DataBuffer, 0, outbuffer, lengthElements);
-
+                // Copy the inbuffer to the outbuffer so we can still hear it
+                Marshal.Copy(obj.DataBuffer, 0, outbuffer, lengthElements);
+            }
             return RESULT.OK;
         }
         public void CreateCaptureDSP(ChannelGroup group)
         {
-            ReadCallback = CaptureDSPReadCallback;
             uint bufferLength;
             int numBuffers;
             if (Audio.System.getLowLevelSystem(out FMOD.System system) == RESULT.OK)
             {
-                system.getDSPBufferSize(out bufferLength, out numBuffers);
-                DataBuffer = new float[bufferLength * 8];
-                BufferLength = bufferLength;
-                ObjHandle = GCHandle.Alloc(this);
-                if (ObjHandle != null)
+                if (system.getDSPBufferSize(out bufferLength, out numBuffers) == RESULT.OK)
                 {
-                    DSP_DESCRIPTION desc = new DSP_DESCRIPTION()
+                    DataBuffer = new float[bufferLength * 8];
+                    BufferLength = bufferLength;
+                    ObjHandle = GCHandle.Alloc(this);
+                    if (ObjHandle != null)
                     {
-                        numinputbuffers = 1,
-                        numoutputbuffers = 1,
-                        read = ReadCallback,
-                        userdata = GCHandle.ToIntPtr(ObjHandle)
-                    };
-
-                    if (system.createDSP(ref desc, out Capture) == RESULT.OK)
-                    {
-                        if (group.addDSP(0, Capture) != RESULT.OK)
+                        ReadCallback = CaptureDSPReadCallback;
+                        DSP_DESCRIPTION desc = new DSP_DESCRIPTION()
                         {
-                            Logger.Log("AudioEffect", "Unable to add Capture to the channel group");
+                            numinputbuffers = 1,
+                            numoutputbuffers = 1,
+                            read = ReadCallback,
+                            userdata = GCHandle.ToIntPtr(ObjHandle)
+                        };
+
+                        if (system.createDSP(ref desc, out Capture) == RESULT.OK)
+                        {
+                            if (group.addDSP(0, Capture) != RESULT.OK)
+                            {
+                                Logger.Log("AudioEffect", "Unable to add Capture to the channel group");
+                            }
                         }
                     }
                 }
+
             }
         }
         public void DestroyCaptureDSP(ChannelGroup group)
         {
-            if (ObjHandle != null && group != null)
+            if (group != null)
             {
-                if (Audio.System.getLowLevelSystem(out _) == RESULT.OK)
+                if (Audio.System.getLowLevelSystem(out var system) == RESULT.OK)
                 {
                     // Remove the capture DSP from the channel group
-                    if (Capture.isValid())
-                    {
-                        group.removeDSP(Capture);
-                        // Release the DSP and free the object handle
-                        Capture.release();
-                    }
-                    ObjHandle.Free();
+                    group.removeDSP(Capture);
+                    // Release the DSP and free the object handle
+                    Capture.release();
                 }
             }
+            ObjHandle.Free();
         }
         public void AddDSP(DSP_TYPE type)
         {
@@ -206,8 +214,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
         }
         private void FreeDSPs()
         {
+            if (Dsps is null) return;
             for (int i = 0; i < Dsps.Count; i++)
             {
+                if (Dsps[i] is null || Dsps[i].Dsp is null) continue;
                 Dsps[i].Dsp.release();
             }
         }

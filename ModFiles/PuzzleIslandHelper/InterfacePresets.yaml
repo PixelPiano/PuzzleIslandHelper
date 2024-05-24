@@ -37,22 +37,13 @@ Layouts:
       - ID: Text
         Tab: aa
         Window: TODO
-      - ID: Pico
-        Tab: aaa
-      - ID: Info
-        Tab: aaaa
-        Window: INFO
-      - ID: Folder
-        Tab: aaaaa
-      - ID: Invalid
-        Tab: aaaa
+      - ID: Wave
+        Tab: Wave Program
       - ID: Access
-        Tab: aa
+        Tab: Access Program
         Window: ACCESS
-      - ID: Sus
-        Tab: aaaa
-      - ID: Ram
-        Tab: aaa
+      - ID: Fountain
+        Tab: fountain
   Calidus1:
     Icons:
       - ID: Access

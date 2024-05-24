@@ -67,7 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public void RenderArea(ShiftArea area)
         {
             Level level = Scene as Level;
-            if (!area.Visible) return;
+            if (!area.Visible || !area.State) return;
             Vector2 add = area.Position - level.Camera.Position + (area.FollowCamera ? level.Camera.Position - level.LevelOffset : Vector2.Zero);
             area.BeforeRender(FG, !FG);
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);

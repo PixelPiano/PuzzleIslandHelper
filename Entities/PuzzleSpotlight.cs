@@ -190,11 +190,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 playerCenter = new Vector2(24*8 - _Radius + 5, 14.5f*8 - _Radius + 13);
             }
-            // Start rendering to our stencil
+            // start rendering to our stencil
             Engine.Graphics.GraphicsDevice.SetRenderTarget(stencil);
             Engine.Graphics.GraphicsDevice.Clear( ClearOptions.Target | ClearOptions.Stencil ,Color.Transparent, 0, 0);
 
-            // Start the stencil spritebatch
+            // start the stencil spritebatch
             Draw.SpriteBatch.Begin(
                 SpriteSortMode.Immediate,
                 BlendState.AlphaBlend,
@@ -290,7 +290,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.Draw(GameplayBuffers.Level, Vector2.Zero, Color.White*opacity);
             Draw.SpriteBatch.End();
 
-            // Start rendering to the level buffer again
+            // start rendering to the level buffer again
             Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Level);
             ColorGrade.Set(GFX.ColorGrades[renderer.ColorGradeName]);
 

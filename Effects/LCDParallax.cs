@@ -37,7 +37,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         {
             Scroll = new(data.AttrFloat("scrollX", 1f), data.AttrFloat("scrollY", 1f));
             Speed = new(data.AttrFloat("speedX"), data.AttrFloat("speedY"));
-            Color = Calc.HexToColor(data.Attr("color", "ffffff")) * data.AttrFloat("alpha");
+            Color = Calc.HexToColor(data.Attr("color", "ffffff")) * data.AttrFloat("Alpha");
             FlipX = data.AttrBool("flipX");
             FlipY = data.AttrBool("flipY");
             LoopX = data.AttrBool("loopX", true);

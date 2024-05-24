@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using FrostHelper;
 using Monocle;
 
 
@@ -9,18 +11,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
     {
         public class Question
         {
-            public void ParseData()
+            public void ParseData(int roomNumber)
             {
-                if (PerPage <= 0)
-                {
-                    PerPage = 3;
-                }
-                ID ??= "";
+                Data ??= "";
+                string[] data = Data.Replace(" ", "").Split(',');
+                RoomNumber = roomNumber;
+                QuestionNumber = data.Length > 0 ? data[0].ToInt() : 1;
+                Answer = data.Length > 1 ? data[1].ToInt() : 1;
+                Choices = data.Length > 2 ? data[2].ToInt() : 4;
+                PerPage = data.Length > 3 ? data[3].ToInt() : 4;
+                RandomIncorrect = data.Length > 4 ? data[4].ToInt() : 0;
+
                 ChoiceList = new();
                 for (int i = 0; i < Choices; i++)
                 {
-                    ChoiceList.Add(Prefix + (i + 1));
+                    ChoiceList.Add(Dialog + "c" + (i + 1));
                 }
+                Logger.Log(LogLevel.Info, "PuzzleIslandHelper/GameshowData", $"Parsed Data ->\n\tRoomNumber = {RoomNumber},\n\tQuestionNumber = {QuestionNumber},\n\tAnswer = {Answer},\n\tChoices = {Choices},\n\tChoicesPerPage = {PerPage},\n\tRandomIncorrect = {RandomIncorrect}");
             }
             public List<string> GetPage(int page)
             {
@@ -33,38 +40,55 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
                         choices.Add(ChoiceList[num]);
                     }
                 }
-                if ((page + 1) * PerPage < Choices)
+                if (page * PerPage < Choices)
                 {
                     choices.Add("qNext");
                 }
                 return choices;
             }
-            public int Number;
-            public int PerPage { get; set; }
-            public string ID { get; set; }
-            public string Prefix => "q" + Number;
-            public string Q => Prefix;
-            public int RandomIncorrect { get; set; }
-            public int Choices { get; set; }
+            public int RoomNumber;
+            public int QuestionNumber;
+            public string Data { get; set; }
+            public int Choices;
+            public int Answer;
+            public int PerPage;
+            public int RandomIncorrect;
+            public string Dialog => "r" + RoomNumber + "q" + QuestionNumber;
+            public string Q => Dialog;
 
             public List<string> ChoiceList = new();
         }
-        public List<Question> Questions { get; set; }
-        public List<string> Answers { get; set; }
+        public class QuestionBunch
+        {
+            public List<Question> Options { get; set; }
+            public Question GetRandom()
+            {
+                if (Options.Count == 0) return null;
+                Calc.PushRandom();
+                int num = Calc.Random.Range(0, Options.Count);
+                Calc.PopRandom();
+                return Options[num];
+            }
+        }
+        public List<QuestionBunch> QuestionSets { get; set; }
         public bool IsAnswer(Question q, int index)
         {
             if (index < q.ChoiceList.Count)
             {
-                return Answers.Contains(q.ChoiceList[index]);
+                return q.Answer == index;
             }
             return false;
         }
         public void ParseData()
         {
-            for (int i = 0; i < Questions.Count; i++)
+            int count = 1;
+            foreach (QuestionBunch bunch in QuestionSets)
             {
-                Questions[i].Number = i + 1;
-                Questions[i].ParseData();
+                foreach (Question q in bunch.Options)
+                {
+                    q.ParseData(count);
+                }
+                count++;
             }
         }
         public static void Load()

@@ -66,7 +66,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             Depth = 1;
             Vector2 _offset = Vector2.One * 12;
             Radius = data.Int("radius");
-            Opacity = data.Float("alpha");
+            Opacity = data.Float("Alpha");
             StartFade = Radius - Radius / 3;
             EndFade = Radius;
             Color = data.HexColor("color", Color.White);

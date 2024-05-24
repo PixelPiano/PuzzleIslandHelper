@@ -171,7 +171,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
 
             Engine.Graphics.GraphicsDevice.SetRenderTarget(ObjectRenderTarget);
-            // note the custom AlphaMaskBlendState to ignore *source* alpha and *destination* colour
+            // note the custom RemoveMask to ignore *source* Alpha and *destination* colour
 
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
 

@@ -1,6 +1,7 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
 using Celeste.Mod.PuzzleIslandHelper;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
@@ -12,6 +13,11 @@ using System.Collections.Generic;
 
 public class PianoCommands
 {
+    [Command("resetgameshow","resets gameshow progress")]
+    private static void ResetGameshow()
+    {
+        Gameshow.RoomOrder.Clear();
+    }
     [Command("add_batteryid", "debug shiz")]
     private static void AddBatteryID(string id)
     {

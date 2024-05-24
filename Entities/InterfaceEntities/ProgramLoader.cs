@@ -1,10 +1,12 @@
-﻿using Celeste.Mod.Core;
+﻿using Celeste.Mod.CommunalHelper;
+using Celeste.Mod.Core;
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
 using MonoMod.Utils;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -17,15 +19,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     {
         public delegate WindowContent ContentLoader(BetterWindow window);
         public static readonly Dictionary<string, ContentLoader> ContentLoaders = new Dictionary<string, ContentLoader>();
-        public static bool LoadCustomEntity(ComputerIcon icon,BetterWindow window, Level level)
+        public static bool LoadCustomProgram(ComputerIcon icon, BetterWindow window, Level level)
         {
-            LevelData levelData = level.Session.LevelData;
-            Vector2 offset = new Vector2(levelData.Bounds.Left, levelData.Bounds.Top);
             if (ContentLoaders.TryGetValue(icon.Name, out var value))
             {
-                WindowContent program = value(window);
+                var program = value(window);
                 if (program != null)
                 {
+                    program.Name = icon.Name;
+                    if (PianoModule.Session.Interface is Interface inter)
+                    {
+                        if (inter.GetProgram(icon) is WindowContent content)
+                        {
+                            content.Window = inter.Window;
+                            return true;
+                        }
+                        inter.Content.Add(program);
+                    }
                     level.Add(program);
                     return true;
                 }
@@ -36,7 +46,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         {
             Assembly assembly = typeof(PianoModule).Assembly;
             Type[] types = assembly.GetTypesSafe();
-            bool flag = false;
             foreach (Type type in types)
             {
                 foreach (CustomProgramAttribute customAttribute in type.GetCustomAttributes<CustomProgramAttribute>())
@@ -65,13 +74,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                         text2 = text2.Trim();
                         text3 = text3.Trim();
                         ContentLoader loader = null;
-                        MethodInfo gen3 = type.GetMethod(text3, new Type[1]
+                        ConstructorInfo ctor = type.GetConstructor(new Type[] { typeof(BetterWindow) });
+                        if (ctor != null)
                         {
-                            typeof(BetterWindow),
-                        });
-                        if (gen3 != null && gen3.ReturnType.IsCompatible(typeof(WindowContent)))
-                        {
-                            loader = (BetterWindow window) => (WindowContent)gen3.Invoke(null, new object[1] { window });
+                            loader = (BetterWindow window) => (WindowContent)ctor.Invoke(new object[] { window });
                         }
                         if (loader == null)
                         {

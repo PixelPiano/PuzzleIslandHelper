@@ -3,7 +3,7 @@ gameshowSpotlight.justification = { 0, 0 }
 
 gameshowSpotlight.name = "PuzzleIslandHelper/GameshowSpotlight"
 
-gameshowSpotlight.depth = 1
+gameshowSpotlight.depth = -100001
 
 gameshowSpotlight.texture = "objects/PuzzleIslandHelper/gameshowSpotlight/lonn"
 
@@ -12,7 +12,8 @@ gameshowSpotlight.placements =
     {
         name = "Gameshow Spotlight",
         data = {
-            color = "ffffff"
+            color = "ffffff",
+            spotlightId = ""
         }
     }
 }

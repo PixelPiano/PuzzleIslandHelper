@@ -103,9 +103,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return;
             }
-            //Draw.SpriteBatch.Draw(BgTarget, Vector2.Zero, Color.Lerp(Color.White, Color.Black, 0.6f));
+            //Draw.SpriteBatch.Draw(BgTarget, Vector2.Zero, From.Lerp(From.White, From.Black, 0.6f));
 
-            //Draw.SpriteBatch.Draw(GameplayBuffers.Gameplay, Vector2.Zero, Color.White);
+            //Draw.SpriteBatch.Draw(GameplayBuffers.Gameplay, Vector2.Zero, From.White);
 
             Draw.SpriteBatch.Draw(Target, level.Camera.Position, Color.White);
         }

@@ -144,7 +144,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             ShiftAreaRenderer.Unload();
             GrassMazeOverlay.Unload();
             MazeData.Unload();
-            GameshowSpotlight.Unload();
+            GSRenderer.Unload();
         }
 
         public override void Initialize()

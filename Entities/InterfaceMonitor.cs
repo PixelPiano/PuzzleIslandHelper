@@ -67,7 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void SetInCenter()
         {
-            icon.Position = (new Vector2(monitor.Width, monitor.Height) / 2) - (Vector2.One * 7); //manually use the width and height since Sprite hasn't updated the width and height yet
+            icon.Position = (new Vector2(monitor.Width, monitor.Height) / 2) - (Vector2.One * 7); //manually use the width and height since Machine hasn't updated the width and height yet
         }
         public IEnumerator Routine(bool state)
         {

@@ -1,13 +1,12 @@
 ﻿using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Mono.Cecil.Cil;
 using Monocle;
-using MonoMod.Cil;
 using System;
 using System.Collections;
+using System.Linq;
+using Color = Microsoft.Xna.Framework.Color;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
 {
@@ -16,63 +15,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
     public class GameshowSpotlight : Entity
     {
 
-        [Tracked]
-        public class GSRenderer : Entity
-        {
-            public static BlendState BlendState = BlendState.Additive;
-            public GSRenderer() : base(Vector2.Zero)
-            {
-                Tag |= Tags.Global | Tags.TransitionUpdate;
-                Depth = -100001;
-                Add(new BeforeRenderHook(BeforeRender));
-            }
-            public void BeforeRender()
-            {
-                Engine.Graphics.GraphicsDevice.SetRenderTarget(Buffer);
-                Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-                if (Scene is Level level && level.Tracker.GetEntities<GameshowSpotlight>().Count > 0)
-                {
-                    Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState);
-                    GameshowSpotlight cache = null;
-                    foreach (GameshowSpotlight light in level.Tracker.GetEntities<GameshowSpotlight>())
-                    {
-                        light.DrawVertices(level);
-                        cache = light;
-                    }
-                    cache.Circle.RenderPosition -= level.Camera.Position;
-                    cache.Circle.Render();
-                    cache.Circle.RenderPosition += level.Camera.Position;
-                    Draw.SpriteBatch.End();
-                }
-            }
-
-            public override void Render()
-            {
-                base.Render();
-                if (Scene is Level level)
-                {
-                    Draw.SpriteBatch.Draw(Buffer, level.Camera.Position, Color.White);
-                    foreach (GameshowSpotlight light in level.Tracker.GetEntities<GameshowSpotlight>())
-                    {
-                        light.Led.DrawSimpleOutline();
-                        light.Led.Render();
-                        light.Light.Render();
-                    }
-                }
-            }
-        }
         public Vector2 Anchor;
         public Vector2 Target;
         public float Alpha = 1;
         public Color Color;
-        public static int[] indices = new int[] { 0, 1, 2 };
-        private Image Circle;
-        private Image Led;
-        private Image Light;
+        private static int[] indices = new int[] { 0, 1, 2 };
+        private static Color[] colors = new Color[] { Color.Blue, Color.Yellow, Color.Red, Color.Cyan, Color.Green, Color.Magenta };
+        public Image Circle;
+        public Image Led;
+        public Image Light;
         private float circleScale = 0.3f;
-        private Color[] colors = new Color[]{Color.Blue,  Color.Yellow, Color.Red, Color.Cyan, Color.Green, Color.Magenta};
         private float partyTimer;
-        private VertexPositionColor[] Vertices = new VertexPositionColor[3];
+        public bool On;
+        public VertexPositionColor[] Vertices = new VertexPositionColor[3];
         public enum Mode
         {
             Default,
@@ -82,14 +37,82 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public Mode LightMode;
         private Color origColor;
         private int colorIndex;
-        private static VirtualRenderTarget _Buffer;
-        public static VirtualRenderTarget Buffer => _Buffer ??= VirtualContent.CreateRenderTarget("GameshowSpotlightBuffer", 320, 180);
-
-        public GameshowSpotlight(EntityData data, Vector2 offset) : this(data.Position + offset, data.HexColor("color"))
+        public Entity Track;
+        public float CircleAlpha = 0.3f;
+        public string ID;
+        public Vector2 Offset;
+        public GameshowSpotlight(EntityData data, Vector2 offset) : this(data.Position + offset, data.HexColor("color"), data.Attr("spotlightId"))
         {
         }
-        public GameshowSpotlight(Vector2 position, Color color = default) : base(position)
+        public void Freakout(Vector2 topRight, float xRange, float yRange, Entity trackAfter = null)
         {
+            Add(new Coroutine(FreakoutRoutine(topRight, xRange, yRange, trackAfter)));
+        }
+        public IEnumerator FreakoutRoutine(Vector2 topRight, float xRange, float yRange, Entity trackAfter = null)
+        {
+            Track = null;
+            xRange = Math.Abs(xRange);
+            yRange = Math.Abs(yRange);
+            Vector2 speed = Vector2.Zero;
+            Vector2 newTarget = topRight + new Vector2(Calc.Random.Range(-xRange, xRange), Calc.Random.Range(-yRange, yRange));
+            for (int i = 0; i < 4; i++)
+            {
+                if (i > 2)
+                {
+                    xRange /= 2;
+                    yRange /= 2;
+                }
+                for (float j = 0; j < 1; j += Engine.DeltaTime / 0.2f)
+                {
+                    MoveTowards(newTarget, j * 0.8f);
+                    Target.Y += speed.Y;
+                    if (i > 4)
+                    {
+                        speed.Y -= 1;
+                    }
+                    yield return null;
+                }
+                newTarget = topRight + new Vector2(Calc.Random.Range(-xRange, xRange), Calc.Random.Range(-yRange, yRange));
+            }
+            float[] wait = new float[] { 0.2f, 0.2f, 0.05f, 0.1f, 0.3f, 0.1f };
+            On = false;
+            foreach (float f in wait)
+            {
+                yield return f;
+                On = !On;
+            }
+            wait.Reverse();
+            yield return 4f;
+            foreach (float f in wait)
+            {
+                yield return f;
+                On = !On;
+            }
+            On = true;
+            if (trackAfter != null)
+            {
+                yield return ApproachEntity(trackAfter, 0.4f, Vector2.Zero, true);
+            }
+        }
+        public void MoveTowards(Vector2 position, float maxMove)
+        {
+            Target = Vector2.Lerp(Target, position, maxMove);
+        }
+        public static GameshowSpotlight GetSpotlight(Scene scene, string id)
+        {
+            if (scene is Level level)
+            {
+                foreach (GameshowSpotlight light in level.Tracker.GetEntities<GameshowSpotlight>())
+                {
+                    if (light.ID == id) return light;
+                }
+            }
+            return null;
+        }
+        public GameshowSpotlight(Vector2 position, Color color = default, string id = null) : base(position)
+        {
+
+            On = true;
             origColor = Color = color;
             Anchor = Position.Round();
             Vertices[0] = new();
@@ -106,15 +129,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             Circle.Visible = false;
             Led.Visible = false;
             Light.Visible = false;
-            Circle.Color = color * 0.3f;
+            Circle.Color = color * CircleAlpha;
             Circle.Scale = Vector2.One * circleScale;
-            //Light.RenderPosition = Led.RenderPosition = Anchor;
 
             Add(Circle, Led, Light);
             UpdateVertices();
 
             Tag |= Tags.TransitionUpdate;
-            Add(new Coroutine(ColorSwitch()));
+            ID = id;
+        }
+        public void TargetEntity(Entity entity, float time, Vector2 offset, bool track)
+        {
+            Add(new Coroutine(ApproachEntity(entity, time, offset, track)));
+        }
+        public void TargetPosition(Vector2 position, float time)
+        {
+            Add(new Coroutine(ApproachPosition(position, time)));
+        }
+        public IEnumerator ApproachEntity(Entity entity, float time, Vector2 offset, bool track = false)
+        {
+            Track = null;
+            yield return ApproachPosition(entity.Center + offset, time);
+            if (track) Track = entity;
+        }
+        public IEnumerator ApproachPosition(Vector2 position, float time)
+        {
+            Vector2 prev = Target;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                Target = Vector2.Lerp(prev, position, i);
+                yield return null;
+            }
+            Target = position;
         }
         private IEnumerator ColorSwitch()
         {
@@ -131,15 +177,69 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                 }
             }
         }
+        public void StartFollowing(Entity entity)
+        {
+            Track = entity;
+        }
+        public void RenderCircle(Color? color = null, Vector2? offset = null)
+        {
+            if (!On) return;
+            Color prevCircle = Circle.Color;
+            if (color.HasValue)
+            {
+                Circle.Color = color.Value;
+            }
+            if (offset.HasValue)
+            {
+                Circle.RenderPosition += offset.Value;
+            }
+            Circle.Render();
+            if (color.HasValue)
+            {
+                Circle.Color = prevCircle;
+            }
+            if (offset.HasValue)
+            {
+                Circle.RenderPosition -= offset.Value;
+            }
+
+        }
+        public void RenderLight(Matrix matrix, Color? color = null, Vector2? offset = null)
+        {
+            if (!On) return;
+            Color[] prev = new Color[3];
+            for (int i = 0; i < 3; i++)
+            {
+                if (color.HasValue)
+                {
+                    prev[i] = Vertices[i].Color;
+                    Vertices[i].Color = color.Value;
+                }
+                if (offset.HasValue)
+                {
+                    Vertices[i].Position.X += offset.Value.X;
+                    Vertices[i].Position.Y += offset.Value.Y;
+                }
+            }
+            GFX.DrawIndexedVertices(matrix, Vertices, 3, indices, 1);
+            for (int i = 0; i < 3; i++)
+            {
+                if (color.HasValue)
+                {
+                    Vertices[i].Color = prev[i];
+                }
+                if (offset.HasValue)
+                {
+                    Vertices[i].Position.X -= offset.Value.X;
+                    Vertices[i].Position.Y -= offset.Value.Y;
+                }
+            }
+        }
         public void RenderLed()
         {
+            Led.DrawSimpleOutline();
             Led.Render();
             Light.Render();
-        }
-        public static void Unload()
-        {
-            _Buffer?.Dispose();
-            _Buffer = null;
         }
         public override void Awake(Scene scene)
         {
@@ -147,11 +247,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             if (PianoUtils.SeekController<GSRenderer>(scene) == null)
             {
                 scene.Add(new GSRenderer());
-            }
-            if (scene.GetPlayer() is Player player)
-            {
-                Target = player.Center;
-                Circle.RenderPosition = Target;
             }
         }
         public void UpdateVertices()
@@ -171,10 +266,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public override void Update()
         {
             base.Update();
-            if(LightMode == Mode.Party)
+            if (LightMode == Mode.Party)
             {
                 partyTimer += Engine.DeltaTime;
-                if(partyTimer > 1)
+                if (partyTimer > 1)
                 {
                     colorIndex++;
                     colorIndex %= colors.Length;
@@ -188,13 +283,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                 Mode.Evil => Color.Red,
                 _ => Color.White
             };
-            if (Scene is Level level && level.GetPlayer() is Player player)
+            if (Track is not null)
             {
-                Target = player.Center;
+                Target = Track.Center;
             }
             Circle.RenderPosition = Target;
-            Circle.Color = Color * 0.3f;
-            Light.Color = Color;
+            Circle.Color = Color * CircleAlpha;
+            Light.Color = On ? Color : Color.Black;
             UpdateVertices();
         }
         public override void DebugRender(Camera camera)
@@ -207,6 +302,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public void DrawVertices(Level level)
         {
             GFX.DrawIndexedVertices(level.Camera.Matrix, Vertices, 3, indices, 1);
+        }
+        public void DrawVertices(Vector2 offset, Matrix matrix)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                Vertices[i].Position += new Vector3(offset, 0);
+            }
+            GFX.DrawIndexedVertices(matrix, Vertices, 3, indices, 1);
+            for (int i = 0; i < 3; i++)
+            {
+                Vertices[i].Position -= new Vector3(offset, 0);
+            }
         }
     }
 }

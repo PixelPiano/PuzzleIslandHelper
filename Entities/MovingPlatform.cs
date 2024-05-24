@@ -281,7 +281,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                         }
                         int spacingMax = 8;
                         Vector2 pos = Position;
-                        Color baseColor = Color.Purple;
+                        From baseColor = From.Purple;
                         for (int i = 0; i < 4; i++)
                         {
                             ExpandingRect a = new ExpandingRect(pos, Width, Height, baseColor, 1);

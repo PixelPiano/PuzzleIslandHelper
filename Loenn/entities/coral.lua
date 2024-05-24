@@ -12,7 +12,7 @@ coral.fillColor = {lightBlue[1] * 0.3, lightBlue[2] * 0.3, lightBlue[3] * 0.3, 0
 coral.borderColor = {lightBlue[1] * 0.8, lightBlue[2] * 0.8, lightBlue[3] * 0.8, 0.8}
 coral.name = "PuzzleIslandHelper/Coral"
 
-coral.depth = -8500
+coral.depth = -100001
 coral.placements =
 {
     {

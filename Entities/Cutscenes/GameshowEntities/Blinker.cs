@@ -13,30 +13,61 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public float WaitTime = 0.4f;
         public static int IndexCount;
         public int Index;
-        public bool State;
+        private bool state;
         private float timer;
         public static readonly MTexture On = GFX.Game["objects/PuzzleIslandHelper/blinker/on"];
         public static readonly MTexture Off = GFX.Game["objects/PuzzleIslandHelper/blinker/off"];
-        private MTexture Texture => State ? On : Off;
+        private MTexture Texture;
         public enum Modes
         {
             Static,
             Continuous,
-            Oscillate
+            Oscillate,
+            Bugged
         }
         public Modes Mode;
-        private VertexLight Glow;
+        private Modes prevMode;
         public Blinker(EntityData data, Vector2 offset) : this(data.Position + offset, data.Int("index"), data.Bool("startState"))
         {
 
         }
+
         public Blinker(Vector2 position, int index, bool startState) : base(position)
         {
             Index = index;
             timer = Index * WaitTime;
-            State = startState;
-            Depth = -10001;
-            Glow = new VertexLight(Color.Orange, 1, 8, 16);
+            state = startState;
+            Texture = state ? On : Off;
+            Depth = -10000;
+        }
+        public void Freakout()
+        {
+            prevMode = Mode;
+            Mode = Modes.Bugged;
+            Add(new Coroutine(FreakoutRoutine()));
+        }
+        public IEnumerator FreakoutRoutine()
+        {
+            int loops = Calc.Random.Range(2, 6);
+            float max = Calc.Random.Range(0.1f, 0.4f);
+            for (int i = 0; i < loops; i++)
+            {
+                if (state) TurnOff();
+                else TurnOn();
+                yield return Calc.Random.NextFloat(max);
+            }
+            TurnOff();
+            yield return 6;
+            yield return Calc.Random.Range(0, 1f);
+            for (int i = 0; i < loops; i++)
+            {
+                if (state) TurnOff();
+                else TurnOn();
+                yield return Calc.Random.NextFloat(max);
+            }
+            TurnOn();
+            Mode = prevMode;
+            yield return null;
         }
         public override void Awake(Scene scene)
         {
@@ -53,12 +84,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         }
         public void StartContinuous(float waitTime)
         {
+            TurnOn();
+            prevMode = Mode;
             Mode = Modes.Continuous;
             WaitTime = waitTime;
             timer = Index * WaitTime;
         }
         public void StartOscillate(float waitTime)
         {
+            TurnOn();
+            prevMode = Mode;
             Mode = Modes.Oscillate;
             WaitTime = waitTime;
             timer = WaitTime * (Index % 2 == 0 ? 2 : 1);
@@ -66,24 +101,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public override void Update()
         {
             base.Update();
-            if (Index > IndexCount)
-            {
-                IndexCount = Index;
-            }
-            Glow.Visible = State;
-            Glow.InSolidAlphaMultiplier = 1;
+            if (Mode == Modes.Bugged) return;
             timer -= Engine.DeltaTime;
             if (Mode == Modes.Static)
             {
                 timer = 0;
             }
-            if (timer < 0)
+            else if (timer < 0)
             {
-                State = !State;
+                state = !state;
                 switch (Mode)
                 {
                     case Modes.Continuous:
-                        timer = State ? WaitTime : IndexCount * WaitTime;
+                        timer = state ? WaitTime : IndexCount * WaitTime;
                         break;
                     case Modes.Oscillate:
                         timer = WaitTime;
@@ -110,11 +140,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         }
         public void TurnOff()
         {
-            State = false;
+            state = false;
+            Texture = Off;
         }
         public void TurnOn()
         {
-            State = true;
+            state = true;
+            Texture = On;
         }
     }
 }

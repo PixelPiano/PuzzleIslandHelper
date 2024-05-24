@@ -308,7 +308,7 @@ DIGILORE2=Any abnormalties?{n0}{mtRight}Do you mean abnormal from here, or abnor
 
 DIGILORE3={mtRight} So I've been trying to come up with a plan to get out of here. Any ideas?{n0}{/mtRight}Personally, I'm fine staying here, since escaping will likely just lead us to instant death.{n0}{mtRight}Well, yes, but what if we were able to escape a different way?{n0}{/mtRight}Like, with our bodies still intact? Will the physics still be the same?{n0}{/mtRight}Funny you should bring that up...
 
-DIGILORE4={mtRight}Y'know those observers we set up around the village?{n0}{/mtRight}You mean the ones that I invented..? Yes I know them.{n0}{mtRight}Right, well I still have limited access to the lab, and I found that the readings there match up perfectly with the readings from here. What's more, I think the area in here is shifting.{n0}{/mtRight}Wait... Do you mean...?
+DIGILORE4={mtRight}Y'know those observers we set up around the village?{n0}{/mtRight}You mean the ones that I invented..? Yes I know them.{n0}{mtRight}Right, well I still have limited access to the lab, and I found that the readings there match up perfectly with the readings from here. What's more, I think the area in here is shifting.{n0}{/mtRight}So... What does that mean?
 
 
 
@@ -492,71 +492,4 @@ preQuestions=
 	[MADELINE right angry] 
 		Wh- Hold on, you can't just-
 
-q1= [HOST left processing] QUERY #1: HOW MANY OF THE FOUR ROOMS CONTAIN MOVING BLOCKS?
-q11= [MADELINE right sad] 1.
-q12= [MADELINE right sad] 2.
-q13= [MADELINE right sad] 3.
 
-#
-q14= [MADELINE right sad] 4.
-
-q1R1= [HOST left smile]*BZZT* NAH *BZZT*
-q1R2= [HOST left pensive]*BZZT* SORRY, THAT WAS THE WRONG ANSWER *BZZT*
-q1R3= [HOST left smirk]*BZZT* LOOKS LIKE YOU GOT LOST IN THE WASH *BZZT*
-	{3}
-	[HOST left disbelief]i am a washing machine
-	[MADELINE right angry] I got it.
-q1R4=  [HOST left woozy]h
-q1W= [HOST left smile]*BEEP BEEP BEEP* THAT IS CORRECT!!!! wow. *BEEP BEEP BEEP*
-
-q2= [HOST left processing]QUERY #2: IN THE LAST FOUR ROOMS, WHICH TYPE OF FACE DID YOU SEE THE MOST?
-q21= [MADELINE right angry] :PianoBoyAngry:
-
-#
-q22= [MADELINE right sad] :PianoBoyOk:
-q23= [MADELINE right normal] :PianoBoyStapler:
-q24= [MADELINE right normal] :PianoBoyUwu:
-
-q2R1= [HOST left woozy]*BZZT* THIS IS A CERTIFIED GOLDFISH MOMENT *BZZT*
-q2R2=
-	[HOST left smirk]*BZZT* WOW, IF I WERE YOU RIGHT NOW 
-	[HOST left smirk]I'D CLIMB A MOUNTAIN I'D BE SO EMBARRASSED *BZZT*
-	[MADELINE right sad] ...What?
-q2R3= [HOST left smile]*BZZT HEH. HEHEH. THAT'S FUNNY *BZZT*
-
-q3= [HOST left ominous]FINAL QUERY:{0.3} WHAT 4 DIGITS DID THE LAST 4 ROOMS DETAIL?
-
-q31= [MADELINE right sad] 0375.
-q32= [MADELINE right normal] 0735!
-q33= [MADELINE right sad] 7483.
-q34= [MADELINE right panic] uh....8890..?
-
-#
-q35= [MADELINE right distracted] 0736...?
-q36= [MADELINE right deadpan] 6969
-q37= [MADELINE right sad] 1024.
-q38= [MADELINE right normal] 3308, obviously.
-q39= [MADELINE right angry] What the heck is happening.
-
-q39U=[HOST left shocked]*BWEEP* EVER THING *BWEEP*
-q38U=
-	[HOST left angry]*BZZT* DON'T SASS ME YOUNG LADY *BZZT*
-	[MADELINE right angry] Y-young lady..?!
-q36Ua=[MADELINE right angry]...that one doesn't count.
-     [HOST left processing]..........
-     [MADELINE right sad]........
-q36Ub=[MADELINE right normal] someone hand me a wrench please
-
-q33Ua=[HOST left smile]*BZZT* HA! *BZZT*
-q33Ub=
-	[HOST left disbelief]that means you got it wrong
-	[MADELINE right angry] Thanks.
-
-q3R1= [HOST left smirk]*BZZT* IMAGINE GETTING A QUESTION WRONG LOL COULDN'T BE ME *BZZT
-q3R2= [HOST left smirk]*BZZT* WE'RE SO SORRY (LOL), THAT WAS INCORRECT (TEEHEE). PLEASE TRY AGAIN. (LAUGHING) *BZZT*
-q3R3= [HOST left error]*BZZT* BZZT *BZZT*
-q3R4= [HOST left angry]*BZZT* WRONG *BZZT*
-q3R5= [HOST left pensive]*BZZT* THIS IS JUST SAD *BZZT*
-q3R6= [HOST left smirk]*BZZT* I CAN FEEL THE IQ IN THE ROOM LOWERING BY THE SECOND *BZZT*
-
-q3W= [HOST left happy]*BEEEEP* THAT IS CORRECT! VERY WELL DONE! *BEEEEP*

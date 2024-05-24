@@ -19,15 +19,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         }
         public override void OnOpened(BetterWindow window)
         {
+            base.OnOpened(window);
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
             Circle circle = new Circle(27 / 2f);
-            ProgramComponents.Add(FixButton = new BetterButton(window, circle, "objects/PuzzleIslandHelper/interface/pipes/fixedButton/", OnClicked));
+            ProgramComponents.Add(FixButton = new BetterButton(Window, circle, "objects/PuzzleIslandHelper/interface/pipes/fixedButton/", OnClicked));
             FixButton.Position = new Vector2(Window.WindowWidth / 2, Window.WindowHeight / 2) - new Vector2(FixButton.Width / 2, FixButton.Height / 2);
             FixButton.Visible = true;
-            FixButton.Disabled = true;
-            base.OnOpened(window);
+            FixButton.Disabled = false;
         }
         private void OnClicked()
         {
+
         }
         public override void Update()
         {

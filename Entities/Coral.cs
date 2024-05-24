@@ -89,6 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         {
             base.Removed(scene);
             Target.Dispose();
+            Target = null;
         }
         private void BeforeRender()
         {

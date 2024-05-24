@@ -165,6 +165,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static VirtualRenderTarget ObjectRenderTarget => _ObjectRenderTarget ??=
                       VirtualContent.CreateRenderTarget("DigitalObject", 320, 180);
 
+
+        private string flag;
+        private bool inverted;
+        public bool State
+        {
+            get
+            {
+                if(Scene is not Level level || string.IsNullOrEmpty(flag)) return true;
+                return level.Session.GetFlag(flag) == !inverted;
+            }
+        }
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
@@ -189,6 +200,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
           : base(data.Position + offset)
         {
             Tag |= Tags.TransitionUpdate;
+            flag = data.Attr("flag");
+            inverted = data.Bool("inverted");
             //IgnoreHair = data.Bool("leaveOutHair", true);
             background = Calc.HexToColor("008801");
             lineColors[0] = Calc.HexToColor("00FF00");
@@ -258,12 +271,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            if (Scene is not Level level || ForceStop) return;
-            if (level.GetPlayer() is not Player player || !player.Visible)
-            {
-                //Draw.Rect(Collider,Color.Red);
-                return;
-            }
+            if (Scene is not Level level || ForceStop || !State || level.GetPlayer() is not Player player || !player.Visible) return;
             Draw.SpriteBatch.End();
 
             Engine.Graphics.GraphicsDevice.SetRenderTarget(MaskRenderTarget);
@@ -275,7 +283,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 player.Hair.Visible = false;
             }
             player.Render();
-            // DrawTextures();
             if (IgnoreHair)
             {
                 player.Hair.Visible = true;

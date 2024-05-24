@@ -29,7 +29,9 @@ shiftArea.placements = {
         fgFrom = "",
         fgTo = "",
         swapFg = false,
-        indices = ""
+        indices = "",
+        flag = "",
+        inverted = false
     }
 }
 function getText(text, position, width, height)

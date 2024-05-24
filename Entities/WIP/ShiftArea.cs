@@ -107,11 +107,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public VertexBreath[] VertexBreathing;
         public SineWave LineAlphaFader;
 
-        public ShiftArea(EntityData data, Vector2 offset) : this(data.Position, offset, data.Char("bgFrom", '0'), data.Char("bgTo", '0'), data.Char("fgFrom", '0'), data.Char("fgTo", '0'), data.NodesWithPosition(Vector2.One * 4), GetIndices(data, false), data.Bool("swapBg"), data.Bool("swapFg"))
+
+        public string Flag;
+        public bool Inverted;
+        public bool State
+        {
+            get
+            {
+                if(Scene is not Level level || string.IsNullOrEmpty(Flag)) return true;
+                return level.Session.GetFlag(Flag) == !Inverted;
+            }
+        }
+
+        public ShiftArea(EntityData data, Vector2 offset) : this(data.Position, offset, data.Char("bgFrom", '0'), data.Char("bgTo", '0'), data.Char("fgFrom", '0'), data.Char("fgTo", '0'), data.NodesWithPosition(Vector2.One * 4), GetIndices(data, false), data.Bool("swapBg"), data.Bool("swapFg"), data.Attr("flag"),data.Bool("inverted"))
         {
         }
-        public ShiftArea(Vector2 position, Vector2 offset, char bgFrom, char bgTo, char fgFrom, char fgTo, Vector2[] nodes, int[] indices, bool swapBG = true, bool swapFG = true) : this(position + offset)
+        public ShiftArea(Vector2 position, Vector2 offset, char bgFrom, char bgTo, char fgFrom, char fgTo, Vector2[] nodes, int[] indices, bool swapBG = true, bool swapFG = true, string flag = "", bool inverted = false) : this(position + offset)
         {
+            Flag = flag;
+            Inverted = inverted;
             SwapBG = swapBG;
             SwapFG = swapFG;
             BgFrom = bgFrom;
@@ -207,7 +221,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         public void BeforeRender(bool fg, bool bg)
         {
-            if (!OnScreen || !Visible) return;
+            if (!OnScreen || !Visible || !State) return;
             bool useBg = bg && HasBG;
             bool useFg = fg && HasFG;
             float glitchAmount = GlitchAmount;

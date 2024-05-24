@@ -13,6 +13,8 @@ digitalEffect.placements =
         data = 
         {
             background="008502",
+            flag = "",
+            inverted = false,
             line="75d166",
             line2="00FF00",
             line3="3dbe28",

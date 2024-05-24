@@ -32,17 +32,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             PianoModule.Session.AddLifeGrid(currentCells);
         }
-        public override void OnOpened(BetterWindow window)
+        public override void Added(Scene scene)
         {
+            base.Added(scene);
             ProgramComponents = new()
             {
-                new StartButton(window, delegate { Simulating = true; }),
-                new CustomButton(window, "StopEvent", 35f, Vector2.Zero, Stop),
-                new CustomButton(window, "Clear", 35f, Vector2.Zero, Clear),
-                new CustomButton(window, "Rand", 35f, Vector2.Zero, Randomize),
-                new CustomButton(window, "Store", 35f, Vector2.Zero, Store),
-                new CustomButton(window, "Load", 35f, Vector2.Zero, LoadPreset),
+                new StartButton(Window, delegate { Simulating = true; }),
+                new CustomButton(Window, "StopEvent", 35f, Vector2.Zero, Stop),
+                new CustomButton(Window, "Clear", 35f, Vector2.Zero, Clear),
+                new CustomButton(Window, "Rand", 35f, Vector2.Zero, Randomize),
+                new CustomButton(Window, "Store", 35f, Vector2.Zero, Store),
+                new CustomButton(Window, "Load", 35f, Vector2.Zero, LoadPreset),
             };
+        }
+        public override void OnOpened(BetterWindow window)
+        {
             base.OnOpened(window);
             window.CaseWidth++;
             window.CaseHeight++;

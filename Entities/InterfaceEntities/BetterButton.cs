@@ -7,75 +7,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
 
     [TrackedAs(typeof(BetterButton))]
-    public class BetterButton : Image
+    public class BetterButton : WindowImage
     {
+        public bool AutoPosition;
         public Action OnClicked;
         public bool Disabled;
-        public Interface Interface;
         public IEnumerator Routine;
         public string Text;
-        public bool Pressing;
+        private bool pressing;
+        
+        public bool Pressing
+        {
+            get
+            {
+                return ForcePressed || pressing;
+            }
+            set
+            {
+                pressing = value;
+                ForcePressed = false;
+            }
+        }
         public Collider ButtonCollider;
-        public const string DefaultPath = "objects/PuzzleIslandHelper/interface/";
-        public BetterWindow Window => Interface.Window;
-        public string Path
-        {
-            get
-            {
-                if (!string.IsNullOrEmpty(customPath))
-                {
-                    return customPath;
-                }
-                else
-                {
-                    return DefaultPath;
-                }
-            }
-        }
-        public override float Height
-        {
-            get
-            {
-                if (UsesCircleCollider)
-                {
-                    if (ButtonCollider is not null)
-                    {
-                        return Circle.Height;
-                    }
-                }
-                else
-                {
-                    if (ButtonCollider is not null)
-                    {
-                        return ButtonCollider.Height;
-                    }
-                }
+        public const string DefaultPath = "objects/PuzzleIslandHelper/interface/buttons/";
 
-                return Texture is null ? 0 : Texture.Height;
-            }
-        }
-        public override float Width
-        {
-            get
-            {
-                if (UsesCircleCollider)
-                {
-                    if (ButtonCollider is not null)
-                    {
-                        return Circle.Width;
-                    }
-                }
-                else
-                {
-                    if (ButtonCollider is not null)
-                    {
-                        return ButtonCollider.Width;
-                    }
-                }
-                return Texture is null ? 0 : Texture.Width;
-            }
-        }
-
+        public string Path;
         public Vector2 HalfArea
         {
             get
@@ -83,7 +39,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 return new Vector2(Width / 2, Height / 2);
             }
         }
-
+        public float Bottom
+        {
+            get
+            {
+                return Position.Y + Height;
+            }
+        }
+        public float Top
+        {
+            get
+            {
+                return Position.Y;
+            }
+        }
         private string customPath;
         public bool InFocus;
         public float TextSize;
@@ -91,15 +60,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public Vector2 TextOffset = Vector2.Zero;
         public bool UsesCircleCollider;
         public Circle Circle;
+        public bool ForcePressed;
         public static string GetPath(string s)
         {
             if (!string.IsNullOrEmpty(s))
             {
-                return s;
+                string result = DefaultPath + s;
+                if (result[^1] != '/')
+                {
+                    result += "/";
+                }
+                return result;
             }
             else
             {
-                return DefaultPath;
+                return DefaultPath + "default/";
             }
         }
         public BetterButton(BetterWindow window, Circle circle, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : this(window, customPath, OnClicked, Routine)
@@ -107,20 +82,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Circle = circle;
             UsesCircleCollider = true;
         }
-        public BetterButton(BetterWindow window, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : base(GFX.Game[GetPath(customPath) + "button"], true)
+        public BetterButton(BetterWindow window, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : base(window, GFX.Game[GetPath(customPath) + "button00"])
         {
-            Interface = window.Interface;
             this.customPath = customPath;
+            Path = GetPath(customPath);
             this.OnClicked = OnClicked;
             this.Routine = Routine;
             ButtonCollider = new Hitbox(Texture.Width, Texture.Height);
         }
-        public void RunActions()
+        public virtual void RunActions()
         {
             OnClicked?.Invoke();
             if (Routine is not null)
             {
-                Entity.Add(new Coroutine(Routine));
+                Entity?.Add(new Coroutine(Routine));
             }
         }
         public override void Added(Entity entity)
@@ -159,6 +134,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Update()
         {
             base.Update();
+            TextRenderer.Text = Text;
             Color = Color.Lerp(Color.White, Disabled ? Color.LightGray : Color.White, 0.5f);
             if (UsesCircleCollider)
             {
@@ -172,10 +148,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 TextRenderer.RenderPosition = (level.Camera.CameraToScreen(RenderPosition + new Vector2(2, 1))).Floor() * 6;
             }
+            if (ForcePressed)
+            {
+                Color = Color.Blue;
+                if (!Pressing)
+                {
+                    RunActions();
+                    Press();
+                }
+                return;
+            }
             if (Disabled)
             {
-                Pressing = false;
-                Texture = GFX.Game[Path + "button"];
+                pressing = false;
+                Texture = GFX.Game[Path + "button00"];
                 return;
             }
             bool collidingWithMouse;
@@ -188,10 +174,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 collidingWithMouse = Interface.MouseOver(ButtonCollider);
             }
 
-            if (collidingWithMouse && Interface.LeftClicked)
+            if (collidingWithMouse && Interface.LeftPressed)
             {
-                Pressing = true;
-                Texture = GFX.Game[Path + "buttonPressed"];
+                Press();
             }
             else
             {
@@ -199,9 +184,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 {
                     RunActions();
                 }
-                Pressing = false;
-                Texture = GFX.Game[Path + "button"];
+                Unpress();
             }
+        }
+        public void Press()
+        {
+            pressing = true;
+            Texture = GFX.Game[Path + "button01"];
+        }
+        public void Unpress()
+        {
+            pressing = false;
+            Texture = GFX.Game[Path + "button00"];
         }
         public override void SceneEnd(Scene scene)
         {

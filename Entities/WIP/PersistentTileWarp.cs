@@ -96,7 +96,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 return;
             }
             level.SolidTiles.Render();
-            //Draw.Rect(0,0,level.Limits.Width,level.Limits.Height,Color.Red);
+            //Draw.Rect(0,0,level.Limits.Width,level.Limits.Height,From.Red);
         }
         private void BeforeRender()
         {
