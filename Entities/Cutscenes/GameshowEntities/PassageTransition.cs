@@ -16,6 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public Player Player;
         public float Alpha;
         public bool HidePlayer;
+        public float? NewRoomLighting;
         private List<Entity> entities = new();
 
         public Entity Holding;
@@ -146,7 +147,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             if (level.GetPlayer() is Player player)
             {
                 player.Visible = true;
-                player.StateMachine.State = Passage.EndPlayerState;
+                if (!Transitioning)
+                {
+                    player.StateMachine.State = Passage.EndPlayerState;
+                }
                 if (entities.Count > 0)
                 {
                     level.Remove(entities[0], entities[1]);
@@ -208,20 +212,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         {
             if (Scene is Level level)
             {
-                float prev = Engine.TimeRate;
-                //float prev2 = Engine.TimeRate /= 2;
                 for (float i = 0; i < 1; i += Engine.RawDeltaTime / Passage.FadeTime)
                 {
-                    //Engine.TimeRate = Calc.LerpClamp(prev2, 0.1f, i);
                     Alpha = i;
                     yield return null;
                 }
-                //Engine.TimeRate = prev;
                 Alpha = 1;
                 HidePlayer = true;
                 InstantRelativeTeleport(Scene, Passage.TeleportTo, true);
                 yield return null;
                 Level = Engine.Scene as Level;
+                if (NewRoomLighting.HasValue)
+                {
+                    Level.Lighting.Alpha = NewRoomLighting.Value;
+                }
                 Player = Level.GetPlayer();
                 Level.Camera.Position = Player.CameraTarget;
                 Player.ForceCameraUpdate = true;
@@ -293,6 +297,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                 yield return 0.1f;
 
                 Player.StateMachine.State = Passage.EndPlayerState;
+                Transitioning = false;
 
                 bg.Sprite.Play("outro");
 
@@ -308,9 +313,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
 
                 level.Remove(bg, fg);
             }
-            Transitioning = false;
             EndCutscene(Engine.Scene as Level);
             yield return null;
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            Transitioning = false;
         }
     }
 }

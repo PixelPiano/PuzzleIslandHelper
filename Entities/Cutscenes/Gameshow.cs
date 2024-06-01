@@ -11,6 +11,8 @@ using Celeste.Mod.PuzzleIslandHelper.Entities;
 using System.Reflection;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using ExtendedVariants.Module;
+using VivHelper.Triggers;
+using ExtendedVariants.Variants;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
@@ -20,16 +22,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public int WrongAnswers;
         public bool Lost;
         public RandomRoutines Random;
-        public float SavedLighting;
         public bool LoopQuestion;
         public bool PassedIntro;
         public bool StartedMusic;
         public SoundSource SnareLoop;
-        public string PrevMusic;
         private const string Song = "event:/PianoBoy/ThatsMyMerleeIntro";
         private const string Drum = "event:/PianoBoy/drumroll";
         private const string path = "objects/PuzzleIslandHelper/gameshow/";
-
+        public const float HiddenLighting = 0.7f;
+        public const float RevealLighting = 0.2f;
 
         private Screen screen;
         private Background background;
@@ -42,18 +43,67 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private bool zoomInHost;
         private GameshowSpotlight playerLight, hostLight;
         private Coroutine cutscene;
-
         public static List<string> RoomOrder = new();
+        public int CorrectAnswers;
         public static int RoomsVisited => RoomOrder.Count;
+        private int part;
 
-        public Gameshow() : base()
+        public Gameshow(int part) : base()
         {
+            this.part = part;
             Depth = -10000;
             RemoveOnSkipped = false;
             Random = new();
         }
-
-
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            SetLightColor(Color.White);
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            if (part == 0)
+            {
+                SetLightColor(Color.White);
+                Host = Level.Tracker.GetEntity<Host>();
+                playerLight = GameshowSpotlight.GetSpotlight(scene, "player");
+                hostLight = GameshowSpotlight.GetSpotlight(scene, "host");
+                Level.Session.SetFlag("gameshowReveal", RoomsVisited != 0);
+                Vector2 topLeft = Level.LevelOffset;
+                Vector2 center = topLeft + new Vector2(160, 90);
+                screen = new Screen(topLeft);
+                background = new Background(topLeft);
+                Level.Add(background, screen);
+                Level.Camera.Position = Level.LevelOffset;
+                if (!string.IsNullOrEmpty(GameshowPassage.LastRoomVisited) && !RoomOrder.Contains(GameshowPassage.LastRoomVisited))
+                {
+                    RoomOrder.Add(GameshowPassage.LastRoomVisited);
+                }
+                foreach (Passage passage in Level.Tracker.GetEntities<Passage>())
+                {
+                    if (RoomOrder.Contains(passage.TeleportTo))
+                    {
+                        passage.Deactivate();
+                    }
+                }
+                Paths = new LightPath[2];
+                Paths[0] = new LightPath(center - Vector2.UnitX * 20, 40, 0);
+                Paths[1] = new LightPath(center + Vector2.UnitX * 20, 40, 180);
+                Level.Add(Paths);
+                hostLight.StartFollowing(Paths[0]);
+                playerLight.StartFollowing(Paths[1]);
+                SnareLoop = new SoundSource();
+                Add(SnareLoop);
+                if (RoomsVisited == 0)
+                {
+                    Boom = new BOOM(topLeft);
+                    foreground = new Foreground(topLeft);
+                    curtains = new BgCurtains(topLeft, 11);
+                    Level.Add(foreground, curtains, Boom);
+                }
+            }
+        }
         public override void Render()
         {
             base.Render();
@@ -62,150 +112,50 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 Host.DrawBeam();
             }
         }
-
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            Host = Level.Tracker.GetEntity<Host>();
-            playerLight = GameshowSpotlight.GetSpotlight(scene, "player");
-            hostLight = GameshowSpotlight.GetSpotlight(scene, "host");
-            Level.Session.SetFlag("gameshowReveal", RoomsVisited != 0);
-            Vector2 topLeft = Level.LevelOffset;
-            Vector2 center = topLeft + new Vector2(160, 90);
-            screen = new Screen(topLeft);
-            background = new Background(topLeft);
-            Level.Add(background, screen);
-            if (!string.IsNullOrEmpty(GameshowPassage.LastRoomVisited) && !RoomOrder.Contains(GameshowPassage.LastRoomVisited))
-            {
-                RoomOrder.Add(GameshowPassage.LastRoomVisited);
-            }
-            foreach (Passage passage in Level.Tracker.GetEntities<Passage>())
-            {
-                if (RoomOrder.Contains(passage.TeleportTo))
-                {
-                    passage.Deactivate();
-                }
-            }
-            Paths = new LightPath[2];
-            Paths[0] = new LightPath(center - Vector2.UnitX * 20, 40, 0);
-            Paths[1] = new LightPath(center + Vector2.UnitX * 20, 40, 180);
-            Level.Add(Paths);
-            hostLight.StartFollowing(Paths[0]);
-            playerLight.StartFollowing(Paths[1]);
-            SnareLoop = new SoundSource();
-            Add(SnareLoop);
-            if (RoomsVisited == 0)
-            {
-                Boom = new BOOM(topLeft);
-                foreground = new Foreground(topLeft);
-                curtains = new BgCurtains(topLeft, 11);
-                Level.Add(foreground, curtains, Boom);
-            }
-        }
-        public IEnumerator FlashRoutine(bool correct)
-        {
-            float waitTime = 0.15f;
-            Audio.Play("event:/PianoBoy/" + (correct ? "correct" : "incorrect"));
-            yield return screen.FlashResult(correct, waitTime);
-        }
-
         public override void OnBegin(Level level)
         {
-            if (level.GetPlayer() is Player player)
+            Level.Session.SetFlag("GameshowWinTeleport", false);
+            PianoModule.Session.AltCalidusSceneState = AltCalidus.AltCalidusScene.States.BeforeGameshow;
+            switch (part)
             {
-                player.Light.Alpha = 1f;
+                case 1:
+                    Glitch.Value = 0.7f;
+                    Add(cutscene = new Coroutine(LoseCutscene()));
+                    break;
+                case 2:
+                    Add(cutscene = new Coroutine(HallCutscene()));
+                    break;
+                case 3:
+                    Glitch.Value = 0;
+                    Add(cutscene = new Coroutine(RewindCutscene()));
+                    break;
+                case 0:
+                    Add(cutscene = new Coroutine(MainCutscene()));
+                    break;
             }
+        }
 
-            Add(cutscene = new Coroutine(Cutscene()));
-        }
-        public void Hide()
-        {
-            if (Level.GetPlayer() is Player player)
-            {
-                player.Visible = false;
-                player.StateMachine.State = Player.StDummy;
-            }
-            GSRenderer.Invert = true;
-            foreach (Blinker blinker in Level.Tracker.GetEntities<Blinker>())
-            {
-                blinker.TurnOff();
-            }
-            foreach (AudienceMember face in Level.Tracker.GetEntities<AudienceMember>())
-            {
-                face.Visible = false;
-            }
-            foreach (LifeDisplay display in Level.Tracker.GetEntities<LifeDisplay>())
-            {
-                display.Visible = false;
-            }
-            SavedLighting = Level.Lighting.Alpha;
-            Level.Lighting.Alpha = 0.6f;
-        }
-        public override void Removed(Scene scene)
-        {
-            base.Removed(scene);
-            Level.Lighting.Alpha = SavedLighting;
-        }
-        public void Reveal(bool skipped = false)
-        {
-            Level.Lighting.Alpha = 0.2f;
-            background.Visible = true;
-            screen.Visible = true;
-            if (curtains != null)
-            {
-                curtains.Visible = !skipped;
-            }
-            if (foreground != null)
-            {
-                foreground.Visible = false;
-            }
 
-            GSRenderer.Invert = false;
-            foreach (Blinker blinker in Level.Tracker.GetEntities<Blinker>())
-            {
-                blinker.StartContinuous(0.1f);
-            }
-            foreach (AudienceMember face in Level.Tracker.GetEntities<AudienceMember>())
-            {
-                face.Visible = true;
-            }
-            foreach (LifeDisplay display in Level.Tracker.GetEntities<LifeDisplay>())
-            {
-                display.Visible = true;
-                if (skipped)
-                {
-                    display.TurnOn();
-                }
-            }
-            Level.Session.SetFlag("gameshowReveal");
-            if (Level.GetPlayer() is Player player)
-            {
-                player.Visible = true;
-            }
-            Host.Reveal();
-        }
-        public void FreePlayer(Player player)
-        {
-            player.StateMachine.State = Player.StNormal;
-            Passage.AllTeleportsActive = true;
-        }
         public override void OnEnd(Level level)
         {
             if (level.GetPlayer() is not Player player) return;
-            if (Lost)
+            if (part == 0)
             {
-                InstantTeleportToSpawn(level, player, "GameshowLose");
+                if (WasSkipped)
+                {
+                    Reveal(true);
+                    if (Host is not null)
+                    {
+                        Host.Visible = false;
+                    }
+                    AllFocusPaths();
+                    cutscene.Cancel();
+                    SnareLoop.Stop(false);
+                    FadeInMusic();
+                }
             }
-            if (WasSkipped)
-            {
-                //Level.Lighting.Alpha = SavedLighting;
-                Reveal(true);
-                JumpToLoop();
-                cutscene.Cancel();
-            }
-            Level.Lighting.Alpha = 0.3f;
-            FreePlayer(player);
-            Audio.SetMusic(PrevMusic);
+            Brighten();
+            ReleasePlayer(player);
         }
         public override void Update()
         {
@@ -217,32 +167,148 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 Level.ZoomSnap(target + adjust, HostZoomAmount);
             }
         }
-        public IEnumerator Cutscene()
+
+        #region Routines
+        private IEnumerator HallCutscene()
+        {
+            Player player = Level.GetPlayer();
+            player.Facing = Facings.Right;
+            player.Light.Alpha = 0;
+            yield return 0.2f;
+            Level.Add(new MiniTextbox("inTheDarkHall"));
+            yield return null;
+        }
+        private float anxiety;
+        private IEnumerator AnxietyWobble()
+        {
+            float time, anx;
+            while (true)
+            {
+                time = Calc.Random.Range(1, 4f);
+                anx = anxiety;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+                {
+                    Distort.Anxiety = (anx = Calc.Approach(anx, anxiety, Engine.DeltaTime * 3)) + Ease.SineIn(i) * 0.2f;
+                    yield return null;
+                }
+
+                time = Calc.Random.Range(1, 4f);
+                for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+                {
+                    Distort.Anxiety = (anx = Calc.Approach(anx, anxiety, Engine.DeltaTime * 3)) + 1 - Ease.SineOut(i) * 0.2f;
+                    yield return null;
+                }
+
+                yield return null;
+            }
+        }
+        private IEnumerator RewindCutscene()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            player.Light.Alpha = 1;
+            player.Light.Visible = true;
+            Level.Session.SetFlag("RewindTeleport", false);
+            Level.Session.SetFlag("faceEncounterFlag", false);
+            MakeUnskippable();
+            player.StateMachine.State = Player.StDummy;
+            anxiety = 0;
+
+            Add(new Coroutine(Level.ZoomTo(new Vector2(220, 120), 1.6f, 0.7f)));
+            yield return player.DummyWalkTo(player.X + 64);
+            yield return 0.1f;
+            yield return Textbox.Say("preRewind");
+            Coroutine anx = new Coroutine(AnxietyWobble());
+            Add(anx);
+            Level.Flash(Color.White, false);
+
+            Audio.Play("event:/PianoBoy/invertGlitch");
+            for (float i = 0; i < 4; i++)
+            {
+                Glitch.Value = Calc.Random.Range(0.6f, 1);
+                Celeste.Freeze(Engine.DeltaTime * (i + 2));
+                yield return Engine.DeltaTime * 2;
+            }
+            Glitch.Value = 0;
+
+            anxiety = 1;
+            yield return 0.2f;
+            yield return Textbox.Say("rewindB");
+            yield return 1;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 1)
+            {
+                anxiety = Calc.LerpClamp(1, 0.5f, Ease.SineInOut(i));
+                yield return null;
+            }
+            anxiety = 0.5f;
+            yield return Textbox.Say("rewindBreath");
+            yield return 1;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
+            {
+                anxiety = Calc.LerpClamp(0.5f, 0f, Ease.SineInOut(i));
+                yield return null;
+            }
+            anxiety = 0;
+            anx.Cancel();
+            anx.RemoveSelf();
+            while (Distort.Anxiety != 0)
+            {
+                Distort.Anxiety = Calc.Approach(Distort.Anxiety, 0, Engine.DeltaTime);
+                yield return null;
+            }
+            yield return 0.6f;
+            yield return Textbox.Say("rewindC");
+            yield return Level.ZoomBack(0.7f);
+            player.StateMachine.State = Player.StNormal;
+            EndCutscene(Level);
+            yield return null;
+        }
+        private IEnumerator LoseCutscene()
+        {
+            MakeUnskippable();
+            Player player = Level.GetPlayer();
+            player.StateMachine.State = Player.StDummy;
+            player.Facing = Facings.Left;
+
+            Audio.SetMusic("event:/PianoBoy/invertAmbience");
+            yield return null;
+            Level.Session.SetFlag("GameshowLoseTeleport", false);
+            yield return Textbox.Say("rewindA");
+            yield return 0.5f;
+            Level.Session.SetFlag("RewindTeleport");
+            yield return null;
+        }
+
+        public IEnumerator MainCutscene()
         {
             int timesReturned = 0;
+            Player player = Level.GetPlayer();
+            player.Light.Visible = false;
+            if (Level.Camera.Position != Level.LevelOffset)
+            {
+                Level.Camera.Position = Level.LevelOffset;
+            }
+            player.Facing = Facings.Left;
+            player.StateMachine.State = Player.StDummy;
             if (RoomsVisited == 0)
             {
                 Hide();
-                PrevMusic = Audio.CurrentMusic;
-                Audio.currentMusicEvent?.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-                yield return 0.5f;
+                playerLight.On = hostLight.On = false;
+                Audio.SetMusic("null");
+                yield return 2f;
                 yield return Intro();
                 PassedIntro = true;
             }
             else
             {
-                if (Level.Camera.Position != Level.LevelOffset)
-                {
-                    Level.Camera.Position = Level.LevelOffset;
-                }
-                Player player = Level.GetPlayer();
+                player.Light.Visible = true;
                 player.Facing = Facings.Left;
                 player.StateMachine.State = Player.StDummy;
                 MakeUnskippable();
                 Reveal(true);
                 yield return 0.8f;
                 StartCheering();
-                while (PassageTransition.Transitioning)
+                List<Entity> transitions = Level.Tracker.GetEntities<PassageTransition>();
+                while (transitions is not null && transitions.Count > 0)
                 {
                     yield return null;
                 }
@@ -260,31 +326,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             if (RoomsVisited >= 4)
             {
-                LifeDisplay display = Level.Tracker.GetEntity<LifeDisplay>();
-                if (display is not null && display.GameOver)
-                {
-                    yield return BigLose();
-                    //todo: link to lose sequence
-                }
-                else
-                {
-                    yield return BigWin();
-                    //todo: teleport player
-                }
+                yield return BigWin();
             }
-            yield return Textbox.Say("rfree" + timesReturned, HostLeave);
-            yield return null;
+            else
+            {
+                yield return Textbox.Say("rfree" + timesReturned, HostLeave);
+            }
+            AllFocusPaths();
             EndCutscene(Level);
-        }
-
-        private IEnumerator HostLeave()
-        {
-            yield return Host.Skedaddle();
         }
         public IEnumerator Intro()
         {
             Player player = Level.GetPlayer();
             player.Facing = Facings.Left;
+            hostLight.On = playerLight.On = true;
             SnareLoop.Play(Drum);
             yield return 2;
             float[] waitTimes = { 1.5f, 1, 0.7f, 0.5f, 1.5f };
@@ -295,11 +350,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             yield return 1f;
             Reveal();
-            AllFocusHost();
             SnareLoop.Stop(false);
-            Audio.Play("event:/PianoBoy/crashCymbal");
-            Audio.SetMusic(Song);
-            Audio.SetMusicParam("fade", 1);
+            FadeInMusic();
             yield return SayTitle();
             yield return CutAtEnd("gsBanter1");
             yield return Textbox.Say("gsBanter2");
@@ -314,10 +366,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return CutAtEnd("gsBanter8");
             yield return Textbox.Say("gsBanter9", Cheer, PanCamera, PanCameraBack, LookAtLives, StopMusic, StartMusic);
         }
-        public void MakeUnskippable()
+        public IEnumerator FlashAnswer(bool correct)
         {
-            (Scene as Level).InCutscene = false;
-            (Scene as Level).CancelCutscene();
+            AllFocusScreen();
+            SetLightColor(correct ? Color.Green : Color.Red);
+            float waitTime = 0.15f;
+            Audio.Play("event:/PianoBoy/" + (correct ? "correct" : "incorrect"));
+            for (int i = 0; i < 4; i++)
+            {
+                screen.SetState(correct);
+                SetLightState(true);
+                yield return waitTime;
+                screen.HideState();
+                SetLightState(false);
+                yield return waitTime;
+            }
+            SetLightState(true);
+        }
+        private IEnumerator HostLeave()
+        {
+            yield return Host.Skedaddle();
         }
         private IEnumerator RAISE()
         {
@@ -375,25 +443,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             AllFocusHost();
         }
-        public void LightToPlayer()
-        {
-            playerLight.TargetEntity(Level.GetPlayer(), 0.2f, Vector2.Zero, true);
-        }
-        public void LightToHost()
-        {
-            hostLight.TargetEntity(Host, 0.2f, Vector2.Zero, false);
-        }
-        public void AllFocusPlayer()
-        {
-            Player player = Level.GetPlayer();
-            playerLight.TargetEntity(player, 0.2f, Vector2.Zero, true);
-            hostLight.TargetEntity(player, 0.2f, Vector2.Zero, true);
-        }
-        public void AllFocusHost()
-        {
-            playerLight.TargetEntity(Host, 0.2f, Vector2.Zero, false);
-            hostLight.TargetEntity(Host, 0.2f, Vector2.Zero, false);
-        }
         public IEnumerator LightsToScreen()
         {
             playerLight.Track = null;
@@ -447,13 +496,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             Level.Session.SetFlag("gameshowDigiFlash", false);
             yield return null;
-        }
-        private void SpotlightsFreakout(Level level)
-        {
-            foreach (GameshowSpotlight light in level.Tracker.GetEntities<GameshowSpotlight>())
-            {
-                light.Freakout(level.Camera.Position + new Vector2(160, 90), 120, 65, level.GetPlayer());
-            }
         }
         public IEnumerator ShakeScreen()
         {
@@ -567,26 +609,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         public IEnumerator AskQuestion(int index)
         {
-            Question question = PianoModule.GameshowData.QuestionSets[index].GetRandom();
+            Question question = PianoModule.GameshowData.QuestionSets[index - 1].GetRandom();
             if (question is null) yield return Incorrect(null, 0);
             yield return Textbox.Say($"r{index}intro", WaitForOne, SayTitle); //ask prompt
+
             yield return MultiChoice(question);
             yield return null;
-        }
-        public void EmitBagParticles(Vector2 at, float offset)
-        {
-            for (float i = -135; i < 135; i += Calc.Random.Range(0.3f, 1.3f))
-            {
-                float angle = i.ToRad();
-                Vector2 from = at + Calc.AngleToVector(angle, offset);
-                int loops = Calc.Random.Range(1, 3);
-                for (int j = 0; j < loops; j++)
-                {
-                    GravityParticle particle = new GravityParticle(from, Calc.AngleToVector(angle, Calc.Random.Range(200f, 300f)), Color.Cyan, Calc.Random.Choose(0.6f, 1));
-                    particle.CanFadeAway = false;
-                    Level.Add(particle);
-                }
-            }
         }
         private IEnumerator Explode()
         {
@@ -625,9 +653,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             bool result;
             int page = 0;
 
-            bool unique;
+            //bool unique;
             int max = question.Choices;
             int pages = (int)Math.Round((double)max / question.PerPage, 0, MidpointRounding.AwayFromZero);
+            AllFocusRespective();
             yield return Textbox.Say(question.Q); //ask prompt
             Audio.Play("event:/PianoBoy/questionPresented");
 
@@ -635,11 +664,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 page %= pages; //cycle back to first page if player continues after last page
                 List<string> options = question.GetPage(page); //get page of choices
+                if (pages > 1)
+                {
+                    options.Add(page == pages - 1 ? "qStart" : "qNext");
+                }
                 yield return ChoicePrompt.Prompt(options.ToArray()); //let player pick a choice
                 if (ChoicePrompt.Choice < question.PerPage) //if player chose a valid answer
                 {
                     string id = options[ChoicePrompt.Choice];
-                    unique = RandomRoutines.ValidIDs.Contains(id + "U");
+                    //unique = RandomRoutines.ValidIDs.Contains(id + "U");
                     result = PianoModule.GameshowData.IsAnswer(question, ChoicePrompt.Choice);
                     yield return Textbox.Say(id);
                     break;
@@ -650,34 +683,55 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 }
             }
             FadeOutMusic();
+            SetSpinTime(0.9f);
+            AllFocusPaths();
             yield return Drumroll();
-
+            SetLightState(false);
+            SetSpinTime(2);
+            yield return 0.9f;
             if (result)
             {
-                yield return 0.1f;
-                StartCheering();
-                yield return FlashRoutine(true);
+                CorrectAnswers++;
+                //StartCheering();
+                LaunchConfetti();
+                yield return FlashAnswer(true);
                 yield return 0.5f;
-                StopCheering();
-                yield return Correct(page * question.PerPage + ChoicePrompt.Choice);
+                //StopCheering();
+                yield return Correct(RoomsVisited);
             }
             else
             {
-                yield return 0.3f;
-                yield return FlashRoutine(false);
+                yield return FlashAnswer(false);
                 yield return 0.5f;
-                if (unique)
-                {
-                    yield return Incorrect(question, page * question.PerPage + ChoicePrompt.Choice);
-                }
-                else
-                {
-                    yield return IncorrectRandom(question);
-                }
+                yield return Incorrect();
+                /*                if (unique)
+                                {
+                                    yield return Incorrect(question, page * question.PerPage + ChoicePrompt.Choice);
+                                }
+                                else
+                                {
+                                    yield return IncorrectRandom(question);
+                                }*/
                 WrongAnswers++;
                 yield return LoseLife();
             }
+            ResetLightColor();
+            AllFocusPaths();
             FadeInMusic();
+        }
+        private void LaunchConfetti()
+        {
+            Add(new Coroutine(confettiRoutine()));
+        }
+        private IEnumerator confettiRoutine()
+        {
+            Level.Session.SetFlag("confetti");
+            yield return null;
+            Level.Session.SetFlag("confetti", false);
+        }
+        public IEnumerator Incorrect()
+        {
+            yield return Textbox.Say("incorrect");
         }
         public IEnumerator Incorrect(Question question, int index)
         {
@@ -696,7 +750,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         public IEnumerator Correct(int question)
         {
-            yield return Textbox.Say("q" + question + "W");
+            yield return Textbox.Say("question" + question + "W");
         }
         public IEnumerator StopMusic()
         {
@@ -708,22 +762,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             FadeInMusic();
             yield return null;
         }
-        public void FadeOutMusic()
+        public void test()
         {
-            Audio.SetMusicParam("fade", 0);
-        }
-        public void FadeInMusic()
-        {
-            Audio.SetMusicParam("Jump", 1);
-            Audio.SetMusicParam("fade", 0);
-            Audio.SetMusicParam("fade", 1);
-        }
-        public void JumpToLoop()
-        {
-            SnareLoop.Stop();
-            Level.Session.Audio.Music.Event = Song;
-            Level.Session.Audio.Apply(forceSixteenthNoteHack: false);
-            FadeInMusic();
+            if (Level.Tracker.GetEntity<LifeDisplay>() is not LifeDisplay display) return;
+            display.ConsumeLife();
         }
         public IEnumerator LoseLife()
         {
@@ -740,14 +782,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 yield return BigLose();
             }
         }
-        public IEnumerator Skipped()
-        {
-            Level.Lighting.Alpha = SavedLighting;
-            Reveal(true);
-            JumpToLoop();
-            yield return null;
-            EndCutscene(Level);
-        }
         public IEnumerator Drumroll()
         {
             SnareLoop.Play(Drum);
@@ -760,13 +794,207 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return null;
             FadeOutMusic();
             yield return Textbox.Say("bigLose");
-            Lost = true;
+            Level.Session.SetFlag("GameshowLoseTeleport");
         }
         public IEnumerator BigWin()
         {
-            yield return Textbox.Say("q3Wa");
-            yield return Cheer();
-            yield return Textbox.Say("q3Wb");
+            PianoModule.Session.AltCalidusSceneState = AltCalidus.AltCalidusScene.States.AfterGameshow;
+            Add(new Coroutine(Cheer()));
+            yield return 0.5f;
+            yield return Textbox.Say("bigWin");
+            if (Level.GetPlayer() is Player player)
+            {
+                player.StateMachine.State = Player.StNormal;
+            }
+            Level.Session.SetFlag("GameshowWinTeleport");
+            EndCutscene(Level);
+        }
+        #endregion
+        #region Helper Functions
+        public void SetLightColor(Color color)
+        {
+            GSRenderer.Color = color;
+        }
+        public void LightApproachColor(Color color)
+        {
+            Add(new Coroutine(LerpColor(color)));
+        }
+        private IEnumerator LerpColor(Color color)
+        {
+            Color orig = GSRenderer.Color;
+            for (float i = 0; i < 1; i += Engine.DeltaTime)
+            {
+                GSRenderer.Color = Color.Lerp(orig, color, i);
+                yield return null;
+            }
+            GSRenderer.Color = color;
+        }
+        public void ResetLightColor()
+        {
+            LightApproachColor(Color.White);
+        }
+        public void SetLightState(bool on)
+        {
+            playerLight.On = hostLight.On = on;
+        }
+        public void Reveal(bool skipped = false)
+        {
+            Brighten();
+            background.Visible = true;
+            screen.Visible = true;
+            if (curtains != null)
+            {
+                curtains.Visible = !skipped;
+            }
+            if (foreground != null)
+            {
+                foreground.Visible = false;
+            }
+
+            GSRenderer.Invert = false;
+            foreach (Blinker blinker in Level.Tracker.GetEntities<Blinker>())
+            {
+                blinker.StartContinuous(0.1f);
+            }
+            foreach (AudienceMember face in Level.Tracker.GetEntities<AudienceMember>())
+            {
+                face.Visible = true;
+            }
+            foreach (LifeDisplay display in Level.Tracker.GetEntities<LifeDisplay>())
+            {
+                display.Visible = true;
+                if (skipped)
+                {
+                    display.TurnOn();
+                }
+            }
+            Level.Session.SetFlag("gameshowReveal");
+            if (Level.GetPlayer() is Player player)
+            {
+                player.Visible = true;
+                player.Light.Visible = true;
+                player.Light.Alpha = 1;
+            }
+            Host.Reveal();
+            if (!skipped)
+            {
+                AllFocusHost();
+                Audio.Play("event:/PianoBoy/crashCymbal");
+            }
+        }
+        public void Hide()
+        {
+            if (Level.GetPlayer() is not Player player) return;
+            player.Visible = false;
+            player.StateMachine.State = Player.StDummy;
+            player.Light.Visible = false;
+
+            GSRenderer.Invert = true;
+            foreach (Blinker blinker in Level.Tracker.GetEntities<Blinker>())
+            {
+                blinker.TurnOff();
+            }
+            foreach (AudienceMember face in Level.Tracker.GetEntities<AudienceMember>())
+            {
+                face.Visible = false;
+            }
+            foreach (LifeDisplay display in Level.Tracker.GetEntities<LifeDisplay>())
+            {
+                display.Visible = false;
+            }
+            Dim();
+        }
+        public void ReleasePlayer(Player player)
+        {
+            player.StateMachine.State = Player.StNormal;
+            Passage.AllTeleportsActive = true;
+        }
+        private void Dim()
+        {
+            Level.Lighting.Alpha = HiddenLighting;
+        }
+        private void Brighten()
+        {
+            Level.Lighting.Alpha = RevealLighting;
+        }
+
+        public void MakeUnskippable()
+        {
+            (Scene as Level).InCutscene = false;
+            (Scene as Level).CancelCutscene();
+        }
+
+        public void LightToPlayer()
+        {
+            playerLight.TargetEntity(Level.GetPlayer(), 0.2f, Vector2.Zero, true);
+        }
+        public void LightToHost()
+        {
+            hostLight.TargetEntity(Host, 0.2f, Vector2.Zero, false);
+        }
+        public void AllFocusPlayer()
+        {
+            Player player = Level.GetPlayer();
+            playerLight.TargetEntity(player, 0.2f, Vector2.Zero, true);
+            hostLight.TargetEntity(player, 0.2f, Vector2.Zero, true);
+        }
+        public void AllFocusHost()
+        {
+            playerLight.TargetEntity(Host, 0.2f, Vector2.Zero, false);
+            hostLight.TargetEntity(Host, 0.2f, Vector2.Zero, false);
+        }
+        public void AllFocusRespective()
+        {
+            Player player = Level.GetPlayer();
+            playerLight.TargetEntity(player, 0.2f, Vector2.Zero, true);
+            hostLight.TargetEntity(Host, 0.2f, Vector2.Zero, false);
+        }
+        public void AllFocusScreen()
+        {
+            Vector2 position = Level.Marker("screen");
+            playerLight.Track = hostLight.Track = null;
+            playerLight.Target = hostLight.Target = position;
+        }
+        private void SetSpinTime(float time)
+        {
+            Paths[0].FullSpinTime = Paths[1].FullSpinTime = time;
+        }
+        public void AllFocusPaths()
+        {
+            hostLight.TargetEntity(Paths[0], 0.2f, Vector2.Zero, true);
+            playerLight.TargetEntity(Paths[1], 0.2f, Vector2.Zero, true);
+        }
+        private void SpotlightsFreakout(Level level)
+        {
+            foreach (GameshowSpotlight light in level.Tracker.GetEntities<GameshowSpotlight>())
+            {
+                light.Freakout(level.Camera.Position + new Vector2(160, 90), 120, 65, level.GetPlayer());
+            }
+        }
+        public void EmitBagParticles(Vector2 at, float offset)
+        {
+            for (float i = -135; i < 135; i += Calc.Random.Range(0.3f, 1.3f))
+            {
+                float angle = i.ToRad();
+                Vector2 from = at + Calc.AngleToVector(angle, offset);
+                int loops = Calc.Random.Range(1, 3);
+                for (int j = 0; j < loops; j++)
+                {
+                    GravityParticle particle = new GravityParticle(from, Calc.AngleToVector(angle, Calc.Random.Range(200f, 300f)), Color.Cyan, Calc.Random.Choose(0.6f, 1));
+                    particle.CanFadeAway = false;
+                    Level.Add(particle);
+                }
+            }
+        }
+        public void FadeOutMusic()
+        {
+            Audio.SetMusicParam("fade", 0);
+        }
+        public void FadeInMusic()
+        {
+            Audio.SetMusic(Song);
+            Audio.SetMusicParam("Jump", 1);
+            Audio.SetMusicParam("fade", 1);
         }
         private void StartCheering()
         {
@@ -837,6 +1065,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 }
             };
         }
+        #endregion
+        #region Helper Entities
         public class Screen : Entity
         {
             private Image check;
@@ -862,6 +1092,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     check.Visible = x.Visible = false;
                     yield return waitTime;
                 }
+            }
+            public void HideState()
+            {
+                check.Visible = x.Visible = false;
+            }
+            public void SetState(bool correct)
+            {
+                check.Visible = correct;
+                x.Visible = !correct;
             }
 
         }
@@ -1023,17 +1262,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public class LightPath : Entity
         {
             public Vector2 origPosition;
+            public float FullSpinTime = 2;
+            private float startAngle;
+            private float radius;
             public LightPath(Vector2 center, float radius, float startAngle) : base(center)
             {
                 origPosition = center;
-                float angle = startAngle.ToRad();
-                Tween t = Tween.Create(Tween.TweenMode.Looping, Ease.Linear, 2, true);
-                t.OnUpdate = (Tween t) =>
+                this.radius = radius;
+                this.startAngle = startAngle.ToRad();
+                Add(new Coroutine(Spin()));
+            }
+            private IEnumerator Spin()
+            {
+                float angle = startAngle;
+                while (true)
                 {
-                    Position = center + Calc.AngleToVector(angle, radius);
-                    angle = (startAngle + MathHelper.TwoPi * t.Eased) % MathHelper.TwoPi;
-                };
-                Add(t);
+                    for (float i = 0; i < 1; i += Engine.DeltaTime / FullSpinTime)
+                    {
+                        Position = origPosition + Calc.AngleToVector(angle, radius);
+                        angle = (startAngle + MathHelper.TwoPi * i) % MathHelper.TwoPi;
+                        yield return null;
+                    }
+                }
             }
             public override void DebugRender(Camera camera)
             {
@@ -1041,5 +1291,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 Draw.Point(Position, Color.White);
             }
         }
+        #endregion
     }
 }

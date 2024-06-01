@@ -20,6 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             {
                 EndPlayerState = Player.StDummy;
             }
+            NewRoomLighting = Gameshow.RevealLighting;
         }
         public override void Added(Scene scene)
         {

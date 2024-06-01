@@ -10,43 +10,43 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
     [Tracked]
     public class LifeDisplay : Entity
     {
-        public const int MaxLives = 4;
+        public const int MaxLives = 2;
         public Sprite[] Lives = new Sprite[MaxLives];
         public Image Image;
-        public int Dead;
+        private int dead;
         public bool GameOver;
         public LifeDisplay(EntityData data, Vector2 offset) : this(data.Position + offset) { }
         public LifeDisplay(Vector2 position) : base(position)
         {
             Depth = 4;
-            Image = new Image(GFX.Game["objects/PuzzleIslandHelper/gameshow/lifeDisplay/marioxhk_monitor"]);
-            Add(Image);
-            Vector2 start = new Vector2(4, 0);
-            int space = (int)((Image.Width - 26) / MaxLives);
+            Add(Image = new Image(GFX.Game["objects/PuzzleIslandHelper/gameshow/lifeDisplay/marioxhk_monitor"]));
             for (int i = 0; i < MaxLives; i++)
             {
-                float offset = i * (space + 4);
                 Lives[i] = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/gameshow/playerLife/");
                 Lives[i].AddLoop("dead", "funnyExplosion", 0.1f, 14);
                 Lives[i].AddLoop("alive", "funnyExplosion", 0.1f, 0);
                 Lives[i].Add("explode", "funnyExplosion", 0.1f, "dead");
-                Add(Lives[i]);
                 Lives[i].Play("alive");
-                Lives[i].Position = start + Vector2.UnitX * offset;
-                Lives[i].Visible = false;
+                float w = Lives[i].Width;
+                Lives[i].X = (Image.Width / 2) - (w / 2) - w + (w * i);
             }
+            Add(Lives);
+            TurnOff();
             Collider = new Hitbox(Image.Width, Image.Height);
         }
         public void ConsumeLife()
         {
-            for (int i = Dead; i < Lives.Length; i++)
+            if (dead < MaxLives)
             {
-                Lives[i].Play("explode");
+                Lives[dead].Play("explode");
                 Audio.Play("event:/PianoBoy/funnyExplosion");
-                Dead++;
-                return;
+                dead++;
+                if (dead == MaxLives)
+                {
+                    GameOver = true;
+                }
             }
-            GameOver = true;
+
         }
 
         public void TurnOn()

@@ -5,82 +5,25 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 
-[CustomEntity(new string[] { "PuzzleIslandHelper/PuzzleBonfireLight" })]
-[Tracked(false)]
-internal class BonfireLight : Entity
+[CustomEntity("PuzzleIslandHelper/PuzzleBonfireLight")]
+[Tracked]
+public class LabFloorLight : Entity
 {
-    public Color lightColor;
-
-    private Sprite mySprite;
-
-    private VertexLight light;
-
-    private BloomPoint bloom;
-
-    private float brightness;
-
-    private float multiplier;
-
-    private Wiggler wiggle;
-
-    private float randBase = 0.5f;
-
-    private float randAdd = 0.5f;
-
-    private float randFreq = 0.25f;
-
-    public BonfireLight(EntityData data, Vector2 offset)
+    private Sprite sprite;
+    public LabFloorLight(EntityData data, Vector2 offset)
         : base(data.Position + offset)
     {
-        base.Depth = -9999;
-        int startFade = 32;
-        int endFade = 64;
-        float radius = 32f;
-        float frequency = 4f;
-        float duration = 0.2f;
+        Depth = -100000;
 
-        startFade = data.Int("lightFadeStart");
-        endFade = data.Int("lightFadeEnd");
-        radius = data.Float("bloomRadius");
-        randBase = data.Float("baseBrightness");
-        randAdd = data.Float("brightnessVariance");
-        randFreq = data.Float("flashFrequency");
-        frequency = data.Float("wigglerFrequency");
-        duration = data.Float("wigglerDuration");
-
-        lightColor = data.HexColor("color");
-        base.Tag = Tags.TransitionUpdate;
-        Add(light = new VertexLight(new Vector2(0f, 0f), lightColor, 1f, startFade, endFade));
-        Add(bloom = new BloomPoint(new Vector2(0f, 0f), 1f, radius));
-        Add(wiggle = Wiggler.Create(duration, frequency, delegate (float wigglerVar)
-        {
-            light.Alpha = (bloom.Alpha = Math.Min(1f, brightness + wigglerVar * 0.25f) * multiplier);
-        }));
-    }
-    public override void Awake(Scene scene)
-    {
-        base.Awake(scene);
-        Add(mySprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/puzzleBonfireLight/"));
-        mySprite.AddLoop("spookyLight", "spookyLight", 0.1f);
-        mySprite.CenterOrigin();
-        mySprite.Y = 2f;
+        Tag |= Tags.TransitionUpdate;
+        Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/puzzleBonfireLight/"));
+        sprite.Add("idleOn", "lightAnim", 0.1f, "idleOff");
+        sprite.Add("idleOff", "lightOff", 0.1f, "idleOn");
+        sprite.AddLoop("constant", "lightConstant", 0.1f);
+        sprite.Play("constant");
         Depth = -10001;
-        mySprite.Play("spookyLight");
-    }
-
-    public override void Update()
-    {
-        if (Settings.Instance.DisableFlashes)
-        {
-            base.Update();
-            return;
-        }
-        multiplier = Calc.Approach(multiplier, 1f, Engine.DeltaTime * 2f);
-        if (base.Scene.OnInterval(randFreq))
-        {
-            brightness = randBase + Calc.Random.NextFloat(randAdd);
-            wiggle.Start();
-        }
-        base.Update();
+        Vector2 pos = new Vector2(4, -1);
+        Add(new VertexLight(pos, data.HexColor("color"), 1f, data.Int("lightFadeStart"), data.Int("lightFadeEnd")));
+        Collider = new Hitbox(sprite.Width, sprite.Height);
     }
 }

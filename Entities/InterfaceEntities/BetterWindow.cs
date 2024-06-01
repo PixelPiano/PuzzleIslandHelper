@@ -125,6 +125,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Update()
         {
             UpdateWindow();
+            CenterX = Calc.Clamp(CenterX, Interface.Monitor.X, Interface.Monitor.Right);
+            Position.Y = Calc.Clamp(Position.Y, Interface.Monitor.Y + TabArea.Height, Interface.Monitor.Bottom);
             Position = Position.Floor();
             DrawPosition = Position;
             Visible = Drawing;
@@ -188,10 +190,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public void OpenWindow(ComputerIcon icon)
         {
             if (Drawing) return;
-/*            if (Scene is Level level)
-            {
-                Position.X = Calc.Clamp(Position.X, level.Camera.Position.X, level.Camera.Position.X + CaseWidth / 2);
-            }*/
             CurrentProgram = null;
             CaseWidth = WindowWidth;
             CaseHeight = WindowHeight;
@@ -208,6 +206,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 addProgramComponents();
             }
             TabColor = Color.Lerp(color, Color.Black, Interface.NightMode ? 0.5f : 0);
+            Collider = new Hitbox(CaseWidth, CaseHeight);
         }
 
         private void addProgramComponents()

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
+using System.Collections;
 using Color = Microsoft.Xna.Framework.Color;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
@@ -10,6 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
     {
         public static BlendState BlendState = BlendState.Additive;
         public static bool Invert;
+        public static Color Color = Color.White;
         public GSRenderer() : base(Vector2.Zero)
         {
             Tag |= Tags.Global | Tags.TransitionUpdate;
@@ -87,7 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             base.Render();
             if (Scene is Level level)
             {
-                Draw.SpriteBatch.Draw(Buffer, level.Camera.Position, Color.White);
+                Draw.SpriteBatch.Draw(Buffer, level.Camera.Position, Color);
                 foreach (GameshowSpotlight light in level.Tracker.GetEntities<GameshowSpotlight>())
                 {
                     light.RenderLed();

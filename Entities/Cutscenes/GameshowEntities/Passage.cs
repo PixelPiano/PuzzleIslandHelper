@@ -6,6 +6,7 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Threading;
+using static Celeste.Trigger;
 using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
@@ -15,6 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
     public class Passage : Entity
     {
         public string TeleportTo;
+        public float? NewRoomLighting;
         public Facings Facing;
         private Solid Solid;
         private Image DoorBg;
@@ -34,6 +36,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public Color LightColor;
         public string FolderPath;
         public int EndPlayerState = Player.StNormal;
+        private bool wasColliding;
+        private Collider TransitionCollider;
         public Passage(Vector2 position, string teleportTo, Facings facing, float fadeTime, Color lightColor, string folderPath) : base(position)
         {
             FolderPath = folderPath;
@@ -61,6 +65,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                 Collider = list
             };
             Collider = new Hitbox(DoorBg.Width + 3, DoorBg.Height - 1, (int)Facing * 10, 1);
+            TransitionCollider = new Hitbox(24, Height, Collider.AbsoluteX + (Facing == Facings.Left ? Width - 8 : -24 + 8), Collider.AbsoluteY);
             LightFg.Position.X -= (Facing == Facings.Left ? 1 : 0) * LightFg.Width / 2;
             Solid.Add(DoorFg, LightFg);
             Add(DoorBg, LightBg);
@@ -86,31 +91,49 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public override void Update()
         {
             base.Update();
+            if (teleporting)
+            {
+                fgLightAlpha = Calc.Approach(fgLightAlpha, 1, Engine.DeltaTime * 5);
+            }
             if (!AllTeleportsActive || teleporting || deactivated) return;
             LightBg.Color = LightColor * (bgLightAlpha = Calc.Approach(bgLightAlpha, bgLightTarget, Engine.DeltaTime * 2));
             LightFg.Color = LightColor * (fgLightAlpha = Calc.Approach(fgLightAlpha, fgLightTarget, Engine.DeltaTime * 5));
             if (Scene is Level level && level.GetPlayer() is Player player)
             {
-
-                if (fgLightAlpha >= 1)
+                if (CollideCheck<Player>() && (int)player.Facing != (int)Facing)
                 {
-                    fgLightAlpha = 1;
-                    TeleportPlayer(player);
-                    return;
-                }
-                float check = player.CenterX;
-                if (!CollideCheck<Player>() || (int)player.Facing == (int)Facing)
-                {
-                    FadeOut();
+                    FadeIn();
+                    if (TransitionCollider.Collide(player) && fgLightAlpha >= 0.5f)
+                    {
+                        player.Speed.X = 0;
+                        TeleportPlayer(player);
+                        return;
+                    }
                 }
                 else
                 {
-                    FadeIn();
+                    FadeOut();
                 }
                 if (FadeState)
                 {
-                    fgLightTarget = 1f - Calc.Clamp(MathHelper.Distance(check, Facing == Facings.Right ? Left + 5 : Right - 5) / DoorBg.Width / 2, 0, 1f);
+                    fgLightTarget = GetPositionLerp(player);
                 }
+            }
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            Draw.HollowRect(TransitionCollider, Color.Magenta);
+        }
+        public float GetPositionLerp(Player player)
+        {
+            if (Facing == Facings.Left)
+            {
+                return Calc.ClampedMap(player.Right, Left, Right - 8);
+            }
+            else
+            {
+                return Calc.ClampedMap(player.Left, Right, Left + 8);
             }
         }
         public void TeleportPlayer(Player player)
@@ -118,7 +141,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             if (!AllTeleportsActive) return;
             teleporting = true;
             AllTeleportsActive = false;
-            Scene.Add(new PassageTransition(player, this));
+            PassageTransition transition = new PassageTransition(player, this);
+            transition.NewRoomLighting = NewRoomLighting;
+            Scene.Add(transition);
             OnTransition?.Invoke();
         }
 

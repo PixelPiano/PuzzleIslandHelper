@@ -55,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 "Calidus1" => new DigiMeet(),
                 "GetInvert" => new InvertCutsceneTrigger(),
                 "GrassShift" => new GrassShift(Part),
-                "Gameshow" => new Gameshow(),
+                "Gameshow" => new Gameshow(Part),
                 "Fountain" => new FountainMove(data.Int("assignableInt")),
                 "End" => null,
                 "TEST" => new TEST(),
@@ -74,10 +74,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 RemoveSelf();
             }
-            Player player = (scene as Level).Tracker.GetEntity<Player>();
-            if (ActivateOnTransition && player is not null)
+            else
             {
-                OnEnter(player);
+                Player player = (scene as Level).Tracker.GetEntity<Player>();
+                if (ActivateOnTransition && player is not null)
+                {
+                    OnEnter(player);
+                }
             }
         }
         public override void OnEnter(Player player)
@@ -87,10 +90,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 name = cutsceneName + Part;
             }
-            /*            if ((Entered && OncePerRoom) || (OncePerPlaythrough && PianoModule.Session.UsedCutscenes.Contains(name)))
-                        {
-                            return;
-                        }*/
             Entered = true;
             if (!InCutscene)
             {

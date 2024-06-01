@@ -531,7 +531,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                         {
                             if (sfx.InstancePlaying)
                             {
-                                sfx.StopEvent(true);
+                                sfx.Stop(true);
                             }
                         }
                         else

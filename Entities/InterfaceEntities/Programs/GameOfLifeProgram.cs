@@ -5,14 +5,14 @@ using Monocle;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
     [Tracked]
-    [CustomProgram("GameOfLifeProgram")]
+    [CustomProgram("GameOfLife")]
     public class GameOfLifeProgram : WindowContent
     {
         public const int W = 22;
         public const int H = 11;
         public GameOfLifeProgram(BetterWindow window) : base(window)
         {
-            Name = "GameOfLifeProgram";
+            Name = "GameOfLife";
             currentCells = new bool[W, H];
             newCells = new bool[W, H];
         }
@@ -38,7 +38,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             ProgramComponents = new()
             {
                 new StartButton(Window, delegate { Simulating = true; }),
-                new CustomButton(Window, "StopEvent", 35f, Vector2.Zero, Stop),
+                new CustomButton(Window, "Stop", 35f, Vector2.Zero, Stop),
                 new CustomButton(Window, "Clear", 35f, Vector2.Zero, Clear),
                 new CustomButton(Window, "Rand", 35f, Vector2.Zero, Randomize),
                 new CustomButton(Window, "Store", 35f, Vector2.Zero, Store),

@@ -12,7 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public string TextID; //ID for text stored in Dialog.txt
         public string TabText; //Standard string to be drawn in the Window tab if this icon is open
         public Interface Interface; //Reference to the Interface this icon is in
-
+        public float Alpha = 1;
         public MTexture Texture; //The icon's desktop texture
         public bool JustClicked;
         private float clickedTimer;
@@ -32,33 +32,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Update()
         {
             base.Update();
-            if (clickedPosition.HasValue && Vector2.Distance(clickedPosition.Value, Interface.MousePosition) >= 1)
+            if (clickedPosition.HasValue && clickedTimer > 0.1f)
             {
                 Dragging = true;
             }
             if (JustClicked)
             {
                 clickedTimer += Engine.DeltaTime;
-                if (clickedTimer > Engine.DeltaTime * 5f)
+                if (clickedTimer > Engine.DeltaTime * 10f)
                 {
-                    clickedTimer = 0;
                     JustClicked = false;
                 }
             }
             else
             {
                 clickedPosition = null;
-                if (!Interface.LeftPressed) Dragging = false;
             }
+            if (!Interface.LeftPressed) Dragging = false;
             if (Dragging)
             {
-                Center = Interface.MouseWorldPosition.Floor();
+                Center = Interface.Collider.AbsolutePosition;
             }
-            Left = Calc.Max(Interface.IconBounds.Left, Left);
-            Right = Calc.Min(Interface.IconBounds.Right, Right);
-            Top = Calc.Max(Interface.IconBounds.Top, Top);
-            Bottom = Calc.Min(Interface.IconBounds.Bottom, Bottom);
-
+            else
+            {
+                Entity m = Interface.Monitor;
+                if (X < m.X) X = m.X;
+                if (Y < m.Y) Y = m.Y;
+                if (X + Width > m.X + m.Width) X = m.X + m.Width - Width;
+                if (Y + Height > m.Y + m.Height) Y = m.Y + m.Height - Height;
+            }
+            Position = Position.Floor();
         }
         public void OnClick()
         {
@@ -66,19 +69,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             clickedTimer = 0;
             clickedPosition = Interface.MousePosition;
         }
-        public bool DoubleClicked()
-        {
-            if (!JustClicked)
-            {
-                OnClick();
-                return false;
-            }
-            return true;
-        }
         public override void Render() //(Only called if base.Visible is true
         {
             base.Render();
-            Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, Position, Color.White);
+            Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, Position, Color.White * Alpha);
         }
     }
 }

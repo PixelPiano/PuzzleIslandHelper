@@ -90,7 +90,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
 
             Add(Bag = new Image(GFX.Game["objects/PuzzleIslandHelper/gameshow/host/flammable"]));
             Bag.CenterOrigin();
-            Bag.Position += new Vector2(Bag.Width / 2, Bag.Height / 2) + Vector2.One * 20;
+            Bag.Position += new Vector2(Bag.Width / 2, Bag.Height / 2) + Vector2.One * 28;
             Bag.Visible = false;
 
             Add(Cart = new Image(cartFrame));
@@ -129,15 +129,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         }
         public IEnumerator Skedaddle()
         {
-            float target = (Scene as Level).Marker("hostRunTo").X - Position.X;
+            Level level = Scene as Level;
             returnTo = Position;
             hatRotato = false;
             //todo: play cartoon run away sound
-            while (Position.X != target)
+            while (Right + 8 >= level.Camera.Position.X)
             {
-                Position.X = Calc.Approach(Position.X, target, 120 * Engine.DeltaTime);
+                Position.X -= 120 * Engine.DeltaTime;
                 yield return null;
             }
+
             yield return null;
         }
         private IEnumerator ChargeRoutine()

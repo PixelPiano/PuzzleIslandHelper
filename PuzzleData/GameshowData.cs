@@ -40,10 +40,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
                         choices.Add(ChoiceList[num]);
                     }
                 }
-                if (page * PerPage < Choices)
-                {
-                    choices.Add("qNext");
-                }
                 return choices;
             }
             public int RoomNumber;
@@ -64,6 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
             public Question GetRandom()
             {
                 if (Options.Count == 0) return null;
+
                 Calc.PushRandom();
                 int num = Calc.Random.Range(0, Options.Count);
                 Calc.PopRandom();
@@ -75,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
         {
             if (index < q.ChoiceList.Count)
             {
-                return q.Answer == index;
+                return q.Answer == index + 1;
             }
             return false;
         }

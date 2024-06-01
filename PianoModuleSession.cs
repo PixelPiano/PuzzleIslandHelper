@@ -11,11 +11,13 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections.Generic;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
         public ForkAmpState ForkAmpState = new();
         public bool GrassMazeCompleted;
         public bool ModeratorEscape;

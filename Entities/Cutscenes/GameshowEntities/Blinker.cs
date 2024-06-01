@@ -18,6 +18,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public static readonly MTexture On = GFX.Game["objects/PuzzleIslandHelper/blinker/on"];
         public static readonly MTexture Off = GFX.Game["objects/PuzzleIslandHelper/blinker/off"];
         private MTexture Texture;
+        public VertexLight Light;
+        private bool inGameshow;
+        private bool inFreakout;
         public enum Modes
         {
             Static,
@@ -29,7 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         private Modes prevMode;
         public Blinker(EntityData data, Vector2 offset) : this(data.Position + offset, data.Int("index"), data.Bool("startState"))
         {
-
+            Collider = new Hitbox(On.Width, On.Height);
         }
 
         public Blinker(Vector2 position, int index, bool startState) : base(position)
@@ -40,10 +43,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             Texture = state ? On : Off;
             Depth = -10000;
         }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            inGameshow = (scene as Level).Session.Level == "Gameshow";
+            if (inGameshow)
+            {
+                Light = new VertexLight(Color.Orange, 1, 4, 8);
+            }
+            else
+            {
+                Light = new VertexLight(Color.Orange, 1, 10, 16);
+
+            }
+            Light.Position = new Vector2(On.Width / 2, On.Height / 2);
+            Add(Light);
+        }
         public void Freakout()
         {
-            prevMode = Mode;
-            Mode = Modes.Bugged;
+            inFreakout = true;
             Add(new Coroutine(FreakoutRoutine()));
         }
         public IEnumerator FreakoutRoutine()
@@ -52,21 +70,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             float max = Calc.Random.Range(0.1f, 0.4f);
             for (int i = 0; i < loops; i++)
             {
-                if (state) TurnOff();
-                else TurnOn();
+                if (state) TurnOff(false);
+                else TurnOn(false);
                 yield return Calc.Random.NextFloat(max);
             }
-            TurnOff();
+            TurnOff(false);
             yield return 6;
             yield return Calc.Random.Range(0, 1f);
             for (int i = 0; i < loops; i++)
             {
-                if (state) TurnOff();
-                else TurnOn();
+                if (state) TurnOff(false);
+                else TurnOn(false);
                 yield return Calc.Random.NextFloat(max);
             }
-            TurnOn();
-            Mode = prevMode;
+            TurnOn(false);
+            inFreakout = false;
             yield return null;
         }
         public override void Awake(Scene scene)
@@ -100,8 +118,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         }
         public override void Update()
         {
+            Light.InSolidAlphaMultiplier = inGameshow ? 1 : 0.7f;
             base.Update();
-            if (Mode == Modes.Bugged) return;
             timer -= Engine.DeltaTime;
             if (Mode == Modes.Static)
             {
@@ -109,7 +127,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             }
             else if (timer < 0)
             {
-                state = !state;
+                if (!inFreakout)
+                {
+                    if (state) TurnOff();
+                    else TurnOn();
+                }
+                else
+                {
+                    state = !state;
+                }
+
                 switch (Mode)
                 {
                     case Modes.Continuous:
@@ -120,8 +147,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                         break;
                 }
             }
-
-
         }
         public override void Render()
         {
@@ -138,15 +163,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             yield return time;
             TurnOn();
         }
-        public void TurnOff()
+        public void TurnOff(bool changeState = true)
         {
-            state = false;
+            if(changeState) state = false;
             Texture = Off;
+            Light.Visible = false;
+
+
         }
-        public void TurnOn()
+        public void TurnOn(bool changeState = true)
         {
-            state = true;
+            if(changeState) state = true;
             Texture = On;
+            Light.Visible = true;
         }
     }
 }

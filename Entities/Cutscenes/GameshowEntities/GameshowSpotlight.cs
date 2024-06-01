@@ -148,13 +148,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         }
         public IEnumerator ApproachEntity(Entity entity, float time, Vector2 offset, bool track = false)
         {
+            Vector2 prev = Target;
             Track = null;
-            yield return ApproachPosition(entity.Center + offset, time);
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                Target = Vector2.Lerp(prev, entity.Center + offset, i);
+                yield return null;
+            }
+            Target = entity.Center + offset;
             if (track) Track = entity;
         }
         public IEnumerator ApproachPosition(Vector2 position, float time)
         {
             Vector2 prev = Target;
+            Track = null;
             for (float i = 0; i < 1; i += Engine.DeltaTime / time)
             {
                 Target = Vector2.Lerp(prev, position, i);
@@ -175,6 +182,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                     Color = colors[i];
                     yield return 0.8f;
                 }
+            }
+        }
+        public void ApproachColor(Color newColor)
+        {
+            Add(new Coroutine(FadeColor(newColor, 0.7f)));
+        }
+        private IEnumerator FadeColor(Color newColor, float time)
+        {
+            Color color = Color;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                Color = Color.Lerp(color, newColor, i);
+                yield return null;
             }
         }
         public void StartFollowing(Entity entity)
@@ -305,6 +325,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         }
         public void DrawVertices(Vector2 offset, Matrix matrix)
         {
+            if (!On) return;
             for (int i = 0; i < 3; i++)
             {
                 Vertices[i].Position += new Vector3(offset, 0);

@@ -29,8 +29,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         private int height = 48;
 
         private Player player;
-
-
         public enum States
         {
             Closed,
@@ -63,14 +61,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         {
             base.Awake(scene);
             player = Scene.Tracker.GetEntity<Player>();
-            if (State == States.Open)
-            {
-                doorSprite.Play("open");
-            }
-            else
-            {
-                doorSprite.Play("closed");
-            }
+            doorSprite.Play(State != States.Open || !PianoModule.Session.RestoredPower ? "closed" : "open");
         }
         public override void DebugRender(Camera camera)
         {
@@ -91,49 +82,61 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         }
         public override void Update()
         {
-            bool state = string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag);
-            bool collided = Detect.Collide(player);
-            switch (State)
+            if (!PianoModule.Session.RestoredPower)
             {
-                case States.Closed:
-                    Collider.Height = height;
-                    closeSpeed = 30;
-                    doorSprite.Play("closed");
-                    if ((!auto && state) || (auto && collided))
-                    {
-                        Open();
-                    }
-                    break;
-                case States.Closing:
-                    Collider.Height = Calc.Approach(Collider.Height, height, closeSpeed * Engine.DeltaTime);
-                    closeSpeed += closeRate;
-                    if (Collider.Height >= height)
-                    {
-                        Collider.Height = height;
-                        State = States.Closed;
-                    }
-                    break;
-                case States.Open:
-                    Collider.Height = 0;
-                    openSpeed = 30;
-                    doorSprite.Play("open");
-                    if ((!auto && !state) || (auto && !collided))
-                    {
-                        Close();
-                    }
-                    break;
-                case States.Opening:
-                    Collider.Height = Calc.Approach(Collider.Height, 0, openSpeed * Engine.DeltaTime);
-                    openSpeed += openRate;
-                    if (Collider.Height <= 0)
-                    {
-                        Collider.Height = 0;
-                        State = States.Open;
-                    }
-                    break;
+                InstantClose();
             }
-
+            else
+            {
+                bool flagState = string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag);
+                bool collided = Detect.Collide(player);
+                switch (State)
+                {
+                    case States.Closed:
+                        if ((!auto && flagState) || (auto && collided))
+                        {
+                            Open();
+                        }
+                        break;
+                    case States.Closing:
+                        Collider.Height = Calc.Approach(Collider.Height, height, closeSpeed * Engine.DeltaTime);
+                        closeSpeed += closeRate;
+                        if (Collider.Height >= height)
+                        {
+                            InstantClose();
+                        }
+                        break;
+                    case States.Open:
+                        if ((!auto && !flagState) || (auto && !collided))
+                        {
+                            Close();
+                        }
+                        break;
+                    case States.Opening:
+                        Collider.Height = Calc.Approach(Collider.Height, 0, openSpeed * Engine.DeltaTime);
+                        openSpeed += openRate;
+                        if (Collider.Height <= 0)
+                        {
+                            InstantOpen();
+                        }
+                        break;
+                }
+            }
             base.Update();
+        }
+        public void InstantClose()
+        {
+            Collider.Height = height;
+            closeSpeed = 30;
+            doorSprite.Play("closed");
+            State = States.Closed;
+        }
+        public void InstantOpen()
+        {
+            Collider.Height = 0;
+            openSpeed = 30;
+            doorSprite.Play("open");
+            State = States.Open;
         }
     }
 }

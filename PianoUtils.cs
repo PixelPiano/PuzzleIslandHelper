@@ -4,6 +4,7 @@ using Celeste.Mod;
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FrostHelper;
 using Microsoft.Xna.Framework;
@@ -17,6 +18,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using static Celeste.Mod.PuzzleIslandHelper.Cutscenes.Gameshow;
 
 public static class PianoUtils
 {

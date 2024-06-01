@@ -40,6 +40,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite.AddLoop("idle", "battery", 0.1f, 0);
             Sprite.Justify = Justify;
             Sprite.JustifyOrigin(Justify);
+            Position.Y += Sprite.Height/2;
             EntityID = entityID;
         }
         public IEnumerator Approach(float x)

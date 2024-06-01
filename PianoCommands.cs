@@ -33,7 +33,7 @@ public class PianoCommands
         }
         level.Session.SetFlag("drillExploded", state);
     }
-    [Command("remove_batteries", "shuts off all activated drill batteries")]
+    [Command("remove_batteries", "shuts off all interacted drill batteries")]
     private static void RemoveBatteries()
     {
         PianoModule.Session.DrillBatteryIds.Clear();
@@ -244,7 +244,7 @@ public class PianoCommands
     {
         PianoModule.Session.PressedTSwitches.Clear();
     }
-    [Command("pi_getswitch", "Displays activated T Switches")]
+    [Command("pi_getswitch", "Displays interacted T Switches")]
     private static void TSwitch()
     {
         string output = "Activated switches: ";
