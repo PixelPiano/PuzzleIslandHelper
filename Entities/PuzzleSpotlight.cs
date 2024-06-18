@@ -82,7 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public PuzzleSpotlight(EntityData data, Vector2 offset)
           : this(data.Position + offset,
                 data.Bool("startingState"),
-                data.Attr("Colorgrade"),
+                data.Attr("colorgrade"),
                 data.Float("centerRadius", 30),
                 data.Attr("flag", "spotlightFlag"),
                 data.Float("beamLength", 320),
@@ -294,7 +294,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Level);
             ColorGrade.Set(GFX.ColorGrades[renderer.ColorGradeName]);
 
-            // Draw our stencil content over the level buffer, with the color grade
+            // Draw our stencil content over the level buffer, with the Color grade
             Draw.SpriteBatch.Begin(
                 SpriteSortMode.Deferred,
                 BlendState.AlphaBlend,

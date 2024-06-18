@@ -397,7 +397,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             {
                 if (Input.Jump)
                 {
-                    Complete();
+                    Exit();
                     return;
                 }
                 if (Input.Dash || Input.MoveX.Value != 0 || Input.MoveY.Value != 0)
@@ -464,7 +464,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         private IEnumerator CompleteRoutine()
         {
 
-            //todo: make new background texture
+            //todo: make new background image
             //Audio.Play("event:/PianoBoy/GrassMazeComplete");
             while (!icon.AtTarget)
             {

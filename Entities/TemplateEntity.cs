@@ -38,11 +38,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/templatePlugin/");
             Sprite.Color = data.HexColor("color", Color.White);
 
-            //Add a loop to the sprite under the id "idle"
+            //Add a loop to the image under the id "idle"
             Sprite.AddLoop("idle", "spin", 0.1f, 0); //string name, string path, float delay, params int[] frames
             Sprite.Add("spin", "spin", 0.1f, "idle"); //string name, string path, float delay, string into
             Sprite.Play("idle");
-            //Add the sprite to the entity
+            //Add the image to the entity
             Add(Sprite);
         }
 
@@ -98,8 +98,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 flagState = level.Session.GetFlag(flag) != inverted;
             }
 
-            //wait one second and then tell the sprite to play the "spin" animation.
-            //the sprite automatically resets to the "idle" animation since we set the "into" parameter
+            //wait one second and then tell the image to play the "spin" animation.
+            //the image automatically resets to the "idle" animation since we set the "into" parameter
             if (timer > 1f)
             {
                 Sprite.Play("spin");

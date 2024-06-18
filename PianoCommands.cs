@@ -1,6 +1,7 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
 using Celeste.Mod.PuzzleIslandHelper;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
@@ -13,7 +14,33 @@ using System.Collections.Generic;
 
 public class PianoCommands
 {
-    [Command("resetgameshow","resets gameshow progress")]
+    [Command("debugint", "sets a debug int value")]
+    private static void SetDebugInt(int num)
+    {
+        PianoModule.Session.DEBUGINT = num;
+    }
+    [Command("debugbool", "sets a debug bool value")]
+    private static void SetDebugBool(bool value)
+    {
+        PianoModule.Session.DEBUGBOOL = value;
+    }
+    [Command("sspinnerflag", "sets a flag for sound spinners")]
+    private static void SetSoundSpinnerFlag(string id, bool state = true)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        if (string.IsNullOrEmpty(id))
+        {
+            Engine.Commands.Log("Flag cannot be empty.");
+            return;
+        }
+        level.Session.SetFlag("sound_spinner_shatter_flag_" + id, state);
+    }
+
+    [Command("resetgameshow", "resets gameshow progress")]
     private static void ResetGameshow()
     {
         Gameshow.RoomOrder.Clear();
@@ -37,12 +64,6 @@ public class PianoCommands
     private static void RemoveBatteries()
     {
         PianoModule.Session.DrillBatteryIds.Clear();
-    }
-    [Command("set_fountain", "sets the state of the ruins fountain")]
-    private static void SetFountain(bool state = true)
-    {
-        PianoModule.Session.OpenedFountain = state;
-        PianoModule.Session.FountainCanOpen = state;
     }
     [Command("open_fountain", "opens the ruins fountain")]
     private static void OpenFountain(bool permanent = false)
@@ -323,7 +344,7 @@ public class PianoCommands
     [Command("pi_getinvert", "Returns the state of 'HasInvert' from PuzzleIslandHelper save data")]
     private static void WriteInvertState()
     {
-        Engine.Commands.Log($"{PianoModule.Session.HasInvert}");
+        Engine.Commands.Log($"{PianoModule.Settings.InvertAbility}");
     }
     [Command("pi_setinvertdelay", "Changes how long the Player needs to hold down dash before the invert ability activates")]
     private static void SetInvert(float time)
@@ -350,7 +371,7 @@ public class PianoCommands
             return;
         }
         level.Session.SetFlag("invertOverlay", state);
-        PianoModule.Session.HasInvert = state;
+        PianoModule.Settings.InvertAbility = state;
     }
     [Command("pi_facestate", "Sets the state of the 'Faces' decals in Puzzle Island")]
     private static void Faces(bool state = true)

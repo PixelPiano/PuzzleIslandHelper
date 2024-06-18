@@ -19,6 +19,7 @@ for i = 1, 4 do
         name = "Sound Spinner (Group "..i..")",
         data = 
         {
+            custom = false,
             freq1 = -1,
             freq2 = -1,
             freq3 = -1,
@@ -27,7 +28,7 @@ for i = 1, 4 do
             destroyColor = tint,
             borderColor = "000000",
             directory = "danger/PuzzleIslandHelper/icecrystal",
-            spritPathSuffix = "",
+            spritePathSuffix = "",
             attachToSolid = false,
             moveWithWind = false,
             dashThrough = false,
@@ -38,11 +39,43 @@ for i = 1, 4 do
             bloomRadius = 8,
             debrisCount = 8,
             attachGroup = i,
-            singleFGImage = false
+            singleFGImage = false,
+            flag = "" .. i,
+            invertFlag = false
         }
     }
     table.insert(spinner.placements, placement)
 end
+local custom = {
+    name = "Sound Spinner (Custom)",
+        data = 
+        {
+            custom = true,
+            freq1 = -1,
+            freq2 = -1,
+            freq3 = -1,
+            freq4 = -1,
+            tint = "FFFFFF",
+            destroyColor = tint,
+            borderColor = "000000",
+            directory = "danger/PuzzleIslandHelper/icecrystal",
+            spritePathSuffix = "",
+            attachToSolid = false,
+            moveWithWind = false,
+            dashThrough = false,
+            rainbow = false,
+            collidable = true,
+            drawOutline = true,
+            bloomAlpha = 1,
+            bloomRadius = 8,
+            debrisCount = 8,
+            attachGroup = -1,
+            singleFGImage = false,
+            flag = "",
+            invertFlag = false
+        }
+}
+table.insert(spinner.placements, custom)
 spinner.fieldInformation = 
 {
     tint =
@@ -67,32 +100,30 @@ function spinner.ignoredFields(entity)
         "_name",
         "moveWithWind",
         "dashThrough",
-        "collidable",
         "bloomAlpha",
         "bloomRadius",
         "destroyColor",
         "tint",
-        "destroyColor",
         "borderColor",
         "directory",
-        "spritPathSuffix",
+        "spritePathSuffix",
         "attachToSolid",
-        "moveWithWind",
-        "dashThrough",
         "rainbow",
         "collidable",
         "drawOutline",
-        "bloomAlpha",
-        "bloomRadius",
         "debrisCount",
         "attachGroup",
         "singleFGImage",
         "freq1",
         "freq2",
         "freq3",
-        "freq4"
+        "freq4",
+        "custom",
+        "flag",
+        "invertFlag"
     }
-     local function doNotIgnore(value)
+    local isCustom = entity.custom
+    local function doNotIgnore(value)
         for i = #ignored, 1, -1 do
             if ignored[i] == value then
                 table.remove(ignored, i)
@@ -100,12 +131,20 @@ function spinner.ignoredFields(entity)
             end
         end
     end
-
+    if isCustom then
+        doNotIgnore("tint")
+        doNotIgnore("borderColor")
+        doNotIgnore("drawOutline")
+        doNotIgnore("attachGroup")
+        doNotIgnore("attachToSolid")
+        doNotIgnore("directory")
+        doNotIgnore("flag")
+        doNotIgnore("invertFlag")
+    end
     local group = entity.attachGroup or 1
     local iscomparison = false
-
     for i = 1, 4 do
-        if group >= i then
+        if group >= i or isCustom then
             doNotIgnore("freq"..i)
         end
     end
@@ -175,11 +214,12 @@ local pathCache = {}
 function spinner.sprite(room, entity)
     local pathSuffix = entity.spritePathSuffix or ""
     local color = utils.getColor(entity.tint or "ffffff")
-    local baseSprite = drawableSpriteStruct.fromTexture(fallbackbg, entity)
+    local dir = entity.directory or "danger/PuzzleIslandHelper/icecrystal"
+    local baseSprite = drawableSpriteStruct.fromTexture(dir .. "/bg", entity)
     baseSprite:setColor(color)
     local sprites = createConnectorsForSpinner(room, entity, baseSprite)
 
-    local fgSprite = drawableSpriteStruct.fromTexture(fallback, entity)
+    local fgSprite = drawableSpriteStruct.fromTexture(dir .. "/fg00", entity)
     fgSprite:setColor(color)
     table.insert(sprites, fgSprite)
 

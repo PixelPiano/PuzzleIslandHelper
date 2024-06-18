@@ -1,28 +1,18 @@
 local tilesStruct = require("structs.tiles")
-
+local fakeTilesHelper = require("helpers.fake_tiles")
+local logging = require("logging")
 local script = {
-    name = "emptyTileToBg",
+    name = "fillEmptyTiles",
     displayName = "Replace Very Empty Tiles",
     parameters = {
-        layer = "Fg",
         to = "7",
     },
-    fieldInformation = {
-        layer = {
-            fieldType = "loennScripts.dropdown",
-            options = {
-                "Fg", "Bg"
-            }
-        }
-    },
-    fieldOrder = { "to" },
-    tooltip = "Replaces all truely empty tiles with another",
+    fieldInformation = fakeTilesHelper.getFieldInformation("to","tilesBg"),
+    tooltip = "Replaces any unoccupied tile in the selected layer with a bg tile",
     tooltips = {
-        layer = "The layer to replace tiles in",
-        to = "The tileset ID which will be placed",
+        to = "The tileset ID which will be used",
     },
 }
-
 local function encodeString(str)
     return { innerText = str }
 end
@@ -30,26 +20,19 @@ end
 function script.run(room, args)
     local to = args.to or "7"
 
-    local fgTiles = tilesStruct.decode(room.fgTiles)
-    local bgTiles = tilesStruct.decode(room.bgTiles)
-    local layer
-    if args.layer == "Fg" then
-        layer = fgTiles
-    end
-    if args.layer == "Bg" then
-        layer = bgTiles
-    end
-    for i = 1, #layer do
-        if fgTiles[i] == '0' and bgTiles[i] == '0' then
-            layer[i] = to
+    local propertyName = "tilesBg"
+    local fgTiles = tilesStruct.matrixToTileString(room["tilesFg"].matrix)
+    local bgTiles = tilesStruct.matrixToTileString(room[propertyName].matrix)
+    local layer = ""
+    for i = 1, #fgTiles do
+        local fg = fgTiles:sub(i,i)
+        local bg = bgTiles:sub(i,i)
+        if bg == '0' and fg == '0' then
+            layer = layer .. "//Replace//"
+        else
+            layer = layer .. bg
         end
     end
-    if args.layer == "Fg" then
-        room.tilesFg.matrix = layer.matrix
-    end
-    if args.layer == "Bg" then
-        room.tilesBg = tilesStruct.decode(encodeString(tilesStruct.matrixToTileString(layer.matrix)))
-    end
+    room[propertyName] = tilesStruct.decode(encodeString(string.gsub(layer, "//Replace//", to)))
 end
-
 return script

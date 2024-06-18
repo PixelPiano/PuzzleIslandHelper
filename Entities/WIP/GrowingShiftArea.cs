@@ -73,7 +73,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         {
             Cracking = false;
         }
-        public override void DrawMask(Matrix matrix)
+        public override void DrawVertices(Matrix matrix)
         {
             if (Cracking)
             {
@@ -82,7 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             }
             else
             {
-                base.DrawMask(matrix);
+                base.DrawVertices(matrix);
             }
         }
         public IEnumerator Grow()

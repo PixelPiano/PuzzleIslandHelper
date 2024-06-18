@@ -23,18 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         {
             base.OnEnter(player);
             Level level = Scene as Level;
-            if (!SecondTry)
-            {
-                PrologueBird bird = level.Tracker.GetEntity<PrologueBird>();
-                if (bird is not null)
-                {
-                    bird.Enabled = true;
-                }
-            }
-            else if (!Activated)
-            {
-                Add(new Coroutine(RoomGlitch(level)));
-            }
+
 
             //EjectSelf();
         }
@@ -50,21 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 }
             }
         }
-        public IEnumerator RoomGlitch(Level level)
-        {
-            Activated = true;
-            foreach (PrologueGlitchBlock block in level.Tracker.GetEntities<PrologueGlitchBlock>().OrderByDescending(item => item.X))
-            {
-                if (PianoModule.Session.ActiveGlitchBlocks.Contains(block))
-                {
-                    yield return null;
-                    continue;
-                }
-                yield return Calc.Random.Range(0.4f, 0.7f);
-                block.Activate();
 
-            }
-        }
 
     }
 }

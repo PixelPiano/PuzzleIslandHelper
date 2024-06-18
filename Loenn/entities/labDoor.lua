@@ -16,6 +16,7 @@ labDoor.placements =
         startState = false,
         automatic = false,
         range = 2,
+        dependsOnLabPower = true
     }
     
 }

@@ -81,7 +81,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         private float Eased = 1;
         private float Mult = 1;
 
-        public JuiceCleaner(EntityData data, Vector2 offset) : this(data.Position + offset, data.Float("size"), data.Int("depth"), data.Int("points")) { }
+        public JuiceCleaner(EntityData data, Vector2 offset) : this(data.Position + offset, data.Float("Size"), data.Int("depth"), data.Int("points")) { }
         public JuiceCleaner(Vector2 Position, float size, int baseDepth, int points) : base(Position)
         {
             Size = size;

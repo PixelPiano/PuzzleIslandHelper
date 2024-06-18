@@ -18,9 +18,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float amplitude;
         private float seed;
         private float amplitudeTemp;
-        private float glitchSave;
         private float flashMax;
-        private float opacity = 0f;
+        private float flashColorLerp = 0f;
         private float fadeOpacity = 1f;
         private float blendAmount;
         private float fadeDuration;
@@ -46,6 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool inSpeakingRoutine = false;
         private bool usesAudio = true;
         private bool fadeInOut;
+        private bool forceBurst;
 
         private Level l;
         private Player player;
@@ -75,6 +75,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public DecalEffectController(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
+            forceBurst = data.Bool("forceBurst");
             outlineSprites = data.Bool("outlineSprites");
             fadeDuration = data.Float("colorFadeDuration", 1);
             fadeInOut = data.Bool("colorFadeInOut");
@@ -111,7 +112,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (entity.id == id)
                 {
-                    //Add(entity.Texture);
                     entity.sprite.Visible = false;
                     entity.sprite.Play("idle");
                 }
@@ -148,25 +148,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             l = Scene as Level;
             Draw.SpriteBatch.End();
-            #region Flash Mask
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(FlashMaskTarget);
-            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect, l.Camera.Matrix);
-            foreach (DecalEffectTarget entity in entityList)
-            {
-                if (entity.id == id)
-                {
-                    Depth = entity.Depth;
-                    entity.sprite.RenderPosition = entity.Position;
-                    if (outlineSprites)
-                    {
-                        entity.sprite.DrawSimpleOutline();
-                    }
-                    entity.sprite.Render();
-                }
-            }
-            Draw.SpriteBatch.End();
-            #endregion
 
             #region Sprite
             Engine.Graphics.GraphicsDevice.SetRenderTarget(SpriteTarget);
@@ -187,54 +168,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Draw.SpriteBatch.End();
             #endregion
-
-            #region FlashMask => FlashObject
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(FlashObject);
-            Engine.Graphics.GraphicsDevice.Clear(flashColor);
-            Draw.SpriteBatch.Begin(
-                SpriteSortMode.Deferred,
-                AlphaMaskBlendState,
-                SamplerState.PointClamp,
-                DepthStencilState.Default,
-                RasterizerState.CullNone,
-                effect, Matrix.Identity);
-            Draw.SpriteBatch.Draw(FlashMaskTarget, Vector2.Zero, Color.White);
-            GameplayRenderer.End();
-            #endregion
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(ColorFix);
-            Engine.Graphics.GraphicsDevice.Clear(color);
-            Draw.SpriteBatch.Begin(
-                SpriteSortMode.Deferred,
-                AlphaMaskBlendState,
-                SamplerState.PointClamp,
-                DepthStencilState.Default,
-                RasterizerState.CullNone,
-                effect, Matrix.Identity);
-            Draw.SpriteBatch.Draw(FlashMaskTarget, Vector2.Zero, Color.White);
-            GameplayRenderer.End();
             #region Glitch Config
             if (shouldGlitch)
             {
-                glitchSave = Glitch.Value;
-                Glitch.Value = amount;
-                Glitch.Apply(SpriteTarget, timer, seed, amplitude);
-                Glitch.Apply(FlashObject, timer, seed, amplitude);
-                Glitch.Apply(ColorFix, timer, seed, amplitude);
+                float amp = amplitude + flashAmount;
+                float glitchSave = Glitch.Value;
+                Glitch.Value = amount + flashAmount;
+                Glitch.Apply(SpriteTarget, timer, seed, amp);
                 Glitch.Value = glitchSave;
             }
             #endregion
 
             Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Gameplay);
             GameplayRenderer.Begin();
-            Draw.SpriteBatch.Draw(SpriteTarget, l.Camera.Position, customColor * fadeOpacity);
-            if (fading || !inFlashRoutine)
-            {
-                Draw.SpriteBatch.Draw(ColorFix, l.Camera.Position, customColor * 0.25f);
-            }
-            if (inFlashRoutine)
-            {
-                Draw.SpriteBatch.Draw(FlashObject, l.Camera.Position, Color.White * opacity);
-            }
+            Draw.SpriteBatch.Draw(SpriteTarget, l.Camera.Position, Color.Lerp(customColor * fadeOpacity, flashColor, flashColorLerp));
         }
 
         public override void Update()
@@ -246,7 +193,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             l = Scene as Level;
 
-            if (!string.IsNullOrEmpty(audio) && speaking && !inSpeakingRoutine)
+            if (!string.IsNullOrEmpty(audio) && speaking && !inSpeakingRoutine && forceBurst)
             {
                 Add(new Coroutine(SoundWaves(), true));
             }
@@ -260,7 +207,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     if (entity.id == id)
                     {
-                        if (player.CollideRect(entity.bounds))
+                        if (entity.CollideCheck<Player>())
                         {
                             playerTouching = true;
                             break;
@@ -281,8 +228,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (playerTouching && shouldFlash)
             {
-                Coroutine coroutine = usesAudio ? new Coroutine(FlashDecal(), true) : new Coroutine(FlashDecalNoAudio(), true);
-                Add(coroutine);
+                if(usesAudio) Add(new Coroutine(FlashDecal()));
+                else Add(new Coroutine(FlashDecalNoAudio()));
             }
             else
             {
@@ -332,6 +279,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             inRoutine = false;
         }
+        private float flashAmount;
         private IEnumerator FlashDecal()
         {
             float rate = 0.12f;
@@ -342,34 +290,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 sfx = Audio.Play(audio, player.Center);
                 for (float i = 0; i < 1; i += rate * 2)
                 {
-                    opacity = Calc.Approach(0f, flashMax, i);
+                    flashColorLerp = Calc.Approach(0f, flashMax, i);
                     yield return Engine.DeltaTime;
                 }
                 sfx.getPlaybackState(out PLAYBACK_STATE state);
 
                 bool opacityState = true;
-                float _opacity = opacity;
+                float _opacity = flashColorLerp;
                 speaking = true;
                 while (true)
                 {
                     if (state == PLAYBACK_STATE.STOPPING) { break; }
                     else { sfx.getPlaybackState(out state); }
-
-                    opacity = opacityState ? 0.1f : _opacity;
+                    flashAmount = 0.3f;
+                    flashColorLerp = opacityState ? 0.1f : _opacity;
                     opacityState = !opacityState;
                     yield return null;
                 }
                 speaking = false;
-                opacity = _opacity;
+                flashColorLerp = _opacity;
                 yield return 0.1f;
                 fading = true;
                 for (float i = 0; i < flashMax; i += rate)
                 {
-                    opacity = Calc.Approach(flashMax, 0f, i);
+                    flashColorLerp = Calc.Approach(flashMax, 0f, i);
                     yield return Engine.DeltaTime;
                 }
+                flashAmount = 0;
                 fading = false;
-                opacity = 0;
+                flashColorLerp = 0;
                 flashedOnce = true;
                 inFlashRoutine = false;
                 yield return null;
@@ -384,18 +333,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 for (float i = 0; i < 1; i += rate * 2)
                 {
-                    opacity = Calc.Approach(0f, flashMax, i);
+                    flashColorLerp = Calc.Approach(0f, flashMax, i);
                     yield return Engine.DeltaTime;
                 }
                 yield return 0.1f;
                 fading = true;
                 for (float i = 0; i < flashMax; i += rate)
                 {
-                    opacity = Calc.Approach(flashMax, 0f, i);
+                    flashColorLerp = Calc.Approach(flashMax, 0f, i);
                     yield return Engine.DeltaTime;
                 }
                 fading = false;
-                opacity = 0;
+                flashColorLerp = 0;
                 flashedOnce = true;
                 inFlashRoutine = false;
                 yield return null;

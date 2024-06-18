@@ -20,7 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         public void Interact(Player player)
         {
             Scene?.Add(Content = new ViewContent((Scene as Level).Camera.Position.Floor(), screen, Dialogs, true));
-            //Player.StateMachine.FlagState = 11;
+            //Player.StateMachine.KeepInScene = 11;
         }
         public ViewScreen(float width, float height, Rectangle screen, string[] dialogs) : base(new Rectangle(0, 0, (int)width, (int)height), Vector2.UnitX * width / 2, null)
         {
@@ -301,9 +301,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         }
         public void BeforeRender()
         {
-            /*How to render stuff with shader effects:
+            /*How to render stuff with Shader effects:
              * 1. You need two render targets.
-             * 2. Render the stuff you want affected by the shader to RT 1 (in this case, whatever is in "CoolStuff()".
+             * 2. Render the stuff you want affected by the Shader to RT 1 (in this case, whatever is in "CoolStuff()".
              * 3. Draw the contents of RT 1 to RT 2, but this acceleration using the ShaderFX.CurvedScreen.
              * 4. In Render(), draw RT 2.
              * Note: ID avoid inconsistent render positions, use Matrix.Identity/Vector2.Zero in BeforeRender(), and then render to whatever position you like in Render().

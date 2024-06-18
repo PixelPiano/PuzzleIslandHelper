@@ -56,13 +56,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         internal static void Load()
         {
             InScene = false;
-            //Crimes = new ILHook(typeof(Engine).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic), ModUpdate);
+            //PortraitRenderHook = new ILHook(typeof(Engine).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic), ModUpdate);
         }
         internal static void Unload()
         {
             InScene = false;
-            //Crimes?.Dispose();
-            //Crimes = null;
+            //PortraitRenderHook?.Dispose();
+            //PortraitRenderHook = null;
         }
         public override void Removed(Scene scene)
         {

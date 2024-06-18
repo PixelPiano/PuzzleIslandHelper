@@ -176,7 +176,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             // start rendering to the level buffer again
             Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Level);
             ColorGrade.Set(GFX.ColorGrades[ColorGradeName]);
-            // Draw our stencil content over the level buffer, with the color grade
+            // Draw our stencil content over the level buffer, with the Color grade
             Draw.SpriteBatch.Begin(
                 SpriteSortMode.Deferred,
                 BlendState.AlphaBlend,

@@ -165,7 +165,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                     }
                     for (float i = 0; i < 1; i += Engine.DeltaTime * 1.5f)
                     {
-                        PianoModule.Session.CurrentScale = Calc.LerpClamp(ShrinkMult, 1, i); //revert the Player's size
+                        PianoModule.Session.CurrentScale = Calc.LerpClamp(ShrinkMult, 1, i); //revert the Player's Size
                         HairAlpha = i * 1.5f;
                         yield return null;
                     }

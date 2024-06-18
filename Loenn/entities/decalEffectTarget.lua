@@ -16,13 +16,15 @@ decalEffectTarget.placements = {
         depth = 1,
         groupId = "decalEffectGroup_1",
         scaleX = 1,
-        scaleY = 1
+        scaleY = 1,
+        rotation = 0
     }
 }
 function decalEffectTarget.sprite(room, entity)
     local sprite = drawableSprite.fromTexture(getTex(entity), entity)
         sprite:setScale(entity.scaleX or 1, entity.scaleY or 1)
         sprite:setJustification(0.5, 0.5)
+        sprite.rotation = math.rad(entity.rotation or 0)
     return sprite
 end
 function getTex(entity)

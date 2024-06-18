@@ -71,7 +71,7 @@ public class ShaderFX
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Failed to load the shader " + id);
+                Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Failed to load the Shader " + id);
                 Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Exception: \n" + ex.ToString());
             }
         }

@@ -16,10 +16,9 @@ using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [Tracked]
-    public class FloppyLoader : Entity
+    [TrackedAs(typeof(DesktopClickable))]
+    public class FloppyLoader : DesktopClickable
     {
-        public Interface Interface;
         public Image Tab;
         public Image ULTex, DLTex, SideTex, MiddleTex, TopTex, BottomTex;
         public List<Image> Panel = new();
@@ -32,7 +31,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public List<Icon> Disks = new();
         private Coroutine routine;
         private bool changing;
-        public FloppyLoader(Interface @interface) : base(@interface.Position)
+        private bool clickedOnce;
+        public FloppyLoader(Interface @interface) : base(@interface)
         {
             Interface = @interface;
             Depth = Interface.BaseDepth - 1;
@@ -80,9 +80,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 Draw.HollowRect(Collider, Color.Cyan);
             }
         }
-        public void Start(Scene scene)
+        public override void Begin(Scene scene)
         {
-            Position = OrigPosition = Interface.Monitor.BottomRight - new Vector2(Width, Height);
+            base.Begin(scene);
             int x = 0, y = 0;
             int count = 0;
             foreach (FloppyDisk disk in PianoModule.Session.CollectedDisks)
@@ -137,8 +137,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             MiddleTex.Scale.X = BottomTex.Scale.X = TopTex.Scale.X = columns + 1;
             MiddleTex.Scale.Y = SideTex.Scale.Y = rows;
         }
-        public void OnClick()
+        public override void OnClick()
         {
+            base.OnClick();
             State = !State;
             if (State) ShowPanel();
         }
@@ -198,16 +199,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public override void Update()
         {
-
+            if (!clickedOnce && Interface.Monitor is not null)
+            {
+                Position = OrigPosition = Interface.Monitor.BottomRight - new Vector2(Width, Height);
+            }
             if (!changing && Interface.LeftPressed && Interface.CollideCheck(this))
             {
+                clickedOnce = true;
                 if (State)
                 {
-                    routine.Replace(Open());
+                    routine.Replace(Close());
                 }
                 else
                 {
-                    routine.Replace(Close());
+                    routine.Replace(Open());
                 }
             }
             Position = Position.Floor();

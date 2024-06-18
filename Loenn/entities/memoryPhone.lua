@@ -7,13 +7,16 @@ memoryPhone.depth = 2000
 memoryPhone.placements = {
     name = "Memory Phone (Forest)",
     data = {
-        path = "objects/PuzzleIslandHelper/phones/forest/lonn"
+        path = "objects/PuzzleIslandHelper/phones/forest/lonn",
+        phoneType = "forest",
+        isReceiver = false
     }
 }
 memoryPhone.ignoredFields = { 
     "_id",
     "_name",
-    "path"
+    "path",
+    "phoneType"
 }
 -- Manual offsets and justifications of the sprites
 function memoryPhone.sprite(room, entity)

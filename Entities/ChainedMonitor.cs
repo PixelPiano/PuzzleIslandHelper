@@ -22,7 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         {
             get
             {
-                return PianoModule.Session.HasInvert;
+                return PianoModule.Settings.InvertAbility;
             }
         }
         public bool Used

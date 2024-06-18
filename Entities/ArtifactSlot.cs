@@ -130,7 +130,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/access/"));
             mode = data.Int("cutsceneNumber", 1);
             sprite.AddLoop("idle", "artifactHolder", 0.1f);
-            sprite.AddLoop("dead", "artifactHolderDead", 0.1f);
+            sprite.AddLoop("LivesLost", "artifactHolderDead", 0.1f);
             Position += new Vector2(0, 1);
             sprite.Play("idle");
             Collider = new Hitbox(sprite.Width, sprite.Height);
@@ -176,7 +176,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
               Tween.Create(Tween.TweenMode.Oneshot, ycurve.Anim, 2, false), //y [1]
               Tween.Create(Tween.TweenMode.Oneshot, Ease.SineInOut, 2, false),//rotate [2]
               Tween.Create(Tween.TweenMode.Oneshot, rotatecurve.Anim, 2.5f, false),//rotate back [3]
-              Tween.Create(Tween.TweenMode.Oneshot, Ease.SineIn, 2, false), //scale [4]
+              Tween.Create(Tween.TweenMode.Oneshot, Ease.SineIn, 2, false), //Scale [4]
               Tween.Create(Tween.TweenMode.Oneshot, Ease.ExpoOut, 1.5f, false), //ejectY [5]
               Tween.Create(Tween.TweenMode.Oneshot, endcurve.Anim, 2f, false) //ending [6]
             };
@@ -305,7 +305,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 
             from.Y = artifact.Position.Y;
             target.Y = artifact.Position.Y - 9;
-            sprite.Play("dead");
+            sprite.Play("LivesLost");
             AppearParticles(true);
             tweens[5].Start();
 

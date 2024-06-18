@@ -52,6 +52,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Effect effect;
         private Sprite sprite;
         private EventInstance sfx;
+        private bool doesBurst = true;
         private static VirtualRenderTarget _SpriteTarget;
         private static VirtualRenderTarget _FlashMaskTarget;
         private static VirtualRenderTarget _FlashObject;
@@ -226,7 +227,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     fadeOpacity = 1;
                 }
             }
-            if (!string.IsNullOrEmpty(audio) && speaking && !inSpeakingRoutine)
+            if (!string.IsNullOrEmpty(audio) && speaking && !inSpeakingRoutine && doesBurst)
             {
                 Add(new Coroutine(SoundWaves(), true));
             }

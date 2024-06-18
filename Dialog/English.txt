@@ -11,6 +11,12 @@
 # {trigger x} this triggers an in-game event
 # {anchor} controls the visual position of the textbox in-game
 
+modoptions_PuzzleIslandHelperModule=Puzzle Island Helper Settings
+modoptions_PuzzleIslandHelperModule_InvIntensity=Invert Effect Intensity
+modoptions_PuzzleIslandHelperModule_InvIntensity_desc=Changes the intensity of the invert effect. 1 is easiest on the eyes, 5 is the full effect.
+
+modoptions_PuzzleIslandHelperModule_InvState=Invert Ability
+
 portfolio1=
 This is the most special (and biggest!) entity I've created so far. It is an in-universe computer, with various features.
 It has various programs it can run (with many more still to come). 
@@ -44,6 +50,123 @@ I can't remember the last time I saw one of those!
 [Madeline left distracted]
 How long has this place been here?
 
+wtc1=
+	[Madeline left surprised]
+	WHA-
+
+	[Madeline left angry]
+	Oh, come ON!
+	What's with this place's obsession with...
+	{silent_trigger 0 pan out}
+	[Madeline left sad] 
+	{>> 0.5}teleporting...{/>>}
+	[Madeline left distracted]
+	{>> 0.1}me.....{/>>}
+	...{0.5}
+	[Madeline left distracted]
+	...
+	{trigger 1 wait for pan}
+	[Madeline left sad]
+	{~}Whoaaaaa.{/~}
+
+
+fountainHint0=[Paper left normal]{# 000000}0 prefers sitting at the start{#}
+fountainHint1=[Paper left normal]{# 000000}1 feels safest next to 3{#}
+fountainHint2=[Paper left normal]{# 000000}2 feels threatened by 3 and prefers to not sit next to them{#}
+fountainHint3=[Paper left normal]{# 000000}3 must sit in the fourth or fifth seat{#}
+fountainHint4=[Paper left normal]{# 000000}4 only-
+(The rest of the writing is illegible){#}
+fountainHint5=[Paper left normal]{# 000000}5 won't sit next to 4 or 6 and must be the sum of its neighbors{#}
+fountainHint6=[Paper left normal]{# 000000}6 must be the sum of its neighbors{#}
+fountainHint7=[Paper left normal]{# 000000}7 should-
+(The rest of the writing has been scribbled out too many times to read){#}
+fountainHintA=
+	[Paper left normal]
+	{# 000000}Hey, what was the fountain code again? Is it written down somewhere?{#}
+fountainHintB=
+	[Paper left normal]
+	{# 000000}No, why would it be written down? That's just asking for someone to break in.
+	I've hidden it in a riddle, scattered across multiple notes around the lab. I know how forgetful you are.{#}
+fountainHintC=
+	[Paper left normal]
+	{# 000000}Oh, you mean the one about the tsblwe
+	(the last word has been scratched out){#}
+fountainHintD=
+	[Paper left normal]
+	{# 000000}YES. Why can't you just talk to me about it in person, you're hopeless.{#}
+codeResearchA=
+	[Paper left normal]
+	{# 000000}We've begun research into a strange phenomena.
+	The villagers have on occasion reported strange floating objects that seem to appear under certain conditions.
+	Goals: 1. Research how a "floating object anomaly" (FOA) is created. 
+	2. Determine how an FOA affects it's environment.
+	3. Determine how to predict when one will appear next.{#}
+
+codeResearchB=
+	[Paper left normal]
+	{# 000000}The info we have aquired about FOAs is limited, but patterns have begun to emerge.
+	Each FOA seems to require a key in the form of a code.
+	Furthermore, the area in the direct vicinity of an FOA will shift to reflect its code.
+	This is usually where the patterns stop.{#}
+
+codeResearchC=
+	[Paper left normal]
+	{# 000000}The logic and reasoning behind a code seems to vary per FOA, but they all share one similarity:
+	Directions.
+	Each code is a combination of the 8 cardinal directions.
+	Up, down, left right, up left, down left, up right, down right.
+	They seem to gravitate towards themes, the codes we've managed to decipher tend to reflect the general area as a whole.
+	For example: We recently encountered an FOA down in Pipeworks.
+	Near the area of the FOA was a long winding pipe, no intersections.
+	Quite odd, considering most of the pipes in Pipeworks are an interconnected mess.
+	Starting from the bottom left of the pipe and working our way up led us to the code.{#}
+
+codeResearchD=
+	[Paper left normal]
+	{# 000000}FOAs react to physical contact.
+	If touched, they release a small shockwave, pushing anything near away from itself.
+	We learned the hard way that the strength of the shockwave scales.{#}
+codeResearchE=
+	[Paper left normal]
+	{# 000000}We tested various substances on FOAs.
+	Water flowed around it, like the FOA had a negative gravitational field. No other substances acted this way.
+	Small rocks would bounce off at blinding speeds. Very dangerous.
+	We've yet to find a way to transport FOAs to another location.{#}
+codeResearchF=
+	[Paper left normal]
+	{# 000000}Since we can't move an FOA with force, one of our members suggested the bold idea of creating one ourselves.
+	A bit risky, but nothing else has worked, so why not? The bosses don't care what we do as long as we're figuring stuff out.{#}
+
+codeResearchG=
+	[Paper left normal]
+	{# 000000}FOA creation attempt 1: Failure.
+	We set up a board with arrows in a sequence: 
+	Up, Left, Right, Down.
+	Using a custom made controller, we inputed the code, but nothing happened.
+	Was it too simple? Was it because it wasn't themed? Was it too on the nose?{#}
+
+codeResearchH=
+	[Paper left normal]
+	{# 000000}FOA creation attempt 2: Failure.
+	We tried arranging arrows using leaves, but that didn't work either.
+	Maybe only the code needs to be present near the FOA? 
+	The information required to solve one might not have the same area limitations...{#}
+codeResearchI=
+	[Paper left normal]
+	{# 000000}FOA creation attempt 3: Success!
+	We've set up a sort of scavenger hunt for this one.
+	The code is 6 digits long, and the key is sticky notes! 
+	We've realized that these codes only work if kept in secrecy.
+	If they feel they're being revealed too directly, they won't work.
+	So if you're reading this, boss... uhhhhhh good luck?{#}
+
+faceComplaint=
+	[Paper left normal]
+	{# 0000FF}Does ANYBODY know what's up with these... face things?!{#}
+	{# 0000FF}Why do they look like keyboard characters???{#}
+	{# 0000FF}How do these things exist, and why isn't anyone doing anything about it?!{#}
+	{# 0000FF}I spilled my coffee 4 times IN A ROW because one of those insufferable creatures kept drifting into me!{#}
+	{# FF0000}I'M SORRY WHAT YOU SPILLED IT 4 TIMES?? THAT'S ON YOU BUDDY BAHAHAHAHA{#}
 #Washer Interact while off
 #attempt 1
 washerIsOff=
@@ -80,7 +203,7 @@ prologue=
 		Hm?
 
 	     	[Madeline left normal]
-		Oh, it's a letter from Theo!
+		Oh, it's a letter from {+THEO}!
 
 	     	{trigger 0 Maddy reads letter}
 
@@ -96,23 +219,28 @@ prologueNope = [Madeline left surprised]
 		   ...Nope ok I'm going away now.
 prologue2=
 		{trigger 0 To Boost}
-
+		
 		[Madeline left normal] 
-		Huh? What's this stuff in the mirror?
-		{tirgger 1 Probe Glue}
+		Huh?
+		{trigger 1 Probe Glue}
+		What's this stuff in the mirror?
 		[Madeline left distracted]
-		It's... squishy.
+		It's... squishy. But firm.
+		[Madeline left sad]
+		Like glue.
+		{trigger 2 Stop Probing Glue}
+		[Madeline left distracted]
 		Was somebody trying to fix it?
 		[Madeline left normal]
-		Well, besides this, I didn't notice anything strange about the temple.
+		Well, besides this, nothing strange about the temple.
 		[Madeline left upset]
 		Stranger than usual, at least.
 		[Madeline left normal]
 		I guess I should head back? 
-		Theo must be worried. I'll call him once I'm out of here.
-		{trigger 2 Mirror Flash}
+		I hope {+THEO} isn't worrying too much. I'll call him once I'm out of here.
+		{trigger 3 Mirror Flash}
 
- 		{trigger 3 Blocks Appear}
+ 		{trigger 4 Blocks Appear}
 
 		[Madeline left panic]
 		Wah! Wh-What the...?
@@ -123,7 +251,7 @@ prologue2a=
 		WHAT'S HAPPENING?!
 prologue3a=	
 		[Madeline right surprised]
-		Go go go go go go go go go go go go go!
+		...{0.5}Go go go go go go go go go go go go go!
 prologue3b=
 		[Madeline right angry] 
 		Come on, you stupid gondola! Work!!
@@ -151,35 +279,53 @@ pTEa=Who am I becoming?
 #------------------------
 grassShift= 
 	{trigger 0 Zoom In}
+
 	[Madeline left angry]
-		{>> 0.1}Ughhhhhhhh{/>>}.
-		I had hoped that there would at least be {~}some{/~}{0.2}explanation for what's going on by now.
-		I feel like a rat in a maze.
+	{>> 0.1}{~}Ughhhhhhhh{/~}{/>>}.
+	I had hoped that there would at least be {~}some{/~}{0.2}explanation for what's going on by now.
+	I feel like a rat in a maze.
+
 	{trigger 1 Face Left}
-	[Madeline left sad]
-		But if I just stay put, I won't get anywhere.
-	[Madeline left distracted]
-		Plus, I'd rather be moving around instead of waiting for this place to go {~}wacko-mode{/~} again.
+
+	[Madeline left sad] 
+	But if I just stay put, I won't get anywhere.
+	I need to keep going.
+	I need to.
+
+      [Madeline left sadder]
+	...I need to.
+
 	{trigger 2 Temple Shake}
+
 	[Madeline left surprised]
-		{>> 0.5}Really?!{/>>}{0.5} Now?!
+	{>> 0.5}Huh?? What??{/>>}{0.5}
+
 	{trigger 3 Fall Down}
 	{trigger 4 World Distort}
 
 grassShift2=
 	[Madeline left panic]
-		Wh-{0.5} What's happening...?
+	Wh-{0.5} What's happening...?
+
 	{trigger 0 Wait}
-		My head... Please...
+
+	[Madeline left panic]
+	My head... Please...
+	{trigger 1 Wait again}
+	[Madeline left panic]
+	Stop it... Stop...
 	{trigger 1 Wait again}
 	{trigger 2 Settle}
+
 	[Madeline left panic]
-		Is... Is it over..?
+	Is... Is it over..?
+
 	{trigger 3 Get back up}
 	{trigger 1 Wait again}
+
 	[Madeline left sadder]
-		...
-	
+	...
+
 grassShiftAh=
 	[Madeline left surprised]
 		Ah..!

@@ -20,10 +20,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             Sprite.Position -= new Vector2(Sprite.Width / 2, Sprite.Height / 2);
             Sprite.Play("idle");
             Depth = 4;
+            Tag |= Tags.TransitionUpdate;
         }
         public override void Update()
         {
-            base.Update();
             if (!SceneAs<Level>().Session.Level.Contains("Gameshow"))
             {
                 Sprite.Color = Color.Lerp(Color.White, Color.Black, SceneAs<Level>().Lighting.Alpha);
@@ -32,6 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             {
                 Sprite.Color = Color.White;
             }
+            base.Update();
         }
         public void Die()
         {

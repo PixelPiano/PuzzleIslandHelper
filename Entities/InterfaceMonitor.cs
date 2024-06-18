@@ -16,6 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private MTexture monitor;
         private Sprite icon;
         public Color MonitorColor;
+
         public bool CanActivate => PianoModule.Session.MonitorActivated;
         public bool State;
         public bool InRoutine;
@@ -27,7 +28,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             icon.AddLoop("idleSmall", "iconToCenter", 0.1f, 0);
             icon.AddLoop("idleBig", "iconBigSpin", 0.1f);
             icon.Add("iconToCenter", "iconToCenter", 0.03f, "idleBig");
-            icon.Add("iconToCorner","iconToCorner",0.03f, "idleSmall");
+            icon.Add("iconToCorner", "iconToCorner", 0.03f, "idleSmall");
+            icon.AddLoop("battery","noBattery",0.2f);
+            Tag |= Tags.TransitionUpdate;
+
+
             Add(icon);
             icon.OnChange = (string s1, string s2) =>
             {
@@ -42,17 +47,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             };
             icon.Play("idleSmall");
-            Add(new DebugComponent(Keys.L, routineTrue()));
-        }
-        private IEnumerator routineTrue()
-        {
-            yield return Routine(true);
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             icon.Visible = CanActivate;
             MonitorColor = CanActivate ? Color.White : Color.Gray;
+            icon.Color = State ? Color.White : Color.Gray;
+            if (PianoModule.Session.MetWithCalidusFirstTime && !PianoModule.Session.RestoredPower)
+            {
+                icon.Play("battery");
+                SetInCenter();
+            }
         }
         public override void Update()
         {
@@ -63,7 +69,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private void SetInCorner()
         {
-            icon.Position = new Vector2(0, monitor.Height / 2 - 1);
+            icon.Position = new Vector2(3, monitor.Height / 2 + 3);
         }
         private void SetInCenter()
         {
@@ -105,14 +111,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void Activate()
         {
-            if (CanActivate)
+            if (!InRoutine && CanActivate)
             {
                 Add(new Coroutine(Routine(true)));
             }
         }
         public void Deactivate()
         {
-            if (CanActivate)
+            if (!InRoutine && CanActivate)
             {
                 Add(new Coroutine(Routine(false)));
             }

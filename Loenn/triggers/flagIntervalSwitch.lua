@@ -14,11 +14,19 @@ flagIntervalSwitch.placements =
             repeatOnEnd = false,
             invertOnRepeat = false,
             intervalFlagState = true,
-            oneAtATime = true
-
-
+            oneAtATime = true,
+            activationMethod = "OnLevelStart"
         }
     },
+}
+local types = {"OnLevelStart","OnEnter","OnLeave"}
+flagIntervalSwitch.fieldInformation =
+{
+    activationMethod =
+    {
+        options = types,
+        editable = false
+    }
 }
 
 return flagIntervalSwitch

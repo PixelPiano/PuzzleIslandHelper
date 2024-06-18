@@ -35,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public class Oscillator : Entity
         {
             public bool InPlay = true;
-            public ForkAmpDisplay Display;
+            public OscDisplay Display;
             public float Rate;
             public float TargetRate;
             public const float TargetRange = 15;
@@ -48,7 +48,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public bool OnLeft;
             public void Play()
             {
-                Scene.Add(Display = new ForkAmpDisplay(Position, 25, 300));
+                Scene.Add(Display = new OscDisplay(Position, 25, 300));
                 Display.InPlay = InPlay;
 
             }
@@ -75,6 +75,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Rate = Display.Frequency;
                 }
 
+
+
             }
         }
         public float SelectTimer;
@@ -86,6 +88,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool PlayedOnce;
         public int DisplaysUnlocked;
         public const float TargetRange = 15;
+        public bool canInteractAgain = true;
+        public float DistortAmount => SoundSpinner.DistortAmount;
         public ForkAmp(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Depth = 1;
@@ -115,45 +119,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            
+            Talk.Enabled = canInteractAgain;
             DisplaysUnlocked = 0;
             for (int i = 0; i < 4; i++)
             {
-                if (!string.IsNullOrEmpty(flags[i]) && SceneAs<Level>().Session.GetFlag(flags[i]))
+                Oscillators[i].InPlay = string.IsNullOrEmpty(flags[i]) || SceneAs<Level>().Session.GetFlag(flags[i]);
+                if (Oscillators[i].InPlay)
                 {
-                    Oscillators[i].InPlay = true;
-                    
-                }
-                else
-                {
-                    Oscillators[i].InPlay = false;
+                    DisplaysUnlocked++;
                 }
             }
             PianoModule.Session.ForkAmpState.Unlocked = DisplaysUnlocked;
+            if (DisplaysUnlocked == 0) return;
             for (int i = 0; i < 4; i++)
             {
                 PianoModule.Session.ForkAmpState.Effectiveness[i] = Oscillators[i].Effectiveness;
             }
             if (SelectTimer <= 0)
             {
-                if (Input.MoveX != 0)
+                if (Input.MoveX != 0 && Input.MoveX.Value != 0)
                 {
-                    if(Input.MoveX.Value != 0)
-                    {
-                        for(int i = CurrentIndex + Input.MoveX.Value; i<4 && i >= 0; i+= Input.MoveX.Value)
-                        {
-                            if (Oscillators[i].InPlay)
-                            {
-                                CurrentIndex = Oscillators[i].Index;
-                                
-                            }
-                        }
-                    }
+                    CurrentIndex += Input.MoveX.Value;
+                    CurrentIndex = Calc.Clamp(CurrentIndex, 0, DisplaysUnlocked);
                     for (int i = 0; i < 4; i++)
                     {
                         Oscillators[i].SetSelected(CurrentIndex);
                     }
-                    SelectTimer = 0.3f;
+                    SelectTimer = 0.16f;
                 }
             }
             else
@@ -175,14 +167,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator EndRoutine(Player player)
         {
+            Add(new Coroutine(DisableInputForABit(player)));
             yield return null;
-            player.StateMachine.State = Player.StNormal;
+        }
+        private IEnumerator CameraScroll(Vector2 amount, float time)
+        {
+            if (Scene is not Level level) yield break;
+            Vector2 orig = level.Camera.Position;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                level.Camera.Position = orig + amount * Ease.CubeOut(i);
+                yield return null;
+            }
+            level.Camera.Position = orig + amount;
         }
         public IEnumerator FadeMusicOut()
         {
+            canInteractAgain = false;
             SavedVolume = Audio.MusicVolume;
             Sound.instance.getVolume(out float volume, out _);
             Sound.instance.setVolume(0);
+            Add(new Coroutine(CameraScroll(Vector2.UnitX * -60, 1)));
             for (float i = 0; i < 1; i += Engine.DeltaTime)
             {
                 if (Audio.MusicVolume > 0.1f)
@@ -205,22 +210,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Sound.Stop();
             Audio.MusicVolume = SavedVolume;
+            canInteractAgain = true;
         }
         public IEnumerator Routine(Player player)
         {
             StartOscillators();
             while (!Input.Jump)
             {
+                SoundSpinner.DistortAmount = 0;
                 for (int i = 0; i < 4; i++)
                 {
                     Sound.Param("Osc " + (i + 1), Oscillators[i].Rate);
                     PianoModule.Session.ForkAmpState.Rates[i] = Oscillators[i].Rate;
                 }
+                Sound.Param("Distort", SoundSpinner.DistortAmount);
                 yield return null;
             }
             StopOscillators();
             yield return null;
             OnEnd(player);
+        }
+        private IEnumerator DisableInputForABit(Player player)
+        {
+            player.StateMachine.State = Player.StDummy;
+            yield return 0.5f;
+            player.StateMachine.State = Player.StNormal;
         }
         public void StartOscillators()
         {

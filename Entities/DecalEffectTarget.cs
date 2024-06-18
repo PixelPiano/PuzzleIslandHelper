@@ -9,8 +9,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class DecalEffectTarget : Entity
     {
-
-        public Rectangle bounds;
         public Sprite sprite;
         public string id;
 
@@ -29,10 +27,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             id = data.Attr("groupId");
             Add(sprite);
             sprite.Scale = new Vector2(data.Float("scaleX", 1), data.Float("scaleY", 1));
-            Position = new Vector2(Position.X - (sprite.Width / 2 * sprite.Scale.X), Position.Y - (sprite.Height / 2 * sprite.Scale.Y));
+            sprite.Rotation = data.Float("rotation").ToRad();
+            sprite.CenterOrigin();
+            sprite.Position += new Vector2(sprite.Width/2, sprite.Height/2);
             sprite.Visible = false;
-            Collider = new Hitbox(sprite.Width, sprite.Height);
-            bounds = new Rectangle((int)Position.X, (int)Position.Y, (int)sprite.Width, (int)sprite.Height);
+            Collider = new Hitbox(sprite.Width, sprite.Height, -sprite.Width/2, -sprite.Height/2);
         }
         public override void Added(Scene scene)
         {

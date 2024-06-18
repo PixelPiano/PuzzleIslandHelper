@@ -8,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Input;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
@@ -52,7 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 return amount;
             }
         }
-
+        public bool CullOffScreen = true;
         public int PolygonScreenIndex = -1;
         public int AreaDepth;
         public int Extend;
@@ -64,38 +65,51 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public float GlitchAmp = 0.4f;
         public float ShineAmount;
 
-        private bool RenderedTiles;
+        public bool RenderedTiles;
         public bool Grows;
         public bool DisableBreathing;
         public bool DrawTiles = true;
-        public bool OnScreen;
+        public bool OnScreen
+        {
+            get
+            {
+                return !CullOffScreen || onscreen;
+            }
+            set
+            {
+                onscreen = value;
+            }
+        }
+        private bool onscreen;
         public bool UsesNodes;
         public bool Glitchy;
         public bool ConnectLines;
         public bool WasFixed;
         public bool SwapBG;
         public bool SwapFG;
-
         public bool Shrinking;
         public bool LinesConnected;
         public bool FollowCamera;
         public bool Fading;
         public bool ExpandLinesOnScreen;
+        public bool FillIn;
+        public Color FillColor = Color.Black;
+        public float FillAlpha = 1;
         public bool HasFG => FGTiles is not null;
         public bool HasBG => BGTiles is not null;
 
         public char BgFrom, BgTo, FgFrom, FgTo;
 
         public Vector2 origLevelOffset;
+        public Vector2 Origin;
         public Vector2 ExtendOffset;
         public Rectangle FurthestBounds;
         public Rectangle ClipRect;
-
         public Color AreaColor = Color.White;
 
         public TileGrid BGTiles, FGTiles;
         public Collider Box;
-        public VirtualRenderTarget Mask, BGTarget, FGTarget, BGCache, FGCache;
+        public VirtualRenderTarget Mask, FillMask, FillTarget, BGTarget, FGTarget, BGCache, FGCache;
 
         private readonly int[] indices;
         public float[] VerticeAlpha;
@@ -103,23 +117,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public float[] PointLineAmount;
         public Vector2[] Points;
         public Color[] VerticeColor;
+        public Vector2[] FillPoints;
         public VertexPositionColor[] Vertices;
+        public VertexPositionColor[] FillVertices;
         public VertexBreath[] VertexBreathing;
         public SineWave LineAlphaFader;
-
-
         public string Flag;
         public bool Inverted;
+        public int LineThickness = 1;
         public bool State
         {
             get
             {
-                if(Scene is not Level level || string.IsNullOrEmpty(Flag)) return true;
+                if (Scene is not Level level || string.IsNullOrEmpty(Flag)) return true;
                 return level.Session.GetFlag(Flag) == !Inverted;
             }
         }
 
-        public ShiftArea(EntityData data, Vector2 offset) : this(data.Position, offset, data.Char("bgFrom", '0'), data.Char("bgTo", '0'), data.Char("fgFrom", '0'), data.Char("fgTo", '0'), data.NodesWithPosition(Vector2.One * 4), GetIndices(data, false), data.Bool("swapBg"), data.Bool("swapFg"), data.Attr("flag"),data.Bool("inverted"))
+        public ShiftArea(EntityData data, Vector2 offset) : this(data.Position, offset, data.Char("bgFrom", '0'), data.Char("bgTo", '0'), data.Char("fgFrom", '0'), data.Char("fgTo", '0'), data.NodesWithPosition(Vector2.One * 4), GetIndices(data, false), data.Bool("swapBg"), data.Bool("swapFg"), data.Attr("flag"), data.Bool("inverted"))
         {
         }
         public ShiftArea(Vector2 position, Vector2 offset, char bgFrom, char bgTo, char fgFrom, char fgTo, Vector2[] nodes, int[] indices, bool swapBG = true, bool swapFG = true, string flag = "", bool inverted = false) : this(position + offset)
@@ -144,6 +159,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Depth = -10001;
             Tag |= Tags.TransitionUpdate;
         }
+        public void FillSolid(Color color)
+        {
+            Color[] colors = VerticeColor;
+            float[] alphas = VerticeAlpha;
+            SetVertexColor(color);
+            SetVertexAlpha(1);
+            GFX.DrawIndexedVertices(Matrix.Identity, Vertices, Vertices.Length, indices, indices.Length / 3);
+            VerticeColor = colors;
+            VerticeAlpha = alphas;
+        }
         public override void Added(Scene scene)
         {
             base.Added(scene);
@@ -157,6 +182,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             try
             {
                 Mask = VirtualContent.CreateRenderTarget("ShiftAreaMask", width, height);
+                FillMask = VirtualContent.CreateRenderTarget("ShiftAreaFillMask", width, height);
+                FillTarget = VirtualContent.CreateRenderTarget("ShiftAreaFillTarget", width, height);
                 BGTarget = VirtualContent.CreateRenderTarget("ShiftAreaBGTarget", width, height);
                 FGTarget = VirtualContent.CreateRenderTarget("ShiftAreaFGTarget", width, height);
                 BGCache = VirtualContent.CreateRenderTarget("ShiftAreaBGCache", width, height);
@@ -167,6 +194,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 RemoveSelf();
             }
         }
+        public int TileExtend = 1;
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
@@ -219,7 +247,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Mask?.Dispose();
             Mask = null;
         }
-        public void BeforeRender(bool fg, bool bg)
+        public void AddOffset(Vector2 offset)
+        {
+            for (int i = 0; i < Vertices.Length; i++)
+            {
+                Vertices[i].Position += new Vector3(offset, 0);
+                FillVertices[i].Position += new Vector3(offset, 0);
+            }
+        }
+        public void SubtractOffset(Vector2 offset)
+        {
+            for (int i = 0; i < Vertices.Length; i++)
+            {
+                Vertices[i].Position -= new Vector3(offset, 0);
+                FillVertices[i].Position -= new Vector3(offset, 0);
+            }
+        }
+        public virtual void BeforeRender(bool fg, bool bg)
         {
             if (!OnScreen || !Visible || !State) return;
             bool useBg = bg && HasBG;
@@ -230,33 +274,46 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             GlitchAmp = Calc.Random.Range(GlitchAmp / 5, glitchAmp);
             Matrix matrix = Matrix.Identity;
             RenderMask(matrix);
+            if (FillIn)
+            {
+                RenderFillToMask(matrix);
+                RenderFillTarget(matrix);
+                RenderFillMaskTarget(matrix);
+            }
             if (useBg)
             {
-                if (!RenderedTiles) CacheTilesLayer(false, matrix);
+                if (!RenderedTiles) RenderCache(false, matrix);
                 if (DrawTiles)
                 {
-                    RenderTilesLayer(false, matrix);
-                    MaskTilesLayer(matrix);
+                    RenderTilesToTarget(false, matrix);
+                    RenderMaskTarget(matrix);
                 }
             }
             if (useFg)
             {
-                if (!RenderedTiles) CacheTilesLayer(true, matrix);
+                if (!RenderedTiles) RenderCache(true, matrix);
                 if (DrawTiles)
                 {
-                    RenderTilesLayer(true, matrix);
-                    MaskTilesLayer(matrix);
+                    RenderTilesToTarget(true, matrix);
+                    RenderMaskTarget(matrix);
                 }
             }
+
+
             if (!DrawTiles)
             {
                 Engine.Graphics.GraphicsDevice.SetRenderTarget(fg ? FGTarget : BGTarget);
                 Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
             }
-            if (ConnectLines)
+
+            if (ConnectLines || FillIn)
             {
                 Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, matrix);
-                DrawLines(Vector2.Zero);
+                if (FillIn)
+                {
+                    Draw.SpriteBatch.Draw(FillTarget, Vector2.Zero, Color.White);
+                }
+                if (ConnectLines) DrawLines(Vector2.Zero);
                 Draw.SpriteBatch.End();
             }
             RenderedTiles = true;
@@ -266,8 +323,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public void CreateArrays(Vector2[] nodes)
         {
             Points = nodes;
+
             UsesNodes = Points is not null && Points.Length > 1;
             Vertices = new VertexPositionColor[Points.Length];
+            FillVertices = new VertexPositionColor[Points.Length];
             VertexBreathing = new VertexBreath[Points.Length];
             VerticeColor = new Color[Points.Length];
             VerticeAlpha = new float[Points.Length];
@@ -276,6 +335,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             for (int i = 0; i < Points.Length; i++)
             {
                 Vertices[i] = new VertexPositionColor(new Vector3(Points[i], 0), Color.White);
+                FillVertices[i] = new VertexPositionColor(new Vector3(Points[i], 0), FillColor);
                 VertexBreathing[i] = new VertexBreath(Calc.Random.Range(4, 8f), Calc.Random.Range(1f, 8));
                 VerticeColor[i] = Color.White;
                 VerticeAlpha[i] = 1;
@@ -292,14 +352,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 Vector2 p1 = Vertices[i].Position.XY() + offset;
                 Vector2 p2 = Vertices[i - 1].Position.XY() + offset;
                 Vector2 p3 = Vertices[i - 2].Position.XY() + offset;
-                Draw.Line(p1, Calc.LerpSnap(p1, p2, PointLineAmount[i]), Color.Lerp(Color.Black, Color.Gray, PointLineAlphas[i] * LineAlpha));
-                Draw.Line(p2, Calc.LerpSnap(p2, p3, PointLineAmount[i - 1]), Color.Lerp(Color.Black, Color.Gray, PointLineAlphas[i - 1] * LineAlpha));
-                Draw.Line(p3, Calc.LerpSnap(p3, p1, PointLineAmount[i - 2]), Color.Lerp(Color.Black, Color.Gray, PointLineAlphas[i - 2] * LineAlpha));
+                Draw.Line(p1, Calc.LerpSnap(p1, p2, PointLineAmount[i]), Color.Lerp(Color.Black, Color.Gray, PointLineAlphas[i] * LineAlpha), LineThickness);
+                Draw.Line(p2, Calc.LerpSnap(p2, p3, PointLineAmount[i - 1]), Color.Lerp(Color.Black, Color.Gray, PointLineAlphas[i - 1] * LineAlpha), LineThickness);
+                Draw.Line(p3, Calc.LerpSnap(p3, p1, PointLineAmount[i - 2]), Color.Lerp(Color.Black, Color.Gray, PointLineAlphas[i - 2] * LineAlpha), LineThickness);
             }
+        }
+        public void SetThickness(int thickness)
+        {
+            LineThickness = (int)Calc.Max(thickness, 1);
         }
         public void SetVertexAlpha(float amount)
         {
             VerticeAlpha = VerticeAlpha.Select(item => item = amount).ToArray();
+        }
+        public void SetVertexColor(Color color)
+        {
+            VerticeColor = VerticeColor.Select(item => item = color).ToArray();
         }
         public bool Intersects(ShiftArea area)
         {
@@ -322,11 +390,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             return false;
         }
 
-        public virtual void DrawMask(Matrix matrix)
+        public virtual void DrawVertices(Matrix matrix)
         {
             GFX.DrawIndexedVertices(matrix, Vertices, Vertices.Length, indices, indices.Length / 3);
         }
-        public virtual void DrawTilesLayer(bool fg, Matrix matrix)
+        public virtual void DrawFill(Matrix matrix)
+        {
+            GFX.DrawIndexedVertices(matrix, FillVertices, FillVertices.Length, indices, indices.Length / 3);
+        }
+        public virtual void RenderTileCache(bool fg, Matrix matrix)
         {
             Draw.SpriteBatch.Draw(fg ? FGCache : BGCache, Vector2.Zero, Color.White);
         }
@@ -336,14 +408,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
 
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
-            DrawMask(matrix);
+            DrawVertices(matrix);
             Draw.SpriteBatch.End();
             if (Glitchy)
             {
                 Mask = EasyRendering.AddGlitch(Mask, GlitchAmount / 4, GlitchAmp / 4);
             }
         }
-        public void CacheTilesLayer(bool fg, Matrix matrix)
+        public void RenderFillToMask(Matrix matrix)
+        {
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(FillMask);
+            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
+            for (int i = 0; i < FillVertices.Length; i++)
+            {
+                FillVertices[i].Color = Color.White;
+            }
+            DrawFill(matrix);
+            for (int i = 0; i < FillVertices.Length; i++)
+            {
+                FillVertices[i].Color = FillColor;
+            }
+            Draw.SpriteBatch.End();
+            if (Glitchy)
+            {
+                FillMask = EasyRendering.AddGlitch(FillMask, GlitchAmount / 4, GlitchAmp / 4);
+            }
+        }
+        public void RenderCache(bool fg, Matrix matrix)
         {
             Engine.Graphics.GraphicsDevice.SetRenderTarget(fg ? FGCache : BGCache);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
@@ -351,12 +444,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             RenderTiles(fg, origLevelOffset - Position);
             Draw.SpriteBatch.End();
         }
-        public void RenderTilesLayer(bool fg, Matrix matrix)
+        public void RenderTilesToTarget(bool fg, Matrix matrix)
         {
             Engine.Graphics.GraphicsDevice.SetRenderTarget(fg ? FGTarget : BGTarget);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, matrix);
-            DrawTilesLayer(fg, matrix);
+            RenderTileCache(fg, matrix);
             if (ShineAmount > 0)
             {
                 Draw.Rect(Vector2.Zero, FurthestBounds.Width, FurthestBounds.Height, Color.White * ShineAmount);
@@ -374,10 +467,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 }
             }
         }
-        public void MaskTilesLayer(Matrix matrix)
+        public void RenderFillTarget(Matrix matrix)
+        {
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(FillTarget);
+            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, matrix);
+            DrawFill(matrix);
+            Draw.SpriteBatch.End();
+        }
+        public void RenderMaskTarget(Matrix matrix)
         {
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, EasyRendering.AlphaMaskBlendState, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, matrix);
             Draw.SpriteBatch.Draw(Mask, Vector2.Zero, Color.White);
+            Draw.SpriteBatch.End();
+        }
+        public void RenderFillMaskTarget(Matrix matrix)
+        {
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, EasyRendering.AlphaMaskBlendState, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, matrix);
+            Draw.SpriteBatch.Draw(FillMask, Vector2.Zero, Color.White);
             Draw.SpriteBatch.End();
         }
 
@@ -429,14 +536,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         {
 
         }
+        public Vector2 Offset;
         public void UpdateVertices()
         {
             if (Scene is not Level level) return;
-            bool foundOnScreen = FollowCamera;
-            if (foundOnScreen)
-            {
-                OnScreen = true;
-            }
+            OnScreen = FollowCamera;
             Vector2 levelDifference = Position - origLevelOffset;
             if (Points.Length < 3) return;
             Vector2 center = ((Points[0] + Points[1] + Points[2]) / 3);
@@ -454,17 +558,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                     newPosition = (dist * Scale) + center;
                     newPosition.X -= FurthestBounds.Width * (1 - Scale);
                 }
-                Vertices[i].Position = new Vector3(newPosition, 0);
-                Vertices[i].Color = VerticeColor[i] * VerticeAlpha[i];
+                FillVertices[i].Position = Vertices[i].Position = new Vector3(newPosition, 0);
 
-                if (!foundOnScreen)
+                Vertices[i].Color = VerticeColor[i] * VerticeAlpha[i];
+                FillVertices[i].Color = FillColor * FillAlpha;
+
+                if (!OnScreen)
                 {
-                    OnScreen = false;
-                    if (level.Camera.GetBounds().Intersects(FurthestBounds))
-                    {
-                        OnScreen = true;
-                        foundOnScreen = true;
-                    }
+                    OnScreen = level.Camera.GetBounds().Intersects(new Rectangle(FurthestBounds.X, FurthestBounds.Y, FurthestBounds.Width, FurthestBounds.Height));
                 }
             }
         }
@@ -657,7 +758,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 }
                 Autotiler.Generated newFgTiles = GFX.FGAutotiler.GenerateMap(newFgData, paddingIgnoreOutOfLevel: true);
                 FGTiles = newFgTiles.TileGrid;
-                FGTiles.VisualExtend = 1;
+                FGTiles.VisualExtend = TileExtend;
                 FGTiles.Visible = false;
             }
 
@@ -689,7 +790,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 }
                 Autotiler.Generated newBgTiles = GFX.BGAutotiler.GenerateMap(newBgData, paddingIgnoreOutOfLevel: true);
                 BGTiles = newBgTiles.TileGrid;
-                BGTiles.VisualExtend = 1;
+                BGTiles.VisualExtend = TileExtend;
                 BGTiles.Visible = false;
             }
         }

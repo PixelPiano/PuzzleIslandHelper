@@ -2,8 +2,8 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
 using System.Linq;
+using Celeste.Mod.CommunalHelper;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
@@ -17,15 +17,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public VirtualRenderTarget Target => FG ? FGTarget : BGTarget;
         public bool FG;
         private bool doNotRender;
-        public PolygonScreen Screen
-        {
-            get
-            {
-                if (Scene is not Level level) return null;
-                return level.Tracker.GetEntity<PolygonScreen>();
-            }
-        }
         public List<ShiftArea> Areas = new();
+        public Vector2 Scale = Vector2.One;
+        public Vector3 Offset;
+        public Matrix Matrix = Matrix.Identity;
+        public Vector3 RotationOrigin;
+        public Vector2 ScaleOrigin;
+        public float XRotation;
         public static void ChangeDepth(bool fg, int depth)
         {
             if (Engine.Scene is not Level level) return;
@@ -39,16 +37,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         public ShiftAreaRenderer(bool fg) : base(Vector2.Zero)
         {
+            Scale = Vector2.One;
             FG = fg;
             Depth = fg ? -10001 : 9999;
             Tag |= Tags.TransitionUpdate | Tags.Global;
             Add(new BeforeRenderHook(BeforeRender));
         }
+        public override void Update()
+        {
+            base.Update();
+            if (Scene is not Level level) return;
+            Matrix = Matrix.CreateFromAxisAngle(new Vector3(1f, 0, 0), XRotation);
+            Vector3 origin = Vector3.Transform(RotationOrigin, Matrix);
+            Matrix *= Matrix.CreateTranslation(MathHelper.Distance(origin.X, RotationOrigin.X) + Offset.X, MathHelper.Distance(origin.Y, RotationOrigin.Y) + Offset.Y, MathHelper.Distance(origin.Z, RotationOrigin.Z) + Offset.Z);
+        }
         public override void Render()
         {
             base.Render();
             if (Scene is not Level level || doNotRender) return;
-            Draw.SpriteBatch.Draw(Target, level.Camera.Position, Color.White);
+            Draw.SpriteBatch.Draw(Target, level.Camera.Position + ScaleOrigin, null, Color.White, 0, ScaleOrigin, Scale, SpriteEffects.None, 0);
         }
         public void BeforeRender()
         {
@@ -68,18 +75,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         {
             Level level = Scene as Level;
             if (!area.Visible || !area.State) return;
-            Vector2 add = area.Position - level.Camera.Position + (area.FollowCamera ? level.Camera.Position - level.LevelOffset : Vector2.Zero);
+            Vector2 add = area.Position + Offset.XY() - level.Camera.Position + (area.FollowCamera ? level.Camera.Position - level.LevelOffset : Vector2.Zero);
             area.BeforeRender(FG, !FG);
+            Matrix matrix = Matrix * Matrix.CreateScale(new Vector3(1, 1, 0));
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, Matrix.Identity);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, matrix);
             if (area.OnScreen)
             {
-                Draw.SpriteBatch.Draw(FG ? area.FGTarget : area.BGTarget, add, area.AreaColor * area.Alpha);
+                Draw.SpriteBatch.Draw(FG ? area.FGTarget : area.BGTarget, add, null, area.AreaColor * area.Alpha, 0, Vector2.Zero, Vector2.One, SpriteEffects.None, 0);
             }
             area.AfterRender(level);
             Draw.SpriteBatch.End();
         }
-        private bool LevelHasAreas(Level level)
+        public bool LevelHasAreas(Level level)
         {
             return level.Tracker.GetEntities<ShiftArea>() is List<Entity> list && list.Count > 0;
         }

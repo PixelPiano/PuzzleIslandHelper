@@ -2,11 +2,14 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue.TransferScene.CutsceneShiftAreas;
+using static Celeste.Mod.PuzzleIslandHelper.Triggers.SceneSwitch;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 {
@@ -17,28 +20,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         {
             '8','9','t','f','o','p','q','r','E','a','D','b','c','d','e','L','T','P','R','Y'
         };
-
-        public class Fader : Entity
+        public class ActorRenderer : Entity
         {
-            public float Target;
-            public bool Ended;
-            public float fade;
             public VirtualRenderTarget Helper;
-            public Fader()
+            public ActorRenderer() : base()
             {
-                Depth = -100000;
+                Depth = -100002;
                 Helper = VirtualContent.CreateRenderTarget("FaderHelper", 320, 180);
                 Add(new BeforeRenderHook(BeforeRender));
             }
-
-            public override void Update()
+            public override void Render()
             {
-                fade = Calc.Approach(fade, Target, Engine.DeltaTime * 0.5f);
-                if (Target <= 0f && fade <= 0f && Ended)
+                base.Render();
+                Level level = Scene as Level;
+                Camera camera = level.Camera;
+                UnbornHusk husk = Scene.Tracker.GetEntity<UnbornHusk>();
+                if (husk != null)
                 {
-                    RemoveSelf();
+                    level.SnapColorGrade("none");
+                    if (husk.DoPulseGlitch)
+                    {
+                        Draw.SpriteBatch.Draw(Helper, camera.Position, Color.White);
+                    }
+                    if (!husk.RenderStuff)
+                    {
+                        husk.RenderAllPulses();
+                    }
+                    //level.SnapColorGrade("PuzzleIslandHelper/prologue");
                 }
-                base.Update();
+
+                Player entity = Scene.Tracker.GetEntity<Player>();
+                entity?.Render();
             }
             public override void Removed(Scene scene)
             {
@@ -53,6 +65,91 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 Helper.DrawToObject(husk.RenderAllPulsesForTarget, Matrix.Identity, true);
                 Helper = EasyRendering.AddGlitch(Helper);
             }
+        }
+        public class DepthFade : Entity
+        {
+            public static Vector2[] Points = new Vector2[] { new(0, 0), new(1, 0), new(0, 1), new(1, 1) };
+            public VertexPositionColor[] Vertices = new VertexPositionColor[4];
+            public readonly int[] Indices = new int[] { 0, 1, 2, 2, 1, 3 };
+            public float height = 180;
+            public float Alpha = 0;
+            public DepthFade() : base()
+            {
+                Depth = -100001;
+                for (int i = 0; i < Points.Length; i++)
+                {
+                    Vertices[i] = new VertexPositionColor(Vector3.Zero, Color.Black);
+                }
+                Collider = new Hitbox(320, height);
+            }
+            public override void Awake(Scene scene)
+            {
+                base.Awake(scene);
+                UpdateVertices(scene as Level);
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (Scene is not Level level) return;
+                UpdateVertices(level);
+            }
+            public void UpdateVertices(Level level)
+            {
+                for (int i = 0; i < Points.Length; i++)
+                {
+                    Vertices[i].Position = new Vector3(level.Camera.Position + Points[i] * Collider.Size, 0);
+                    Vertices[i].Color = (Points[i].Y == 0 ? Color.Black : Color.Transparent) * Alpha;
+                }
+            }
+            public override void Render()
+            {
+                base.Render();
+                if (Scene is not Level level) return;
+                Draw.SpriteBatch.End();
+                GFX.DrawIndexedVertices(level.Camera.Matrix, Vertices, 4, Indices, 2);
+                GameplayRenderer.Begin();
+            }
+        }
+        public DepthFade ScreenFade;
+        private IEnumerator ScreenToFloor()
+        {
+            Vector2 screenCenter = new Vector2(160, 90);
+            Level level = Scene as Level;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
+            {
+                float eased = Ease.SineOut(i);
+                foreach (ShiftAreaRenderer r in level.Tracker.GetEntities<ShiftAreaRenderer>())
+                {
+                    r.RotationOrigin = new Vector3(160, 135, 0);
+                    r.Offset.Z = 16 * eased;
+                    r.XRotation = 70f.ToRad() * eased;
+                    r.Scale = Vector2.One * (1 + eased / 2);
+                    r.ScaleOrigin = screenCenter;
+                }
+                ScreenFade.Alpha = Calc.LerpClamp(0, 1f, Calc.Max(eased - 0.3f, 0) / 0.7f);
+                yield return null;
+            }
+        }
+        public class Fader : Entity
+        {
+            public float Target;
+            public bool Ended;
+            public float fade;
+
+            public Fader()
+            {
+                Depth = -100000;
+            }
+
+            public override void Update()
+            {
+                fade = Calc.Approach(fade, Target, Engine.DeltaTime * 0.5f);
+                if (Target <= 0f && fade <= 0f && Ended)
+                {
+                    RemoveSelf();
+                }
+                base.Update();
+            }
             public override void Render()
             {
                 Level level = Scene as Level;
@@ -61,25 +158,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 {
                     Draw.Rect(camera.X - 10f, camera.Y - 10f, 340f, 200f, Color.Black * fade);
                 }
-
-                UnbornHusk husk = Scene.Tracker.GetEntity<UnbornHusk>();
-                if (husk != null)
-                {
-                    level.SnapColorGrade("none");
-                    if (husk.DoPulseGlitch)
-                    {
-                        Draw.SpriteBatch.Draw(Helper, camera.Position, Color.White);
-                    }
-                    if (!husk.RenderStuff)
-                    {
-                        husk.RenderAllPulses();
-                    }
-                    level.SnapColorGrade("PuzzleIslandHelper/prologue");
-                }
-
-
-                Player entity = base.Scene.Tracker.GetEntity<Player>();
-                entity?.Render();
             }
         }
         public class CutsceneShiftAreas : Entity
@@ -250,9 +328,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             }
         }
         public Fader fader;
+        public ActorRenderer renderer;
         public Player player;
         private SineWave wave;
-        private CutsceneShiftAreas Helper;
         public PolygonScreen Screen;
         public TransferScene() : base(true, true)
         {
@@ -277,7 +355,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 RemoveSelf();
             }
             level.Add(fader = new Fader());
-
+            level.Add(renderer = new ActorRenderer());
+            level.Add(ScreenFade = new DepthFade());
             Add(new Coroutine(Cutscene(level)));
         }
         private IEnumerator Cutscene(Level level)
@@ -289,7 +368,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             player.Dashes = 1;
             player.ForceStrongWindHair.X = 0f;
             fader.Target = 1f;
-            //yield return 2f;
+            yield return 2f;
             level.Camera.Position = player.Center - new Vector2(160, 90);
             player.Sprite.Play("sleep");
             yield return 1f;
@@ -305,8 +384,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                     yield return null;
                 }
             }
-            //Helper = new(10);
-            //level.Add(Helper);
             Add(new Coroutine(GlitchRoutine()));
 
             yield return 1f;
@@ -329,6 +406,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             {
                 yield return null;
             }
+            yield return ScreenToFloor();
+            EndCutscene(Level);
         }
         private IEnumerator GlitchRoutine()
         {
@@ -341,7 +420,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         }
         public override void OnEnd(Level level)
         {
-            throw new NotImplementedException();
+           
         }
     }
 }

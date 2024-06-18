@@ -150,7 +150,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         {
             Tag |= Tags.TransitionUpdate;
             this.id = id;
-            Opacity = data.Float("opacity", 1);
+            Opacity = data.Float("alpha", 1);
             FixedOpacity = data.Bool("staticOpacity");
             if (PianoModule.Session.BrokenLamps.Keys.Contains(id))
             {

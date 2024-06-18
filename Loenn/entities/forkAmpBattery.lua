@@ -8,7 +8,7 @@ forkAmpBattery.name = "PuzzleIslandHelper/ForkAmpBattery"
 
 forkAmpBattery.depth = 0
 
-forkAmpBattery.texture = "objects/PuzzleIslandHelper/forkAmp/battery"
+forkAmpBattery.texture = "objects/PuzzleIslandHelper/forkAmp/idle00"
 
 forkAmpBattery.placements =
 {
@@ -16,7 +16,10 @@ forkAmpBattery.placements =
         name = "Fork Amp Battery",
         data =
         {
-            flagOnFinish = ""
+            flagOnFinish = "",
+            isLeader = true,
+            subId = "",
+            continuityId = ""
         }
     }
 }

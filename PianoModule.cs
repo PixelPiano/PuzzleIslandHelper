@@ -11,6 +11,8 @@ using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
+using FrostHelper;
+using Celeste.Mod.PuzzleIslandHelper.MenuElements;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -105,6 +107,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
             ShiftAreaRenderer.Load();
             ProgramLoader.Load();
             MazeData.Load();
+            OuiFileFader.Load();
+            BatteryRespawn.Load();
         }
 
 
@@ -137,7 +141,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
             AccessData.Unload();
             GearHolder.GearHolderRenderer.Unload();
             SceneSwitch.Unload();
-            BetaCube.Unload();
             PrologueBooster.Unload();
             PrologueSequence.Unload();
             PrologueBlock.Unload();
@@ -145,12 +148,16 @@ namespace Celeste.Mod.PuzzleIslandHelper
             GrassMazeOverlay.Unload();
             MazeData.Unload();
             GSRenderer.Unload();
+            OuiFileFader.Unload();
+            BatteryRespawn.Unload();
+            CubeField.Unload();
         }
 
         public override void Initialize()
         {
             PuzzleSpotlight.Initialize();
-            BetaCube.Initialize();
+            CubeField.Initialize();
+            BackgroundShape.Initialize();
         }
     }
 }

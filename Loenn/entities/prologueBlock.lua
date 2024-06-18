@@ -11,18 +11,68 @@ prologueBlock.name = "PuzzleIslandHelper/PrologueBlock"
 prologueBlock.minimumSize = {8,8}
 prologueBlock.placements =
 {
-    name = "Prologue Block",
-    data = 
     {
-        tiletype = "w",
-        width = 8,
-        height = 8,
-        order = -1,
-        delay = 0,
-        waitForController = false,
-        fg = false
+        name = "Prologue Block",
+        data = 
+        {
+            tiletype = "w",
+            width = 8,
+            height = 8,
+            order = -1,
+            delay = 0,
+            waitForController = false,
+            fg = false,
+            useFlag = false,
+            flag = "",
+            custom = false
+        }
+    },
+    {
+        name = "Prologue Block (Custom)",
+        data = 
+        {
+            tiletype = "w",
+            width = 8,
+            height = 8,
+            order = -1,
+            delay = 0,
+            waitForController = false,
+            fg = false,
+            useFlag = false,
+            flag = "",
+            custom = true
+        }
     }
 }
+function prologueBlock.ignoredFields(entity)
+    local ignored = {
+        "_id",
+        "_name",
+        "order",
+        "waitForController",
+        "useFlag",
+        "flag",
+        "custom"  
+    }
+
+    local function doNotIgnore(value)
+        for i = #ignored, 1, -1 do
+            if ignored[i] == value then
+                table.remove(ignored, i)
+                return
+            end
+        end
+    end
+
+    if entity.custom then
+        doNotIgnore("useFlag")
+        doNotIgnore("flag")
+    else
+        doNotIgnore("order")
+        doNotIgnore("waitForController")
+    end 
+    return ignored
+end
 function prologueBlock.depth(room, entity)
     if entity.fg then
         return -10001
@@ -48,6 +98,9 @@ function prologueBlock.sprite(room, entity)
         text = "Instant"
     else
         text = ""..(entity.order or -1)
+    end
+    if entity.custom then
+        text = "Custom"
     end
     local result =
             drawableFunction.fromFunction(function()

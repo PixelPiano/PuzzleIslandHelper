@@ -21,7 +21,8 @@ decalEffectController.placements = {
         colorBlendAmount = 1,
         colorFadeInOut = false,
         colorFadeDuration = 1,
-        outlineSprites = false
+        outlineSprites = false,
+        forceBurst = true
     }
 }
 decalEffectController.fieldOrder = {
@@ -38,7 +39,8 @@ decalEffectController.fieldOrder = {
    "flashOnCollide",
    "usesAudio",
    "colorFadeInOut",
-   "outlineSprites"
+   "outlineSprites",
+   "forceBurst"
 }
 decalEffectController.ignoredFields = { 
     "width",

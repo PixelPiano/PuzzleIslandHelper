@@ -65,18 +65,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             if (Drawing && !string.IsNullOrEmpty(CurrentID) && activeText != null)
             {
                 activeText.Font ??= ActiveFont.Font;
-                activeText?.Draw((level.Camera.CameraToScreen(TextPosition)).Floor() * 6, Vector2.Zero, Vector2.One * textScale,1f, Interface.NightMode ? Color.White : Color.Black);
+                activeText?.Draw((level.Camera.CameraToScreen(TextPosition)).Floor() * 6, Vector2.Zero, Vector2.One * textScale,1f, Interface.NightMode ? Color.White * Window.Alpha : Color.Black * Window.Alpha);
 
             }
-        }
-        public float GetAlpha(float fromY, float thresh, float offset)
-        {
-            float top = fromY + offset;
-            float bottom = fromY + Height - offset;
-            if (top < 0 || bottom > Window.CaseHeight) return 0;
-            else if (top < thresh) return 1 - MathHelper.Distance(top, thresh) / thresh;
-            else if (bottom > Window.CaseHeight - thresh) return MathHelper.Distance(bottom, Window.CaseHeight) / thresh;
-            else return 1;
         }
         public override void Update()
         {

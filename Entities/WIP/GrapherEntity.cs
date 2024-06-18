@@ -44,10 +44,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         public GrapherEntity(EntityData data, Vector2 offset)
             : this(data.Position + offset, data.Float("timeMod", 0.2f),
-                  data.Attr("Colorgrade", "PianoBoy/invertFlag"),
+                  data.Attr("colorgrade", "PianoBoy/invertFlag"),
                   data.Float("lineWidth", 1f),
                   data.Float("size", 10f),
-                  data.Float("opacity", 1.0f),
+                  data.Float("alpha", 1.0f),
                   data.HexColor("color"))
         {
         }

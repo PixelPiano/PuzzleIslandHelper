@@ -4,7 +4,7 @@ using Monocle;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
 
-    public class ForkAmpDisplay : Entity
+    public class OscDisplay : Entity
     {
         public const float WorldWidth = 12;
         public const float WorldHeight = 20;
@@ -31,7 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float ContentAlpha => InPlay ? 1 : 0.3f;
         public float FadeAmount;
         public bool Removing;
-        public ForkAmpDisplay(Vector2 position, float min, float max) : base(position)
+        public OscDisplay(Vector2 position, float min, float max) : base(position)
         {
             CurrentMin = Calc.Max(min, AbsoluteMin);
             CurrentMax = Calc.Min(max, AbsoluteMax);
@@ -51,7 +51,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 return;
             }
-            if(!Selected) return;
+            if(!Selected || !InPlay) return;
             if (Input.MoveY != 0)
             {
                 Frequency += -Input.MoveY.Value;

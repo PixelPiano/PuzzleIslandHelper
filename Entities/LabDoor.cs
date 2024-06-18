@@ -38,9 +38,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         }
         public States State;
         public Collider Detect;
+        private bool dependsOnLabPower;
+        public bool PowerState
+        {
+            get
+            {
+                return !dependsOnLabPower || PianoModule.Session.RestoredPower;
+            }
+        }
         public LabDoor(EntityData data, Vector2 offset)
             : base(data.Position + offset, 8, 48, false)
         {
+            dependsOnLabPower = data.Bool("dependsOnLabPower",true);
             auto = data.Bool("automatic");
             flag = data.Attr("flag");
             State = data.Bool("startState") ? States.Open : States.Closed;
@@ -55,13 +64,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             range = data.Float("range") * 8;
             Depth = -8500;
             Add(new LightOcclude());
+            Tag |= Tags.TransitionUpdate;
             Detect = new Hitbox(Width + range * 2, Height + 16, Position.X - range, Position.Y - 8);
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             player = Scene.Tracker.GetEntity<Player>();
-            doorSprite.Play(State != States.Open || !PianoModule.Session.RestoredPower ? "closed" : "open");
+            doorSprite.Play(State != States.Open || !PowerState ? "closed" : "open");
         }
         public override void DebugRender(Camera camera)
         {
@@ -82,7 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         }
         public override void Update()
         {
-            if (!PianoModule.Session.RestoredPower)
+            if (!PowerState)
             {
                 InstantClose();
             }

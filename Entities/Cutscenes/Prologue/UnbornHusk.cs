@@ -227,8 +227,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         {
             base.Awake(scene);
             Level obj = scene as Level;
-            obj.Session.ColorGrade = "PuzzleIslandHelper/prologue";
-            obj.ScreenPadding = 32f;
+            //obj.Session.ColorGrade = "PuzzleIslandHelper/prologue";
+            //obj.ScreenPadding = 32f;
             obj.CanRetry = false;
             while (CollideCheck<Solid>())
             {
@@ -251,7 +251,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             Glitch.Value = 0.05f;
             level.Tracker.GetEntity<Player>()?.StartTempleMirrorVoidSleep();
             float limit = 3;
-            while (ShakePercent < limit)
+/*            while (ShakePercent < limit)
             {
                 shaker.Interval = Calc.Max(0.1f - (0.05f * ShakePercent), Engine.DeltaTime);
                 shaker.MaxShake = Vector2.UnitX * (1 + ShakePercent);
@@ -269,7 +269,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 }
                 ShakePercent = Calc.Max(ShakePercent - Engine.DeltaTime / 2, 0);
                 yield return null;
-            }
+            }*/
             DiamondPulseLines bigPulse = new DiamondPulseLines((int)(PulseSize * limit), 300, 4f, 3f);
             PulseLines.Add(bigPulse);
             Add(bigPulse);
@@ -317,6 +317,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 yield return null;
             }
             WaitingForPolygonScreen = true;
+
             yield return null;
         }
         public void OnPlayer(Player player)

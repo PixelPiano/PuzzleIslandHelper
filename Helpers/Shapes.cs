@@ -51,7 +51,7 @@ internal class Shapes
             float angle = MathHelper.TwoPi * i / teeth;
             float nextangle = MathHelper.TwoPi * (i + 1) / teeth;
 
-            // front face right teeth slope
+            // front Face right teeth slope
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(beta + angle, innerRadius), -thickness), color, uv, Vector3.Backward));
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(alpha + angle, innerRadius), -thickness), color, uv, Vector3.Backward));
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(beta + angle, 1 + depth), -thickness), color, uv, Vector3.Backward));
@@ -59,7 +59,7 @@ internal class Shapes
             mesh.AddTriangle(o + 0, o + 1, o + 2);
             mesh.AddTriangle(o + 1, o + 3, o + 2);
 
-            // front face left teeth slope
+            // front Face left teeth slope
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(-alpha + angle, innerRadius), -thickness), color, uv, Vector3.Backward));
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(-beta + angle, innerRadius), -thickness), color, uv, Vector3.Backward));
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(-alpha + angle, 1), -thickness), color, uv, Vector3.Backward));
@@ -67,11 +67,11 @@ internal class Shapes
             mesh.AddTriangle(o + 4, o + 5, o + 6);
             mesh.AddTriangle(o + 5, o + 7, o + 6);
 
-            // front face teeth joint
+            // front Face teeth joint
             mesh.AddTriangle(o + 2, o + 5, o + 0);
             mesh.AddTriangle(o + 5, o + 2, o + 7);
 
-            // front face hole joint
+            // front Face hole joint
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(alpha + nextangle, innerRadius), -thickness), color, uv, Vector3.Backward));
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(alpha + nextangle, 1), -thickness), color, uv, Vector3.Backward));
             mesh.AddTriangle(o + 6, o + 8, o + 4);
@@ -79,7 +79,7 @@ internal class Shapes
 
             o += 10;
 
-            // back face right teeth slope
+            // back Face right teeth slope
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(beta + angle, innerRadius), thickness), color, uv, Vector3.Forward));
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(alpha + angle, innerRadius), thickness), color, uv, Vector3.Forward));
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(beta + angle, 1 + depth), thickness), color, uv, Vector3.Forward));
@@ -87,7 +87,7 @@ internal class Shapes
             mesh.AddTriangle(o + 0, o + 2, o + 1);
             mesh.AddTriangle(o + 1, o + 2, o + 3);
 
-            // back face left teeth slope
+            // back Face left teeth slope
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(-alpha + angle, innerRadius), thickness), color, uv, Vector3.Forward));
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(-beta + angle, innerRadius), thickness), color, uv, Vector3.Forward));
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(-alpha + angle, 1), thickness), color, uv, Vector3.Forward));
@@ -95,11 +95,11 @@ internal class Shapes
             mesh.AddTriangle(o + 4, o + 6, o + 5);
             mesh.AddTriangle(o + 5, o + 6, o + 7);
 
-            // back face teeth joint
+            // back Face teeth joint
             mesh.AddTriangle(o + 2, o + 0, o + 5);
             mesh.AddTriangle(o + 5, o + 7, o + 2);
 
-            // back face hole joint
+            // back Face hole joint
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(alpha + nextangle, innerRadius), thickness), color, uv, Vector3.Forward));
             mesh.AddVertex(new(new(scale * Calc.AngleToVector(alpha + nextangle, 1), thickness), color, uv, Vector3.Forward));
             mesh.AddTriangle(o + 6, o + 4, o + 8);
@@ -109,7 +109,7 @@ internal class Shapes
 
             Vector3 a, b, c, d, normal;
 
-            // side face right teeth slope
+            // side Face right teeth slope
             a = new(scale * Calc.AngleToVector(beta + angle, 1 + depth), -thickness);
             b = new(scale * Calc.AngleToVector(alpha + angle, 1), -thickness);
             c = new(scale * Calc.AngleToVector(beta + angle, 1 + depth), thickness);
@@ -123,7 +123,7 @@ internal class Shapes
             mesh.AddTriangle(o + 1, o + 3, o + 2);
             o += 4;
 
-            // side face left teeth slope
+            // side Face left teeth slope
             a = new(scale * Calc.AngleToVector(-beta + angle, 1 + depth), -thickness);
             b = new(scale * Calc.AngleToVector(-alpha + angle, 1), -thickness);
             c = new(scale * Calc.AngleToVector(-beta + angle, 1 + depth), thickness);
@@ -137,7 +137,7 @@ internal class Shapes
             mesh.AddTriangle(o + 1, o + 2, o + 3);
             o += 4;
 
-            // side face teeth joint
+            // side Face teeth joint
             a = new(scale * Calc.AngleToVector(beta + angle, 1 + depth), -thickness);
             b = new(scale * Calc.AngleToVector(-beta + angle, 1 + depth), -thickness);
             c = new(scale * Calc.AngleToVector(beta + angle, 1 + depth), thickness);
@@ -151,7 +151,7 @@ internal class Shapes
             mesh.AddTriangle(o + 1, o + 2, o + 3);
             o += 4;
 
-            // side face hole joint
+            // side Face hole joint
             a = new(scale * Calc.AngleToVector(alpha + nextangle, 1), -thickness);
             b = new(scale * Calc.AngleToVector(-alpha + angle, 1), -thickness);
             c = new(scale * Calc.AngleToVector(alpha + nextangle, 1), thickness);
@@ -165,7 +165,7 @@ internal class Shapes
             mesh.AddTriangle(o + 1, o + 3, o + 2);
             o += 4;
 
-            // side face middle right joint
+            // side Face middle right joint
             a = new(scale * Calc.AngleToVector(beta + angle, innerRadius), -thickness);
             b = new(scale * Calc.AngleToVector(alpha + angle, innerRadius), -thickness);
             c = new(scale * Calc.AngleToVector(beta + angle, innerRadius), thickness);
@@ -179,7 +179,7 @@ internal class Shapes
             mesh.AddTriangle(o + 1, o + 2, o + 3);
             o += 4;
 
-            // side face middle left joint
+            // side Face middle left joint
             a = new(scale * Calc.AngleToVector(-alpha + angle, innerRadius), -thickness);
             b = new(scale * Calc.AngleToVector(-beta + angle, innerRadius), -thickness);
             c = new(scale * Calc.AngleToVector(-alpha + angle, innerRadius), thickness);
@@ -193,7 +193,7 @@ internal class Shapes
             mesh.AddTriangle(o + 1, o + 2, o + 3);
             o += 4;
 
-            // side face middle center joint
+            // side Face middle center joint
             a = new(scale * Calc.AngleToVector(beta + angle, innerRadius), -thickness);
             b = new(scale * Calc.AngleToVector(beta + angle, innerRadius), thickness);
             c = new(scale * Calc.AngleToVector(-beta + angle, innerRadius), -thickness);
@@ -207,7 +207,7 @@ internal class Shapes
             mesh.AddTriangle(o + 1, o + 2, o + 3);
             o += 4;
 
-            // side face middle transition joint
+            // side Face middle transition joint
             a = new(scale * Calc.AngleToVector(-alpha + angle, innerRadius), -thickness);
             b = new(scale * Calc.AngleToVector(alpha + nextangle, innerRadius), -thickness);
             c = new(scale * Calc.AngleToVector(-alpha + angle, innerRadius), thickness);
@@ -878,7 +878,7 @@ internal class Shapes
 
             foreach (int[] face in faces)
             {
-                // current face (triangle) indices
+                // current Face (triangle) indices
                 int a = face[0];
                 int b = face[1];
                 int c = face[2];

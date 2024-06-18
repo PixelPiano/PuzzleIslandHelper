@@ -40,7 +40,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             Depth = 2;
             Add(Talk = new DotX3(0, 0, Width, Height, Vector2.UnitX * Width / 2, Interact));
             Talk.Enabled = !LabGenerator.Laser;
-            Position += Vector2.UnitY * 8;
         }
         public override void Update()
         {

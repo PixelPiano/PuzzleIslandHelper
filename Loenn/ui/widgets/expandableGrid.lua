@@ -70,7 +70,7 @@ local function makeRow(columns,outerPadding,columnSpacing,rows,columnCount,colum
 
                         if centerVertically then
                             element.__gridY = offsetY
-                            element.__gridY += math.floor((rowHeight - element.height) / 2)
+                            element.__gridY = element.__gridY  + math.floor((rowHeight - element.height) / 2)
 
                         else
                             element.__gridY = offsetY
@@ -79,7 +79,7 @@ local function makeRow(columns,outerPadding,columnSpacing,rows,columnCount,colum
                 end
 
                 if rowHeight > 0 then
-                    offsetY += rowHeight + rowSpacing
+                    offsetY = offsetY + rowHeight + rowSpacing
                 end
             end
 
@@ -129,11 +129,11 @@ function expGridElement.getGrid(elements, columnCount, buttonOptions, createElem
                 end
             })
         end
-        column += 1
+        column = column+ 1
 
         if column > columnCount then
             column = 1
-            rows += 1
+            rows = rows+ 1
         end
     end
     local plus = uiElements.button("+",function (button) end):with(buttonOptions)
@@ -174,7 +174,7 @@ function expGridElement.getGrid(elements, columnCount, buttonOptions, createElem
             end
         end
     })
-    rows+=1
+    rows= rows + 1
     for i = 1, columnCount do
         -- Spacing needed for dropdown positioning
         columns[i] = uiElements.group(columnElements[i]):with({
@@ -218,10 +218,10 @@ function expGridElement.getGrid(elements, columnCount, buttonOptions, createElem
             style = {
                 spacing = 0
             }})
-        column+=1
+        column = column + 1
         if column > columnCount then
             column = 1
-            rows += 1
+            rows = rows + 1
         end
         
         wrap:addChild(row)
@@ -233,14 +233,14 @@ function expGridElement.getGrid(elements, columnCount, buttonOptions, createElem
                 return
             end
             
-            column -= 1
+            column = column - 1
             if column <= 0 and rows <= 2 then
-                column += 1
+                column = column + 1
                 return
             end
             row:removeSelf()
             if column == 0 then
-                rows-=1
+                rows = rows - 1
                 column = columnCount
             end
             local targetColumn = columnElements[column]

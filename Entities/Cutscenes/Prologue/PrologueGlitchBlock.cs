@@ -16,10 +16,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
         public PrologueGlitchBlock(Vector2 position, float width, float height, char tileType, string flag) : base(position, width, height, tileType, flag, false, true, true, glitchEvent, false)
         {
         }
-        public PrologueGlitchBlock(PrologueBird bird) : this(bird.StartPosition - Vector2.One * 16, 32, 40, 'Q', "birdBlock")
-        {
-
-        }
         public PrologueGlitchBlock(Player player) : this(player.Position - Vector2.One * 22, 48, 56, 'Q', "playerBlock")
         {
         }

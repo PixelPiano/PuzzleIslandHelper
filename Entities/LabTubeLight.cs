@@ -62,8 +62,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(sfx = new SoundSource());
             Collider = new Hitbox(Length, 8);
             sfx.Position = new Vector2(Length/2, 4);
-            Add(bloom = new BloomPoint(new Vector2(Length / 2, 4), 0.4f, Length / 2));
-            Add(light = new VertexLight(new Vector2(Length / 2, 24), Color.White, 0.97f, 64, 120));
+            Add(bloom = new BloomPoint(new Vector2(Length / 2, 4), 0.1f, Length / 2));
+            Add(light = new VertexLight(new Vector2(Length / 2, 24), Color.White, 0.86f, 64, 120));
             OnDashCollide = DashCollision;
         }
 

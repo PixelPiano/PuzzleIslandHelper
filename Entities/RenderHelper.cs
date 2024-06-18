@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework.Graphics;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's namespace
 {

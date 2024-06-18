@@ -135,7 +135,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         {
             base.Update();
             TextRenderer.Text = Text;
-            Color = Color.Lerp(Color.White, Disabled ? Color.LightGray : Color.White, 0.5f);
+            Color = Color.Lerp(Color.White, Disabled ? Color.LightGray : Color.White, 0.5f) * Alpha;
             if (UsesCircleCollider)
             {
                 Circle.Position = RenderPosition + HalfArea;
@@ -150,7 +150,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             if (ForcePressed)
             {
-                Color = Color.Blue;
+                Color = Color.Blue * Alpha;
                 if (!Pressing)
                 {
                     RunActions();

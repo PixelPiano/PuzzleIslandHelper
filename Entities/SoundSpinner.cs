@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -13,7 +14,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [TrackedAs(typeof(CustomSpinner))]
     public class SoundSpinner : CustomSpinner
     {
-        public string ShatterFlag;
+        public string Flag;
+        private string inputFlag;
+        public bool InvertFlag;
+        
+        public bool KeepInScene => string.IsNullOrEmpty(inputFlag) || SceneAs<Level>().Session.GetFlag(Flag) == InvertFlag;
         public bool Shattered;
         public Vector2 ShakeVector;
         public float ShakeAmount;
@@ -29,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float[] Amps;
         private float AmpTimer;
         private float ShakeAddAmount;
-        public const float AmpRange = 0.1f;
+        public const float AmpRange = 0.2f;
         public const float UserAmpLimit = 0.5f;
         public static EntityData CreateData(EntityData orig)
         {
@@ -46,7 +51,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public SoundSpinner(EntityData data, Vector2 offset) : base(CreateData(data), offset, false, "danger/PuzzleIslandHelper/icecrystal", data.Attr("tint", "639bff"), false, data.Attr("tint", "ffffff"))
         {
             origPosition = Position;
-            ShatterFlag = "sound_spinner_shatter_flag_" + data.Int("attachGroup");
+            inputFlag = data.Attr("flag");
+            Flag = "sound_spinner_shatter_flag_" + inputFlag;
+            InvertFlag = data.Bool("invertFlag");
             wave = new SineWave(1, Calc.Random.Range(-1f, 1));
             Add(wave);
             Active = true;
@@ -65,10 +72,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public void SetAmplitude()
         {
             float[] rates = PianoModule.Session.ForkAmpState.Rates;
-            if(rates is null || rates.Length <= 0) return;
+            if (rates is null || rates.Length <= 0) return;
             int count = 0;
             float amount = 0;
             float maxRange = 15;
+            ForkAmpSpeaker speaker = SceneAs<Level>().Tracker.GetEntity<ForkAmpSpeaker>();
+            float mult = speaker is null ? 1 : speaker.Amount;
             for (int i = 0; i < 4; i++)
             {
                 if (Amps[i] < 0) continue;
@@ -76,8 +85,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 amount += UserAmpLimit - (Calc.Clamp(dist, 0, maxRange) / maxRange) * UserAmpLimit;
                 count++;
             }
-            ShakeAmount = (count == 0 ? 0 : amount / count) + ShakeAddAmount;
+            ShakeAmount = ((count == 0 ? 0 : amount / count) + ShakeAddAmount) * mult;
+            if (ShakeAmount > 0)
+            {
+                DistortAmount = Calc.Clamp(ShakeAmount / 0.5f, 0, 1);
+            }
         }
+        public static float DistortAmount;
         private IEnumerator ColorFlash()
         {
             float time = 0.2f;
@@ -108,7 +122,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if ((scene as Level).Session.GetFlag(ShatterFlag))
+            if (!KeepInScene)
             {
                 RemoveSelf();
             }
@@ -116,6 +130,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            if (!KeepInScene)
+            {
+                RemoveSelf();
+                return;
+            }
             DoCycle();
             SetAmplitude();
             if (MathHelper.Distance(ShakeAmount - ShakeAddAmount, UserAmpLimit) <= AmpRange)
@@ -162,7 +181,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public void AmpDestroy()
         {
             Destroy();
-            (Scene as Level).Session.SetFlag(ShatterFlag);
+            (Scene as Level).Session.SetFlag(Flag);
             (Scene as Level).Shake();
             Input.Rumble(RumbleStrength.Medium, RumbleLength.Short);
             Celeste.Freeze(0.01f);

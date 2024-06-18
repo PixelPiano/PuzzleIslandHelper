@@ -13,7 +13,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public const int MaxLives = 2;
         public Sprite[] Lives = new Sprite[MaxLives];
         public Image Image;
-        private int dead;
+        public int LivesLost
+        {
+            get
+            {
+                return PianoModule.Session.GameshowLivesLost;
+            }
+            set
+            {
+                PianoModule.Session.GameshowLivesLost = value;
+            }
+        }
         public bool GameOver;
         public LifeDisplay(EntityData data, Vector2 offset) : this(data.Position + offset) { }
         public LifeDisplay(Vector2 position) : base(position)
@@ -36,12 +46,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         }
         public void ConsumeLife()
         {
-            if (dead < MaxLives)
+            if (LivesLost < MaxLives)
             {
-                Lives[dead].Play("explode");
+                Lives[LivesLost].Play("explode");
                 Audio.Play("event:/PianoBoy/funnyExplosion");
-                dead++;
-                if (dead == MaxLives)
+                LivesLost++;
+                if (LivesLost == MaxLives)
                 {
                     GameOver = true;
                 }

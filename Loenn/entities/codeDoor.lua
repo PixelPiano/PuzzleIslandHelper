@@ -1,6 +1,5 @@
 local codeDoor = {}
 local drawableSprite = require("structs.drawable_sprite")
-codeDoor.justification = { 0, 0 }
 
 codeDoor.name = "PuzzleIslandHelper/CodeDoor"
 
@@ -25,7 +24,11 @@ function codeDoor.sprite(room, entity)
         rotation = 90
     end
     sprite.rotation = math.rad(rotation)
-    sprite:setJustification(0.5, 0.5)
+    if rotation == 90 then
+        sprite:setJustification(0,1)
+    else
+        sprite:setJustification(0,0)
+    end
     return sprite
 end
 

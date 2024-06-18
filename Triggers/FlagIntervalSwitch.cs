@@ -17,7 +17,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         private bool oneAtATime;
         private bool state;
         private float endWaitTime;
-
+        public enum ActivationTypes
+        {
+            OnLevelStart,
+            OnEnter,
+            OnLeave
+        }
+        private ActivationTypes type;
         public FlagIntervalSwitch(EntityData data, Vector2 offset) : base(data, offset)
         {
             flag = data.Attr("flag");
@@ -28,6 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             state = data.Bool("intervalFlagState");
             oneAtATime = data.Bool("oneAtATime");
             endWaitTime = data.Float("endWaitTime");
+            type = data.Enum<ActivationTypes>("activationMethod");
         }
         private IEnumerator Routine(Level level)
         {
@@ -75,10 +82,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             }
 
         }
-
-        public override void SceneBegin(Scene scene)
+        public override void Added(Scene scene)
         {
-            base.SceneBegin(scene);
+            base.Added(scene);
+            if (type == ActivationTypes.OnLevelStart)
+            {
+                Start(scene);
+            }
+        }
+        public override void OnEnter(Player player)
+        {
+            base.OnEnter(player);
+            if (type == ActivationTypes.OnEnter)
+            {
+                Start(Scene);
+            }
+        }
+        public override void OnLeave(Player player)
+        {
+            base.OnLeave(player);
+            if (type == ActivationTypes.OnLeave)
+            {
+                Start(Scene);
+            }
+        }
+        private void Start(Scene scene)
+        {
             Add(new Coroutine(Routine(scene as Level)));
         }
     }

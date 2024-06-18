@@ -61,7 +61,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             if (Engine.Scene is not Level level) yield break;
             if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
             {
-                yield return PianoModule.Session.Interface.CloseInterface(instant);
+                yield return PianoModule.Session.Interface.CloseInterfaceRoutine(instant);
             }
 
             level.Add(new BeamMeUp(room, AccessTeleporting));
@@ -79,7 +79,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             }
             if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
             {
-                yield return PianoModule.Session.Interface.CloseInterface(instant);
+                yield return PianoModule.Session.Interface.CloseInterfaceRoutine(instant);
             }
             level.Add(new BeamMeUp(link.Room, AccessTeleporting));
         }

@@ -15,6 +15,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public Interface Interface;
         public List<WindowComponent> ProgramComponents = new();
         public bool Preserve;
+        public bool DraggingEnabled = true;
+        public bool ClosingEnabled = true;
 
         public string Name;
 
@@ -55,6 +57,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public virtual void OnOpened(BetterWindow window)
         {
             Window = window;
+            Interface = window.Interface;
             Depth = Window.Depth - 1;
         }
         public override void Update()

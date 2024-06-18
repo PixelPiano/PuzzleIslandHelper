@@ -36,11 +36,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             if (Sideways)
             {
                 doorSprite.CenterOrigin();
-                doorSprite.Position += new Vector2(doorSprite.Width / 2, doorSprite.Height / 2);
+                doorSprite.Position += new Vector2(doorSprite.Height / 2, doorSprite.Width / 2);
                 doorSprite.Rotation = 90f.ToRad();
             }
-            Collider = new Hitbox(Sideways ? 48 : 8, Sideways ? 8 : 48);
+            Collider = new Hitbox(Sideways ? doorSprite.Height : doorSprite.Width, Sideways ? doorSprite.Width : doorSprite.Height);
             Add(new LightOcclude());
+            if (Sideways) Position.X += 8;
             orig_Position = Position;
             Depth = -1;
             doorSprite.Play("idle");

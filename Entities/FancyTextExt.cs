@@ -12,7 +12,7 @@ using Monocle;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     /*
-     * This literally only adds a color parameter to the draw calls and nothing else. I'm not experienced enough to know how to do this better
+     * This literally only adds a Color parameter to the draw calls and nothing else. I'm not experienced enough to know how to do this better
      * 
      * just kidding this is now future me, i have added an offset feature because i am a gremlin HHEE HEE HOO HOO HA
      * 

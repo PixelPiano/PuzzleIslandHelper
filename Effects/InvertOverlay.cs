@@ -87,7 +87,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         {
             base.Update(scene);
             Level level = scene as Level;
-            if (PianoModule.Session.HasInvert)
+            if (PianoModule.Settings.InvertAbility)
             {
                 level.Session.SetFlag("invertOverlay");
             }
@@ -138,9 +138,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 }
                 if (previousState != State)
                 {
-
-                    level.SnapColorGrade(State || (EnforceState && ForcedState) ? "PianoBoy/Inverted" : "none");
-
+                    level.NextColorGrade(State || (EnforceState && ForcedState) ? "PianoBoy/Inverted"+(PianoModule.Settings.InvertEffectIntensity * 20) : "none", 10f);
                     if (State)
                     {
                         Audio.CurrentMusicEventInstance?.getTimelinePosition(out LastTimelinePosition);

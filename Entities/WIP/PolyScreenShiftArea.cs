@@ -24,6 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public bool LinesOutsideBounds;
         public bool StartedRepairing;
         public List<int> OOB = new();
+        public int Thickness => LineThickness;
         public PolygonScreen Screen;
         public PolyScreenShiftArea(EntityData data, Vector2 offset)
             : this(data.Position, offset, data.NodesWithPosition(Vector2.Zero))

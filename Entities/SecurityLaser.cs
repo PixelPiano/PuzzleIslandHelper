@@ -583,7 +583,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         {
             normal = Vector2.Normalize(normal);
             var cross3 = Vector3.Cross(new Vector3(normal, 0), new Vector3(0, 0, 1));
-            var cross = new Vector2(cross3.X, cross3.Y);  // cross3.Z is always 0 idc
+            var cross = new Vector2(cross3.X, cross3.Y);  // cross3.z is always 0 idc
             cross.Normalize();
 
             var p1 = point + normal * padding.Y + cross * padding.X;

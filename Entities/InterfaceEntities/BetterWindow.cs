@@ -44,10 +44,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public WindowContent CurrentProgram;
         private bool WaitForClickRelease;
         private bool CanCloseWindow;
+
+        public bool DraggingEnabled = true;
+        public bool ClosingEnabled = true;
         public List<BetterButton> Buttons => Components.GetAll<BetterButton>().ToList();
         public List<WindowComponent> CustomComponents = new();
         private Color TabColor = Color.Blue;
         public Interface Interface;
+        public float Alpha = 1;
 
         public BetterWindow(Vector2 position, Interface inter)
         {
@@ -97,14 +101,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             TabArea.Width = (int)CaseWidth - (int)xSprite.Width;
             TabArea.X = x;
             TabArea.Y = y - tabHeight;
-            Draw.Rect(Position, (int)CaseWidth, (int)CaseHeight, Interface.NightMode ? Color.DarkSlateGray : Color.White);
-            Draw.HollowRect(Position, (int)CaseWidth, (int)CaseHeight, Color.Gray);
+            Draw.Rect(Position, (int)CaseWidth, (int)CaseHeight, Interface.NightMode ? Color.DarkSlateGray * Alpha : Color.White * Alpha);
+            Draw.HollowRect(Position, (int)CaseWidth, (int)CaseHeight, Color.Gray * Alpha);
             CurrentProgram?.WindowRender();
-            Draw.Rect(new Vector2(TabArea.X, TabArea.Y), (int)CaseWidth, tabHeight, TabColor);
+            Draw.Rect(new Vector2(TabArea.X, TabArea.Y), (int)CaseWidth, tabHeight, TabColor * Alpha);
             base.Render();
-            this.x.Position = new Vector2(TabArea.X + (int)CaseWidth - 8, TabArea.Y + 1); //must be adjusted after rectangles are drawn
-            xSprite.Play("idle");
-            xSprite.Render();
+            if (ClosingEnabled)
+            {
+                this.x.Position = new Vector2(TabArea.X + (int)CaseWidth - 8, TabArea.Y + 1); //must be adjusted after rectangles are drawn
+                xSprite.Color = Color.White * Alpha;
+                xSprite.Play("idle");
+                xSprite.Render();
+            }
             TextWindow.TextWidth = (int)TextCaseWidth;
             TextWindow.Drawing = true;
         }
@@ -130,14 +138,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Position = Position.Floor();
             DrawPosition = Position;
             Visible = Drawing;
-            x.Visible = Drawing;
-
-            if (Drawing)
+            x.Visible = Drawing && ClosingEnabled;
+            if (x.Visible)
             {
                 x.Collider = backupCollider;
             }
             TextWindow.TextPosition = Position.Floor() + TextOffset * Vector2.One;
-
+            if(CurrentProgram != null)
+            {
+                ClosingEnabled = CurrentProgram.ClosingEnabled;
+                DraggingEnabled = CurrentProgram.DraggingEnabled;
+            }
             WasDrawing = Drawing;
             base.Update();
             if (Drawing)
@@ -146,6 +157,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             foreach (BetterButton b in Buttons)
             {
+                b.Alpha = Alpha;
                 if (b.Pressing)
                 {
                     PressingButton = true;
@@ -165,7 +177,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             backupCollider = x.Collider;
             TabArea = new Rectangle((int)Position.X, (int)Position.Y - tabHeight, (int)WindowWidth, tabHeight);
             Visible = Drawing;
-            x.Visible = Drawing;
+            x.Visible = Drawing && ClosingEnabled;
             scene.Add(TextWindow = new TextWindow(Interface, Interface.CurrentIconName));
         }
         public void UpdateWindow()
@@ -189,16 +201,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
         public void OpenWindow(ComputerIcon icon)
         {
-            if (Drawing) return;
+            OpenWindow(icon.Name);
+        }
+        public void OpenWindow(string name)
+        {
+            if (Drawing || Scene is not Level level) return;
             CurrentProgram = null;
+
             CaseWidth = WindowWidth;
             CaseHeight = WindowHeight;
             TextCaseWidth = WindowWidth;
-            TextWindow.Initialize(icon.Name);
+            Position = level.Camera.Position + new Vector2(160, 90) - new Vector2(CaseWidth / 2, CaseHeight / 2);
+
+            TextWindow.Initialize(name);
+
             Color color = Color.Blue;
 
             removeComponents();
-            WindowContent content = Interface.GetProgram(icon);
+            WindowContent content = Interface.GetProgram(name);
             if (content is not null)
             {
                 content.OnOpened(this);
@@ -208,7 +228,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             TabColor = Color.Lerp(color, Color.Black, Interface.NightMode ? 0.5f : 0);
             Collider = new Hitbox(CaseWidth, CaseHeight);
         }
-
         private void addProgramComponents()
         {
             if (CurrentProgram is null) return;

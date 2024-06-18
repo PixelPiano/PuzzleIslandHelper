@@ -2,7 +2,7 @@ local piCutscene = {}
 
 piCutscene.name = "PuzzleIslandHelper/PICutscene"
 
-local cutscenes = {"Prologue","Calidus1","GetInvert","GrassShift","Gameshow","Fountain","End","TEST"}
+local cutscenes = {"Prologue","WarpToCalidus","Calidus1","GetInvert","GrassShift","Gameshow","Fountain","End","TEST"}
 piCutscene.placements =
 {
     {

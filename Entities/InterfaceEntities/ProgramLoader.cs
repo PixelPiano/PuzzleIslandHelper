@@ -19,17 +19,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     {
         public delegate WindowContent ContentLoader(BetterWindow window);
         public static readonly Dictionary<string, ContentLoader> ContentLoaders = new Dictionary<string, ContentLoader>();
-        public static bool LoadCustomProgram(ComputerIcon icon, BetterWindow window, Level level)
+        public static bool LoadCustomProgram(string name, BetterWindow window, Level level)
         {
-            if (ContentLoaders.TryGetValue(icon.Name, out var value))
+            if (ContentLoaders.TryGetValue(name, out var value))
             {
                 var program = value(window);
                 if (program != null)
                 {
-                    program.Name = icon.Name;
+                    program.Name = name;
                     if (PianoModule.Session.Interface is Interface inter)
                     {
-                        if (inter.GetProgram(icon) is WindowContent content)
+                        if (inter.GetProgram(name) is WindowContent content)
                         {
                             content.Window = inter.Window;
                             return true;

@@ -1,5 +1,6 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections;
 using System.Collections.Generic;
@@ -24,9 +25,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public int FadingAreaLine;
         public bool Broken;
         public List<char> BgCache = new();
-        
+
         public const int MaxPolygons = 25;
         public Vector2[] Points;
+        public Vector2[] MiddlePoints;
         public List<Triangle> Areas = new();
 
         public int IndexedAreas;
@@ -56,19 +58,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public Dictionary<Vector2, Vector2> Offsets = new();
         public class Triangle : ShiftArea
         {
+            public bool IsCenterTriangle;
             public Triangle(Vector2 position, Vector2 offset, char bgFrom, char bgTo, char fgFrom, char fgTo, Vector2[] nodes, int[] indices) : base(position, offset, bgFrom, bgTo, fgFrom, fgTo, nodes, indices)
             {
                 AreaDepth = -1;
                 LineAlpha = 1;
+                FillIn = IsCenterTriangle;
+                TileExtend = 2;
                 Add(new Coroutine(lineAlphaFade()));
             }
             private IEnumerator lineAlphaFade()
             {
-                
+
                 float start = Calc.Random.Range(0, 1f);
                 while (true)
                 {
-                    
+
                     for (float i = start; i < 1; i += Engine.DeltaTime)
                     {
                         LineAlpha = Calc.LerpClamp(0.3f, 0.5f, Ease.SineInOut(i));
@@ -95,8 +100,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public PolygonScreen() : base(Vector2.Zero)
         {
             AddTag(Tags.TransitionUpdate);
-            int size = 30;
-            GetScreenPoints(size, size, 1);
         }
 
         private IEnumerator LineConnect()
@@ -147,8 +150,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            GetScreenPoints(30, 30, 1);
             Level level = scene as Level;
-            char bgfrom = '0';
+            AreaData centerData = new AreaData(RandTile());
             for (int i = 2; i < Points.Length; i++)
             {
                 char bgto = RandTile();
@@ -180,11 +184,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 }
                 Data[bgto].AddNodes(nodes);
             }
-
+            centerData.AddNodes(new Vector2[] { MiddlePoints[0], MiddlePoints[1], MiddlePoints[2], MiddlePoints[1], MiddlePoints[2], MiddlePoints[3] });
             foreach (KeyValuePair<char, AreaData> pair in Data)
             {
                 CreateAndAddArea(pair.Value.BgTo, level, pair.Value.Vertices, pair.Value.Indices);
             }
+            CreateAndAddArea(centerData.BgTo, level, centerData.Vertices, centerData.Indices, true);
 
         }
         public override void Awake(Scene scene)
@@ -202,7 +207,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         {
             return Calc.Random.Choose(Color.White, Color.LightBlue);
         }
-        public void CreateAndAddArea(char bgto, Level level, List<Vector2> nodes, List<int> indices)
+        public void CreateAndAddArea(char bgto, Level level, List<Vector2> nodes, List<int> indices, bool isCenter = false)
         {
             Triangle area = new(Vector2.Zero, level.LevelOffset, '0', bgto, '0', '0', nodes.ToArray(), indices.ToArray())
             {
@@ -212,7 +217,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 VerticeColor = PianoUtils.Initialize(GetRandomColor, Points.Length),
                 PointLineAmount = PianoUtils.Initialize(0f, Points.Length),
                 PointLineAlphas = PianoUtils.Initialize(0f, Points.Length),
-                VerticeAlpha = PianoUtils.Initialize(0f, Points.Length)
+                VerticeAlpha = PianoUtils.Initialize(0f, Points.Length),
+                IsCenterTriangle = isCenter,
+                FillIn = isCenter,
             };
             Areas.Add(area);
             level.Add(area);
@@ -237,18 +244,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             bool offsetRow = false;
             float adjustY = height / 2;
             float adjustX = 0;
+            int rows = (int)((bottom - top) / height);
+            int cols = (int)((right - left) / width);
             for (float j = top; j < bottom; j += height)
             {
                 for (float i = left; i < right; i += width / 2)
                 {
-                    screenpoints.Add(new Vector2(i + adjustX, (offsetHeight ? -1 : 1) * adjustY + j));
+                    Vector2 pos = new Vector2(i + adjustX, (offsetHeight ? -1 : 1) * adjustY + j);
+                    screenpoints.Add(pos);
                     offsetHeight = !offsetHeight;
                 }
+
                 offsetHeight = false;
                 adjustX = offsetRow ? width / 2 : 0;
                 offsetRow = !offsetRow;
                 screenpoints.Add(-Vector2.One);
             }
+            float w = width * 3;
+            float h = w * 1.7f;
+            Vector2 offset = new Vector2(160, 90);
+            Vector2 topmiddle = Vector2.UnitY * (-h / 2) + offset;
+            Vector2 leftmiddle = Vector2.UnitX * (-w / 2) + offset;
+            Vector2 bottommiddle = Vector2.UnitY * (h / 2) + offset;
+            Vector2 rightmiddle = Vector2.UnitX * (w / 2) + offset;
+            MiddlePoints = new Vector2[]
+            {
+                topmiddle, leftmiddle, rightmiddle, bottommiddle
+            };
+
             Points = screenpoints.ToArray();
         }
     }

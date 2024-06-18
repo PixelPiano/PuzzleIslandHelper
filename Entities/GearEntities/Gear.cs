@@ -42,6 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities
         public string ContinuityID;
         public bool IsLeader;
         public string SubID;
+
         private float switchBackTimer;
         private bool switchColliders;
         public Gear(EntityData data, Vector2 offset, EntityID entityID) : base(data.Position + offset)

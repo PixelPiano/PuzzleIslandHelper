@@ -33,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public CutsceneHeart(EntityData data, Vector2 offset, EntityID id)
         : base(data.Position + offset)
         {
-            spriteName = data.Attr("sprite");
+            spriteName = data.Attr("texture");
             TeleportsPlayer = data.Bool("teleportsPlayer");
             room = data.Attr("room");
             Tag = Tags.TransitionUpdate;

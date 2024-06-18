@@ -1,6 +1,8 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
+using IL.Celeste;
 using Microsoft.Xna.Framework;
 using Monocle;
+using On.Celeste;
 using System;
 using System.Collections;
 
@@ -15,6 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private int part;
         private string room = "r-2c";
         private static bool SkippedPart1;
+        private static Vector2 RelativeTeleportPosition;
         public GrassShift(int part) : base()
         {
             this.part = part;
@@ -23,6 +26,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 
         public override void OnBegin(Level level)
         {
+            if (level.Session.GetFlag("GrassShiftCutsceneWatched"))
+            {
+                return;
+            }
             if (part == 1)
             {
                 SkippedPart1 = false;
@@ -50,7 +57,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         public IEnumerator CutscenePart1(Level level)
         {
-            Level.Session.SetFlag("mustHaveSeenPart1", false);
             Shader.ForceLevelRender = false;
             Shader.Amplitude = 0;
             Player player = level.GetPlayer();
@@ -65,10 +71,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             if (SkippedPart1)
             {
                 player.StateMachine.State = 0;
+                player.Position = level.LevelOffset + RelativeTeleportPosition;
                 EndCutscene(level);
                 yield break;
             }
-            Level.Session.SetFlag("mustHaveSeenPart1");
             Add(new Coroutine(TempleShake()));
             Shader.ForceLevelRender = true;
             Shader.Amplitude = max;
@@ -82,11 +88,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         public override void OnEnd(Level level)
         {
-
             Player player = level.GetPlayer();
             if (player is not null)
             {
-                player.StateMachine.State = 0;
+                player.StateMachine.State = Player.StNormal;
             }
             if (WasSkipped)
             {
@@ -94,27 +99,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 {
                     SkippedPart1 = true;
                 }
-                if (level.Session.Level != "ruinsBeforePipes")
+                if (level.Session.Level != room)
                 {
-                    TeleportToRuinsBeforePipes(true);
+                    TeleportToRuinsBeforePipes();
                 }
+                if (part == 2 && Shader != null)
+                {
+                    Shader.Amplitude = 0;
+                    level.Remove(Shader);
+                }
+            }
+            if(WasSkipped || part == 2)
+            {
+                level.Session.SetFlag("GrassShiftCutsceneWatched");
             }
         }
 
-
-        public void TeleportToRuinsBeforePipes(bool skipped = false)
+        public void TeleportToRuinsBeforePipes()
         {
             Player player = Level.GetPlayer();
-            
-            if (!skipped)
-            {
-                Level.Session.SetFlag("mustHaveSeenPart1");
-            }
-            else
-            {
-                RemoveOnSkipped = false;
-            }
-            InstantTeleport(Level, player, room, null/*skipped ? OnSkipTeleport : OnTeleport*/, skipped);
+            InstantTeleport(Level, player, room, null);
         }
         public void OnSkipTeleport(Level level)
         {
@@ -219,7 +223,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             yield return null;
         }
-        public static void InstantTeleport(Scene scene, Player player, string room, Action<Level> onEnd = null, bool setStateToNormal = false)
+        public static void InstantTeleport(Scene scene, Player player, string room, Action<Level> onEnd = null)
         {
             Level level = scene as Level;
             if (level == null)
@@ -234,6 +238,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 Vector2 levelOffset = level.LevelOffset;
                 Vector2 val2 = player.Position - level.LevelOffset;
+                RelativeTeleportPosition = val2;
                 Vector2 val3 = level.Camera.Position - level.LevelOffset;
                 float zoom = level.Zoom;
                 float zoomTarget = level.ZoomTarget;
@@ -248,21 +253,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 bounds = level.Bounds;
                 session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
                 level.Session.FirstLevel = false;
-                level.LoadLevel(Player.IntroTypes.Transition);
+                level.LoadLevel(Player.IntroTypes.None);
                 level.Camera.Position = level.LevelOffset + val3;
                 level.Zoom = zoom;
                 level.ZoomTarget = zoomTarget;
-                level.Add(player);
                 player.Position = level.LevelOffset + val2;
                 player.Facing = facing;
                 player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
                 if (level.Wipe != null)
                 {
                     level.Wipe.Cancel();
-                }
-                if (setStateToNormal)
-                {
-                    player.StateMachine.State = 0;
                 }
 
                 onEnd?.Invoke(level);

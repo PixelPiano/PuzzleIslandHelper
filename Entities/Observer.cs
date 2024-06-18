@@ -27,6 +27,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 SignalHeight = height;
                 SignalTime = time;
                 On = on;
+                Position.X -= 16;
                 Add(new Coroutine(Emit()));
             }
             public IEnumerator Emit()
@@ -41,7 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     bool spun = false;
                     for (float i = 0; i < 1; i += Engine.DeltaTime / SignalTime)
                     {
-                        if(i > 0.15f && !spun)
+                        if (i > 0.15f && !spun)
                         {
                             Parent.Emit();
                             spun = true;
@@ -55,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public override void ApplyParameters(bool identity)
             {
                 base.ApplyParameters(identity);
-                //todo: figure out why the signal shader effect isn't visible
+                //todo: figure out why the signal Shader effect isn't visible
                 Effect.Parameters["MaxWidth"]?.SetValue(SignalWidth);
                 Effect.Parameters["MaxHeight"]?.SetValue(SignalHeight);
                 Effect.Parameters["Center"]?.SetValue(SignalCenter);
@@ -106,7 +107,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite.Add("dSpin", "observerDigital", 0.1f, "dIdle");
             Add(Sprite);
             Sprite.Play(Digital ? "dIdle" : "idle");
-            Collider = new Hitbox(SignalWidth, SignalHeight + (Sprite.Height / 2), 0, -Sprite.Height / 2);
+            Collider = new Hitbox(SignalWidth, SignalHeight + (Sprite.Height / 2), -Sprite.Width / 2, -Sprite.Height / 2);
+            Position.X -= 8;
         }
         public void Emit()
         {
@@ -115,7 +117,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if(Scene is not Level level) return;
+            if (Scene is not Level level) return;
             Renderer.On = Mode != Modes.Off;
             Renderer.SignalTime = Mode switch
             {
@@ -124,8 +126,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             };
             Renderer.SignalWidth = SignalWidth;
             Renderer.SignalHeight = SignalHeight;
-            Renderer.SignalCenter = (Collider.AbsolutePosition + Collider.HalfSize - level.Camera.Position) / new Vector2(320,180);
-  
+            Renderer.SignalCenter = (Collider.AbsolutePosition + Collider.HalfSize - level.Camera.Position) / new Vector2(320, 180);
+
         }
         public override void Awake(Scene scene)
         {

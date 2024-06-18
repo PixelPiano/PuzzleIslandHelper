@@ -87,6 +87,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             return position - level.Camera.Position;
         }
         private bool CalidusLookAround = true;
+        private float? musicVolume;
         private IEnumerator Cutscene(Player player, Level level)
         {
             level.InCutscene = true;
@@ -106,6 +107,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return 1;
             yield return SayAndWait("Ca1", 0.6f);
             yield return 0.6f;
+            Audio.PauseMusic = true;
             player.Jump();
             Add(new Coroutine(LookSideToSide(player)));
             yield return Textbox.Say("Ca2");
@@ -161,10 +163,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 
             //Rumble, glitchy effects
             level.Session.SetFlag("blockGlitch");
+            //shake level somehow
             yield return 0.1f;
             Calidus.Surprised(true);
             Calidus.LookDir = Calidus.Looking.Up;
-            yield return 0.4f;
+            yield return 0.7f;
             Calidus.LookDir = Calidus.Looking.Left;
             yield return Calidus.Say("Ca19", "surprised");
             Calidus.Emotion("stern");
@@ -181,6 +184,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             level.Session.SetFlag("blockGlitch", false);
             SingleTextscene text = new SingleTextscene("CaL1");
             level.Add(text);
+            Level.StopShake();
             while (text.InCutscene)
             {
                 yield return null;
@@ -210,7 +214,56 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return waitTime;
         }
 
+        public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, int positionX = 0, int positionY = 0)
+        {
+            Level level = scene as Level;
+            Player player = level.GetPlayer();
+            if (level == null || player == null)
+            {
+                return;
+            }
+            if (string.IsNullOrEmpty(room))
+            {
+                return;
+            }
+            level.OnEndOfFrame += delegate
+            {
+                Vector2 levelOffset = level.LevelOffset;
+                Vector2 val2 = player.Position - levelOffset;
+                Vector2 val3 = level.Camera.Position - levelOffset;
+                Vector2 offset = new Vector2(positionY, positionX);
+                Facings facing = player.Facing;
+                level.Remove(player);
+                level.UnloadLevel();
+                level.Session.Level = room;
+                Session session = level.Session;
+                Level level2 = level;
+                Rectangle bounds = level.Bounds;
+                float num = bounds.Left;
+                bounds = level.Bounds;
+                session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
+                level.Session.FirstLevel = false;
+                level.LoadLevel(Player.IntroTypes.None);
 
+                level.Camera.Position = level.LevelOffset + val3 + offset.Floor();
+                level.Add(player);
+                if (snapToSpawnPoint && session.RespawnPoint.HasValue)
+                {
+                    player.Position = session.RespawnPoint.Value + offset.Floor();
+                }
+                else
+                {
+                    player.Position = level.LevelOffset + val2 + offset.Floor();
+                }
+
+                player.Facing = facing;
+                player.Hair.MoveHairBy(level.LevelOffset - levelOffset + offset.Floor());
+                if (level.Wipe != null)
+                {
+                    level.Wipe.Cancel();
+                }
+            };
+        }
         private IEnumerator End(Player player, Level level)
         {
             if (!TagCheck(Tags.Global))
@@ -219,7 +272,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             level.Flash(Color.White, true);
             level.Remove(Calidus);
-            PianoUtils.InstantRelativeTeleport(level, "0-lcomp", true);
+            InstantRelativeTeleport(level, "0-lcomp", true);
             //InstantTeleport(level, Player, "0-lcomp", 254, 383);
             yield return null;
             player.Speed.X = -64;
@@ -230,6 +283,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return Textbox.Say("Ca22");
             yield return 1;
             yield return Textbox.Say("Ca23");
+            Audio.PauseMusic = false;
             level.InCutscene = false;
             player.StateMachine.State = Player.StNormal;
             RemoveTag(Tags.Global);
@@ -262,7 +316,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 bounds = level.Bounds;
                 session.RespawnPoint = level2.GetSpawnPoint(nearestSpawn);
                 level.Session.FirstLevel = false;
-                level.LoadLevel(Player.IntroTypes.Transition);
+                level.LoadLevel(Player.IntroTypes.None);
 
                 Vector2 val4 = level.Session.RespawnPoint.Value - val2;
                 level.Camera.Position = level.LevelOffset + val3 + val4;

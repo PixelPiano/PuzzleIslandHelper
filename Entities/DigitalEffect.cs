@@ -75,9 +75,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Timers = new()
                 {
-                    new Timer(0.5f, 1, RandomizeTexture), //texture
-                    new Timer(0.1f,0.2f,RandomizeColor), //color
-                    new Timer(0.2f, 0.1f, RandomizeScale), //scale
+                    new Timer(0.5f, 1, RandomizeTexture), //image
+                    new Timer(0.1f,0.2f,RandomizeColor), //Color
+                    new Timer(0.2f, 0.1f, RandomizeScale), //Scale
                     new Timer(0.1f, 1f, RandomizeOffset) //position
                 };
             }

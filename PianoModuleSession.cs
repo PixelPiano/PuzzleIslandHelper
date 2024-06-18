@@ -12,11 +12,16 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public int DEBUGINT { get; set; }
+        public bool DEBUGBOOL { get; set; }
+
+        public bool MetWithCalidusFirstTime;
         public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
         public ForkAmpState ForkAmpState = new();
         public bool GrassMazeCompleted;
@@ -28,17 +33,21 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public int FurthestElevatorLevel;
         public int OrderPoints { get; set; }
         public bool DrillUsed;
-        public List<string> GearCheckpointIDs = new();
         public List<string> DrillBatteryIds = new();
         public bool HasFirstFloppy;
         public bool FountainCanOpen;
         public bool ForceFountainOpen;
-        public bool OpenedFountain;
         public Dictionary<EntityID, bool> MiniGenStates = new();
         public List<EntityID> SpoutWreckage = new();
         public List<int> FixedFloors = new();
+        public List<string> GearCheckpointIDs = new();
         public List<string> ContinuousGearIDs = new();
         public GearData GearData = new();
+        public int GameshowLivesLost;
+        public HoldableData HoldableData = new();
+        public List<string> HoldableGroupIDs = new();
+        public List<string> HoldableCheckpointIDs = new();
+
         public Dictionary<EntityID, float> GearDoorStates = new();
         public int WasherSwitchAttempts;
         public List<PrologueGlitchBlock> ActiveGlitchBlocks = new();
@@ -148,6 +157,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         #endregion
 
+        public ForkAmpBattery LastHeld;
         public bool HasInvert;
         public List<string> ChainedMonitorsActivated = new();
         public bool GeneratorStarted;

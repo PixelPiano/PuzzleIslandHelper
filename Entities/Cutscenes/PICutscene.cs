@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
@@ -48,15 +49,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             flags = data.Attr("flag").Replace(" ", "").Split(',').ToList();
             Part = data.Int("part");
+            Tag |= Tags.TransitionUpdate;
             cutsceneName = data.Attr("cutscene");
             Cutscene = cutsceneName switch
             {
-                "Prologue" => new TransferScene(),
+                "Prologue" => new PrologueSequence(Part),
+                "WarpToCalidus" => new WarpToCalidus(Part),
                 "Calidus1" => new DigiMeet(),
                 "GetInvert" => new InvertCutsceneTrigger(),
                 "GrassShift" => new GrassShift(Part),
                 "Gameshow" => new Gameshow(Part),
-                "Fountain" => new FountainMove(data.Int("assignableInt")),
                 "End" => null,
                 "TEST" => new TEST(),
                 _ => null

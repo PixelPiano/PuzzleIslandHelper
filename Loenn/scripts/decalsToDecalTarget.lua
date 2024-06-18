@@ -21,8 +21,9 @@ local function doLayer(layer, args, room, isFG)
         entity.groupId = args.groupId
         entity.x = decal.x
         entity.y = decal.y
-        entity.scaleX = decal.scaleX
-        entity.scaleY = decal.scaleY
+        entity.scaleX = decal.scaleX or 1
+        entity.scaleY = decal.scaleY or 1
+        entity.rotation = decal.rotation or 0
         entity.fps = 12
         if isFG then
             entity.depth = -10500
