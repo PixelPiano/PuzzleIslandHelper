@@ -92,14 +92,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
         public Rectangle MouseRectangle;
         public bool MonitorLoaded;
-        public Entity Monitor;
+        public Monitor monitor;
         private PowerButton Power;
         private Entity MachineEntity;
         public BetterWindow Window;
         public InterfaceCursor Cursor;
         private InterfaceBorder Border;
-        public Sprite MonitorSprite;
-        private Sprite BorderSprite;
         public Sprite cursorSprite;
         private Sprite Machine;
         private SoundSource whirringSfx;
@@ -154,7 +152,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public int TabCount => TabText.Count;
         public string InstanceID;
         public string CurrentPreset;
-        private ComputerIcon mail;
 
         public MTexture Keyboard = GFX.Game["objects/PuzzleIslandHelper/interface/keyboard"];
         public void AddProgram<T>(T content) where T : WindowContent
@@ -213,8 +210,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             LightCleanup();
             if (Interacting)
             {
-                (scene as Level).Lighting.Alpha = prevLightAlpha;
-                (scene as Level).Bloom.Strength = prevBloomStrength;
+                SetLightAmount(scene as Level, 1);
             }
         }
         public bool TryGetPreset(string id)
@@ -301,7 +297,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 scene.Add(Power = new PowerButton(this));
                 scene.Add(new Nightmode(this));
             }
-            scene.Add(Monitor = new Entity());
+            scene.Add(monitor = new Monitor(startColor));
 
             //create sprites and add them to their corresponding entities
             string path = "objects/PuzzleIslandHelper/interface/";
@@ -317,21 +313,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 Cursor.Depth = BaseDepth - 6;
                 Window.Drawing = false;
             }
+        }
+        public class Monitor : Entity
+        {
+            public Sprite Sprite;
+            public float Alpha;
+            public bool TurningOff => Sprite.CurrentAnimationID == "turnOff";
+            public bool Idle => Sprite.CurrentAnimationID == "idle";
+            public bool StartingUp => Sprite.CurrentAnimationID == "boot";
+            public void SetColor(Color color)
+            {
+                Sprite.SetColor(color);
+            }
+            public Monitor(Color color) : base()
+            {
+                Depth = BaseDepth;
+                Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/");
+                Sprite.AddLoop("idle", "idle", 1f);
+                Sprite.AddLoop("off", "off", 0.1f);
+                Sprite.Add("boot", "startUp", 0.07f, "idle");
+                Sprite.Add("turnOff", "shutDown", 0.07f, "off");
+                Sprite.SetColor(color);
+                Add(Sprite);
+                Collider = new Hitbox(Sprite.Width, Sprite.Height);
+            }
+            public override void Render()
+            {
+                if (Alpha > 0)
+                {
+                    Draw.Rect(Collider, Color.Black * Alpha);
+                }
+                base.Render();
 
-            Monitor.Add(MonitorSprite = new Sprite(GFX.Game, path));
-            MonitorSprite.AddLoop("idle", "idle", 1f);
-            MonitorSprite.AddLoop("off", "off", 0.1f);
-            MonitorSprite.Add("boot", "startUp", 0.07f, "idle");
-            MonitorSprite.Add("turnOff", "shutDown", 0.07f, "off");
-            MonitorSprite.SetColor(startColor);
-            Monitor.Collider = new Hitbox(MonitorSprite.Width, MonitorSprite.Height);
-            Border.Add(BorderSprite = new Sprite(GFX.Game, path));
-            BorderSprite.AddLoop("idle", "border", 0.1f);
-            BorderSprite.Add("fadeIn", "borderIn", 0.1f, "idle");
-
-
-            Monitor.Depth = BaseDepth;
-            Border.Depth = BaseDepth - 7;
+            }
+            public void StartUp()
+            {
+                Sprite.Play("boot");
+            }
+            public void TurnOff()
+            {
+                Sprite.Play("turnOff");
+            }
         }
         public override void Added(Scene scene)
         {
@@ -505,7 +527,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             if (player is not null)
             {
-                if (MonitorSprite is not null && MonitorSprite.CurrentAnimationID == "idle" && !intoIdle)
+                if (monitor is not null && monitor.Idle && !intoIdle)
                 {
                     //Handles icon/Cursor transition from screen off to screen on
                     Add(new Coroutine(TransitionToMain(), true));
@@ -646,7 +668,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             FakeStarting = true;
             LoadModules(level);
             start();
-            while (MonitorSprite is null || MonitorSprite.CurrentAnimationID != "idle")
+            while (monitor is null || !monitor.Idle)
             {
                 yield return null;
             }
@@ -673,11 +695,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
             if (Version == Versions.Lab && !PianoModule.Session.RestoredPower)
             {
-                if (!PianoModule.Session.MetWithCalidusFirstTime)
+                if (PianoModule.Session.TimesMetWithCalidus < 1)
                 {
                     PianoModule.Session.Interface = this;
                     LoadModules(level);
-                    YouHaveMail mail = new YouHaveMail(this);
+                    YouHaveMail mail = new YouHaveMail(this, "mailTextA", "Important");
                     Scene.Add(mail);
                     AddProgram("mail");
                     yield return null;
@@ -692,7 +714,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             else
             {
                 PianoModule.Session.Interface = this;
-                if (PianoModule.Session.CollectedDisks.Count == 0 && Version == Versions.Lab)
+                if (PianoModule.Session.TimesMetWithCalidus < 2 && Version != Versions.Pipes)
+                {
+                    PianoModule.Session.Interface = this;
+                    LoadModules(level);
+                    YouHaveMail mail = new YouHaveMail(this, "mailTextB", "Power!");
+                    Scene.Add(mail);
+                    AddProgram("mail");
+                    yield return null;
+                    start();
+                }
+                else if (PianoModule.Session.CollectedDisks.Count == 0 && Version == Versions.Lab)
                 {
                     yield return FakeStart();
                 }
@@ -710,9 +742,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             if (Scene is not Level level) return;
             PianoModule.Session.Interface = this;
             intoIdle = false;
-            Interacting = Interacted = BorderSprite.Visible = MonitorSprite.Visible = true;
-            MonitorSprite.SetColor(startColor);
-            Monitor.Position = level.Camera.Position + new Vector2(16, 10);
+            Interacting = Interacted = Border.Visible = monitor.Visible = true;
+            monitor.Position = level.Camera.Position + new Vector2(16, 10);
             Border.Position = level.Camera.CameraToScreen(level.Camera.Position) + Vector2.One;
             if (!FakeStarting)
             {
@@ -727,13 +758,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 SetIconInitialPositions();
             }
             whirringSfx.Play("event:/PianoBoy/interface/Whirring", "Computer state", 0);
-            Add(new Coroutine(MonitorSequence()));
-            Collider = new Hitbox(ColliderWidth, ColliderHeight, Monitor.Position.X - Position.X + MousePosition.X / 6, Monitor.Position.Y - Position.Y + MousePosition.Y / 6);
+            Add(new Coroutine(ScreenOn()));
+            Collider = new Hitbox(ColliderWidth, ColliderHeight, monitor.Position.X - Position.X + MousePosition.X / 6, monitor.Position.Y - Position.Y + MousePosition.Y / 6);
         }
         private void SetIconInitialPositions()
         {
             if (Icons is null) return;
-            Vector2 iconPosition = Monitor.Position + Vector2.One * 2;
+            Vector2 iconPosition = monitor.Position + Vector2.One * 2;
 
             float iconPositionX = 0;
             bool change = false;
@@ -743,11 +774,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             for (int i = 0; i < Icons.Length; i++)
             {
                 iconPositionX = change ? 0 : iconPositionX + Icons[i].Width + spacing.X;
-                change = iconPositionX > MonitorSprite.Width - 32;
+                change = iconPositionX > monitor.Width - 32;
                 if (change)
                 {
                     row++;
-                    iconPosition = Monitor.Position + new Vector2(18, 12 + spacing.Y * row);
+                    iconPosition = monitor.Position + new Vector2(18, 12 + spacing.Y * row);
                 }
                 Icons[i].Position = iconPosition;
                 if (!change)
@@ -756,7 +787,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 }
             }
         }
-        private IEnumerator MonitorSequence(bool empty = false)
+        private IEnumerator ScreenOn()
         {
             PianoModule.Session.MonitorActivated = true;
             if (Version == Versions.Lab)
@@ -764,11 +795,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 yield return MonitorIconAnim(true);
                 yield return 0.3f;
             }
-            BorderSprite.Visible = true;
-            MonitorSprite.Play("boot");
-            BorderSprite.Play("fadeIn");
+            Border.Visible = true;
+            monitor.Visible = true;
+            monitor.Alpha = Border.Alpha = 0;
+            for (float i = 0; i < 1; i += Engine.DeltaTime)
+            {
+                monitor.Alpha = i;
+                Border.Alpha = i;
+                yield return null;
+            }
+            monitor.Alpha = Border.Alpha = 1;
+            HoldLight = true;
+            SetLightAmount(Scene as Level, 0);
+            yield return 0.2f;
+            monitor.StartUp();
             yield return null;
         }
+
         private void Interact(Player player)
         {
             //play click sound
@@ -785,29 +828,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             PianoModule.Session.Interface = null;
         }
-
         private IEnumerator TransitionToMain()
         {
             Interacting = true;
+            yield return null;
             int count = 0;
             Closing = false;
-            BorderSprite.Visible = true;
+            Border.Visible = true;
             InControl = false;
             if (!FakeStarting)
             {
                 cursorSprite.Visible = false;
                 cursorSprite.Play("idle");
             }
-            Level level = Scene as Level;
-            prevLightAlpha = level.Lighting.Alpha;
-            prevBloomStrength = level.Bloom.Strength;
-            HoldLight = true;
-            for (float i = 0; i < 1; i += Engine.DeltaTime * 4)
-            {
-                level.Lighting.Alpha = Calc.LerpClamp(prevLightAlpha, 0, i);
-                level.Bloom.Strength = Calc.LerpClamp(prevBloomStrength, 0, i);
-                yield return null;
-            }
+
             //Computer logo sequence
             Audio.Play("event:/PianoBoy/interface/InterfaceBootup", Position);
             Audio.SetMusicParam("fade", 0);
@@ -822,7 +856,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                         dc.Visible = state;
                     }
                 }
-                MonitorSprite.SetColor(Color.Lerp(startColor, backgroundColor, Ease.SineInOut(i)));
+                monitor.SetColor(Color.Lerp(startColor, backgroundColor, Ease.SineInOut(i)));
                 count++;
                 yield return null;
             }
@@ -871,33 +905,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public IEnumerator ScreenOff(bool fast)
         {
-            MonitorSprite.Play("turnOff");
-            Color _color = BorderSprite.Color;
-            while (MonitorSprite.CurrentAnimationID == "turnOff" && !fast)
+            monitor.TurnOff();
+            while (!fast && monitor.TurningOff)
             {
-                BorderSprite.Color *= 0.95f;
                 yield return null;
             }
-            BorderSprite.Visible = false;
-            MonitorSprite.Visible = false;
-            BorderSprite.SetColor(_color);
-            Interacting = false;
-        }
-        private IEnumerator RestoreLights(bool fast)
-        {
-            Level level = Scene as Level;
             HoldLight = false;
+            SetLightAmount(Scene as Level, 1);
             if (!fast)
             {
-                for (float i = 0; i < 1; i += Engine.DeltaTime * 4)
+                for (float i = 0; i < 1; i += Engine.DeltaTime)
                 {
-                    level.Lighting.Alpha = Calc.LerpClamp(0, prevLightAlpha, i);
-                    level.Bloom.Strength = Calc.LerpClamp(0, prevBloomStrength, i);
+                    float amount = Calc.LerpClamp(1, 0, i);
+                    Border.Alpha = amount;
+                    monitor.Alpha = amount;
                     yield return null;
                 }
             }
-            level.Lighting.Alpha = prevLightAlpha;
-            level.Bloom.Strength = prevBloomStrength;
+            monitor.Alpha = Border.Alpha = 0;
+            Border.Visible = false;
+            monitor.Visible = false;
+            Interacting = false;
+        }
+        private void SetLightAmount(Level level, float amount)
+        {
+            level.Lighting.Alpha = Calc.LerpClamp(0, prevLightAlpha, amount);
+            level.Bloom.Strength = Calc.LerpClamp(0, prevBloomStrength, amount);
         }
         public IEnumerator CloseInterfaceRoutine(bool fast, bool lockPlayer = false)
         {
@@ -915,7 +948,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 whirringSfx.Param("Computer state", 1);
             }
             yield return ScreenOff(fast);
-            yield return RestoreLights(fast);
             Audio.SetMusicParam("fade", 1);
             player.StateMachine.State = lockPlayer ? Player.StDummy : 0;
             LightCleanup(false, FakeStarting);
@@ -1070,9 +1102,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             public override void Update()
             {
                 base.Update();
-                if (Interface.Monitor is not null)
+                if (Interface.monitor is not null)
                 {
-                    Position = Interface.Monitor.Position + new Vector2(8, Interface.Monitor.Height - Height - 8);
+                    Position = Interface.monitor.Position + new Vector2(8, Interface.monitor.Height - Height - 8);
                 }
             }
             public override void OnClick()
@@ -1119,9 +1151,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         private class InterfaceBorder : Entity
         {
-            public InterfaceBorder()
+            public Image Border;
+            public float Alpha
+            {
+                get
+                {
+                    return alpha;
+                }
+                set
+                {
+                    if (Border is not null)
+                    {
+                        Border.Color = Color.White * value;
+                    }
+                    alpha = value;
+                }
+            }
+            private float alpha;
+            public InterfaceBorder() : base()
             {
                 Tag = TagsExt.SubHUD;
+
+                Add(Border = new Image(GFX.Game["objects/PuzzleIslandHelper/interface/border00"]));
+                Border.Color = Color.White * 0;
+                Depth = BaseDepth - 7;
             }
         }
     }

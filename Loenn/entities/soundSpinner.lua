@@ -24,6 +24,7 @@ for i = 1, 4 do
             freq2 = -1,
             freq3 = -1,
             freq4 = -1,
+            attachToSolid = false,
             tint = groups[i],
             destroyColor = tint,
             borderColor = "000000",
@@ -51,6 +52,7 @@ local custom = {
         data = 
         {
             custom = true,
+            attachToSolid = false,
             freq1 = -1,
             freq2 = -1,
             freq3 = -1,

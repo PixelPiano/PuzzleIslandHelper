@@ -26,10 +26,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool fading = false;
         private bool outlineSprites;
 
-        private string effectString = "";
-        private string audio = "";
-        private string id = "";
-
+        private string effectString;
+        private string audio;
+        public string ID;
+        private string id;
         private Color color;
         private Color color2;
         private Color customColor;
@@ -90,6 +90,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             flashMax = data.Float("flashLimit", 0.5f);
             shouldGlitch = data.Bool("glitch");
             audio = data.Attr("event", "event:/new_content/game/10_farewell/glitch_short");
+            Tag |= Tags.TransitionUpdate;
         }
         public override void Removed(Scene scene)
         {
@@ -106,11 +107,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            ID = (scene as Level).Session.Level + "_decaltargetgroup_" + id;
             entityList = scene.Tracker.GetEntities<DecalEffectTarget>();
 
             foreach (DecalEffectTarget entity in entityList)
             {
-                if (entity.id == id)
+                if (entity.ID.Equals(ID))
                 {
                     entity.sprite.Visible = false;
                     entity.sprite.Play("idle");
@@ -118,13 +120,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (fadeInOut)
             {
-                Tween colorTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, fadeDuration);
-                colorTween.OnUpdate = (Tween t) =>
+                Add(new Coroutine(ColorFade()));
+            }
+        }
+        private IEnumerator ColorFade()
+        {
+            bool movingUp = !Calc.Random.Chance(0.5f);
+            float percent = Calc.Random.Range(0f, 1);
+            while (true)
+            {
+                movingUp = !movingUp;
+                for (float i = percent; i < 1; i += Engine.DeltaTime / fadeDuration)
                 {
-                    customColor = Color.Lerp(color, color2, blendAmount * t.Eased);
-                };
-                Add(colorTween);
-                colorTween.Start();
+                    if (movingUp) customColor = Color.Lerp(color, color2, blendAmount * Ease.SineInOut(i));
+                    else customColor = Color.Lerp(color2, color, blendAmount * Ease.SineInOut(i));
+                    yield return null;
+                }
+                percent = 0;
             }
         }
         public override void Added(Scene scene)
@@ -155,7 +167,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect, l.Camera.Matrix);
             foreach (DecalEffectTarget entity in entityList)
             {
-                if (entity.id == id)
+                if (entity.ID == ID)
                 {
                     Depth = entity.Depth;
                     entity.sprite.RenderPosition = entity.Position;
@@ -205,7 +217,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 foreach (DecalEffectTarget entity in entityList)
                 {
-                    if (entity.id == id)
+                    if (entity.ID == ID)
                     {
                         if (entity.CollideCheck<Player>())
                         {
@@ -228,7 +240,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (playerTouching && shouldFlash)
             {
-                if(usesAudio) Add(new Coroutine(FlashDecal()));
+                if (usesAudio) Add(new Coroutine(FlashDecal()));
                 else Add(new Coroutine(FlashDecalNoAudio()));
             }
             else
@@ -245,7 +257,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 foreach (DecalEffectTarget entity in entityList)
                 {
-                    if (entity.id == id)
+                    if (entity.ID == ID)
                     {
                         SceneAs<Level>().Displacement.AddBurst(entity.Center, 0.8f, Width / 4, Width / 4 + 32f, 0.2f);
                     }

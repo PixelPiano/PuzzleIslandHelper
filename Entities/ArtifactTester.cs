@@ -7,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 // PuzzleIslandHelper.LabDoor
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Puzzles
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/ArtifactTester")]
     [Tracked]

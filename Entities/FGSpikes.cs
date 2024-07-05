@@ -4,7 +4,7 @@ using Monocle;
 using System;
 using System.Collections.Generic;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/FGSpikesUp = LoadUp", "PuzzleIslandHelper/FGSpikesDown = LoadDown", "PuzzleIslandHelper/FGSpikesLeft = LoadLeft", "PuzzleIslandHelper/FGSpikesRight = LoadRight")]
     [Tracked(false)]

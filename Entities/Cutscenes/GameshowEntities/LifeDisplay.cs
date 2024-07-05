@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
     [Tracked]
     public class LifeDisplay : Entity
     {
-        public const int MaxLives = 2;
+        public const int MaxLives = 3;
         public Sprite[] Lives = new Sprite[MaxLives];
         public Image Image;
         public int LivesLost
@@ -38,11 +38,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                 Lives[i].Add("explode", "funnyExplosion", 0.1f, "dead");
                 Lives[i].Play("alive");
                 float w = Lives[i].Width;
-                Lives[i].X = (Image.Width / 2) - (w / 2) - w + (w * i);
+                Lives[i].X = (Image.Width / 2) - (w / 2 * MaxLives) + (i * w);
             }
             Add(Lives);
             TurnOff();
             Collider = new Hitbox(Image.Width, Image.Height);
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            for (int i = 0; i < Lives.Length; i++)
+            {
+                if (LivesLost > i)
+                {
+                    Lives[i].Play("dead");
+                }
+            }
+        }
+        public void RestoreLife()
+        {
+            if (LivesLost > 0)
+            {
+                Lives[LivesLost].Play("alive");
+                LivesLost--;
+            }
         }
         public void ConsumeLife()
         {

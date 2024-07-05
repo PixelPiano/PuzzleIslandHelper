@@ -13,6 +13,7 @@ using Celeste.Mod.PuzzleIslandHelper.Components;
 using ExtendedVariants.Module;
 using VivHelper.Triggers;
 using ExtendedVariants.Variants;
+using static Celeste.Mod.CommunalHelper.Backdrops.Cloudscape;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
@@ -48,6 +49,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public static int RoomsVisited => RoomOrder.Count;
         private int part;
 
+        public static void Reset()
+        {
+            RoomOrder.Clear();
+            PianoModule.Session.GameshowLivesLost = 0;
+        }
         public Gameshow(int part) : base()
         {
             this.part = part;
@@ -63,6 +69,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            WrongAnswers = PianoModule.Session.GameshowLivesLost;
             if (part == 0)
             {
                 SetLightColor(Color.White);
@@ -139,23 +146,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public override void OnEnd(Level level)
         {
             if (level.GetPlayer() is not Player player) return;
-            if (part == 0)
+            if (WasSkipped)
             {
-                if (WasSkipped)
+                switch (part)
                 {
-                    Reveal(true);
-                    if (Host is not null)
-                    {
-                        Host.Visible = false;
-                    }
-                    AllFocusPaths();
-                    cutscene.Cancel();
-                    SnareLoop.Stop(false);
-                    FadeInMusic();
+                    case 0:
+                        Reveal(true);
+                        if (Host is not null)
+                        {
+                            Host.Visible = false;
+                        }
+                        AllFocusPaths();
+                        cutscene.Cancel();
+                        SnareLoop.Stop(false);
+                        FadeInMusic();
+                        break;
+                    case 1:
+                        Level.Session.SetFlag("GameshowLoseTeleport", false);
+                        Level.Session.SetFlag("RewindTeleport");
+                        break;
+                    case 3:
+                        player.Light.Alpha = 1;
+                        player.Light.Visible = true;
+                        Level.Session.SetFlag("RewindTeleport", false);
+                        Level.Session.SetFlag("faceEncounterFlag", false);
+                        anxiety = 0;
+                        if (anxietyRoutine != null)
+                        {
+                            anxietyRoutine.Cancel();
+                            anxietyRoutine.RemoveSelf();
+                        }
+                        break;
                 }
             }
-            Brighten();
-            ReleasePlayer(player);
+            if (part != 2)
+            {
+                Brighten();
+                ReleasePlayer(player);
+            }
+            Glitch.Value = 0;
+            Distort.Anxiety = 0;
+            Level.ResetZoom();
         }
         public override void Update()
         {
@@ -177,6 +208,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return 0.2f;
             Level.Add(new MiniTextbox("inTheDarkHall"));
             yield return null;
+            EndCutscene(Level);
         }
         private float anxiety;
         private IEnumerator AnxietyWobble()
@@ -188,20 +220,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 anx = anxiety;
                 for (float i = 0; i < 1; i += Engine.DeltaTime / time)
                 {
-                    Distort.Anxiety = (anx = Calc.Approach(anx, anxiety, Engine.DeltaTime * 3)) + Ease.SineIn(i) * 0.2f;
+                    Distort.Anxiety = anxiety + Ease.SineIn(i) * anxiety;
                     yield return null;
                 }
-
                 time = Calc.Random.Range(1, 4f);
                 for (float i = 0; i < 1; i += Engine.DeltaTime / time)
                 {
-                    Distort.Anxiety = (anx = Calc.Approach(anx, anxiety, Engine.DeltaTime * 3)) + 1 - Ease.SineOut(i) * 0.2f;
+                    Distort.Anxiety = anxiety - Ease.SineOut(i) * anxiety;
                     yield return null;
                 }
 
                 yield return null;
             }
         }
+        private Coroutine anxietyRoutine;
         private IEnumerator RewindCutscene()
         {
             if (Level.GetPlayer() is not Player player) yield break;
@@ -209,7 +241,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             player.Light.Visible = true;
             Level.Session.SetFlag("RewindTeleport", false);
             Level.Session.SetFlag("faceEncounterFlag", false);
-            MakeUnskippable();
             player.StateMachine.State = Player.StDummy;
             anxiety = 0;
 
@@ -217,8 +248,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return player.DummyWalkTo(player.X + 64);
             yield return 0.1f;
             yield return Textbox.Say("preRewind");
-            Coroutine anx = new Coroutine(AnxietyWobble());
-            Add(anx);
+            anxietyRoutine = new Coroutine(AnxietyWobble());
+            Add(anxietyRoutine);
             Level.Flash(Color.White, false);
 
             Audio.Play("event:/PianoBoy/invertGlitch");
@@ -248,8 +279,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 yield return null;
             }
             anxiety = 0;
-            anx.Cancel();
-            anx.RemoveSelf();
+            anxietyRoutine.Cancel();
+            anxietyRoutine.RemoveSelf();
             while (Distort.Anxiety != 0)
             {
                 Distort.Anxiety = Calc.Approach(Distort.Anxiety, 0, Engine.DeltaTime);
@@ -264,11 +295,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator LoseCutscene()
         {
-            MakeUnskippable();
             Player player = Level.GetPlayer();
             player.StateMachine.State = Player.StDummy;
             player.Facing = Facings.Left;
-
+            Reset();
             Audio.SetMusic("event:/PianoBoy/invertAmbience");
             yield return null;
             Level.Session.SetFlag("GameshowLoseTeleport", false);
@@ -672,7 +702,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 if (ChoicePrompt.Choice < question.PerPage) //if player chose a valid answer
                 {
                     string id = options[ChoicePrompt.Choice];
-                    //unique = RandomRoutines.ValidIDs.Contains(id + "U");
+                    //unique = RandomRoutines.ValidIDs.Contains(ID + "U");
                     result = PianoModule.GameshowData.IsAnswer(question, ChoicePrompt.Choice);
                     yield return Textbox.Say(id);
                     break;
@@ -692,32 +722,48 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             if (result)
             {
                 CorrectAnswers++;
-                //StartCheering();
+                StartCheering();
                 LaunchConfetti();
                 yield return FlashAnswer(true);
                 yield return 0.5f;
-                //StopCheering();
+                StopCheering();
                 yield return Correct(RoomsVisited);
+                if (ChanceTime)
+                {
+                    WrongAnswers--;
+                    yield return RestoreLife();
+                }
             }
             else
             {
                 yield return FlashAnswer(false);
                 yield return 0.5f;
                 yield return Incorrect();
-                /*                if (unique)
-                                {
-                                    yield return Incorrect(question, page * question.PerPage + ChoicePrompt.Choice);
-                                }
-                                else
-                                {
-                                    yield return IncorrectRandom(question);
-                                }*/
                 WrongAnswers++;
                 yield return LoseLife();
             }
             ResetLightColor();
             AllFocusPaths();
             FadeInMusic();
+            if (!result)
+            {
+                if (!ChanceTime && WrongAnswers < LifeDisplay.MaxLives)
+                {
+                    yield return OfferSecondChance();
+                    if (ChoicePrompt.Choice == 0)
+                    {
+                        ChanceTime = true;
+                        yield return MultiChoice(question);
+                    }
+                }
+            }
+            ChanceTime = false;
+        }
+        public bool ChanceTime;
+        public IEnumerator OfferSecondChance()
+        {
+            yield return Textbox.Say("gameshowChance");
+            yield return ChoicePrompt.Prompt("gameshowChanceA", "gameshowChanceB");
         }
         private void LaunchConfetti()
         {
@@ -766,6 +812,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             if (Level.Tracker.GetEntity<LifeDisplay>() is not LifeDisplay display) return;
             display.ConsumeLife();
+        }
+        public IEnumerator RestoreLife()
+        {
+            yield return null;
+            LifeDisplay display = Level.Tracker.GetEntity<LifeDisplay>();
+            if (display is null)
+            {
+                yield break;
+            }
+            display.RestoreLife();
+            yield return 1.5f;
         }
         public IEnumerator LoseLife()
         {

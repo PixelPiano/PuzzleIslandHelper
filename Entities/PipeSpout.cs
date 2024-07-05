@@ -6,7 +6,7 @@ using Monocle;
 using System;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/PipeSpout")]
     [Tracked]

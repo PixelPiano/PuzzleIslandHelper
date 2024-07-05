@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Color = Microsoft.Xna.Framework.Color;
 using Point = Microsoft.Xna.Framework.Point;
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/LabGenerator")]
     [Tracked]

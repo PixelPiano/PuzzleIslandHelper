@@ -2,7 +2,7 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/CustomWaterfall")]
     [Tracked(false)]

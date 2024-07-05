@@ -25,8 +25,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     else
                     {
                         dynData.TryGet(ValueName, out var value);
-                        if(value is not null)
+                        if (value is not null)
                         {
+                            if (value is float)
+                            {
+                                return string.Format("{0:N2}", value);
+                            }
                             return value.ToString();
                         }
                         else

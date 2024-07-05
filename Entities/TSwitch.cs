@@ -4,7 +4,7 @@ using Monocle;
 using System.Collections;
 using System.Collections.Generic;
 // PuzzleIslandHelper.TSwitch
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/TSwitch")]
     [Tracked]

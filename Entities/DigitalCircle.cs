@@ -6,7 +6,7 @@ using Monocle;
 using System.Collections;
 
 // PuzzleIslandHelper.DecalEffects
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/DigitalCircle")]
     public class DigitalCircle : Entity

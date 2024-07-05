@@ -156,6 +156,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                     level.Remove(entities[0], entities[1]);
                 }
                 Alpha = 0;
+                if (WasSkipped)
+                {
+                    InstantRelativeTeleport(Scene, Passage.TeleportTo, true);
+                }
             }
         }
         public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, int positionX = 0, int positionY = 0)
@@ -314,7 +318,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                 level.Remove(bg, fg);
             }
             EndCutscene(Engine.Scene as Level);
-            yield return null;
         }
         public override void Removed(Scene scene)
         {

@@ -4,6 +4,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
 // PuzzleIslandHelper.CutsceneHeart
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -28,12 +29,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private string room;
         private string returnRoom;
         private bool TeleportsPlayer;
-        private MemoryTextscene Cutscene;
+        private Cutscene cutscene;
 
         public CutsceneHeart(EntityData data, Vector2 offset, EntityID id)
         : base(data.Position + offset)
         {
-            spriteName = data.Attr("texture");
+            spriteName = data.Attr("sprite");
             TeleportsPlayer = data.Bool("teleportsPlayer");
             room = data.Attr("room");
             Tag = Tags.TransitionUpdate;
@@ -41,13 +42,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             flag = data.Attr("flag");
             returnRoom = data.Attr("returnRoom");
 
-            Cutscene = spriteName switch
-            {
-                "green" => new MemoryTextscene("GREENHEART"),
-                "blue" => new MemoryTextscene("BLUEHEART"),
-                "red" => new MemoryTextscene("REDHEART"),
-                _ => new MemoryTextscene("invalid"),
-            };
             heart = new Entity(Position)
             {
                 Collider = new Hitbox(12f, 12f, 4f, 4f)
@@ -60,7 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (data.Bool("flipped"))
             {
                 sprite.CenterOrigin();
-                sprite.Position += new Vector2(sprite.Width/2, sprite.Height/2);
+                sprite.Position += new Vector2(sprite.Width / 2, sprite.Height / 2);
                 sprite.Scale = -Vector2.One;
             }
             Add(scaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f)
@@ -110,6 +104,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 bounceSfxDelay = 0.1f;
             }
         }
+        public class Cutscene : MemoryTextscene
+        {
+            public Action onEnd;
+            public Cutscene(string dialog) : base(dialog)
+            {
+            }
+            public override void OnEnd(Level level)
+            {
+                base.OnEnd(level);
+                onEnd?.Invoke();
+            }
+
+        }
         public void SetRate(float value)
         {
             InvertOverlay.UseNormalTimeRate = false;
@@ -153,10 +160,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
                 player = level.Tracker.GetEntity<Player>();
             }
-            if (Cutscene != null)
+            cutscene = spriteName switch
             {
-                SceneAs<Level>().Add(Cutscene);
-            }
+                "green" => new Cutscene("GREENHEART"),
+                "blue" => new Cutscene("BLUEHEART"),
+                "red" => new Cutscene("REDHEART"),
+                _ => new Cutscene("invalid"),
+            };
+            bool wasSkipped = false;
+            cutscene.onEnd = delegate { wasSkipped = cutscene.WasSkipped; };
+            SceneAs<Level>().Add(cutscene);
             Glitch.Value = 0.5f;
             SetRate(0f);
             player.DummyGravity = false;
@@ -168,7 +181,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (TeleportsPlayer)
             {
-                while (Cutscene.InCutscene)
+                while (cutscene.InCutscene)
                 {
                     yield return null;
                 }
@@ -176,23 +189,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             else
             {
                 yield return 1;
-                if (Cutscene != null)
+                if (cutscene != null)
                 {
-                    level.Remove(Cutscene);
+                    level.Remove(cutscene);
                 }
             }
-            for (float i = 0; i < 2; i += Engine.RawDeltaTime * mult)
+            yield return null;
+            if (!wasSkipped)
             {
-                float value = Ease.QuintIn(i / 2);
-                if (value > 0.5f)
+                for (float i = 0; i < 2; i += Engine.RawDeltaTime * mult)
                 {
-                    Glitch.Value = Calc.Random.Range(value, 1);
+                    float value = Ease.QuintIn(i / 2);
+                    if (value > 0.5f)
+                    {
+                        Glitch.Value = Calc.Random.Range(value, 1);
+                    }
+                    if (i > 1)
+                    {
+                        SetRate(Ease.QuintIn(i - 1));
+                    }
+                    yield return null;
                 }
-                if (i > 1)
-                {
-                    SetRate(Ease.QuintIn(i - 1));
-                }
-                yield return null;
             }
             Glitch.Value = 0;
             SetRate(1);
@@ -217,6 +234,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             SetRate(1);
             InvertOverlay.ResetState();
             level.Session.SetFlag("InCutsceneHeartCutscene", false);
+            player.StateMachine.State = Player.StNormal;
             RemoveTag(Tags.Global);
             yield return null;
         }
@@ -244,7 +262,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 sprite.Position = moveWiggleDir * moveWiggler.Value * -8f - (Vector2.UnitX * 4);
             }
         }
-        public static void InstantTeleport(Scene scene, Player player, string room, bool sameRelativePosition)
+        public static void InstantTeleport(Scene scene, Player player, string room, bool same)
         {
             Level level = scene as Level;
             if (level == null)
@@ -272,24 +290,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
                 level.Session.FirstLevel = false;
                 level.LoadLevel(Player.IntroTypes.Transition);
-                if (sameRelativePosition)
+                //return;
+
+                level.Camera.Position = level.LevelOffset + val3;
+                level.Add(player);
+                if (same)
                 {
-                    level.Camera.Position = level.LevelOffset + val3;
-                    level.Add(player);
                     player.Position = level.LevelOffset + val2;
-                    player.Facing = facing;
-                    player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
-                    //return;
                 }
-                else
+                else if (session.RespawnPoint.HasValue)
                 {
+                    player.Position = session.RespawnPoint.Value;
                     level.Camera.Position = level.LevelOffset;
-                    Vector2 pos = player.Position;
-                    level.Add(player);
-                    player.Position = level.GetSpawnPoint(levelOffset);
-                    player.Facing = facing;
-                    player.Hair.MoveHairBy(player.Position);
                 }
+                player.Facing = facing;
+                player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
+
+                Vector2 newPos = level.LevelOffset;
+
                 if (level.Wipe != null)
                 {
                     level.Wipe.Cancel();

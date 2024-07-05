@@ -8,9 +8,8 @@ using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
-    [CustomEntity("PuzzleIslandHelper/SingleTextscene")]
     [Tracked]
-    public class SingleTextscene : Entity
+    public class SingleTextscene : CutsceneEntity
     {
         private const int XOffset = 1920 / 16;
         private const int MaxLineWidth = 1920 / 2 - XOffset;
@@ -46,8 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private FancyTextExt.Text FText;
 
         public SingleTextscene(string dialogID, float segmentSpace = -1, float lineSpace = -1) : this(segmentSpace, lineSpace, dialogID) { }
-        public SingleTextscene(EntityData data, Vector2 offset) : base(data.Position + offset) { }
-        public SingleTextscene(float segmentSpace, float lineSpace, params string[] dialogIDs) : base(Vector2.Zero)
+        public SingleTextscene(float segmentSpace, float lineSpace, params string[] dialogIDs) : base()
         {
             Tag |= TagsExt.SubHUD;
             Depth = -1000001;
@@ -62,17 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            _forceHide = true;
-            LoadText(MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
-            if (SegmentSpace == -1)
-            {
-                SegmentSpace = FText.BaseSize;
-            }
-            if (LineSpace == -1)
-            {
-                LineSpace = FText.BaseSize;
-            }
-            Add(new Coroutine(Cutscene()));
+
         }
 
         public override void Added(Scene scene)
@@ -103,12 +91,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             _visible = false;
             bool startOfNewSegment = false;
-            Level level = SceneAs<Level>();
-            Player player = level.Tracker.GetEntity<Player>();
-            if (player is not null)
-            {
-                player.StateMachine.State = Player.StDummy;
-            }
+
             yield return 1;
             _forceHide = false;
             _timer = 0;
@@ -160,7 +143,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 if (k < DialogIDs.Length - 1)
                 {
-                    yield return Reset(k + 1); //advance to next dialog id
+                    yield return Reset(k + 1); //advance to next dialog ID
                 }
                 else
                 {
@@ -169,14 +152,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
             //close
-            SolidOpacity = 0;
-            TextOpacity = 0;
-            if (player is not null)
-            {
-                player.StateMachine.State = Player.StNormal;
-            }
-            InCutscene = false;
-            RemoveSelf();
+            EndCutscene(Level);
         }
 
         public override void Update()
@@ -259,6 +235,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 DrawUnderscore(FText.Font, FText.BaseSize, _position, Vector2.One, TextOpacity, Color.White * TextOpacity);
             }
             base.Render();
+        }
+
+        public override void OnBegin(Level level)
+        {
+            _forceHide = true;
+            LoadText(MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
+            if (SegmentSpace == -1)
+            {
+                SegmentSpace = FText.BaseSize;
+            }
+            if (LineSpace == -1)
+            {
+                LineSpace = FText.BaseSize;
+            }
+            Player player = level.GetPlayer();
+            if (player is not null)
+            {
+                player.StateMachine.State = Player.StDummy;
+            }
+            Add(new Coroutine(Cutscene()));
+        }
+
+        public override void OnEnd(Level level)
+        {
+            SolidOpacity = 0;
+            TextOpacity = 0;
+            if (level.GetPlayer() is Player player)
+            {
+                player.StateMachine.State = Player.StNormal;
+            }
+            InCutscene = false;
         }
         #endregion
         private class FontHolderEntity : Entity

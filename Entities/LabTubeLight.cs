@@ -1,5 +1,6 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
@@ -30,19 +31,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                return PianoModule.Session.RestoredPower; 
+                return PianoModule.Session.RestoredPower;
             }
         }
         private bool Flickering;
-        public LabTubeLight(Vector2 position, int length) : base(position, length, 8, false)
+        private bool digital;
+        public LabTubeLight(Vector2 position, int length, bool digital) : base(position, length, 8, false)
         {
             Tag |= Tags.TransitionUpdate;
-
+            this.digital = digital;
             Position = position;
             SpriteColor = Color.Lerp(Color.White, Color.Black, 0.2f);
             Length = Math.Max(16, length);
             Depth = -1;
-            MTexture mTexture = GFX.Game["objects/PuzzleIslandHelper/machines/gizmos/tubeLight"];
+            MTexture mTexture = GFX.Game["objects/PuzzleIslandHelper/machines/gizmos/tubeLight" + (digital ? "Digi" : "")];
             Image image;
             Add(image = new Image(mTexture.GetSubtexture(0, 0, 8, 8)));
             image.Color = SpriteColor;
@@ -61,12 +63,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             Add(sfx = new SoundSource());
             Collider = new Hitbox(Length, 8);
-            sfx.Position = new Vector2(Length/2, 4);
+            sfx.Position = new Vector2(Length / 2, 4);
             Add(bloom = new BloomPoint(new Vector2(Length / 2, 4), 0.1f, Length / 2));
-            Add(light = new VertexLight(new Vector2(Length / 2, 24), Color.White, 0.86f, 64, 120));
+            Add(light = new VertexLight(new Vector2(Length / 2, 24), digital ? Color.Green : Color.White, 0.86f, 64, 120));
             OnDashCollide = DashCollision;
         }
-
         internal static void Load()
         {
             IL.Celeste.Player.ReflectBounce += Player_Bounce;
@@ -133,8 +134,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             ShockedHairColor = null;
             yield return null;
         }
-        public LabTubeLight(EntityData e, Vector2 position)
-            : this(e.Position + position, Math.Max(16, e.Width))
+        public LabTubeLight(EntityData data, Vector2 position)
+            : this(data.Position + position, Math.Max(16, data.Width),data.Bool("digital"))
         {
         }
         public override void Update()
@@ -161,15 +162,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     i.Color = State ? SpriteColor : Color.Lerp(Color.White, Color.Black, 0.2f);
                 }
             }
-        }
-        public override void Render()
-        {
-            foreach (Component component in Components)
-            {
-                (component as Image)?.DrawOutline();
-            }
-            base.Render();
-
         }
 
         public override void Added(Scene scene)

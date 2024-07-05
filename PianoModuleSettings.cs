@@ -3,11 +3,13 @@ namespace Celeste.Mod.PuzzleIslandHelper
     [SettingName("modoptions_PuzzleIslandHelperModule")]
     public class PianoModuleSettings : EverestModuleSettings
     {
+        [SettingName("modoptions_PuzzleIslandHelperModule_DigitalHair")]
+        public bool RenderDigitalHair {get; set; } = true;
 
         [SettingName("modoptions_PuzzleIslandHelperModule_InvState")]
-        //[SettingIgnore]
         public bool InvertAbility {get; set;} = false;
-
+        [SettingName("modoptions_PuzzleIslandHelperModule_HideCollectableIndicators")]
+        public bool HideCollectableIndicators {get; set; } = false;
 
         [SettingName("modoptions_PuzzleIslandHelperModule_InvIntensity")]
         [SettingSubText("modoptions_PuzzleIslandHelperModule_InvIntensity_desc")]

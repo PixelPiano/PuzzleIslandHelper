@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
 
 

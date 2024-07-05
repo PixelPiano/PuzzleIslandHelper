@@ -2,8 +2,9 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
-// PuzzleIslandHelper.FadeWarpKey
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+using System.Collections;
+
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/FadeWarpKey")]
     [Tracked]
@@ -63,11 +64,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                 RemoveSelf();
             }
         }
-
-        private void Collect(Player player)
+        private IEnumerator routine(Player player)
         {
-            //PlayEvent ding sound or something
-            player.StateMachine.State = 11;
+            //todo: PlayEvent ding sound or something
+            player.StateMachine.State = Player.StDummy;
             Collected = true;
             sprite.Visible = false;
             KeyData data = new KeyData(this);
@@ -75,12 +75,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             {
                 PianoModule.Session.Keys.Add(data);
             }
-            foreach (KeyData key in PianoModule.Session.Keys)
-            {
-                Console.WriteLine(key.ToString());
-            }
-            player.StateMachine.State = 0;
+            /*            foreach (KeyData key in PianoModule.Session.Keys)
+                        {
+                            Console.WriteLine(key.ToString());
+                        }*/
+            yield return 0.1f;
+            player.StateMachine.State = Player.StNormal;
             RemoveSelf();
+        }
+        private void Collect(Player player)
+        {
+            if (!Collected)
+            {
+                Add(new Coroutine(routine(player)));
+            }
         }
     }
 }

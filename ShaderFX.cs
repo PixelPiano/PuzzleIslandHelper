@@ -4,6 +4,7 @@ using Celeste.Mod;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
+using System.Collections.Generic;
 
 public class ShaderFX
 {
@@ -18,9 +19,10 @@ public class ShaderFX
     public static Effect Shine;
     public static Effect PlayerStatic;
     public static Effect Sway;
-
+    public static Effect GlitchAura;
     public static void LoadFXs()
     {
+
         Jitter = LoadFx("jitter");
         MonitorDecal = LoadFx("monitorDecal");
         Static = LoadFx("static");
@@ -32,6 +34,7 @@ public class ShaderFX
         Shine = LoadFx("shine");
         PlayerStatic = LoadFx("playerStatic");
         Sway = LoadFx("huskSway");
+        GlitchAura = LoadFx("glitchAura");
 
     }
     public static void DisposeFXs()
@@ -47,6 +50,7 @@ public class ShaderFX
         Shine?.Dispose();
         PlayerStatic?.Dispose();
         Sway?.Dispose();
+        GlitchAura?.Dispose();
     }
     public static void Load()
     {
@@ -71,8 +75,9 @@ public class ShaderFX
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Failed to load the Shader " + id);
-                Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Exception: \n" + ex.ToString());
+                throw new Exception("PuzzleIslandHelper/ShaderFX: Unable to load the Shader " + id, ex);
+                /*                Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Failed to load the Shader " + ID);
+                                Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Exception: \n" + ex.ToString());*/
             }
         }
         return null;

@@ -4,7 +4,7 @@ using System;
 using Celeste.Mod.Entities;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/MovingJelly")]
     [TrackedAs(typeof(Glider))]

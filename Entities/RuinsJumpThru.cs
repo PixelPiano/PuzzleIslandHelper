@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/RuinsJumpThru")]
     [Tracked]

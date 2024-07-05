@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 // PuzzleIslandHelper.BinarySwitch
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/BinarySwitch")]
     public class BinarySwitch : Solid

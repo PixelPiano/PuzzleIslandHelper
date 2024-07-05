@@ -1,6 +1,9 @@
+using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
+using System.Runtime.InteropServices;
+using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {
@@ -9,12 +12,60 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
     public class CustomTalkComponent : TalkComponent
     {
 
-        private bool CanHover;
-        private bool VisibleFromDistance;
+        public bool CanHover;
+        public bool VisibleFromDistance;
         private Sprite sprite;
-        private string Anim;
+        public string Anim => Focused ? FocusedAnim : UnfocusedAnim;
+        public string FocusedAnim;
+        public string UnfocusedAnim
+        {
+            get
+            {
+                if (SingleGraphic) return FocusedAnim;
+                else return unfocusedAnim;
+            }
+            set
+            {
+                unfocusedAnim = value;
+            }
+        }
+        private string unfocusedAnim;
         public bool UsesSprite;
-        public MTexture Texture;
+        public bool Focused;
+        public MTexture Texture
+        {
+            get
+            {
+                if (Focused)
+                {
+                    return FocusedTexture;
+                }
+                else
+                {
+                    return UnfocusedTexture;
+                }
+            }
+        }
+
+        public MTexture FocusedTexture;
+        public MTexture UnfocusedTexture
+        {
+            get
+            {
+                if (SingleGraphic) return FocusedTexture;
+                else return unfocusedTexture;
+            }
+            set
+            {
+                unfocusedTexture = value;
+            }
+        }
+        private MTexture unfocusedTexture;
+        public bool SingleGraphic;
+        public float Alpha;
+        public float AlphaUpClose = 1;
+        public float AlphaAtDistance = 1;
+
         public float Delay;
         public bool Muted;
         public bool Loop;
@@ -33,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 case SpecialType.DotDotDot:
                     sprite = new Sprite(GFX.Gui, "PuzzleIslandHelper/hover/");
                     sprite.AddLoop("idle", "digitalC", 0.5f);
-                    Anim = "idle";
+                    FocusedAnim = "idle";
                     UsesSprite = true;
                     Delay = 0.5f;
                     Muted = false;
@@ -42,23 +93,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     CanHover = false;
                     break;
                 case SpecialType.DigitalLog:
-                    Texture = GFX.Gui["PuzzleIslandHelper/hover/digitalB"];
+                    FocusedTexture = GFX.Gui["PuzzleIslandHelper/hover/digitalB"];
                     UsesSprite = false;
                     Muted = false;
                     VisibleFromDistance = false;
                     CanHover = true;
                     break;
                 case SpecialType.UpArrow:
-                    Texture = GFX.Gui["PuzzleIslandHelper/hover/upArrow"];
+                    FocusedTexture = GFX.Gui["PuzzleIslandHelper/hover/upArrow"];
                     VisibleFromDistance = false;
                     CanHover = false;
                     break;
                 case SpecialType.DownArrow:
-                    Texture = GFX.Gui["PuzzleIslandHelper/hover/downArrow"];
+                    FocusedTexture = GFX.Gui["PuzzleIslandHelper/hover/downArrow"];
                     VisibleFromDistance = false;
                     CanHover = false;
                     break;
             }
+            Alpha = AlphaAtDistance;
+            SingleGraphic = true;
+        }
+        public override void Added(Entity entity)
+        {
+            base.Added(entity);
         }
         public CustomTalkComponent(Entity thisEntity, Action<Player> onTalk) : base(new Rectangle(0, 0, (int)thisEntity.Width, (int)thisEntity.Height), new Vector2(thisEntity.X + thisEntity.Width / 2, thisEntity.Y), onTalk)
         {
@@ -73,14 +130,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             {
                 sprite = highlightSprite;
                 Loop = loop;
-                Anim = animID;
+                FocusedAnim = animID;
                 Delay = delay;
-
                 UsesSprite = true;
             }
             else
             {
-                Texture = GFX.Gui["hover/idle"];
+                FocusedTexture = GFX.Gui["hover/idle"];
                 UsesSprite = false;
             }
         }
@@ -92,32 +148,41 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
 
             if (highlightTexture is not null)
             {
-                Texture = highlightTexture;
+                FocusedTexture = highlightTexture;
                 UsesSprite = false;
             }
             else
             {
-                Texture = GFX.Gui["hover/idle"];
+                FocusedTexture = GFX.Gui["hover/idle"];
             }
+
         }
+        private bool wasHighlighting;
         public override void Update()
         {
             if (UI == null)
             {
                 Entity.Scene.Add(UI = new CustomTalkComponentUI(this));
+                (UI as CustomTalkComponentUI).started = true;
+                (UI as CustomTalkComponentUI).CurrentFrame = 0;
             }
-
             Player entity = Scene.Tracker.GetEntity<Player>();
             bool flag = disableDelay < 0.05f && entity != null && entity.CollideRect(new Rectangle((int)(base.Entity.X + (float)Bounds.X), (int)(base.Entity.Y + (float)Bounds.Y), Bounds.Width, Bounds.Height)) && entity.OnGround() && entity.Bottom < base.Entity.Y + (float)Bounds.Bottom + 4f && entity.StateMachine.State == 0 && (!PlayerMustBeFacing || Math.Abs(entity.X - base.Entity.X) <= 16f || entity.Facing == (Facings)Math.Sign(base.Entity.X - entity.X)) && (PlayerOver == null || PlayerOver == this);
+            Focused = flag;
             if (flag)
             {
                 hoverTimer += Engine.DeltaTime;
+                Alpha = Calc.LerpClamp(Alpha, AlphaUpClose, Engine.DeltaTime * 5);
             }
-            else if (UI.Display)
+            else
             {
-                hoverTimer = 0f;
+                if (UI.Display) hoverTimer = 0f;
+                Alpha = Calc.LerpClamp(Alpha, AlphaAtDistance, Engine.DeltaTime * 5);
             }
-
+            if (UsesSprite)
+            {
+                sprite.Play(Anim);
+            }
             if (PlayerOver == this && !flag)
             {
                 PlayerOver = null;
@@ -157,9 +222,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             public new CustomTalkComponent Handler;
             private bool fromHighlight;
             private float scale = 1;
-            private int CurrentFrame;
+            public int CurrentFrame;
             private float buffer;
-            private bool started;
+            public bool started;
 
             public CustomTalkComponentUI(CustomTalkComponent handler) : base(handler)
             {
@@ -168,7 +233,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             public override void Update()
             {
                 base.Update();
-                if (fromHighlight && started && Handler.UsesSprite)
+                if ((Highlighted || (!Highlighted && Handler.VisibleFromDistance)) && started && Handler.UsesSprite)
                 {
                     buffer += Engine.DeltaTime;
                 }
@@ -181,7 +246,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 {
                     return;
                 }
-
+                float alpha = this.alpha * Handler.Alpha;
                 Vector2 vector = level.Camera.Position.Floor();
                 Vector2 vector2 = Handler.Entity.Position + Handler.DrawAt - vector;
                 if (SaveData.Instance != null && SaveData.Instance.Assists.MirrorMode)
@@ -196,45 +261,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 {
                     vector2.Y += (float)Math.Sin(timer * 4f) * 12f + 64f * (1f - Ease.CubeOut(slide));
                 }
-                float num = ((!Highlighted) ? (1f + wiggler.Value * 0.5f) : (1f - wiggler.Value * 0.5f));
                 float num2 = Ease.CubeInOut(slide) * alpha;
                 Color color = lineColor * num2;
-
-
+                MTexture CurrentTexture = Handler.UsesSprite ? Handler.sprite.GetFrame(Handler.sprite.CurrentAnimationID, CurrentFrame) : Handler.Texture;
+                if (Highlighted != fromHighlight)
+                {
+                    if (Handler.UsesSprite)
+                    {
+                        started = true;
+                        CurrentFrame = 0;
+                    }
+                }
                 if (Highlighted)
                 {
-                    if (!fromHighlight)
-                    {
-                        if (Handler.UsesSprite)
-                        {
-                            Handler.sprite.Play(Handler.Anim);
-                            started = true;
-                            CurrentFrame = 0;
-                        }
-                    }
                     fromHighlight = true;
-                    MTexture CurrentTexture = Handler.UsesSprite ? Handler.sprite.GetFrame(Handler.sprite.CurrentAnimationID, CurrentFrame) : Handler.Texture;
-
-
                     CurrentTexture.DrawJustified(vector2, new Vector2(0.5f, 1f), color * alpha, (1f - wiggler.Value * 0.5f));
-                    if (buffer >= Handler.Delay && Handler.UsesSprite)
-                    {
-                        if (Handler.Loop)
-                        {
-                            int newFrame = (CurrentFrame + 1) % (Handler.sprite.CurrentAnimationTotalFrames - 1);
-                            CurrentFrame = newFrame;
-                        }
-                        else
-                        {
-                            CurrentFrame = Calc.Clamp(CurrentFrame + 1, 0, Handler.sprite.CurrentAnimationTotalFrames - 1);
-                        }
-
-                        buffer = 0;
-                    }
                 }
                 else if (Handler.VisibleFromDistance)
                 {
-                    GFX.Gui[Handler.HoverUI.Texture.AtlasPath].DrawJustified(vector2, new Vector2(0.5f, 1f), color * alpha, (1f + wiggler.Value * 0.5f));
+                    CurrentTexture.DrawJustified(vector2, new Vector2(0.5f, 1f), color * alpha, (1f + wiggler.Value * 0.5f));
                     fromHighlight = false;
                 }
                 else
@@ -242,8 +287,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     if (fromHighlight)
                     {
                         scale -= 0.1f;
-                        MTexture CurrentTexture = Handler.UsesSprite ? Handler.sprite.GetFrame(Handler.sprite.CurrentAnimationID, Handler.sprite.CurrentAnimationTotalFrames - 1) : Handler.Texture;
-
                         CurrentTexture.DrawJustified(vector2, new Vector2(0.5f, 1f), color * alpha, scale);
                         if (scale <= 0)
                         {
@@ -252,6 +295,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                         }
                     }
                 }
+
+                if (buffer >= Handler.Delay && Handler.UsesSprite)
+                {
+                    if (Handler.sprite.CurrentAnimationTotalFrames - 1 > 0)
+                    {
+                        if (Handler.Loop)
+                        {
+                            CurrentFrame = (CurrentFrame + 1) % (Handler.sprite.CurrentAnimationTotalFrames - 1);
+                        }
+                        else
+                        {
+                            CurrentFrame = Calc.Clamp(CurrentFrame + 1, 0, Handler.sprite.CurrentAnimationTotalFrames - 1);
+                        }
+                    }
+
+                    buffer = 0;
+                }
+
                 if (Highlighted)
                 {
                     /*                    if (Input.GuiInputController(Input.PrefixMode.Latest))

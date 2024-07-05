@@ -5,7 +5,7 @@ using Monocle;
 using System;
 using System.Collections;
 // PuzzleIslandHelper.ArtifactSlot
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/ArtifactSlot")]
     [Tracked]

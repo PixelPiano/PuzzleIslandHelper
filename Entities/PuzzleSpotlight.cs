@@ -1,6 +1,6 @@
 using System;
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Mono.Cecil.Cil;

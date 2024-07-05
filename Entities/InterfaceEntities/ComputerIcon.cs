@@ -53,7 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             else
             {
-                Entity m = Interface.Monitor;
+                Entity m = Interface.monitor;
                 if (X < m.X) X = m.X;
                 if (Y < m.Y) Y = m.Y;
                 if (X + Width > m.X + m.Width) X = m.X + m.Width - Width;

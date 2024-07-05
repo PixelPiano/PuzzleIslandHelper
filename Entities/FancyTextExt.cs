@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Celeste.Mod;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Microsoft.Xna.Framework;
 using Monocle;
 
@@ -420,7 +421,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             group.BaseSize = language.FontFaceSize;
             size = font.Get(group.BaseSize);
         }
+        private static bool EvaluateText(string text, List<string> list)
+        {
+            bool found = false;
+            if (Engine.Scene is Level level && level.Tracker.GetEntity<Calidus>() is Calidus calidus)
+            {
+                if ((text[0] == 'c') && list.Count > 1)
+                {
+                    string output = "Found valid c command:";
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        output += "\n" + i + ":" + list[i];
+                    }
+                    Console.WriteLine(output);
+                    if (list[0].Equals("look"))
+                    {
+                        if (Enum.TryParse(list[1], true, out Calidus.Looking result))
+                        {
+                            Console.WriteLine("Found valid look command: " + result);
+                            calidus.Look(result);
+                            found = true;
+                        }
 
+                    }
+                    else if (list[0].Equals("mood") && Enum.TryParse(list[1], true, out Calidus.Mood result2))
+                    {
+                        Console.WriteLine("Found valid mood command: " + list[1]);
+                        calidus.Emotion(result2);
+                        found = true;
+                    }
+                }
+            }
+            return found;
+        }
         private Text Parse()
         {
             string[] array = Regex.Split(this.text, language.SplitRegex);
@@ -614,6 +647,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                     item.Animation = item2;
                                 }
                             }
+    
                         }
 
                         if (GFX.PortraitsSpriteBank.Has(item.SpriteId))

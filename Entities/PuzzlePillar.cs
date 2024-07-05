@@ -4,7 +4,7 @@ using Monocle;
 using MonoMod;
 using MonoMod.Utils;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/PuzzlePillar")]
     [Tracked]
@@ -58,8 +58,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         {
             base.Awake(scene);
             DynData<ExitBlock> self = new DynData<ExitBlock>(this);
-            tiles = self.Get<TileGrid>("newTiles");
-            cutout = self.Get<EffectCutout>("newCutout");
+            tiles = self.Get<TileGrid>("tiles");
+            cutout = self.Get<EffectCutout>("cutout");
             cutout.Alpha = 1;
         }
 

@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/GrassMaze")]
     [Tracked]
@@ -12,20 +12,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
     {
         private Image Texture;
         public const int BaseDepth = -13000;
-        public static bool Completed
+        public bool Completed
         {
             get
             {
-                return PianoModule.Session.GrassMazeCompleted;
+                return  !string.IsNullOrEmpty(flag) && SceneAs<Level>().Session.GetFlag(flag);
             }
             set
             {
-                PianoModule.Session.GrassMazeCompleted = value;
+                if (!string.IsNullOrEmpty(flag))
+                {
+                    SceneAs<Level>().Session.SetFlag(flag, value);
+                }
             }
         }
         public static bool Reset;
-        private CustomTalkComponent Talk;
-        private GrassMazeOverlay Maze;
+        public CustomTalkComponent Talk;
+        private string flag;
         public GrassMaze(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             PianoModule.Session.GrassMazeFinished = false;
@@ -34,23 +37,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             Collider = new Hitbox(Texture.Width, Texture.Height);
             Depth = 2;
             Add(Talk = new DotX3(0, 0, Width, Height, Vector2.UnitX * Width / 2, Interact));
-            Position += Vector2.UnitY * 8;
+            Talk.PlayerMustBeFacing = false;
+            Position += Vector2.UnitY * 10;
+            flag = data.Attr("flagOnComplete");
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            if (Completed)
+            {
+                Talk.Enabled = false;
+            }
         }
         private void Interact(Player player)
         {
             Completed = false;
             Reset = false;
             player.StateMachine.State = Player.StDummy;
-            SceneAs<Level>().Add(Maze = new GrassMazeOverlay(SceneAs<Level>().Camera.Position));
-        }
-        public override void Update()
-        {
-            base.Update();
-            if (Maze is null || Scene is not Level level || level.GetPlayer() is not Player player) return;
-            if (Maze.Completed)
-            {
-                player.StateMachine.State = Player.StNormal;
-            }
+            SceneAs<Level>().Add(new GrassMazeOverlay(this, SceneAs<Level>().Camera.Position, flag));
         }
     }
 }

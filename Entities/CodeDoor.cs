@@ -3,24 +3,18 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 // PuzzleIslandHelper.CodeDoor
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/CodeDoor")]
     [Tracked]
     public class CodeDoor : Solid
     {
         public string flag;
-
         private Sprite doorSprite;
-
         private Vector2 orig_Position;
-
         private bool Unlocking;
         private bool Unlocked;
-
-        private Level level;
-        private bool Buffer;
-
+        private Vector2 destination;
         private bool Sideways;
         public CodeDoor(EntityData data, Vector2 offset)
             : base(data.Position + offset, 8, 48, false)
@@ -41,95 +35,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             }
             Collider = new Hitbox(Sideways ? doorSprite.Height : doorSprite.Width, Sideways ? doorSprite.Width : doorSprite.Height);
             Add(new LightOcclude());
-            if (Sideways) Position.X += 8;
             orig_Position = Position;
             Depth = -1;
             doorSprite.Play("idle");
+            destination = new Vector2(Sideways ? orig_Position.X - Width : Position.X, Sideways ? Position.Y : orig_Position.Y - Width);
         }
         private IEnumerator Unlock()
         {
             Unlocked = true;
-            float speed = 5;
-            float destination = Sideways ? orig_Position.X - doorSprite.Width : orig_Position.Y - doorSprite.Height;
-
-            float origY = Position.Y;
-            float origX = Position.X;
-            bool left = true;
-            bool shake = true;
-            float pos = Sideways ? Position.X : Position.Y;
-            int buffer = 6;
-            int bufferProg = buffer;
-            for (float i = 0; i < 1; i += Engine.DeltaTime * speed)
+            Vector2 orig = Position;
+            Vector2 shakeVector = Sideways ? Vector2.UnitX : Vector2.UnitY;
+            for (int i = 0; i < 6; i++)
             {
-                if (shake)
-                {
-                    if (left)
-                    {
-                        if (Sideways)
-                        {
-                            Position.X--;
-                        }
-                        else
-                        {
-                            Position.Y--;
-                        }
-
-                    }
-                    else
-                    {
-                        if (Sideways)
-                        {
-                            Position.X++;
-                        }
-                        else
-                        {
-                            Position.Y++;
-                        }
-                    }
-                    left = !left;
-                }
-                shake = !shake;
-                bufferProg--;
-                pos = (int)Calc.LerpClamp(Sideways ? origX : origY, destination, Ease.QuintIn(i));
-                if (bufferProg == 0)
-                {
-                    bufferProg = buffer;
-                    if (Sideways)
-                    {
-                        Position.X = pos;
-                    }
-                    else
-                    {
-                        Position.Y = pos;
-                    }
-
-                }
+                Position = orig + shakeVector;
+                shakeVector *= -1;
                 yield return null;
             }
-            Position.Y = Sideways ? origY : destination;
-            Position.X = Sideways ? destination : origX;
+            Position = orig;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 0.25f)
+            {
+                Position = Vector2.Lerp(orig, destination, Ease.QuintIn(i));
+                yield return null;
+            }
+            Position = destination;
         }
 
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            level = scene as Level;
+            if ((scene as Level).Session.GetFlag(flag))
+            {
+                Unlocking = true;
+                Unlocked = true;
+                doorSprite.Play("unlocked");
+                Position = destination;
+            }
         }
         public override void Update()
         {
             base.Update();
-            if (!Buffer)
-            {
-                if (level.Session.GetFlag(flag))
-                {
-                    Unlocking = true;
-                    Unlocked = true;
-                    doorSprite.Play("unlocked");
-                    Position = orig_Position - (Sideways ? Vector2.UnitX * doorSprite.Width : Vector2.UnitY * doorSprite.Height);
-                }
-                Buffer = true;
-            }
-            if (level.Session.GetFlag(flag) && !Unlocking)
+            if(Unlocked) return;
+            if (SceneAs<Level>().Session.GetFlag(flag) && !Unlocking)
             {
                 Unlocking = true;
                 Audio.Play("event:/game/09_core/frontdoor_heartfill", Position);

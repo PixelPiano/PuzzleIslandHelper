@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 // PuzzleIslandHelper.LabDoor
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/LabDoor")]
     [Tracked]
@@ -39,6 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         public States State;
         public Collider Detect;
         private bool dependsOnLabPower;
+        private bool firstFrame = true;
         public bool PowerState
         {
             get
@@ -49,7 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         public LabDoor(EntityData data, Vector2 offset)
             : base(data.Position + offset, 8, 48, false)
         {
-            dependsOnLabPower = data.Bool("dependsOnLabPower",true);
+            dependsOnLabPower = data.Bool("dependsOnLabPower", true);
             auto = data.Bool("automatic");
             flag = data.Attr("flag");
             State = data.Bool("startState") ? States.Open : States.Closed;
@@ -80,13 +81,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         }
         public void Open()
         {
-            Add(new SoundSource("event:/PianoBoy/labDoorOpen"));
+            if (!firstFrame)
+            {
+                Add(new SoundSource("event:/PianoBoy/labDoorOpen"));
+            }
             doorSprite.Play("opening");
             State = States.Opening;
         }
         public void Close()
         {
-            Add(new SoundSource("event:/PianoBoy/labDoorClose"));
+            if (!firstFrame)
+            {
+                Add(new SoundSource("event:/PianoBoy/labDoorClose"));
+            }
             doorSprite.Play("closing");
             State = States.Closing;
         }
@@ -133,6 +140,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                 }
             }
             base.Update();
+            firstFrame = false;
         }
         public void InstantClose()
         {

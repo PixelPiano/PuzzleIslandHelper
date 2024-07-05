@@ -4,7 +4,7 @@ using Monocle;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
 {
 
     [CustomEntity("PuzzleIslandHelper/GearDoorActivator")]

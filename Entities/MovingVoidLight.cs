@@ -5,7 +5,7 @@ using System;
 using Color = Microsoft.Xna.Framework.Color;
 
 // PuzzleIslandHelper.MovingVoidLight
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/MovingVoidLight")]
     [Tracked]

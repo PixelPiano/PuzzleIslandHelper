@@ -4,7 +4,7 @@ using Monocle;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/CollectableIndicator")]
 
@@ -18,6 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         private Sprite SpriteRight;
         private Color Color = Color.Black * 0.4f;
         private List<BloomPoint> BloomPoints = new();
+        private bool Hidden => PianoModule.Settings.HideCollectableIndicators;
         public CollectableIndicator(EntityData data, Vector2 offset)
        : base(data.Position + offset)
         {
@@ -43,8 +44,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             }
             SpriteLeft.AddLoop("idle", "left", 0.1f);
             SpriteRight.AddLoop("idle", "right", 0.1f);
-
-
         }
         public override void Added(Scene scene)
         {
@@ -54,10 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             Add(SpriteRight);
             SpriteRight.Position.X += Collectables * 11 + SpriteLeft.Width;
             SpriteRight.Play("idle");
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
+
             for (int i = 0; i < Collectables; i++)
             {
                 Body[i].Position.X += i * 11 + SpriteLeft.Width;
@@ -84,13 +80,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         public override void Update()
         {
             base.Update();
-            if (Scene as Level is null)
-            {
-                return;
-            }
+            if (Scene is not Level level || Hidden) return;
             for (int i = 0; i < Collectables; i++)
             {
-                if (SceneAs<Level>().Session.GetFlag(flags[i]))
+                if (level.Session.GetFlag(flags[i]))
                 {
                     if (Body[i].CurrentAnimationID != "collected")
                     {
@@ -100,7 +93,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                     }
                 }
             }
-
+        }
+        public override void Render()
+        {
+            if (!Hidden)
+            {
+                base.Render();
+            }
         }
 
     }

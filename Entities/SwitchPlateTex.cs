@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework;
 using Monocle;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [Tracked]
     public class SwitchPlateTex : Entity

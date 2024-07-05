@@ -40,8 +40,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             UsesDecal = !string.IsNullOrEmpty(customDecalPath);
             HasButtons = data.Bool("buttons");
             ScaleDecal = data.Bool("scaleDecal");
-            LightDelay = data.Float("lightDelay",1);
-            LightOffset = data.Float("lightStartOffset",0);
+            LightDelay = data.Float("lightDelay", 1);
+            LightOffset = data.Float("lightStartOffset", 0);
             string path = "objects/PuzzleIslandHelper/machines/gizmos/";
             Border = new Sprite(GFX.Game, path);
             Monitor = new Sprite(GFX.Game, path);
@@ -116,12 +116,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void BeforeRender()
         {
-            Target.DrawThenMask(Monitor, (Action)DrawScreen, level.Camera.Matrix);
+            if (!FromController)
+            {
+                Target.DrawThenMask(Monitor, (Action)DrawScreen, level.Camera.Matrix);
+            }
         }
         private void DrawScreen()
         {
             Draw.Rect(Collider, ScreenColor);
-            if (UsesDecal && !FromController)
+            if (UsesDecal)
             {
                 CustomDecal.Render();
             }

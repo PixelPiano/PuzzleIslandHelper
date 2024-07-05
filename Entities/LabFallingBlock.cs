@@ -11,7 +11,7 @@ using System;
 using System.Linq;
 
 // PuzzleIslandHelper.LabFallingBlock
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/LabFallingBlock")]
     [Tracked]

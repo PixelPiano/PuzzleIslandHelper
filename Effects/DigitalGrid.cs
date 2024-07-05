@@ -12,8 +12,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private float SpacingX;
         private bool MovingEnabled;
         private Vector2 Rate;
-        private float currentY;
-        private float currentX;
         private float renderOffsetY;
         private float renderOffsetX;
         private float DiagonalOffsetY;
@@ -54,13 +52,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         {
             Opacity = data.AttrFloat("Opacity", 1f);
             color = Calc.HexToColor(data.Attr("color", "00ff00")) * Opacity;
-            timer = 0;
-            seed = 0;
             amplitude = Calc.Random.Range(1f, 7f);
             amount = Calc.Random.Range(0.01f, 0.5f);
             usesGlitch = data.AttrBool("glitch", false);
-            if (data.AttrBool("blur", true)) { effect = GFX.FxGaussianBlur; }
-            else { effect = null; }
+
+            if (data.AttrBool("blur", true)) effect = GFX.FxGaussianBlur;
+
             LineWidth = data.AttrFloat("verticalLineWidth", 4);
             LineHeight = data.AttrFloat("horizontalLineHeight", 2);
             DiagonalOffsetY = data.AttrFloat("verticalLineAngle", 10);
@@ -77,13 +74,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 renderOffsetY = Rate.Y;
                 renderOffsetX = Rate.X;
             }
-            else
-            {
-                renderOffsetY = 0;
-                renderOffsetX = 0;
-            }
-            currentY = 0;
-            currentX = 0;
         }
 
         public override void Update(Scene scene)
@@ -107,35 +97,43 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 renderOffsetY %= SpacingY;
             }
         }
+        public override void BeforeRender(Scene scene)
+        {
+            base.BeforeRender(scene);
+        }
         public override void Render(Scene scene)
         {
-            if (scene is not Level level || level.Session is null || level.Session.LevelData is null || (!HorizontalLines && !VerticalLines) || Opacity == 0)
+            Level level = scene as Level;
+            if (level.Session is null || level.Session.LevelData is null || (!HorizontalLines && !VerticalLines) || Opacity == 0)
             {
                 base.Render(scene);
                 return;
             }
-            currentY = level.Bounds.Top - compensation.Y;
-            currentX = level.Bounds.Left - compensation.X;
+            Vector2 cam = level.Camera.Position;
+            Vector2 current = cam - compensation;
             GameplayRenderer.End();
             Engine.Graphics.GraphicsDevice.SetRenderTarget(GridRenderTarget);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
             GameplayRenderer.Begin();
             if (HorizontalLines)
             {
-                for (float i = 0; i < level.Bounds.Height + compensation.Y + DiagonalOffsetY; i += SpacingY)
+                float startX = cam.X - compensation.X;
+                float endX = cam.X + compensation.X + 320;
+                for (float i = 0; i < 180 + compensation.Y + DiagonalOffsetY; i += SpacingY)
                 {
-                    Draw.Line(level.Bounds.Left - compensation.X, currentY + renderOffsetY,level.Bounds.Right + compensation.X, currentY + renderOffsetY - DiagonalOffsetX, color, LineHeight);
-
-                    currentY += SpacingY;
+                    Draw.Line(startX, current.Y + renderOffsetY, endX, current.Y + renderOffsetY - DiagonalOffsetX, color, LineHeight);
+                    current.Y += SpacingY;
 
                 }
             } //Draw to render Target
             if (VerticalLines)
             {
-                for (float i = 0; i < level.Bounds.Width + compensation.X + DiagonalOffsetX; i += SpacingX)
+                float startY = cam.Y - compensation.Y;
+                float endY = cam.Y + compensation.Y + 180;
+                for (float i = 0; i < 320 + compensation.X + DiagonalOffsetX; i += SpacingX)
                 {
-                    Draw.Line(currentX + renderOffsetX, level.Bounds.Top - compensation.Y, currentX + renderOffsetX + DiagonalOffsetY,level.Bounds.Bottom + compensation.Y, color, LineWidth);
-                    currentX += SpacingX;
+                    Draw.Line(current.X + renderOffsetX, startY, current.X + renderOffsetX + DiagonalOffsetY, endY, color, LineWidth);
+                    current.X += SpacingX;
                 }
             }
             Draw.SpriteBatch.End();

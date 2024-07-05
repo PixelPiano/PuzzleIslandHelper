@@ -22,9 +22,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public bool State;
         private Sprite sprite;
         private bool inRoutine;
-
-        public YouHaveMail(Interface inter) : base(inter)
+        private string TextID, TabText;
+        public YouHaveMail(Interface inter, string textId, string tabText) : base(inter)
         {
+            TextID = textId;
+            TabText = tabText;
             sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/mail/");
             sprite.AddLoop("anim", "notif", 0.05f);
             sprite.AddLoop("idle", "empty", 0.1f);
@@ -37,9 +39,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Update()
         {
             base.Update();
-            if (Interface.Monitor != null)
+            if (Interface.monitor != null)
             {
-                Position = Interface.Monitor.Center - new Vector2(Width / 2, Height / 2);
+                Position = Interface.monitor.Center - new Vector2(Width / 2, Height / 2);
             }
         }
         public override void Begin(Scene scene)
@@ -78,7 +80,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             WindowContent content = Interface.GetProgram("mail");
             if (content is null) yield break;
             content.Visible = false;
-            Interface.OpenCustom("mail","mailText","Important");
+            Interface.OpenCustom("mail",TextID, TabText);
             for (float i = 0; i < 1; i += Engine.DeltaTime / 0.4f)
             {
                 Interface.Window.Alpha = Ease.SineInOut(i);

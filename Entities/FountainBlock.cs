@@ -8,7 +8,7 @@ using System.Collections;
 using YamlDotNet.Core.Tokens;
 using static FrostHelper.Entities.GrowBlock;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/FountainBlock")]
     [Tracked]
@@ -34,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                 sprite.Add("textLoad", "screenInfo", 0.1f, "textIdle", 20, 21, 22, 23, 24, 25, 26);
                 sprite.AddLoop("textIdle", "screenInfo", 0.1f, 26);
                 sprite.Add("intoIdle", "screenInfoReverse", 0.1f);
-                sprite.AddLoop("off","screenOff",0.1f);
+                sprite.AddLoop("off", "screenOff", 0.1f);
                 sprite.Visible = false;
                 Add(sprite);
                 Depth = 8999;
@@ -246,7 +246,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
             private Screen screen;
             private Player player;
             private Action onEnd;
-            private int generators => PianoModule.Session.DEBUGINT;
+            private int generators
+            {
+                get
+                {
+                    int value = 0;
+                    foreach (var a in PianoModule.Session.MiniGenStates.Values)
+                    {
+                        if (a)
+                        {
+                            value++;
+                        }
+                    }
+                    return value;
+                }
+            }
             public ScreenCutscene(Player player, Screen screen, Action onEnd) : base()
             {
                 this.screen = screen;
@@ -271,13 +285,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                     yield return null;
                 }
                 yield return 0.5f;
-                yield return Textbox.Say("" + generators + " generators activated");
+                yield return Textbox.Say("" + Calc.Clamp(GeneratorsRequired - generators, 0, GeneratorsRequired) + " generators remain unactivated");
                 yield return 0.3f;
                 screen.sprite.OnFinish = (string s) =>
                 {
-                    if(s == "intoIdle")
+                    if (s == "intoIdle")
                     {
-                        if(generators >= GeneratorsRequired)
+                        if (generators >= GeneratorsRequired)
                         {
                             screen.sprite.Play("off");
                         }

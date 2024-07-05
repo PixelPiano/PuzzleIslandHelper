@@ -7,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     public class LHLData
     {

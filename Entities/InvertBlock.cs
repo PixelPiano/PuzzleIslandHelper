@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using VivHelper.Entities;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/InvertBlock")]
     [Tracked]

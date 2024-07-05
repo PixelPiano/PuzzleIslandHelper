@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 // PuzzleIslandHelper.ArtifactSlot
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/CustomFloatingBlock")]
     [Tracked]

@@ -1,5 +1,6 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections.Generic;
 
@@ -16,7 +17,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private string GroupID;
         private bool UsesDecal;
         private bool ScaleDecal;
-
+        private float Amplitude;
+        private int[] Spaces = new int[8];
         private List<MonitorDecal> MonitorGroup = new();
         private VirtualRenderTarget Target = VirtualContent.CreateRenderTarget("MonitorDecal", 320, 180);
         private VirtualRenderTarget Target2 = VirtualContent.CreateRenderTarget("MonitorDecal2", 320, 180);
@@ -44,6 +46,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Awake(scene);
             level = scene as Level;
+            for(int i = 0; i<8; i++)
+            {
+                Spaces[i] = Calc.Random.Range(1, 5);
+            }
             foreach (MonitorDecal md in level.Tracker.GetEntities<MonitorDecal>())
             {
                 if (md.GroupID == GroupID)
@@ -55,7 +61,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 RemoveSelf();
             }
-
+            Tween tween = Tween.Create(Tween.TweenMode.Looping, Ease.Linear, 3, true);
+            tween.OnUpdate = (Tween t) => { Amplitude = t.Eased; };
+            Add(tween);
             Vector2 topLeft = MonitorGroup[0].Position;
             Vector2 bottomRight = MonitorGroup[0].Position + new Vector2(MonitorGroup[0].Width, MonitorGroup[0].Height);
             for (int i = 0; i < MonitorGroup.Count; i++)
@@ -92,6 +100,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void BeforeRender()
         {
+            ShaderFX.MonitorDecal.ApplyStandardParameters(level);
+            ShaderFX.MonitorDecal.Parameters["Random"]?.SetValue(Calc.Random.Range(0, 1f));
+            ShaderFX.MonitorDecal.Parameters["Amplitude"]?.SetValue(Amplitude);
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Mask);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
             Mask.SetRenderMask(DrawInsides, level.Camera.Matrix);
@@ -100,7 +111,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             Target2.MaskToObject(Mask);
             Target.MaskToObject(Mask);
-            ShaderFX.MonitorDecal.ApplyStandardParameters(level);
         }
         public override void Render()
         {

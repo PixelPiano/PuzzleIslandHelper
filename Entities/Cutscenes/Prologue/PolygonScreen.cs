@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,6 +57,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         }
         public Dictionary<char, AreaData> Data = new();
         public Dictionary<Vector2, Vector2> Offsets = new();
+
         public class Triangle : ShiftArea
         {
             public bool IsCenterTriangle;
@@ -89,6 +91,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             }
         }
 
+
         public static void cacheValidTiles()
         {
             if (validBgTiles == null)
@@ -112,6 +115,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
                 Areas[i].FadeConnectBegin(time, delay);
                 yield return 0.1f;
             }
+            CenterTri?.FadeConnectBegin(time);
+            yield return 0.7f;
             for (int i = 0; i < Areas.Count; i++)
             {
                 while (Areas[i].Fading)
@@ -189,8 +194,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             {
                 CreateAndAddArea(pair.Value.BgTo, level, pair.Value.Vertices, pair.Value.Indices);
             }
-            CreateAndAddArea(centerData.BgTo, level, centerData.Vertices, centerData.Indices, true);
-
+            CenterTri = new();
+            Scene.Add(CenterTri);
         }
         public override void Awake(Scene scene)
         {
@@ -202,6 +207,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             {
                 Areas[index].IntoPolyscreen();
             }
+            CenterTri?.IntoPolyscreen();
         }
         public Color GetRandomColor()
         {
@@ -225,6 +231,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             level.Add(area);
             BgCache.Add(bgto);
         }
+        public CenterTriangle CenterTri;
         public void CreateOffset(Vector2 position)
         {
             Vector2 value = Vector2.Zero;

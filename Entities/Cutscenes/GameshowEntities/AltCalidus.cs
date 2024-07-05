@@ -115,8 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                             {
                                 yield return Textbox.Say("yesWipe");
                                 yield return 1;
-                                Level.Session.SetFlag("error_flag", false);
-                                Level.Session.SetFlag("decal_flag", false);
+                                WipeFaces();
                                 yield return Textbox.Say("yesWipe3");
                                 Level.Session.SetFlag("washerNoResponse");
                             }
@@ -134,6 +133,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
 
             }
         }
+
         public override void Update()
         {
             base.Update();

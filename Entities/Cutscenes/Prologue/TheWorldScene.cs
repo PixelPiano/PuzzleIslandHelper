@@ -116,7 +116,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
 
                 if (k < DialogIDs.Length - 1)
                 {
-                    yield return Reset(k + 1); //advance to next dialog id
+                    yield return Reset(k + 1); //advance to next dialog ID
                 }
                 else
                 {

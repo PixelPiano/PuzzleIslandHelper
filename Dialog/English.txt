@@ -167,6 +167,39 @@ faceComplaint=
 	{# 0000FF}How do these things exist, and why isn't anyone doing anything about it?!{#}
 	{# 0000FF}I spilled my coffee 4 times IN A ROW because one of those insufferable creatures kept drifting into me!{#}
 	{# FF0000}I'M SORRY WHAT YOU SPILLED IT 4 TIMES?? THAT'S ON YOU BUDDY BAHAHAHAHA{#}
+
+refillNotesA=
+	[Paper left normal]
+	{# 000000}We've received reports sightings of floating objects seperate from the FOA we've been monitoring recently.
+	These objects are diamond-shaped, have a soft, green glow, and gently float up and down.
+	It ignores any physical contact, phasing through solid matter.
+	If it does break, we have yet to find a trigger.{#}
+
+refillNotesB=
+	[Paper left normal]
+	{# 000000}Like FOAs, it is impossible to alter the location of these objects.
+	So, like FOAs, we're attempting to create one ourselves.
+	Progress has been... slow. We can recreate the shape and glow, but it's unstable.{#}
+
+refillNotesC=
+	[Paper left normal]
+	{# 000000}We've successfully created a stable replication of these objects! 
+	The glow, the shape, everything about it is perfect, a 1-1 copy!
+	...
+	What do we do now?{#}
+refillNotesD=
+	[Paper left normal]
+	{# 000000}Observations:
+	Our prototype is unstable, and shatters roughly 5-10 seconds after creation.
+	When it shatters, it loses its green glow and the frequency of its floating slows dramatically.{#}
+refillNotesE=
+	[Paper left normal]
+	{# 000000}Observations:
+	While in this state, it is very fragile, and will shatter at the slightest touch.
+	Subjects who shatter them report an instant feeling of fatigue and nausea.
+	However, they don't seem to respond to touching other crystals.
+	For the time being, we've confined them inside these chambers.{#}
+
 #Washer Interact while off
 #attempt 1
 washerIsOff=

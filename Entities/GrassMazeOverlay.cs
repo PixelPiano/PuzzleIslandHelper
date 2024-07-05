@@ -6,8 +6,9 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [Tracked]
     public class GrassMazeOverlay : Entity
@@ -286,9 +287,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         public static readonly Color CellColor = Color.White * 0.4f;
         private Icon icon;
         public Node.Direction EndDirection;
-        public GrassMazeOverlay(Vector2 Position) : base(Position)
+        private string flag;
+        private GrassMaze parent;
+        public GrassMazeOverlay(GrassMaze parent, Vector2 Position, string flag) : base(Position)
         {
             Depth = -100000;
+            this.parent = parent;
+            this.flag = flag;
             Loading = true;
             Collider = new Hitbox(320, 180);
             Collidable = false;
@@ -307,7 +312,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                 player.Light.Alpha = 0;
             }
 
-            if (GrassMaze.Completed)
+            if (parent.Completed)
             {
                 Removed(scene);
             }
@@ -423,6 +428,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         public void Complete()
         {
             InCompleteRoutine = true;
+            if (!string.IsNullOrEmpty(flag))
+            {
+                SceneAs<Level>().Session.SetFlag(flag);
+            }
             Add(new Coroutine(CompleteRoutine()));
         }
         public void OnClear()
@@ -494,8 +503,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
                 }
             }
             yield return 0.1f;
-
-            //SceneAs<Level>().Session.SetFlag("CompletedGrassMaze");
             Exit();
 
             yield return null;
@@ -586,7 +593,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
         {
             Removing = true;
             yield return FadeOut();
-            GrassMaze.Completed = complete;
+            if (Scene.GetPlayer() is Player player)
+            {
+                player.StateMachine.State = Player.StNormal;
+            }
+            if (complete)
+            {
+                parent.Talk.Enabled = false;
+            }
+            parent.Completed = complete;
             if (!complete)
             {
                 GrassMaze.Reset = true;

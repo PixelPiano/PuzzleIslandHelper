@@ -137,7 +137,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
         }
-        public static bool IgnoreHair;
+        public static bool IgnoreHair => !PianoModule.Settings.RenderDigitalHair;
         private Color background;
 
         private Color[] lineColors = new Color[4];
@@ -172,14 +172,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                if(Scene is not Level level || string.IsNullOrEmpty(flag)) return true;
+                if (Scene is not Level level || string.IsNullOrEmpty(flag)) return true;
                 return level.Session.GetFlag(flag) == !inverted;
             }
         }
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
-            UseEffect = false;
+            EffectActive = false;
             _MaskRenderTarget?.Dispose();
             _MaskRenderTarget = null;
             _ObjectRenderTarget?.Dispose();
@@ -195,7 +195,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             AlphaBlendFunction = BlendFunction.Add,
             AlphaDestinationBlend = Blend.SourceColor
         };
-        public static bool UseEffect;
+        public static bool EffectActive;
         public DigitalEffect(EntityData data, Vector2 offset)
           : base(data.Position + offset)
         {
@@ -211,14 +211,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             backFlicker = data.Bool("backgroundFlicker", true);
             lineFlicker = data.Bool("lineFlicker", true);
             Depth = -1;
-
-            //Add(new BeforeRenderHook(BeforeRender));
-
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            UseEffect = true;
+            EffectActive = true;
         }
         public override void Awake(Scene scene)
         {
@@ -229,7 +226,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public void Start(Player player)
         {
             started = true;
-            IgnoreHair = true;
             Collider = new Hitbox(player.Width + 40, player.Height + 32, -(player.Width / 2) - (player.Facing == Facings.Right ? 19 : 18), player.Height - 22);
             for (int i = 0; i < Glitches.Length; i++)
             {
@@ -324,23 +320,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static void Unload()
         {
-            UseEffect = false;
+            EffectActive = false;
             _MaskRenderTarget?.Dispose();
             _ObjectRenderTarget?.Dispose();
             On.Celeste.PlayerHair.Render -= PlayerHair_Render;
         }
         public static void Load()
         {
-            IgnoreHair = false;
             On.Celeste.PlayerHair.Render += PlayerHair_Render;
         }
         private static void PlayerHair_Render(On.Celeste.PlayerHair.orig_Render orig, PlayerHair self)
         {
-
-            if ((IgnoreHair && UseEffect) || !UseEffect)
+            orig(self);
+/*            if ((IgnoreHair && EffectActive) || !EffectActive)
             {
-                orig(self);
-            }
+            }*/
         }
     }
 }

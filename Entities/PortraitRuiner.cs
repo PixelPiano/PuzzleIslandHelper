@@ -49,7 +49,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static void StartSpriteBatch()
         {
-            Level level = FrostModule.GetCurrentLevel();
+            if (Engine.Scene is not Level level) return;
             PortraitRuiner ruiner = level.Tracker.SafeGetEntity<PortraitRuiner>();
             if (ruiner is null)
             {
@@ -65,7 +65,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static void EndSpriteBatch()
         {
-            Level level = FrostModule.GetCurrentLevel();
+            if (Engine.Scene is not Level level) return;
             PortraitRuiner ruiner = level.Tracker.SafeGetEntity<PortraitRuiner>();
             if (ruiner is null)
             {
@@ -95,7 +95,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
             ShaderOverlay shaderOverlay = enumerator.Current as ShaderOverlay;
-            if (shaderOverlay != null && shaderOverlay.State)
+            if (shaderOverlay != null && shaderOverlay.ShouldRender())
             {
                 Apply(source, source, shaderOverlay, false);
             }
@@ -117,7 +117,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static void Apply(VirtualRenderTarget source, VirtualRenderTarget target, ShaderOverlay overlay, bool clear = false)
         {
-            overlay.ApplyParameters(true);
+            overlay.ApplyParameters();
             VirtualRenderTarget tempA = GameplayBuffers.TempA;
             Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);

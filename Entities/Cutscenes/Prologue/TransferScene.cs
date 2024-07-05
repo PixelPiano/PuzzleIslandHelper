@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.CommunalHelper;
+using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
@@ -25,7 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             public VirtualRenderTarget Helper;
             public ActorRenderer() : base()
             {
-                Depth = -100002;
+                Depth = -100003;
                 Helper = VirtualContent.CreateRenderTarget("FaderHelper", 320, 180);
                 Add(new BeforeRenderHook(BeforeRender));
             }
@@ -111,6 +112,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             }
         }
         public DepthFade ScreenFade;
+        public class TempSolid : Solid
+        {
+            public Player Player;
+            public TempSolid(Player player) : base(player.BottomLeft, 8, 8, true)
+            {
+                Player = player;
+            }
+        }
+        public TempSolid Platform;
         private IEnumerator ScreenToFloor()
         {
             Vector2 screenCenter = new Vector2(160, 90);
@@ -338,14 +348,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         }
         public override void OnBegin(Level level)
         {
-            if (level.GetPlayer() is Player player)
-            {
-                this.player = player;
-            }
-            else
-            {
-                return;
-            }
+            if (level.GetPlayer() is not Player player) return;
+            this.player = player;
+            Scene.Add(Platform = new TempSolid(player));
             if (level.Tracker.GetEntity<PolygonScreen>() is PolygonScreen screen)
             {
                 Screen = screen;
@@ -409,6 +414,63 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             yield return ScreenToFloor();
             EndCutscene(Level);
         }
+        private IEnumerator HuskToPlayer(UnbornHusk husk, Vector2 offset, float time)
+        {
+            Vector2 from = husk.Position;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                husk.MoveToX(Calc.LerpClamp(from.X, player.X + offset.X, Ease.CubeInOut(i)));
+                husk.MoveToY(Calc.LerpClamp(from.Y, player.Y + offset.Y, Ease.CubeInOut(i)));
+                yield return null;
+            }
+            husk.MoveToX(player.X + offset.X);
+            husk.MoveToY(player.Y + offset.Y);
+            yield return null;
+        }
+        private IEnumerator HuskDive(UnbornHusk husk)
+        {
+            Vector2 target = player.Position;
+            Vector2 from = husk.Position;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 1)
+            {
+                husk.MoveToY(from.Y - 16f * Ease.CubeInOut(i));
+                yield return null;
+            }
+            yield return 0.8f;
+            from = husk.Position;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 1)
+            {
+                husk.MoveToY(Calc.LerpClamp(from.Y, target.Y, Ease.SineIn(i)));
+                yield return null;
+            }
+            Level.Shake(0.1f);
+            Level.Flash(Color.White, true);
+            while (Level.flash > 0)
+            {
+                yield return null;
+            }
+            InvertOverlay.ForceState(true);
+            yield return 1.2f;
+            InvertOverlay.ForceState(false);
+            player.Sprite.Play("bigFall");
+            CenterTriangle centerTriangle = Scene.Tracker.GetEntity<CenterTriangle>();
+            Vector2 targetPos = Level.Camera.Position + new Vector2(160, 90);
+            while (player.Center.Y < targetPos.Y)
+            {
+                player.MoveTowardsY(targetPos.Y, 8);
+                yield return null;
+            }
+            InvertOverlay.ForceState(true);
+            centerTriangle.Shattering = true; //switch CenterTriangle rendering mode to only render shards
+            yield return null;
+            Celeste.Freeze(1);
+            yield return 1;
+            Level.Flash(Color.White, true);
+            centerTriangle.Shatter(); //tell the shards to start moving
+            InvertOverlay.ResetState();
+            Level.Shake(3);
+            player.Visible = false;
+        }
         private IEnumerator GlitchRoutine()
         {
             float value = Glitch.Value;
@@ -420,7 +482,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
         }
         public override void OnEnd(Level level)
         {
-           
+            InvertOverlay.ResetState();
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            InvertOverlay.ResetState();
         }
     }
 }

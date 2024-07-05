@@ -7,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 // PuzzleIslandHelper.VoidCritters
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/VoidCritters")]
     [Tracked]

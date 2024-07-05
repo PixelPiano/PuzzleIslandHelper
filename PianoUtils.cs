@@ -1,10 +1,8 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
 using Celeste.Mod;
-using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FrostHelper;
 using Microsoft.Xna.Framework;
@@ -18,7 +16,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Celeste.Mod.PuzzleIslandHelper.Cutscenes.Gameshow;
 
 public static class PianoUtils
 {
@@ -425,9 +422,10 @@ public static class PianoUtils
     }
     public static Vector2 Marker(this Scene scene, string id, bool screenSpace = false)
     {
-        if ((scene as Level).Tracker.GetEntities<Marker>() != null)
+        List<Entity> markers = (scene as Level).Tracker.GetEntities<Marker>();
+        if (markers != null && markers.Count > 0)
         {
-            foreach (Marker m in (scene as Level).Tracker.GetEntities<Marker>())
+            foreach (Marker m in markers)
             {
                 if (m.ID == id)
                 {

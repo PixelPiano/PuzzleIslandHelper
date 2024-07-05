@@ -1,10 +1,10 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/StoolPickupBarrier")]
     [Tracked]

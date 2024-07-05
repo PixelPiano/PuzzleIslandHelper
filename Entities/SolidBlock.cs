@@ -5,7 +5,7 @@ using System.Collections;
 using Celeste.Mod.CherryHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 // PuzzleIslandHelper.MovingPlatform
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/SolidBlock")]
     [Tracked]

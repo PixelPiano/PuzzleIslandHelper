@@ -4,7 +4,7 @@ using Celeste.Mod.Entities;
 using System;
 using System.Collections.Generic;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
 {
 
     [CustomEntity("PuzzleIslandHelper/Gear")]

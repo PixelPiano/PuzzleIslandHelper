@@ -13,6 +13,7 @@ grassMaze.placements =
         name = "Grass Maze Puzzle",
         data = 
         {
+            flagOnComplete=""
         }
     }
 }

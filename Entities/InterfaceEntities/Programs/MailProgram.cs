@@ -29,7 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         }
         private void OnClicked()
         {
-            Scene.Add(new WarpToCalidus(1));
+            Scene.Add(new WarpToCalidus());
             LaunchButton.Disabled = true;
         }
 

@@ -18,7 +18,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private string inputFlag;
         public bool InvertFlag;
         
-        public bool KeepInScene => string.IsNullOrEmpty(inputFlag) || SceneAs<Level>().Session.GetFlag(Flag) == InvertFlag;
+        public bool KeepInScene => string.IsNullOrEmpty(inputFlag) || SceneAs<Level>().Session.GetFlag(inputFlag) == InvertFlag || SceneAs<Level>().Session.GetFlag(Flag);
+        private bool prevFlagState;
         public bool Shattered;
         public Vector2 ShakeVector;
         public float ShakeAmount;
@@ -48,7 +49,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return orig;
         }
-        public SoundSpinner(EntityData data, Vector2 offset) : base(CreateData(data), offset, false, "danger/PuzzleIslandHelper/icecrystal", data.Attr("tint", "639bff"), false, data.Attr("tint", "ffffff"))
+        public SoundSpinner(EntityData data, Vector2 offset) : base(CreateData(data), offset, data.Bool("attachToSolid"), "danger/PuzzleIslandHelper/icecrystal", data.Attr("tint", "639bff"), false, data.Attr("tint", "ffffff"))
         {
             origPosition = Position;
             inputFlag = data.Attr("flag");

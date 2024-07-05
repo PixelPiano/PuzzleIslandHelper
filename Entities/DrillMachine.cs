@@ -4,7 +4,7 @@ using Monocle;
 using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/DrillMachine")]
     [Tracked]

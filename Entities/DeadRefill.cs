@@ -12,21 +12,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         private static bool PlayerColorMod;
         public Sprite sprite;
-
         public SineWave sine;
-
         public Sprite flash;
-
         public Image outline;
-
         public Level level;
-
         public ParticleType p_shatter;
-
         private EntityID id;
-
         private Vector2 _position;
-
         public bool Explosive;
         public DeadRefill(EntityData data, Vector2 offset, EntityID id)
             : base(data.Position + offset)
@@ -37,7 +29,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(sine = new SineWave(0.2f));
             sine.Randomize();
             Collider = new Hitbox(16f, 16f, -8f, -8f);
-            Add(new PlayerCollider(OnPlayer));
 
             string text;
 
@@ -49,7 +40,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprite.CenterOrigin();
 
             Add(new MirrorReflection());
-            Depth = -100;
+            Depth = data.Int("depth", -100);
+            if (data.Bool("collidable", true))
+            {
+                Add(new PlayerCollider(OnPlayer));
+            }
         }
 
         public override void Added(Scene scene)

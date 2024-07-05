@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 // PuzzleIslandHelper.SecurityLaser
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/SecurityLaser")]
     [Tracked]

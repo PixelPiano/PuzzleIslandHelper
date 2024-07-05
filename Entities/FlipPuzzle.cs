@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 // PuzzleIslandHelper.FlipPuzzle
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/FlipPuzzle")]
     public class FlipPuzzle : Solid

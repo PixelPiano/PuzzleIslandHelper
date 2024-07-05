@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 // PuzzleIslandHelper.DashCodeCollectable
 //Code is a modified combination of FrostHelper's "Dash Code Trigger" and XaphanHelper's "Custom Collectable Entity"
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/DashCodeCollectable")]
     [TrackedAs(typeof(HeartGem))]

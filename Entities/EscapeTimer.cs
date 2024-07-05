@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Color = Microsoft.Xna.Framework.Color;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/EscapeTimer")]
     [Tracked]

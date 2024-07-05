@@ -88,7 +88,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         : base(data.Position + offset)
         {
             //flag = data.Attr("flag");
-            
+            Tag |= Tags.TransitionUpdate;
             shouldFade = data.Bool("cameraFade");
             Depth = data.Int("depth", 1);
             float delay = 1f / data.Float("fps");

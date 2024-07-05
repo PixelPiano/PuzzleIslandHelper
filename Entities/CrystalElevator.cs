@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using VivHelper.Entities.Spinner2;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/CrystalElevator")]
     [Tracked]

@@ -133,8 +133,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Update()
         {
             UpdateWindow();
-            CenterX = Calc.Clamp(CenterX, Interface.Monitor.X, Interface.Monitor.Right);
-            Position.Y = Calc.Clamp(Position.Y, Interface.Monitor.Y + TabArea.Height, Interface.Monitor.Bottom);
+            CenterX = Calc.Clamp(CenterX, Interface.monitor.X, Interface.monitor.Right);
+            Position.Y = Calc.Clamp(Position.Y, Interface.monitor.Y + TabArea.Height, Interface.monitor.Bottom);
             Position = Position.Floor();
             DrawPosition = Position;
             Visible = Drawing;

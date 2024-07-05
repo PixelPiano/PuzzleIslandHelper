@@ -23,7 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public TemplateEntity(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset) //'offset' is the position of the level the entity is in. 
         {
             //EntityData holds data.... for the entity. (wow)
-            //Each entity will always have a position, a name, a width, a height, the name of the level, and an id.
+            //Each entity will always have a position, a name, a width, a height, the name of the level, and an ID.
 
             //Each entity has a 'Collider' property. A collider is useful for checking if the entity is colliding with another entity (duh)
             //The Collider's position is relative to the Entity's position...
@@ -38,7 +38,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/templatePlugin/");
             Sprite.Color = data.HexColor("color", Color.White);
 
-            //Add a loop to the image under the id "idle"
+            //Add a loop to the image under the ID "idle"
             Sprite.AddLoop("idle", "spin", 0.1f, 0); //string name, string path, float delay, params int[] frames
             Sprite.Add("spin", "spin", 0.1f, "idle"); //string name, string path, float delay, string into
             Sprite.Play("idle");

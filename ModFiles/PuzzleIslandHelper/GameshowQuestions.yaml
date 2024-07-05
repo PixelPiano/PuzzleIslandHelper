@@ -11,7 +11,7 @@ QuestionSets:
       - Data: "3, 4, 4, 4"
   - Options:
       - Data: "1, 8, 12, 4"
-      - Data: "2, 2, 4, 4"
+      - Data: "2, 3, 4, 4"
       - Data: "3, 2, 8, 4"
   - Options:
       - Data: "1, 1, 4, 4"

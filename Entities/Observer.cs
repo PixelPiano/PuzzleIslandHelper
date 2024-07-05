@@ -53,10 +53,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Amplitude = 1;
                 }
             }
-            public override void ApplyParameters(bool identity)
+            public override void ApplyParameters()
             {
-                base.ApplyParameters(identity);
-                //todo: figure out why the signal Shader effect isn't visible
+                base.ApplyParameters();
                 Effect.Parameters["MaxWidth"]?.SetValue(SignalWidth);
                 Effect.Parameters["MaxHeight"]?.SetValue(SignalHeight);
                 Effect.Parameters["Center"]?.SetValue(SignalCenter);
@@ -107,7 +106,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite.Add("dSpin", "observerDigital", 0.1f, "dIdle");
             Add(Sprite);
             Sprite.Play(Digital ? "dIdle" : "idle");
-            Collider = new Hitbox(SignalWidth, SignalHeight + (Sprite.Height / 2), -Sprite.Width / 2, -Sprite.Height / 2);
+            Collider = new Hitbox(SignalWidth, SignalHeight + (Sprite.Height / 2), 0, -Sprite.Height / 2);
             Position.X -= 8;
         }
         public void Emit()

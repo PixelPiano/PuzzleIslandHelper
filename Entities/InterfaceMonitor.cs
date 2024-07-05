@@ -22,6 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool InRoutine;
         public InterfaceMonitor(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
+            Depth = 1;
             monitor = GFX.Game[path + "monitor"];
             Collider = new Hitbox(monitor.Width, monitor.Height);
             icon = new Sprite(GFX.Game, path);
@@ -54,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             icon.Visible = CanActivate;
             MonitorColor = CanActivate ? Color.White : Color.Gray;
             icon.Color = State ? Color.White : Color.Gray;
-            if (PianoModule.Session.MetWithCalidusFirstTime && !PianoModule.Session.RestoredPower)
+            if (PianoModule.Session.TimesMetWithCalidus > 0 && !PianoModule.Session.RestoredPower)
             {
                 icon.Play("battery");
                 SetInCenter();

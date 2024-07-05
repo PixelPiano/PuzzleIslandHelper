@@ -54,8 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Cutscene = cutsceneName switch
             {
                 "Prologue" => new PrologueSequence(Part),
-                "WarpToCalidus" => new WarpToCalidus(Part),
-                "Calidus1" => new DigiMeet(),
+                "WarpToCalidus" => new WarpToCalidus(),
                 "GetInvert" => new InvertCutsceneTrigger(),
                 "GrassShift" => new GrassShift(Part),
                 "Gameshow" => new Gameshow(Part),

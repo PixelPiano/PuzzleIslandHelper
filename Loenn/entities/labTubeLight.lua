@@ -10,7 +10,8 @@ labTubeLight.canResize = {true, false}
 labTubeLight.placements = {
     name = "Lab Tube Light",
     data = {
-        width = 16
+        width = 16,
+        digital = false
     }
 }
 
@@ -19,7 +20,11 @@ function labTubeLight.sprite(room, entity)
     local sprites = {}
     local width = math.max(entity.width or 0, 8)
 
-    local leftSprite = drawableSprite.fromTexture(path, entity)
+    local p = path;
+    if entity.digital then
+        p = path .. "Digi"
+    end
+    local leftSprite = drawableSprite.fromTexture(p, entity)
 
     leftSprite:setJustification(0, 0)
     leftSprite:setOffset(0, 0)
@@ -28,7 +33,7 @@ function labTubeLight.sprite(room, entity)
     table.insert(sprites, leftSprite)
 
     for i = 8, width - 16, 8 do
-        local middleSprite = drawableSprite.fromTexture(path, entity)
+        local middleSprite = drawableSprite.fromTexture(p, entity)
 
         middleSprite:setJustification(0, 0)
         middleSprite:setOffset(0, 0)
@@ -38,7 +43,7 @@ function labTubeLight.sprite(room, entity)
         table.insert(sprites, middleSprite)
     end
 
-    local rightSprite = drawableSprite.fromTexture(path, entity)
+    local rightSprite = drawableSprite.fromTexture(p, entity)
 
     rightSprite:setJustification(0, 0)
     rightSprite:setOffset(0, 0)

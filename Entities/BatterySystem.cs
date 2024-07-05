@@ -4,7 +4,7 @@ using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
 using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;

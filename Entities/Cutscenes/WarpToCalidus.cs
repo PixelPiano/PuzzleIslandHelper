@@ -14,28 +14,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
     [Tracked]
     public class WarpToCalidus : CutsceneEntity
     {
-        private int part;
-        public WarpToCalidus(int part) : base()
+        public WarpToCalidus() : base()
         {
-            this.part = part;
             Tag |= Tags.TransitionUpdate;
         }
 
         public override void OnBegin(Level level)
         {
-            if (part == 1)
-            {
-                Add(new Coroutine(GlitchIn()));
-            }
-            else if (!PianoModule.Session.MetWithCalidusFirstTime)
-            {
-                if (level.GetPlayer() is Player player)
-                {
-                    player.StateMachine.State = Player.StDummy;
-                    level.ZoomSnap(player.Center - Level.Camera.Position - Vector2.UnitY * 24, 1.7f);
-                }
-                Add(new Coroutine(GlitchOut()));
-            }
+            Add(new Coroutine(GlitchIn()));
         }
         private IEnumerator StutterGlitch(int frames)
         {
@@ -62,25 +48,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Glitch.Value = 1;
             yield return 0.5f;
             Audio.SetMusicParam("fade", 1);
-            InstantRelativeTeleport(Scene, "digiCalidus", true);
+            int suffix = CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.First) ? 1 :
+                         CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.Second) ? 2 :
+                         3;
+            string room = "digiCalidus" + suffix;
+            InstantTeleport(Scene, Scene.GetPlayer(), room);
         }
-        private IEnumerator GlitchOut()
-        {
-            PianoModule.Session.MetWithCalidusFirstTime = true;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
-            {
-                Glitch.Value = 1 - i;
-                yield return null;
-            }
-            Glitch.Value = 0;
-            yield return 0.5f;
-            Add(new Coroutine(StutterGlitch(20)));
-            Player player = Level.GetPlayer();
-            Vector2 pos = player.Center - Level.Camera.Position - Vector2.UnitY * 24;
-            yield return Textbox.Say("wtc1", PanOut, WaitForPanOut);
-            yield return Level.ZoomBack(0.8f);
-            EndCutscene(Level);
-        }
+        public bool DirectlyIntoDigiMeet;
+
+
         private bool panningOut;
         private IEnumerator WaitForPanOut()
         {
@@ -103,15 +79,68 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         public override void OnEnd(Level level)
         {
-            Level.ResetZoom();
-            if (part == 2)
+            /*            if (part == 2)
+                        {
+                            if (!DirectlyIntoDigiMeet)
+                            {
+                                if (WasSkipped)
+                                {
+                                    Level.ResetZoom();
+                                }
+                                if (level.GetPlayer() is Player player)
+                                {
+                                    player.StateMachine.State = Player.StNormal;
+                                }
+                            }
+                            Glitch.Value = 0;
+                        }*/
+        }
+        public static void InstantTeleport(Scene scene, Player player, string room)
+        {
+            Level level = scene as Level;
+            if (level == null)
             {
-                if (level.GetPlayer() is Player player)
-                {
-                    player.StateMachine.State = Player.StNormal;
-                }
-                Glitch.Value = 0;
+                return;
             }
+            if (string.IsNullOrEmpty(room))
+            {
+                return;
+            }
+            level.OnEndOfFrame += delegate
+            {
+                Vector2 levelOffset = level.LevelOffset;
+                Vector2 val2 = player.Position - level.LevelOffset;
+                Vector2 val3 = level.Camera.Position - level.LevelOffset;
+                Facings facing = player.Facing;
+                level.Remove(player);
+                level.UnloadLevel();
+                level.Session.Level = room;
+                Session session = level.Session;
+                Level level2 = level;
+                Rectangle bounds = level.Bounds;
+                float num = bounds.Left;
+                bounds = level.Bounds;
+                session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
+                level.Session.FirstLevel = false;
+                level.LoadLevel(Player.IntroTypes.Transition);
+
+                level.Camera.Position = level.LevelOffset + val3;
+                level.Add(player);
+
+                if (session.RespawnPoint.HasValue)
+                {
+                    player.Position = session.RespawnPoint.Value;
+                }
+                player.Facing = facing;
+                player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
+
+                Vector2 newPos = level.LevelOffset;
+
+                if (level.Wipe != null)
+                {
+                    level.Wipe.Cancel();
+                }
+            };
         }
         public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, int positionX = 0, int positionY = 0)
         {

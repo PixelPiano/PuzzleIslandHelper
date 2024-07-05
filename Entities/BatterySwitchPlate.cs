@@ -5,7 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System;
-using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

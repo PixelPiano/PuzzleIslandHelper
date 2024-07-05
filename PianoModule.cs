@@ -4,15 +4,18 @@ using System;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 using FrostHelper;
 using Celeste.Mod.PuzzleIslandHelper.MenuElements;
+using IL.Monocle;
+using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -50,7 +53,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
             StageData?.ParseData();
             GameshowData?.ParseData();
             AccessData?.ParseData();
-
         }
         public override void LoadContent(bool firstLoad)
         {
@@ -74,6 +76,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public override void Load()
         {
+            CalidusCutscene.Load();
+            InGameLogRenderer.Load();
+            ConstantTimeBurst.Load();
+            LameFallingBlock.Load();
+            RuinsDoor.Load();
             InputBox.Load();
             Stool.Load();
             PuzzleSpotlight.Load();
@@ -114,6 +121,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
         public override void Unload()
         {
+            CalidusCutscene.Unload();
+            InGameLogRenderer.Unload();
+            ConstantTimeBurst.Unload();
+            LameFallingBlock.Unload();
+            RuinsDoor.Unload();
             InputBox.Unload();
             ShaderFX.Unload();
             LabTubeLight.Unload();

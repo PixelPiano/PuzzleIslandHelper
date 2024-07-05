@@ -5,7 +5,7 @@ using System;
 using System.Collections;
 
 // PuzzleIslandHelper.PassiveSecurity
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/PassiveSecurity")]
     [Tracked]

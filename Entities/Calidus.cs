@@ -4,6 +4,8 @@ using Celeste.Mod.Entities;
 using System;
 using System.Collections;
 using System.Linq;
+using Celeste.Mod.FancyTileEntities;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -37,47 +39,63 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             UpLeft,
             DownRight,
             DownLeft,
-            Forward
+            Center,
+            Player
         }
-        public Looking LookDir = Looking.Forward;
+        public Looking LookDir = Looking.Center;
         public Mood CurrentMood = Mood.Normal;
 
+        public bool AllPartsAssembled()
+        {
 
+            foreach (Part p in Parts)
+            {
+                if (!p.Assembled) return false;
+            }
+            return true;
+        }
+        public bool AllPartsFallen()
+        {
+            foreach (Part p in Parts)
+            {
+                if (!p.OnGround) return false;
+            }
+            return true;
+        }
         private int ColorTweenLoops = 2;
         private int ArmLoopCount;
         private int ArmBuffer = 60;
         private int buffer = 2;
-        private const float FloatHeight = 8;
+        public const float FloatHeight = 8;
         public float LookSpeed = 1;
         private float ColorFlashTimer = 0;
 
-        public Sprite Parts;
-        private Sprite OrbSprite;
-        public Sprite EyeSprite;
-        private Sprite Symbols;
-        public Sprite[] Arms = new Sprite[2];
+        public Part BrokenParts;
+        public Part OrbSprite;
+        public Part EyeSprite;
+        public Part Symbols;
+        public Part[] Arms = new Part[2];
         private Player player;
         private ParticleSystem system;
 
-        private Vector2 EyeFront;
         public Vector2 Scale = Vector2.One;
         private Vector2 EyeScale = Vector2.One;
         public Vector2 LookTarget;
         public Vector2 EyeOffset = Vector2.Zero;
-        private Vector2 EyeDirection;
         private Vector2 StarPos;
         private float StarRotation;
         private float OutlineOpacity;
-
+        public float FloatAmount;
         public bool Continue;
         public bool EyeInstant;
         public bool LookTargetEnabled;
         public bool CanFloat = true;
-        public bool LookAtPlayer;
         public bool EyeExpressionOverride;
         private bool RenderStar;
         public bool Broken;
 
+
+        public List<Part> Parts = new();
         private MTexture Star;
 
         private ParticleType HeeHee = new ParticleType
@@ -95,16 +113,172 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             DirectionRange = 45f.ToRad(),
             FadeMode = ParticleType.FadeModes.Linear,
         };
-        public Calidus(Vector2 Position, bool Broken = false) : base(Position)
+        public IEnumerator FloatToRoutine(Vector2 position, float time, Ease.Easer ease = null)
         {
-            this.Broken = Broken;
-            OutlineOpacity = Broken ? 0 : 1;
+            Vector2 from = Position;
+            ease ??= Ease.Linear;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                Position = Vector2.Lerp(from, position, ease(i));
+                yield return null;
+            }
+        }
+        public void MoveTo(Vector2 position)
+        {
+            Position = position;
+        }
+        public void FloatTo(Vector2 position, float time, Ease.Easer ease = null)
+        {
+            Add(new Coroutine(FloatToRoutine(position, time, ease)));
+        }
+        public Calidus(EntityData data, Vector2 offset) : this(data.Position + offset, data.Bool("broken"), data.Bool("startFloating", true), data.Enum<Looking>("looking", Looking.Center))
+        {
+        }
+        public class Part : Sprite
+        {
+            public Vector2 OrigPosition;
+            public float ReturnDelay;
+            public bool Assembled = true;
+            public float FallSpeed;
+            public float RotationRate;
+            public Vector2 Offset;
+            public bool IsEye;
+            public Part(Atlas atlas, string path) : base(atlas, path)
+            {
+            }
+            public override void Added(Entity entity)
+            {
+                base.Added(entity);
+                CenterOrigin();
+                Position += new Vector2(Width / 2, Height / 2);
+            }
+            public override void Update()
+            {
+                base.Update();
+            }
+            public override void Render()
+            {
+                if (Texture != null)
+                {
+                    Texture.Draw(RenderPosition + Offset, Origin, Color, Scale, Rotation, Effects);
+                }
+            }
+            public void Fall(float distanceToFloor, Part relativeTo)
+            {
+                if (IsEye) return;
+                Assembled = false;
+                Entity?.Add(new Coroutine(FallRoutine(distanceToFloor, relativeTo)));
+            }
+            public void Return()
+            {
+                if (IsEye) return;
+                Entity?.Add(new Coroutine(ReturnRoutine()));
+            }
+            public bool OnGround;
+
+            private IEnumerator FallRoutine(float distanceToFloor, Part relative)
+            {
+                Assembled = false;
+                OnGround = false;
+                float orig = Y + Height;
+                float ySpeed = FallSpeed;
+                float rot = RotationRate.ToRad();
+                OrigPosition = Position;
+                int sign = 1;
+                int bouncesLeft = 2;
+                while (true)
+                {
+                    Y += ySpeed * Engine.DeltaTime;
+                    float num = (Math.Abs(ySpeed) < 40f ? 0.5f : 1f);
+                    ySpeed = Calc.Approach(ySpeed, 120f, 300f * num * Engine.DeltaTime);
+                    Rotation += rot * num * sign;
+                    if (Y >= orig + distanceToFloor)
+                    {
+                        if (bouncesLeft > 0)
+                        {
+                            ySpeed = -32 * (bouncesLeft / 2f);
+                            bouncesLeft--;
+                        }
+                        else break;
+                    }
+                    yield return null;
+                }
+                Y = orig + distanceToFloor;
+                OnGround = true;
+            }
+            public IEnumerator ReturnRoutine()
+            {
+                OnGround = true;
+                Vector2 p = Position;
+                int increment = 1;
+                for (int i = 0; i < 8; i++)
+                {
+                    Position.X += increment;
+                    increment = -increment;
+                    yield return Engine.DeltaTime * 2;
+                }
+                Position = p;
+                yield return ReturnDelay;
+                Vector2 from = Position;
+                float rotFrom = Rotation;
+                OnGround = false;
+                for (float i = 0; i < 1; i += Engine.DeltaTime)
+                {
+                    Position = Vector2.Lerp(from, OrigPosition, Ease.Follow(Ease.CubeIn, Ease.ElasticOut)(i));
+                    Rotation = Calc.LerpClamp(rotFrom, 0, Ease.CubeIn(i + 0.1f));
+                    yield return null;
+                }
+                Assembled = true;
+                Reset();
+            }
+            public void Reset()
+            {
+                OnGround = false;
+                Assembled = true;
+                Rotation = 0;
+                Position = OrigPosition;
+            }
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            Render();
+        }
+        public Calidus(Vector2 Position, bool broken = false, bool startFloating = true, Looking look = Looking.Center) : base(Position)
+        {
+            LookDir = look;
+            LookTarget = GetLookOffset();
+            CanFloat = startFloating;
+            this.Broken = broken;
+            OutlineOpacity = broken ? 0 : 1;
             string path = "characters/PuzzleIslandHelper/Calidus/";
-            OrbSprite = new Sprite(GFX.Game, path);
-            EyeSprite = new Sprite(GFX.Game, path);
-            Symbols = new Sprite(GFX.Game, path);
-            Parts = new Sprite(GFX.Game, path);
-            Parts.Color = Color.Lerp(Color.Black, Color.White, 0.5f);
+            OrbSprite = new Part(GFX.Game, path)
+            {
+                FallSpeed = -48,
+                RotationRate = 8
+            };
+            EyeSprite = new Part(GFX.Game, path)
+            {
+                IsEye = true
+            };
+            OrbSprite.RotationRate = 8;
+            Symbols = new Part(GFX.Game, path)
+            {
+                FallSpeed = -48,
+                RotationRate = 4
+            };
+            Arms[0] = new Part(GFX.Game, path)
+            {
+                RotationRate = -5,
+                FallSpeed = -32
+            };
+            Arms[1] = new Part(GFX.Game, path)
+            {
+                RotationRate = 6,
+                FallSpeed = -32
+            };
+            BrokenParts = new Part(GFX.Game, path);
+            BrokenParts.Color = Color.Lerp(Color.Black, Color.White, 0.5f);
             Star = GFX.Game[path + "star00"];
             Symbols.AddLoop("exclamation", "surprisedSymbol", 0.1f);
             Symbols.AddLoop("anger", "anger", 0.1f);
@@ -119,70 +293,177 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             EyeSprite.AddLoop("wink", "eyeWink", 0.1f);
             for (int i = 0; i < 2; i++)
             {
-                Arms[i] = new Sprite(GFX.Game, path);
                 Arms[i].AddLoop("idle", "armSpinH", 0.1f, 0);
                 Arms[i].Add("spinH", "armSpinH", 0.07f, "idle");
                 Arms[i].Add("spinV", "armSpinV", 0.1f, "idle");
                 Arms[i].FlipX = i == 1;
             }
             Symbols.Visible = false;
-            Parts.AddLoop("broken", "formation", 0.1f, 0);
-            Parts.AddLoop("jitter", "jitter", 0.05f);
-            Parts.Add("assemble", "formation", 0.12f);
+            BrokenParts.AddLoop("broken", "formation", 0.1f, 0);
+            BrokenParts.AddLoop("jitter", "jitter", 0.05f);
+            BrokenParts.Add("assemble", "formation", 0.12f);
 
-            Add(Parts, OrbSprite, Symbols, Arms[0], Arms[1], EyeSprite);
+            Add(BrokenParts, OrbSprite, Symbols, Arms[0], Arms[1], EyeSprite);
+            Add(new Coroutine(Testing()));
         }
-        public void LerpOutline()
+        private IEnumerator BlinkInterval(int times, float interval, bool endState)
         {
-            Tween Outline = Tween.Create(Tween.TweenMode.Oneshot, Ease.Linear, 1);
-            Outline.OnUpdate = (Tween t) =>
+            for (int i = 0; i < times; i++)
             {
-                Parts.Color = Color.Lerp(Color.Black, Color.White, 0.5f + (t.Eased / 2));
-                OutlineOpacity = t.Eased;
-            };
-            Outline.OnComplete = delegate { Parts.Color = Color.White; };
-            Add(Outline);
-            Outline.Start();
+                ForceBlink = !ForceBlink;
+                yield return interval;
+            }
+            ForceBlink = endState;
         }
-        public void FixSequence()
+        private IEnumerator BlinkIntervalRandom(int times, bool endState)
         {
-            Parts.Play("broken");
-            Sprite Glint = new Sprite(GFX.Game, "characters/PuzzleIslandHelper/Calidus/");
-            Glint.Add("shine", "brokenShine", 0.05f);
-            Glint.Add("gleam", "brokenGleam", 0.1f, "shine");
-            Add(Glint);
-
-            Glint.Play("gleam");
-            Glint.OnLastFrame = (string s) =>
+            for (int i = 0; i < times; i++)
             {
-                if (s == "shine")
+                ForceBlink = !ForceBlink;
+                yield return Calc.Random.Range(Engine.DeltaTime, Engine.DeltaTime * 8);
+            }
+            ForceBlink = endState;
+        }
+        private IEnumerator SpriteBlink(Part sprite, int times, float interval, bool endState)
+        {
+            Color prev = sprite.Color;
+            bool off = false;
+            for (int i = 0; i < times; i++)
+            {
+                sprite.Color = Color.Lerp(prev, Color.Black, off ? 0.3f : 0);
+                yield return interval;
+            }
+            sprite.Color = Color.Lerp(prev, Color.Black, endState ? 0.3f : 0);
+        }
+        public bool FallenApart;
+        public void FallApart()
+        {
+            CanFloat = false;
+            EyeExpressionOverride = true;
+            Vector2 from = OrbSprite.RenderPosition + new Vector2(OrbSprite.Width / 2, OrbSprite.Height);
+            foreach (Part p in Parts)
+            {
+                p.Fall(16 + FloatAmount, OrbSprite);
+            }
+        }
+        public IEnumerator FallApartRoutine()
+        {
+            FallApart();
+            Add(new Coroutine(BlinkInterval(3, Engine.DeltaTime * 2, true)));
+            while (!AllPartsFallen())
+            {
+                yield return null;
+            }
+            FallenApart = true;
+            yield return null;
+        }
+        public void Reassemble()
+        {
+            Add(new Coroutine(ReassembleRoutine()));
+        }
+        public IEnumerator ReassembleRoutine()
+        {
+            ReturnParts();
+            while (!AllPartsAssembled())
+            {
+                yield return null;
+            }
+            FallenApart = false;
+            CanFloat = true;
+            EyeExpressionOverride = false;
+            ForceBlink = false;
+        }
+        public IEnumerator WaitForReassemble()
+        {
+            while (FallenApart)
+            {
+                yield return null;
+            }
+        }
+        public IEnumerator WaitForFallenApart()
+        {
+            while (!FallenApart)
+            {
+                yield return null;
+            }
+        }
+        public void ReturnParts()
+        {
+            foreach (Part part in Parts)
+            {
+                part.Return();
+            }
+        }
+        public void LerpOutline(bool instant = false)
+        {
+            if (instant)
+            {
+                BrokenParts.Color = Color.White;
+                OutlineOpacity = 1;
+            }
+            else
+            {
+                Tween Outline = Tween.Create(Tween.TweenMode.Oneshot, Ease.Linear, 1);
+                Outline.OnUpdate = (Tween t) =>
                 {
-                    Parts.Play("assemble");
-                    LerpOutline();
-                    Parts.OnLastFrame = (string s) =>
+                    BrokenParts.Color = Color.Lerp(Color.Black, Color.White, 0.5f + (t.Eased / 2));
+                    OutlineOpacity = t.Eased;
+                };
+                Outline.OnComplete = delegate { BrokenParts.Color = Color.White; };
+                Add(Outline);
+                Outline.Start();
+            }
+        }
+        public void FixSequence(bool instant = false)
+        {
+            if (instant)
+            {
+                Fixed();
+                Position += new Vector2(BrokenParts.Width / 2, BrokenParts.Height / 2);
+                Broken = false;
+                LerpOutline(true);
+            }
+            else
+            {
+                BrokenParts.Play("broken");
+                Part Glint = new Part(GFX.Game, "characters/PuzzleIslandHelper/Calidus/");
+                Glint.Add("shine", "brokenShine", 0.05f);
+                Glint.Add("gleam", "brokenGleam", 0.1f, "shine");
+                Add(Glint);
+
+                Glint.Play("gleam");
+                Glint.OnLastFrame = (string s) =>
+                {
+                    if (s == "shine")
                     {
-                        if (s == "assemble")
+                        BrokenParts.Play("assemble");
+                        LerpOutline();
+                        BrokenParts.OnLastFrame = (string s) =>
                         {
-                            Fixed();
-                            Position += new Vector2(Parts.Width / 2, Parts.Height / 2);
-                            Broken = false;
-                        }
-                    };
-                    Glint.Stop();
-                    Remove(Glint);
-                }
-            };
+                            if (s == "assemble")
+                            {
+                                Fixed();
+                                Position += new Vector2(BrokenParts.Width / 2, BrokenParts.Height / 2);
+                                Broken = false;
+                            }
+                        };
+                        Glint.Stop();
+                        Remove(Glint);
+                    }
+                };
+            }
         }
         private void Fixed()
         {
-            bool fromBroken = Parts.Visible;
-            Parts.Visible = false;
+            bool fromBroken = BrokenParts.Visible;
+            BrokenParts.Visible = false;
             OrbSprite.Play("idle");
             EyeSprite.Play("neutral");
             Arms[0].Play("idle");
             Arms[1].Play("idle");
             Arms[0].OnLastFrame = (string s) =>
             {
+                if (!CanFloat) return;
                 if (s == "idle")
                 {
                     ArmLoopCount++;
@@ -197,13 +478,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     ArmLoopCount = 0;
                 }
             };
-
-            EyeFront = Vector2.One * (OrbSprite.Width / 2) - Vector2.One * EyeSprite.Width / 2;
-            EyeSprite.Position = EyeFront;
-
-            Arms[0].Position.X -= Arms[0].Width + 1;
+            EyeSprite.Position += OrbSprite.Center;
+            Arms[0].Position.X += -(Arms[0].Width + 1);
             Arms[1].Position.X += OrbSprite.Width;
-            this.Position -= new Vector2(6, 5);
+            Position -= new Vector2(6, 5);
             Collider = new Hitbox(Arms[0].Width * 2 + 2 + OrbSprite.Width, OrbSprite.Height, Arms[0].X);
             Add(new Coroutine(AddRoutines(fromBroken)));
         }
@@ -219,13 +497,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
 
-            Add(new Coroutine(Float()));
+            Add(new Coroutine(FloatLoop()));
+            Add(new Coroutine(ArmLoop()));
             Add(new Coroutine(Blink()));
             Add(new Coroutine(DuckBounceCheck()));
-        }
-        public Calidus(EntityData data, Vector2 offset)
-        : this(data.Position + offset, data.Bool("broken"))
-        {
         }
         private void PlayerFace(Player player)
         {
@@ -244,7 +519,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             yield return Textbox.Say(id, events);
         }
-
+        public IEnumerator Say(string id, string emotion, bool useSymbol, params Func<IEnumerator>[] events)
+        {
+            if (Broken)
+            {
+                yield break;
+            }
+            Emotion(emotion);
+            if (player is not null)
+            {
+                PlayerFace(player);
+            }
+            yield return Textbox.Say(id, events);
+        }
         public override void Render()
         {
             if (!Broken)
@@ -261,19 +548,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                Parts.DrawOutline(Color.Black * OutlineOpacity);
+                BrokenParts.DrawOutline(Color.Black * OutlineOpacity);
             }
             base.Render();
             if (RenderStar)
             {
                 Star.Draw(StarPos, Star.Center, Color.Yellow, Vector2.One, StarRotation);
-
             }
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             player = (scene as Level).Tracker.GetEntity<Player>();
+            foreach (Part part in Components.GetAll<Part>())
+            {
+                Parts.Add(part);
+            }
+            Parts.Remove(EyeSprite);
         }
 
         public override void Added(Scene scene)
@@ -285,39 +576,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                Parts.Play("broken");
-                Position -= new Vector2(Parts.Width / 2, Parts.Height / 2);
-                Collider = new Hitbox(Parts.Width, Parts.Height);
+                BrokenParts.Play("broken");
+                Position -= new Vector2(BrokenParts.Width / 2, BrokenParts.Height / 2);
+                Collider = new Hitbox(BrokenParts.Width, BrokenParts.Height);
             }
             (scene as Level).Add(system = new ParticleSystem(Depth + 1, 500));
         }
         public IEnumerator Test()
         {
             yield return null;
-        }
-        public void Emotion(int mood)
-        {
-            Action Action = mood switch
-            {
-                (int)Mood.Happy => Happy,
-                (int)Mood.Stern => Stern,
-                (int)Mood.Normal => Normal,
-                (int)Mood.RollEye => RollEye,
-                (int)Mood.Laughing => Laugh,
-                (int)Mood.Shakers => ShakeHead,
-                (int)Mood.Nodders => NodHead,
-                (int)Mood.Closed => CloseEye,
-                (int)Mood.Angry => Angry,
-                (int)Mood.Surprised => delegate { Surprised(false); }
-                ,
-                (int)Mood.Wink => Wink,
-                (int)Mood.Eugh => Eugh,
-                _ => null
-            };
-            if (Action is not null)
-            {
-                Action.Invoke();
-            }
         }
         public void Eugh()
         {
@@ -383,6 +650,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Symbols.Visible = true;
                 Symbols.Play("exclamation");
             }
+            else
+            {
+                Symbols.Stop();
+            }
 
             EyeSprite.Play("surprised");
             yield return 2f;
@@ -409,9 +680,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             while (CurrentMood == Mood.Angry && !EyeExpressionOverride)
             {
                 yield return 3;
+                if (!(CurrentMood == Mood.Angry && !EyeExpressionOverride)) break;
                 for (int i = 0; i < 2; i++)
                 {
                     EyeOffset.X = -1;
+                    if (!(CurrentMood == Mood.Angry && !EyeExpressionOverride))
+                    {
+                        EyeOffset.X = 0;
+                        break;
+                    }
                     yield return delay;
                     EyeOffset.X = 1;
                     yield return delay;
@@ -563,13 +840,48 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return null;
         }
 
-
+        public bool ForceShake;
+        public bool Shaking => ForceShake || shakeTimer > 0;
+        private float shakeTimer;
+        public void ShakeFor(float time)
+        {
+            shakeTimer = time;
+        }
+        public void StartShaking()
+        {
+            ForceShake = true;
+        }
+        public void StopShaking()
+        {
+            ForceShake = false;
+            shakeTimer = 0;
+        }
         public override void Update()
         {
+            Vector2 shakeVector = Vector2.Zero;
+            if (Shaking)
+            {
+                shakeTimer -= Engine.DeltaTime;
+                shakeVector = Calc.Random.ShakeVector();
+            }
+
+            if (CanFloat)
+            {
+                foreach (Part part in Parts)
+                {
+                    part.Offset.Y = -FloatAmount;
+                }
+                //EyeSprite.Offset = new Vector2(OrbSprite.Width / 2, -FloatAmount + OrbSprite.Height / 2);
+                EyeSprite.Offset.Y = -FloatAmount;
+                Arms[0].Offset.X = ArmOffsets[0];
+                Arms[1].Offset.X = ArmOffsets[1];
+            }
+            Position += shakeVector;
             base.Update();
+            Position -= shakeVector;
             if (!Broken)
             {
-                if (LookAtPlayer)
+                if (LookDir == Looking.Player)
                 {
                     LookTargetEnabled = true;
                     LookTarget = player.Center;
@@ -589,34 +901,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void UpdateSprites(Vector2 eyeOffset)
         {
-            Arms[0].Scale = Scale;
-            Arms[1].Scale = Scale;
-            OrbSprite.Scale = Scale;
+            Arms[0].Scale = Arms[1].Scale = OrbSprite.Scale = Scale;
             EyeSprite.Scale = EyeScale;
+            Vector2 rotated = Vector2.Zero;
             #region Eye Update
             if (!EyeExpressionOverride) //Use to stop constant eye position updates here (used for stuff like RollEye)
             {
-                if (LookTargetEnabled)
-                {
-                    Vector2 Rotated = RotatePoint(Vector2.Zero, EyeSprite.Center, (Calc.Angle(Center, LookTarget) + 90).ToDeg());
-                    EyeDirection = Vector2.Normalize(Rotated - EyeSprite.Center);
-                    EyeSprite.Position = !EyeInstant ? Calc.Approach(EyeSprite.Position, Rotated + EyeOffset, LookSpeed) : Rotated + EyeOffset;
-                    //Rotate the eye position around the entity's center
-
-                }
-                else
-                {
-                    //Center the eye in the middle of the Entity
-                    if (!EyeInstant)
-                    {
-                        EyeSprite.Position = Calc.Approach(EyeSprite.Position, EyeFront + eyeOffset + EyeOffset, LookSpeed);
-
-                    }
-                    else
-                    {
-                        EyeSprite.Position = EyeFront + eyeOffset + EyeOffset;
-                    }
-                }
+                EyeOffset = EyeInstant ? eyeOffset : Calc.Approach(EyeOffset, eyeOffset, LookSpeed);
+                EyeSprite.Color = Blinking || ForceBlink ? Color.Lerp(Color.White, Color.Black, 0.3f) : Color.White;
+            }
+            if (LookTargetEnabled)
+            {
+                Vector2 center = OrbSprite.RenderPosition + OrbSprite.Center;
+                rotated = RotatePoint(center + Vector2.UnitX * OrbSprite.Width / 2, center, Calc.Angle(center, LookTarget).ToDeg());
+                EyeSprite.RenderPosition = EyeInstant ? rotated : Calc.Approach(EyeSprite.RenderPosition, rotated, LookSpeed);
+            }
+            else
+            {
+                EyeSprite.RenderPosition = Calc.Approach(EyeSprite.RenderPosition, OrbSprite.RenderPosition + OrbSprite.Center + EyeOffset, LookSpeed);
             }
             #endregion
             #region Arm Update
@@ -627,7 +929,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             else
             {
                 ColorFlashTimer = 0;
-                Add(new Coroutine(ColorFlash()));
+                if (CanFloat) Add(new Coroutine(ColorFlash()));
             }
             #endregion
         }
@@ -655,6 +957,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return null;
 
         }
+        public void Emotion(int mood)
+        {
+            Action Action = mood switch
+            {
+                (int)Mood.Happy => Happy,
+                (int)Mood.Stern => Stern,
+                (int)Mood.Normal => Normal,
+                (int)Mood.RollEye => RollEye,
+                (int)Mood.Laughing => Laugh,
+                (int)Mood.Shakers => ShakeHead,
+                (int)Mood.Nodders => NodHead,
+                (int)Mood.Closed => CloseEye,
+                (int)Mood.Angry => Angry,
+                (int)Mood.Surprised => delegate { Surprised(false); }
+                ,
+                (int)Mood.Wink => Wink,
+                (int)Mood.Eugh => Eugh,
+                _ => null
+            };
+            if (Action is not null)
+            {
+                Action.Invoke();
+            }
+        }
+
         public void Emotion(Mood mood)
         {
             Emotion((int)mood);
@@ -671,8 +998,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
+        public void Look(Looking dir)
+        {
+            LookDir = dir;
+        }
+        public void Look(string direction)
+        {
+            foreach (Looking @enum in Enum.GetValues(typeof(Looking)).Cast<Looking>())
+            {
+                string enumName = @enum.ToString();
+                if (direction.Equals(enumName, StringComparison.OrdinalIgnoreCase))
+                {
+                    Look(@enum);
+                    break;
+                }
+            }
+        }
         private IEnumerator ColorFlash()
         {
+
             float delay = Engine.DeltaTime * 2;
             float[] values = new float[] { 0.2f, 0.7f, 0.2f, 0 };
             for (int j = 0; j < ColorTweenLoops; j++)
@@ -685,34 +1029,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
+        public bool ForceBlink;
+        public bool Blinking;
         private IEnumerator Blink()
         {
-            yield return null;
             while (true)
             {
                 yield return Calc.Random.Range(1, 10f);
+                Blinking = true;
                 EyeSprite.Color = Color.Lerp(Color.White, Color.Black, 0.3f);
+
                 yield return 0.1f;
+                Blinking = false;
                 EyeSprite.Color = Color.White;
             }
         }
         private IEnumerator Testing()
         {
-            for (int i = 0; i < 3; i++)
-            {
-                Emotion(i);
-                yield return 1;
-                LookDir = Looking.Left;
-                yield return 1;
-                LookDir = Looking.Up;
-                yield return 1;
-                LookDir = Looking.Right;
-                yield return 1;
-                LookDir = Looking.Down;
-                yield return 1;
-                LookDir = Looking.Forward;
-                yield return 1;
-            }
+
+            /*            for (int i = 0; i < 3; i++)
+                        {
+                            Emotion(i);
+                            yield return 1;
+                            LookDir = Looking.Left;
+                            yield return 1;
+                            LookDir = Looking.Up;
+                            yield return 1;
+                            LookDir = Looking.Right;
+                            yield return 1;
+                            LookDir = Looking.Down;
+                            yield return 1;
+                            LookDir = Looking.Center;
+                            yield return 1;
+                        }*/
             yield return null;
         }
         private IEnumerator DuckDuck()
@@ -753,6 +1102,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             while (true)
             {
+                if (player is null)
+                {
+                    player = Scene.GetPlayer();
+                    yield return null;
+                    continue;
+                }
                 int count = 0;
                 bool wasUnducked = false;
 
@@ -793,45 +1148,58 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
             }
         }
-        private IEnumerator Float()
+        private IEnumerator FloatLoop()
         {
+            float percent = 0.5f;
+            float time = 1;
+            while (true)
+            {
+                for (float i = percent; i < 1; i += Engine.DeltaTime / time)
+                {
+                    while (!CanFloat)
+                    {
+                        yield return null;
+                    }
+                    FloatAmount = Calc.LerpClamp(-FloatAmount, FloatAmount, Ease.SineInOut(i));
+                    yield return null;
+                }
+                percent = 0;
+                time = 2;
+            }
+        }
+        private float[] ArmOffsets = new float[2];
+        private IEnumerator ArmLoop()
+        {
+            ArmOffsets[0] = ArmOffsets[1] = 0;
             while (true)
             {
                 if (CanFloat)
                 {
                     Color target = Color.Lerp(Color.White, Color.Black, 0.2f);
-                    float posY = Position.Y;
-                    float armPosX = Arms[0].Position.X;
-                    float armRightPosX = Arms[1].Position.X;
+                    float armPosX = ArmOffsets[0];
+                    float armRightPosX = ArmOffsets[1];
                     float delay = Engine.DeltaTime / 2;
                     int armDistance = 1;
                     for (float i = 0; i < 1; i += Engine.DeltaTime)
                     {
-                        Position.Y = (float)Math.Round(Calc.LerpClamp(posY, posY - FloatHeight, Ease.SineInOut(i)));
-                        Arms[0].Position.X = (float)Math.Round(Calc.LerpClamp(armPosX, armPosX - armDistance, Ease.SineInOut(i)));
-                        Arms[1].Position.X = (float)Math.Round(Calc.LerpClamp(armRightPosX, armRightPosX + armDistance, Ease.SineInOut(i)));
+                        ArmOffsets[0] = (int)Math.Round(Calc.LerpClamp(armPosX, armPosX - armDistance, Ease.SineInOut(i)));
+                        ArmOffsets[1] = (int)Math.Round(Calc.LerpClamp(armRightPosX, armRightPosX + armDistance, Ease.SineInOut(i)));
                         OrbSprite.Color = Color.Lerp(target, Color.White, Ease.SineInOut(i));
                         yield return delay;
                     }
-                    posY = Position.Y;
-                    armPosX = Arms[0].Position.X;
-                    armRightPosX = Arms[1].Position.X;
+                    armPosX = ArmOffsets[0];
+                    armRightPosX = ArmOffsets[1];
                     for (float i = 0; i < 1; i += Engine.DeltaTime)
                     {
-                        Position.Y = (float)Math.Round(Calc.LerpClamp(posY, posY + FloatHeight, Ease.SineInOut(i)));
-                        Arms[0].Position.X = (float)Math.Round(Calc.LerpClamp(armPosX, armPosX + armDistance, Ease.SineInOut(i)));
-                        Arms[1].Position.X = (float)Math.Round(Calc.LerpClamp(armRightPosX, armRightPosX - armDistance, Ease.SineInOut(i)));
+                        ArmOffsets[0] = (int)Math.Round(Calc.LerpClamp(armPosX, armPosX + armDistance, Ease.SineInOut(i)));
+                        ArmOffsets[1] = (int)Math.Round(Calc.LerpClamp(armRightPosX, armRightPosX - armDistance, Ease.SineInOut(i)));
                         OrbSprite.Color = Color.Lerp(Color.White, target, Ease.SineInOut(i));
                         yield return delay;
                     }
                 }
-                else
-                {
-                    yield return null;
-                }
+                yield return null;
             }
         }
-
         #endregion
         static Vector2 RotatePoint(Vector2 pointToRotate, Vector2 centerPoint, double angleInDegrees)
         {

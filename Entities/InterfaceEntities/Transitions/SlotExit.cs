@@ -25,9 +25,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions
                 UseRawDeltaTime = true;
 
             }
-            public override void ApplyParameters(bool identity)
+            public override void ApplyParameters()
             {
-                base.ApplyParameters(identity);
+                base.ApplyParameters();
                 Effect?.Parameters["YScale"]?.SetValue(YScale);
                 Effect?.Parameters["XScale"]?.SetValue(XScale);
                 Effect?.Parameters["EyeTimer"]?.SetValue(funEyeTimer);

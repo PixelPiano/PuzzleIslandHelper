@@ -2,7 +2,7 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 // PuzzleIslandHelper.FadeWarpTarget
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/FadeWarpTarget")]
     [Tracked]
@@ -15,7 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         {
             id = data.Attr("targetId");
             onGround = data.Bool("placePlayerOnGroundBelow");
-            Collider = new Hitbox(16, 24);
+            Collider = new Hitbox(16, 24,0,-5);
         }
     }
 }

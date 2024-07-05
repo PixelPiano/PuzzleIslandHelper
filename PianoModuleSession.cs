@@ -1,9 +1,9 @@
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP.EscapeRoomEntities;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
@@ -20,11 +20,9 @@ namespace Celeste.Mod.PuzzleIslandHelper
     {
         public int DEBUGINT { get; set; }
         public bool DEBUGBOOL { get; set; }
-
-        public bool MetWithCalidusFirstTime;
+        public int TimesMetWithCalidus;
         public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
         public ForkAmpState ForkAmpState = new();
-        public bool GrassMazeCompleted;
         public bool ModeratorEscape;
         public bool MonitorActivated;
         public string CurrentAreaFlag;

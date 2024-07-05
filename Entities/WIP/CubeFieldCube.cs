@@ -8,7 +8,7 @@ using System;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using static Celeste.Mod.PuzzleIslandHelper.Effects.CubeField;
 using System.Collections;
-using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

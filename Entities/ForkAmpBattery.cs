@@ -3,7 +3,7 @@ using Monocle;
 using Celeste.Mod.Entities;
 using System;
 using System.Collections.Generic;
-using Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities;
 using System.Collections;
 using System.Security.Cryptography.X509Certificates;
 

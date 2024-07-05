@@ -5,7 +5,6 @@ using Monocle;
 using System;
 using System.Collections;
 
-// PuzzleIslandHelper.WaterDroplet
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/WaterDroplet")]
@@ -71,14 +70,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             SetLimits();
             Add(new Coroutine(DropletJourney()));
         }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            if (Collider is not null) Draw.Rect(Collider, Color.Red);
-            Draw.Rect(PlayerRectangle,Color.Blue);
-            Draw.Rect(End.X, End.Y, 1, 1, Color.Green);
-            Draw.Rect(Start.X, Start.Y, 1, 1, Color.Magenta);
-        }
         private void SetLimits()
         {
             SetStart(true);
@@ -86,7 +77,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void SetStart(bool snap)
         {
-
             Vector2 check = Position;
             Vector2 amount = MoveDirection switch
             {

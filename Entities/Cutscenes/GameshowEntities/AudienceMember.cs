@@ -10,6 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
     public class AudienceMember : Entity
     {
         public Sprite Sprite;
+        public static bool Wiped;
         public AudienceMember(Vector2 position, string faceType) : base(position)
         {
             Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/gameshow/audience/" + faceType + "/");
@@ -44,9 +45,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             for (int i = 0; i < 4; i++)
             {
                 Visible = true;
-                yield return Engine.DeltaTime * 2;
+                yield return 0.1f;
                 Visible = false;
-                yield return Engine.DeltaTime * 2;
+                yield return 0.1f;
             }
             RemoveSelf();
             yield return null;
@@ -73,7 +74,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                 RemoveSelf();
             }
         }
-        public AudienceMember(EntityData data, Vector2 offset) : this(data.Position + offset, data.Attr("faceType"))
+        public AudienceMember(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, data.Attr("faceType"))
         {
 
         }

@@ -6,7 +6,7 @@ using MonoMod;
 using MonoMod.Utils;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/CustomFlagExitBlock")]
     [Tracked]

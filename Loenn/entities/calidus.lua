@@ -7,7 +7,7 @@ calidus.name = "PuzzleIslandHelper/Calidus"
 calidus.depth = 0
 
 calidus.texture = "characters/PuzzleIslandHelper/Calidus/lonn"
-
+local directions = {"Center","Left","Right","Up","Down","UpLeft","DownLeft","DownRight","UpRight","Player"}
 function calidus.sprite(room,entity)
    local shapeSprite
    local path = "characters/PuzzleIslandHelper/Calidus/"
@@ -26,9 +26,18 @@ calidus.placements =
         name = "Calidus",
         data = 
         {
-            broken = false
+            broken = false,
+            looking = "Center",
+            startFloating = true
         }
     }
 }
 
+calidus.fieldInformation = 
+{
+    looking = {
+        editable = false,
+        options = directions
+    }
+}
 return calidus

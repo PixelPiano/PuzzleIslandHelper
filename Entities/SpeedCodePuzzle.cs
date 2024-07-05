@@ -5,7 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 // PuzzleIslandHelper.SpeedCodePuzzle
 //Code is a modified combination of FrostHelper's "Dash Code Trigger" and XaphanHelper's "Custom Collectable Entity"
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/SpeedCodePuzzle")]
     public class SpeedCodePuzzle : Entity

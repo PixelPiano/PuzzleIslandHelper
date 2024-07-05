@@ -124,7 +124,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             if (button.Pressed && !Rising)
             {
                 Rising = true;
-                Add(new Coroutine(routine()));
+                Scene.Add(new LiftCutscene(this));
             }
             if (Scene is Level level && HasPlayerOnTop() && Bottom < level.LevelOffset.Y + 48)
             {
@@ -136,9 +136,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                 }
                 if (fader.Alpha == 1)
                 {
-                    level.Lighting.Alpha = 1;
-                    fader.StartGlobalTimer();
-                    PassageTransition.InstantRelativeTeleport(Scene, teleportTo, true);
+                    Teleport();
                 }
             }
             if (Rising)
@@ -146,21 +144,56 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                 MoveV(ySpeed);
             }
         }
-        private IEnumerator routine()
+        public bool Teleported;
+        public void Teleport()
         {
-            if (SceneAs<Level>().GetPlayer() is not Player player) yield break;
-            playerFrom = player.Position;
-            liftFrom = Position;
-            StartShaking(0.3f);
-            yield return 0.3f;
-            Position = liftFrom;
-            player.Position = playerFrom;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
+            if(Teleported) return;
+            Teleported = true;
+            SceneAs<Level>().Lighting.Alpha = 1;
+            fader.StartGlobalTimer();
+            PassageTransition.InstantRelativeTeleport(Scene, teleportTo, true);
+        }
+
+        public class LiftCutscene : CutsceneEntity
+        {
+            public Lift Lift;
+            public LiftCutscene(Lift lift) : base()
             {
-                ySpeed = Calc.LerpClamp(0, -40 * Engine.DeltaTime, Ease.BackIn(i));
-                yield return null;
+                Lift = lift;
+            }
+
+            public override void OnBegin(Level level)
+            {
+                Add(new Coroutine(routine()));
+            }
+            private IEnumerator routine()
+            {
+                if (SceneAs<Level>().GetPlayer() is not Player player) yield break;
+                Lift.playerFrom = player.Position;
+                Lift.liftFrom = Lift.Position;
+                Lift.StartShaking(0.3f);
+                yield return 0.3f;
+                Lift.Position = Lift.liftFrom;
+                player.Position = Lift.playerFrom;
+                for (float i = 0.3f; i < 1; i += Engine.DeltaTime / 2)
+                {
+                    Lift.ySpeed = Calc.LerpClamp(0, -40 * Engine.DeltaTime, Ease.BackIn(i));
+                    yield return null;
+                }
+                while (Lift.fader.Alpha < 1)
+                {
+                    yield return null;
+                }
+                Lift.Teleport();
+                EndCutscene(Level);
+            }
+            public override void OnEnd(Level level)
+            {
+                Lift.fader.Alpha = 1;
+                Lift.Teleport();
             }
         }
+
         public override void OnShake(Vector2 amount)
         {
             base.OnShake(amount);

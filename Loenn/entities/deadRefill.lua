@@ -10,7 +10,9 @@ choices = {"A","B","C"}
 
 deadRefill.texture = "objects/PuzzleIslandHelper/deadRefill/idleA"
 
-
+function deadRefill.depth(room, entity)
+    return entity.depth
+end
 deadRefill.placements =
 {
     {
@@ -19,6 +21,8 @@ deadRefill.placements =
             type = "A",
             explosive = false,
             colorful = false,
+            collidable = true,
+            depth = -100
 
         }
     }

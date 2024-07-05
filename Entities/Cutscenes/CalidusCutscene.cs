@@ -1,0 +1,1308 @@
+using Celeste.Mod.LuaCutscenes;
+using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Effects;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Mono.Cecil;
+using Mono.Cecil.Cil;
+using Monocle;
+using MonoMod.Cil;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using VivHelper.Effects;
+
+namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
+{
+
+    [Tracked]
+    public class CalidusCutscene : CutsceneEntity
+    {
+        public enum Cutscenes
+        {
+            FirstIntro,
+            SecondIntro,
+            First,
+            Second,
+            Third,
+            TEST
+        }
+        public Cutscenes Cutscene;
+        private Calidus Calidus;
+        public Aura aura;
+        public CalidusCutscene(Cutscenes cutscene)
+            : base()
+        {
+            Cutscene = cutscene;
+        }
+
+        [TrackedAs(typeof(ShaderOverlay))]
+        public class Aura : ShaderOverlay
+        {
+            public bool Strong;
+            public float Random;
+            private Player player;
+            private bool forcedVisibleState;
+            public Aura() : base("PuzzleIslandHelper/Shaders/glitchAura", "", true)
+            {
+            }
+            public override void Update()
+            {
+                player = Scene.GetPlayer();
+                if (player != null)
+                {
+                    player.Visible = forcedVisibleState;
+                }
+                base.Update();
+            }
+            public override bool ShouldRender()
+            {
+                return Amplitude >= 0 && base.ShouldRender();
+            }
+            public override void BeforeApply()
+            {
+                base.BeforeApply();
+                if (player is null) return;
+                player.Visible = false;
+            }
+
+            public override void Removed(Scene scene)
+            {
+                base.Removed(scene);
+                if (player != null)
+                {
+                    player.Visible = true;
+                }
+            }
+
+            public override void AfterApply()
+            {
+                base.AfterApply();
+                if (player is null) return;
+                Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Level);
+                GameplayRenderer.Begin();
+                player.Render();
+                Draw.SpriteBatch.End();
+            }
+            public override void ApplyParameters()
+            {
+                base.ApplyParameters();
+                if (Scene is not Level level || player is null || Effect is null || Effect.Parameters is null) return;
+                Effect.Parameters["Strong"]?.SetValue(Strong);
+                Effect.Parameters["Center"]?.SetValue((player.Center - level.Camera.Position) / new Vector2(320, 180));
+                Effect.Parameters["Size"]?.SetValue(0.01f);
+                Effect.Parameters["Random"]?.SetValue(Calc.Random.Range(1, 100f));
+            }
+
+        }
+
+        [Tracked]
+        public class QuickGlitch : Entity
+        {
+            public float Interval;
+            public int MaxBlocks;
+            public Vector2 Offset;
+            public Vector2 Padding;
+            private float timer;
+            private float duration;
+            public bool Timed;
+            public List<Block> Blocks = new();
+            public Entity Entity;
+            public class Block
+            {
+                public Vector2 Position;
+                public Vector2 origPosition;
+                public float Width;
+                public float Height;
+                private Rectangle Bounds;
+                public Color Color;
+                public Block(Vector2 position, float width, float height, Color color)
+                {
+                    origPosition = Position = position;
+                    Bounds = new Rectangle((int)position.X, (int)position.Y, (int)width, (int)height);
+                    Color = color;
+                }
+                public void Update()
+                {
+                    Bounds.X = (int)Position.X;
+                    Bounds.Y = (int)Position.Y;
+                }
+                public void Render()
+                {
+                    Draw.Rect(Bounds, Color);
+                }
+            }
+            public QuickGlitch(Entity entity, Vector2 padding, float interval, int maxBlocks, float duration) : base(entity.Collider != null ? entity.Collider.AbsolutePosition : entity.Position)
+            {
+                Entity = entity;
+                Collider = new Hitbox(entity.Width, entity.Height);
+                Interval = interval;
+                MaxBlocks = maxBlocks;
+                Padding = padding;
+                Depth = -100000;
+                Timed = true;
+                this.duration = duration;
+                Add(new Coroutine(Sequence()));
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (Entity is Calidus calidus)
+                {
+                    foreach (Block b in Blocks)
+                    {
+                        b.Position = b.origPosition - Vector2.UnitY * calidus.FloatAmount;
+                    }
+                }
+                foreach (Block b in Blocks)
+                {
+                    b.Update();
+                }
+                if (Timed)
+                {
+                    timer += Engine.RawDeltaTime;
+                    if (timer > duration)
+                    {
+                        RemoveSelf();
+                    }
+                }
+            }
+            public override void Render()
+            {
+                base.Render();
+                foreach (Block block in Blocks)
+                {
+                    block.Render();
+                }
+            }
+            private IEnumerator Sequence()
+            {
+                Vector2 pos;
+                float width, height;
+                while (true)
+                {
+                    Blocks.Clear();
+                    for (int i = 0; i < MaxBlocks; i++)
+                    {
+                        Color color = Calc.Random.Choose(Color.Green, Color.Black);
+                        pos = Position - Padding + new Vector2(Calc.Random.Range(0, Width + Padding.X * 2), Calc.Random.Range(0, Height + Padding.Y * 2));
+                        pos += Offset;
+                        width = Calc.Random.Range(Width / 4, Width / 1.5f);
+                        height = Calc.Random.Range(2f, 8);
+                        Blocks.Add(new Block(pos, width, height, color));
+                    }
+                    yield return Interval;
+                }
+            }
+        }
+        public void SetCutsceneFlag()
+        {
+            Level.Session.SetFlag("CalidusCutscene" + Cutscene.ToString() + "Watched");
+        }
+        public static bool GetCutsceneFlag(Scene scene, Cutscenes cutscene)
+        {
+            return (scene as Level).Session.GetFlag("CalidusCutscene" + cutscene.ToString() + "Watched");
+        }
+        public static void Load()
+        {
+            //IL.Celeste.FancyText.Parse += FancyText_Parse;
+        }
+        public static void Unload()
+        {
+            //IL.Celeste.FancyText.Parse -= FancyText_Parse;
+        }
+        private static void FancyText_Parse(ILContext il)
+        {
+            ILCursor cursor = new ILCursor(il);
+            cursor.Index = -1;
+            if (cursor.TryGotoPrev(MoveType.Before,
+                   instr => instr.MatchLdloc(6),
+                   instr => instr.Match(OpCodes.Ldc_I4_1),
+                   instr => instr.Match(OpCodes.Add),
+                   instr => instr.MatchStloc(6)
+                   ))
+            {
+                Instruction loopStart = cursor.Next;
+                cursor.Index = 0;
+                if (cursor.TryGotoNext(MoveType.After,
+                    instr => instr.MatchLdcR4(0f),
+                    instr => instr.MatchStloc(9)
+                    ))
+                {
+                    VariableReference text = il.Body.Variables[7];
+                    VariableReference list = il.Body.Variables[8];
+                    cursor.Emit(OpCodes.Ldloc, text);
+                    cursor.Emit(OpCodes.Ldloc, list);
+                    cursor.EmitDelegate(EvaluateText);
+                    cursor.Emit(OpCodes.Brtrue, loopStart);
+                }
+            }
+        }
+        private static bool EvaluateText(string text, List<string> list)
+        {
+            bool found = false;
+            if (Engine.Scene is Level level && level.Tracker.GetEntity<Calidus>() is Calidus calidus)
+            {
+                if ((text[0] == 'c') && list.Count > 1)
+                {
+                    string output = "Found valid c command:";
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        output += "\n" + i + ":" + list[i];
+                    }
+                    Console.WriteLine(output);
+                    if (list[0].Equals("look"))
+                    {
+                        if (Enum.TryParse(list[1], true, out Calidus.Looking result))
+                        {
+                            Console.WriteLine("Found valid look command: " + result);
+                            calidus.Look(result);
+                            found = true;
+                        }
+
+                    }
+                    else if (list[0].Equals("mood") && Enum.TryParse(list[1], true, out Calidus.Mood result2))
+                    {
+                        Console.WriteLine("Found valid mood command: " + list[1]);
+                        calidus.Emotion(result2);
+                        found = true;
+                    }
+                }
+            }
+            return found;
+        }
+
+        public override void OnBegin(Level level)
+        {
+            Player player = level.GetPlayer();
+
+            if (GetCutsceneFlag(level, Cutscene))
+            {
+                EndCutscene(Level);
+                return;
+            }
+            switch (Cutscene)
+            {
+                case Cutscenes.FirstIntro:
+                    Add(new Coroutine(GlitchOut(player, level)));
+                    break;
+                case Cutscenes.First:
+                    PianoModule.Session.TimesMetWithCalidus = 1;
+                    Add(new Coroutine(Cutscene1(player, level)));
+                    break;
+                case Cutscenes.SecondIntro:
+                    Add(new Coroutine(Intro2(player, level)));
+                    break;
+                case Cutscenes.Second:
+                    PianoModule.Session.TimesMetWithCalidus = 2;
+                    Add(new Coroutine(Cutscene2(player, level)));
+                    break;
+                case Cutscenes.Third:
+                    PianoModule.Session.TimesMetWithCalidus = 3;
+                    Add(new Coroutine(Cutscene3(player, level)) { UseRawDeltaTime = true });
+                    break;
+                case Cutscenes.TEST:
+                    Add(new Coroutine(TestScene(player, Calidus)));
+                    break;
+            }
+        }
+        private IEnumerator TestScene(Player player, Calidus calidus)
+        {
+            player.StateMachine.State = Player.StDummy;
+            yield return Textbox.Say("CalidusTest");
+            player.StateMachine.State = Player.StNormal;
+
+            EndCutscene(Level);
+        }
+        public override void OnEnd(Level level)
+        {
+            if (Cutscene != Cutscenes.TEST)
+            {
+                SetCutsceneFlag();
+            }
+            Player player = Level.GetPlayer();
+            if (player != null && (WasSkipped || (int)Cutscene < 2))
+            {
+                player.StateMachine.State = Player.StNormal;
+            }
+            if (WasSkipped)
+            {
+                Audio.PauseMusic = false;
+                level.Session.SetFlag("blockGlitch", false);
+                ShakeLevel = false;
+                Level.StopShake();
+                if (TagCheck(Tags.Global))
+                {
+                    RemoveTag(Tags.Global);
+                }
+                if (player != null)
+                {
+                    switch (Cutscene)
+                    {
+                        case Cutscenes.First:
+                            if (level.Session.Level != "0-lcomp")
+                            {
+                                InstantTeleport(level, player, "0-lcomp", null);
+                                level.InCutscene = false;
+                            }
+                            break;
+                    }
+                }
+            }
+        }
+        private IEnumerator Intro2(Player player, Level level)
+        {
+            level.InCutscene = true;
+            Add(new Coroutine(GlitchOut(player, level)));
+            Vector2 playerMarker = level.Marker("player");
+            Vector2 ZoomPosition = level.Marker("camera1") - level.LevelOffset;
+            Coroutine zoomIn = new Coroutine(ScreenZoom(ZoomPosition, 1.5f, 2));
+            Coroutine walkTo = new Coroutine(player.DummyWalkTo(playerMarker.X));
+            Add(zoomIn);
+            yield return 1.3f;
+            Add(walkTo);
+            while (zoomIn.Active || walkTo.Active)
+            {
+                yield return null;
+            }
+            yield return 0.3f;
+            yield return Textbox.Say("Cb0", PlayerLookLeft, PlayerLookRight);
+            yield return Level.ZoomBack(1.5f);
+            EndCutscene(Level);
+        }
+        private IEnumerator Intro3(Player player, Level level)
+        {
+            level.InCutscene = true;
+            Add(new Coroutine(GlitchOut(player, level)));
+            Vector2 playerMarker = level.Marker("player");
+            Vector2 ZoomPosition = level.Marker("camera1") - level.LevelOffset;
+            Coroutine zoomIn = new Coroutine(ScreenZoom(ZoomPosition, 1.5f, 2));
+            Coroutine walkTo = new Coroutine(player.DummyWalkTo(playerMarker.X));
+            Add(zoomIn);
+            yield return 1.4f;
+            Add(walkTo);
+            while (zoomIn.Active || walkTo.Active)
+            {
+                yield return null;
+            }
+            Calidus.FloatTo(level.Marker("calidus"), 2, Ease.SineOut);
+        }
+        private IEnumerator Dialogue3(Player player, Level level)
+        {
+            yield return Calidus.Say("Cc1", "normal");
+            Calidus.LookDir = Calidus.Looking.Right;
+            yield return Calidus.Say("Cc2", "stern");
+            yield return 0.1f;
+            Calidus.RollEye();
+            yield return 0.6f;
+            yield return Textbox.Say("Cc3");
+            Calidus.LookDir = Calidus.Looking.Left;
+            Calidus.Emotion(Calidus.Mood.Stern);
+            List<string> choices = new() { "Ccq1", "Ccq2", "Ccq3", "Ccq4" };
+            while (choices.Count > 0)
+            {
+                yield return ChoicePrompt.Prompt(choices.ToArray());
+                yield return Textbox.Say(choices[ChoicePrompt.Choice]);
+                yield return Textbox.Say(choices[ChoicePrompt.Choice] + "a");
+                choices.RemoveAt(ChoicePrompt.Choice);
+            }
+            yield return Textbox.Say("Cc4");
+            yield return Calidus.Say("Cc5", "eugh");
+            Calidus.Symbols.Position.X += Calidus.OrbSprite.Width / 2;
+            yield return Calidus.Say("Cc6", "angry");
+            Calidus.Symbols.Visible = false;
+            Calidus.Symbols.Position.X -= Calidus.OrbSprite.Width / 2;
+            yield return Calidus.Say("Cc7", "surprised", WaitForOne, Approach, BackOff);
+            yield return Calidus.Say("Cc8", "stern", AuraSmall, Approach);
+            yield return Calidus.Say("Cc9", "surprised", AuraMedium, WalkLeft);
+            yield return Calidus.Say("Cc10", "stern");
+            yield return Textbox.Say("Cc11", AuraLarge, WalkRight, SmallBurst);
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            Calidus = scene.Tracker.GetEntity<Calidus>();
+            if (Cutscene == Cutscenes.Second)
+            {
+                Calidus.Stern();
+            }
+        }
+        private IEnumerator GlitchCutscene(Player player, Level level)
+        {
+
+            //Calidus.MoveTo(level.Marker("calidus"));
+            //todo: add custom burst effect
+            //include invert effects, pixel duplication, other weird effects
+            AuraAmount = 1;
+            AuraStrong = true;
+            ShakeLevel = true;
+            //level flashes, camera snaps back to default view
+            Level.Flash(Color.White);
+            Level.ResetZoom();
+            Calidus.StartShaking();
+            Calidus.Emotion(Calidus.Mood.Surprised);
+            //instantly madeline is floating in the air, mildly convulsing
+            player.Position = level.Marker("playerFloating");
+            player.DummyGravity = false;
+            player.DummyAutoAnimate = true;
+
+            //calidus looks around worriedly
+            //displacement bursts at intervals, span length of whole screen
+            yield return 0.1f;
+            //Calidus.LookAtPlayer = true;
+            yield return 1;
+            yield return Calidus.Say("Cc12", "surprised");
+            yield return 0.9f;
+            SwapNext(Color.White * 0.3f, player);
+            LargePulse();
+            yield return 0.9f;
+            SwapNext(Color.White * 0.3f, player);
+            LargePulse();
+            yield return 1.4f;
+            SwapNext(Color.White * 0.3f, player);
+            LargePulse();
+            yield return 0.5f;
+            //Calidus.LookDir = Calidus.Looking.Right;
+            //Calidus.LookAtPlayer = false;
+            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 16, 5);
+            float from = Engine.TimeRate;
+            InvertOverlay.HoldState = true;
+            //time slows down, as it gets to 0 the bursts start reversing back to madeline
+            for (float i = 0; i < 1; i += Engine.RawDeltaTime / 1.3f)
+            {
+                Engine.TimeRate = Calc.LerpClamp(from, 0, Ease.SineInOut(i));
+                yield return null;
+            }
+            yield return 0.2f;
+            float maxTime = 1;
+            int bursts = 12;
+            float decay = 0.6f;
+            for (int i = 0; i < bursts; i++)
+            {
+                float progress = (float)i / bursts;
+                float time = (1 - progress) * (1 - (decay * progress)) * maxTime;
+                ConstantTimeBurst.AddBurst(player.Position, time, 320, 0);
+                yield return time;
+            }
+            //once they all return to her, short glitchy sequence, then a very large glitchy blast
+            //madeline and calidus both sent flying in opposite directions, glitch a bit and then disappear
+            ConstantTimeBurst.AddBurst(player.Center, 2, 0, 320, 1);
+            yield return SwapRoutine(6, 0.2f, null, player);
+            yield return 0.5f;
+            player.Visible = false;
+            Calidus.Visible = false;
+            QuickGlitch playerGlitch = new QuickGlitch(player, Vector2.One * 4, Engine.DeltaTime, 8, 0.8f);
+            QuickGlitch calidusGlitch = new QuickGlitch(Calidus, Vector2.One * 4, Engine.DeltaTime, 5, 0.8f);
+            Level.Add(playerGlitch, calidusGlitch);
+            while (Level.Tracker.GetEntities<QuickGlitch>().Count > 0)
+            {
+                yield return null;
+            }
+            yield return null;
+        }
+        private IEnumerator Cutscene1(Player player, Level level)
+        {
+            level.InCutscene = true;
+            Vector2 ZoomPosition = new Vector2(113, player.Position.Y - level.LevelOffset.Y - 40);
+            Coroutine zoomIn = new Coroutine(ScreenZoom(ZoomPosition, 1.5f, 2));
+            Coroutine walkTo = new Coroutine(player.DummyWalkTo(113 + level.Bounds.X));
+            Add(zoomIn);
+            Add(walkTo);
+            while (zoomIn.Active || walkTo.Active)
+            {
+                yield return null;
+            }
+            yield return 0.2f;
+            yield return Walk(16);
+            yield return 1;
+            yield return Walk(-16);
+            yield return 1;
+            yield return SayAndWait("Ca1", 0.6f);
+            yield return 0.6f;
+            Audio.PauseMusic = true;
+            player.Jump();
+            Add(new Coroutine(LookSideToSide(player)));
+            yield return Textbox.Say("Ca2");
+            Coroutine ScreenZoomAcrossRoutine = new Coroutine(SceneAs<Level>().ZoomAcross(ZoomPosition + Vector2.UnitX * 32, 1.5f, 7));
+            Add(ScreenZoomAcrossRoutine);
+            yield return Textbox.Say("Ca3");
+            yield return Textbox.Say("Ca4");
+            LookingSideToSide = false;
+            yield return SayAndWait("Ca5", 0.2f);
+            if (ScreenZoomAcrossRoutine.Active)
+            {
+                ScreenZoomAcrossRoutine.Cancel();
+                Remove(ScreenZoomAcrossRoutine);
+                level.ZoomSnap(ZoomPosition + Vector2.UnitX * 32, 1.5f);
+            }
+            Add(new Coroutine(PlayerZoomAcross(player, 2f, 2, 32, -32)));
+            yield return Textbox.Say("Ca5a");
+            Calidus.BrokenParts.Play("jitter");
+            yield return 1.4f;
+            Calidus.FixSequence();
+            while (Calidus.Broken)
+            {
+                yield return null;
+            }
+            yield return null;
+            Calidus.LookSpeed /= 5;
+            Calidus.LookDir = Calidus.Looking.Left;
+            player.Facing = Facings.Right;
+            Add(new Coroutine(Events(Wait(0.5f), Walk(-16, true))));
+            yield return Textbox.Say("Ca6");
+            yield return Textbox.Say("Ca7");
+            yield return Calidus.Say("Ca8", "stern");
+            yield return Textbox.Say("Ca9");
+            yield return Calidus.Say("Ca10", "normal");
+            yield return Textbox.Say("Ca11");
+            yield return 1;
+            yield return Textbox.Say("Ca12");
+            yield return 3;
+            yield return Textbox.Say("Ca13");
+            yield return Calidus.Say("Ca14", "surprised");
+            yield return Calidus.Say("Ca15", "happy");
+            yield return Textbox.Say("Ca16");
+            Calidus.LookSpeed *= 5;
+            Calidus.LookDir = Calidus.Looking.Right;
+            yield return Calidus.Say("Ca16a", "stern");
+            Add(new Coroutine(Walk(16, false, 2)));
+            Calidus.LookDir = Calidus.Looking.Left;
+            Calidus.Surprised(false);
+            yield return Calidus.Say("Ca17", "surprised");
+            yield return 0.5f;
+            yield return Calidus.Say("Ca18", "normal");
+
+
+            //Rumble, glitchy effects
+            //todo: add sound
+            level.Session.SetFlag("blockGlitch");
+            yield return 0.1f;
+            //shake level somehow
+            yield return 0.1f;
+            Calidus.Surprised(true);
+            Calidus.LookDir = Calidus.Looking.Up;
+            yield return 0.7f;
+            Calidus.LookDir = Calidus.Looking.Left;
+            yield return Calidus.Say("Ca19", "surprised");
+            Calidus.Emotion("stern");
+            yield return Textbox.Say("Ca20");
+
+            Vector2 pos = Calidus.Position;
+            AddTag(Tags.Global);
+            for (float i = 0; i < 1; i += Engine.DeltaTime * 2)
+            {
+                Calidus.Position = Vector2.Lerp(pos, player.TopCenter, Ease.BackIn(i));
+                yield return null;
+            }
+            level.Flash(Color.White, true);
+            level.Session.SetFlag("blockGlitch", false);
+            SingleTextscene text = new SingleTextscene("CaL1");
+            level.Add(text);
+            Level.StopShake();
+            while (text.InCutscene)
+            {
+                yield return null;
+            }
+            yield return End(player, level);
+        }
+        private IEnumerator Cutscene2(Player player, Level level)
+        {
+
+            Add(new Coroutine(Level.ZoomTo(level.Marker("camera1", true), 1.4f, 1)));
+            yield return player.DummyWalkTo(level.Marker("player1").X);
+            yield return Textbox.Say("Calidus2",
+                Normal, Happy, Stern, Eugh, Surprised,//0 - 4
+                RollEye, LookLeft, LookRight, LookUp, LookDown, //5 - 9
+                LookUpLeft, LookDownLeft, LookDownRight, LookUpRight, LookCenter, //10 - 14
+                LookPlayer, WaitForOne, WaitForTwo, CaliDramaticFloatAway, CaliStopBeingDramatic, //15 - 19
+                CaliTurnRight, CaliMoveCloser, CaliMoveBack, Closed, Nodders, //20 - 24
+                PlayerPoke, Reassemble, PlayerToMarker2, PlayerToMarker3, PlayerToMarker4,//25 - 29
+                PlayerToMarker5, PlayerToMarkerCalidus, PanToCalidus); //30 - 32
+            yield return Level.ZoomBack(1);
+            yield return null;
+        }
+        private IEnumerator PanToCalidus()
+        {
+            float from = Level.Camera.Position.X;
+            float to = Level.Camera.Position.X + (Level.Marker("camera2") - Level.Marker("camera1")).X;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
+            {
+                Level.Camera.Position = new Vector2(Calc.LerpClamp(from, to, Ease.SineInOut(i)), Level.Camera.Position.Y);
+                yield return null;
+            }
+            yield return 0.8f;
+        }
+        private IEnumerator PlayerToMarker1()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            yield return player.DummyWalkTo(Level.Marker("player1").X);
+        }
+        private IEnumerator PlayerToMarker2()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            yield return player.DummyWalkTo(Level.Marker("player2").X);
+        }
+        private IEnumerator PlayerToMarker3()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            yield return player.DummyWalkTo(Level.Marker("player3").X);
+        }
+        private IEnumerator PlayerToMarker4()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            yield return player.DummyWalkTo(Level.Marker("player4").X);
+        }
+        private IEnumerator PlayerToMarker5()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            yield return player.DummyWalkTo(Level.Marker("player5").X);
+        }
+        private IEnumerator PlayerToMarkerCalidus()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            yield return player.DummyWalkTo(Level.Marker("playerCalidus").X, false, 0.5f);
+        }
+        private IEnumerator Reassemble()
+        {
+            yield return Calidus.ReassembleRoutine();
+        }
+        private IEnumerator PlayerPoke()
+        {
+            if (Level.GetPlayer() is not Player player || Calidus == null) yield break;
+            yield return Level.ZoomAcross(Level.Marker("cameraZoom", true), 1.7f, 1.5f);
+            Calidus.Surprised(true);
+            Calidus.Look(Calidus.Looking.Right);
+            Calidus.LookSpeed = 2;
+            Add(new Coroutine(Calidus.FallApartRoutine()));
+            Add(new Coroutine(WaitThenBackUp(player)));
+            yield return DoubleSay("HEYCALIDUS", "CalidusAHHH");
+            yield return Calidus.WaitForFallenApart();
+            yield return 0.2f;
+            Calidus.LookSpeed = 1;
+        }
+        private IEnumerator WaitThenBackUp(Player player)
+        {
+            yield return 0.7f;
+            player.Jump();
+            yield return null;
+            while (!player.OnGround())
+            {
+                yield return null;
+            }
+            yield return 0.1f;
+            yield return player.DummyWalkTo(Level.Marker("playerIdle").X, true);
+        }
+        private IEnumerator DoubleSay(string dialogA, string dialogB)
+        {
+            Coroutine routineA = new(Textbox.Say(dialogA)), routineB = new(Textbox.Say(dialogB));
+            Add(routineA, routineB);
+            while (!(routineA.Finished && routineB.Finished))
+            {
+                yield return null;
+            }
+        }
+
+        private IEnumerator Cutscene3(Player player, Level level)
+        {
+            level.Add(aura = new Aura());
+            player.Position = level.DefaultSpawnPoint;
+            level.Camera.Position = level.LevelOffset;
+            Calidus.LookDir = Calidus.Looking.Left;
+            yield return Intro3(player, level);
+            yield return Dialogue3(player, level);
+            yield return GlitchCutscene(player, level);
+            EndCutscene(level);
+            yield return null;
+        }
+        public void AddGlitches(Player player, Calidus calidus)
+        {
+            Level.Add(new QuickGlitch(player, Vector2.One * 8, Engine.DeltaTime, 8, 0.4f));
+            Level.Add(new QuickGlitch(calidus, Vector2.Zero, Engine.DeltaTime, 8, 0.4f) { Offset = -Vector2.UnitX * 8 });
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            if (Cutscene == Cutscenes.Third)
+            {
+                if (aura is not null)
+                {
+                    scene.Remove(aura);
+                }
+            }
+        }
+        private IEnumerator CaliDramaticFloatAway()
+        {
+            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 24, 2, Ease.SineInOut);
+            yield return null;
+        }
+        private IEnumerator CaliDramatiLookUpRight()
+        {
+            Calidus.LookDir = Calidus.Looking.UpRight;
+            yield return null;
+        }
+        private IEnumerator Happy()
+        {
+            Calidus.Emotion(Calidus.Mood.Happy);
+            yield return null;
+        }
+        private IEnumerator Stern()
+        {
+            Calidus.Emotion(Calidus.Mood.Stern);
+            yield return null;
+        }
+        private IEnumerator Normal()
+        {
+            Calidus.Emotion(Calidus.Mood.Normal);
+            yield return null;
+        }
+        private IEnumerator RollEye()
+        {
+            Calidus.Emotion(Calidus.Mood.RollEye);
+            yield return null;
+        }
+        private IEnumerator Laughing()
+        {
+            Calidus.Emotion(Calidus.Mood.Laughing);
+            yield return null;
+        }
+        private IEnumerator Shakers()
+        {
+            Calidus.Emotion(Calidus.Mood.Shakers);
+            yield return null;
+        }
+        private IEnumerator Nodders()
+        {
+            Calidus.Emotion(Calidus.Mood.Nodders);
+            yield return null;
+        }
+        private IEnumerator Closed()
+        {
+            Calidus.Emotion(Calidus.Mood.Closed);
+            yield return null;
+        }
+        private IEnumerator Angry()
+        {
+            Calidus.Emotion(Calidus.Mood.Angry);
+            yield return null;
+        }
+        private IEnumerator Surprised()
+        {
+            Calidus.Emotion(Calidus.Mood.Surprised);
+            yield return null;
+        }
+        private IEnumerator Wink()
+        {
+            Calidus.Emotion(Calidus.Mood.Wink);
+            yield return null;
+        }
+        private IEnumerator Eugh()
+        {
+            Calidus.Emotion(Calidus.Mood.Eugh);
+            yield return null;
+        }
+        private IEnumerator LookLeft()
+        {
+            Calidus.Look(Calidus.Looking.Left);
+            yield return null;
+        }
+        private IEnumerator LookRight()
+        {
+            Calidus.Look(Calidus.Looking.Right);
+            yield return null;
+        }
+        private IEnumerator LookUp()
+        {
+            Calidus.Look(Calidus.Looking.Up);
+            yield return null;
+        }
+        private IEnumerator LookDown()
+        {
+            Calidus.Look(Calidus.Looking.Down);
+            yield return null;
+        }
+        private IEnumerator LookUpRight()
+        {
+            Calidus.Look(Calidus.Looking.UpRight);
+            yield return null;
+        }
+        private IEnumerator LookDownRight()
+        {
+            Calidus.Look(Calidus.Looking.DownRight);
+            yield return null;
+        }
+        private IEnumerator LookDownLeft()
+        {
+            Calidus.Look(Calidus.Looking.DownLeft);
+            yield return null;
+        }
+        private IEnumerator LookUpLeft()
+        {
+            Calidus.Look(Calidus.Looking.UpLeft);
+            yield return null;
+        }
+        private IEnumerator LookCenter()
+        {
+            Calidus.Look(Calidus.Looking.Center);
+            yield return null;
+        }
+        private IEnumerator LookPlayer()
+        {
+            Calidus.Look(Calidus.Looking.Player);
+            yield return null;
+        }
+
+        /*      public enum Mood
+        {
+            Happy,
+            Stern,
+            Normal,
+            RollEye,
+            Laughing,
+            Shakers,
+            Nodders,
+            Closed,
+            Angry,
+            Surprised,
+            Wink,
+            Eugh
+        }*/
+        private IEnumerator CaliStopBeingDramatic()
+        {
+            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * -24, 1, Ease.SineInOut);
+            Calidus.LookDir = Calidus.Looking.Left;
+            yield return null;
+        }
+        private IEnumerator CaliTurnRight()
+        {
+            Calidus.LookDir = Calidus.Looking.Right;
+            yield return null;
+        }
+        private Vector2 caliMoveBackPosition;
+        private IEnumerator CaliMoveCloser()
+        {
+            caliMoveBackPosition = Calidus.Position;
+            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * -8, 0.5f);
+            yield return null;
+        }
+        private IEnumerator CaliMoveBack()
+        {
+            if (caliMoveBackPosition != Vector2.Zero)
+            {
+                Calidus.FloatTo(caliMoveBackPosition, 1, Ease.SineOut);
+            }
+            yield return null;
+        }
+        private IEnumerator GlitchOut(Player player, Level level)
+        {
+            player.StateMachine.State = Player.StDummy;
+            level.ZoomSnap(player.Center - Level.Camera.Position - Vector2.UnitY * 24, 1.7f);
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
+            {
+                Glitch.Value = 1 - i;
+                yield return null;
+            }
+            Glitch.Value = 0;
+            yield return 0.5f;
+            if (Cutscene is Cutscenes.FirstIntro)
+            {
+                Add(new Coroutine(StutterGlitch(20)));
+                Vector2 pos = player.Center - Level.Camera.Position - Vector2.UnitY * 24;
+                yield return Textbox.Say("wtc1", PanOut, WaitForPanOut);
+                yield return Level.ZoomBack(0.8f);
+                EndCutscene(Level);
+            }
+            else
+            {
+                yield return StutterGlitch(20);
+            }
+        }
+        private bool panningOut;
+        private IEnumerator WaitForPanOut()
+        {
+            while (panningOut)
+            {
+                yield return null;
+            }
+        }
+        private IEnumerator PanOut()
+        {
+            Add(new Coroutine(ActuallyPanOut()));
+            yield return null;
+        }
+        private IEnumerator ActuallyPanOut()
+        {
+            panningOut = true;
+            yield return Level.ZoomBack(4.3f);
+            panningOut = false;
+            Level.ResetZoom();
+        }
+        private IEnumerator StutterGlitch(int frames)
+        {
+            for (int i = 0; i < frames; i++)
+            {
+                if (Calc.Random.Chance(0.1f))
+                {
+                    int addframes = Calc.Random.Range(1, 4);
+                    Glitch.Value = Calc.Random.Range(0.08f, 0.4f);
+                    yield return Engine.DeltaTime * addframes;
+                    i += addframes;
+                }
+                Glitch.Value = 0;
+            }
+        }
+        public IEnumerator SwapRoutine(int times, float interval, Color? flash, Player player)
+        {
+            for (int i = 0; i < times; i++)
+            {
+                SwapNext(flash, player);
+                yield return interval;
+            }
+        }
+        public void SwapNext(Color? flash, Player player)
+        {
+            SwapSection((Section % 4) + 1, Level, flash, player);
+            AddGlitches(player, Calidus);
+            Tween tween = Tween.Create(Tween.TweenMode.Oneshot, Ease.CubeIn, 0.3f, true);
+            tween.OnUpdate = (Tween t) =>
+            {
+                Glitch.Value = 0.4f - t.Eased * 0.4f;
+            };
+            tween.OnComplete = delegate
+            {
+                Glitch.Value = 0;
+            };
+            Add(tween);
+        }
+        private IEnumerator PlayerLookLeft()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            player.Facing = Facings.Left;
+            yield return null;
+        }
+        private IEnumerator PlayerLookRight()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            player.Facing = Facings.Right;
+            yield return null;
+        }
+        public int Section = 1;
+        public int PrevSection = 1;
+
+        public void SwapSection(int section, Level level, Color? flashColor, Player player)
+        {
+            PrevSection = Section;
+            Section = section;
+            Vector2 moveBy = level.Marker("camera" + Section) - level.Marker("camera" + PrevSection);
+            player.Position += moveBy;
+            //player.Hair.MoveHairBy(moveBy);
+            Calidus.Position += moveBy;
+            level.Camera.Position += moveBy;
+
+            if (flashColor.HasValue)
+            {
+                level.Flash(flashColor.Value);
+            }
+        }
+        private IEnumerator SmallBurst()
+        {
+            Player player = Level.GetPlayer();
+            Level.Displacement.AddBurst(player.Center, 0.3f, 0, 40, 1);
+            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 4, 0.3f);
+            yield return null;
+        }
+        private IEnumerator WalkLeft()
+        {
+            Player player = Level.GetPlayer();
+            yield return player.DummyWalkTo(player.X - 40);
+        }
+        private IEnumerator WalkRight()
+        {
+            Player player = Level.GetPlayer();
+            yield return player.DummyWalkTo(player.X + 40);
+        }
+        private IEnumerator Approach()
+        {
+            Player player = Level.GetPlayer();
+            Add(new Coroutine(player.DummyWalkTo(player.X + 8, false, 2)));
+            yield return 0.07f;
+            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 6, 0.3f);
+            yield return null;
+        }
+        private IEnumerator MoveCamera(Vector2 amount, float time)
+        {
+            Vector2 pos = Level.Camera.Position;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                Level.Camera.Position = Vector2.Lerp(pos, pos + amount, i);
+                yield return null;
+            }
+            yield return null;
+        }
+        private IEnumerator BackOff()
+        {
+            Player player = Level.GetPlayer();
+            yield return player.DummyWalkTo(player.X - 16, true, 1.4f);
+            yield return 0.5f;
+            Calidus.FloatTo(Calidus.Position - Vector2.UnitX * 6, 1);
+            yield return 0.2f;
+            player.Facing = Facings.Left;
+            yield return 1;
+        }
+        private float AuraAmount;
+        private bool AuraStrong;
+        private bool ShakeLevel;
+        public override void Update()
+        {
+            base.Update();
+            if (aura != null)
+            {
+                aura.Amplitude = AuraAmount;
+                aura.Strong = AuraStrong;
+            }
+            if (ShakeLevel)
+            {
+                Level.shakeTimer = Engine.DeltaTime;
+            }
+            //AuraAmount = (float)Math.Sin(Scene.TimeActive);
+        }
+        private IEnumerator AuraGrowTo(float to, float time)
+        {
+            float from = AuraAmount;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                AuraAmount = Calc.LerpClamp(from, to, Ease.QuintInOut(i));
+                yield return null;
+            }
+            AuraAmount = to;
+        }
+        private IEnumerator AuraSmall()
+        {
+            Add(new Coroutine(AuraGrowTo(0.1f, 0.6f)));
+            yield return null;
+        }
+        private IEnumerator AuraMedium()
+        {
+            Add(new Coroutine(AuraGrowTo(0.3f, 0.6f)));
+            yield return null;
+        }
+        private IEnumerator AuraLarge()
+        {
+            Add(new Coroutine(AuraGrowTo(0.5f, 0.6f)));
+            yield return null;
+        }
+        private void LargePulse()
+        {
+            Player player = Level.GetPlayer();
+            Level.Flash(Color.White * 0.5f);
+            Level.Displacement.AddBurst(player.Center, 1f, 0, 150, 1);
+            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 6, 0.3f);
+        }
+        private IEnumerator Walk(float x, bool backwards = false, float speedmult = 1, bool intoWalls = false)
+        {
+            Player player = SceneAs<Level>().Tracker.GetEntity<Player>();
+            if (player != null)
+            {
+                float positionX = player.Position.X;
+                yield return player.DummyWalkTo(positionX + x, backwards, speedmult, intoWalls);
+            }
+            else
+            {
+                yield break;
+            }
+        }
+        private IEnumerator Events(params IEnumerator[] functions)
+        {
+            foreach (IEnumerator o in functions)
+            {
+                yield return o;
+            }
+        }
+        private IEnumerator Wait(float time)
+        {
+            yield return time;
+        }
+        private IEnumerator WaitForOne()
+        {
+            yield return Wait(1);
+        }
+        private IEnumerator WaitForTwo()
+        {
+            yield return Wait(2);
+        }
+        private IEnumerator LookSideToSide(Player player)
+        {
+            LookingSideToSide = true;
+            while (LookingSideToSide)
+            {
+                player.Facing = Facings.Right;
+                yield return 0.5f;
+                player.Facing = Facings.Left;
+                yield return 0.5f;
+            }
+        }
+        private bool LookingSideToSide = true;
+        private IEnumerator PlayerZoom(Player player, float amount, float time, float xOffset, float yOffset)
+        {
+            Level level = SceneAs<Level>();
+            yield return level.ZoomTo(ScreenCoords(player.Position + new Vector2(xOffset, yOffset), level), amount, time);
+        }
+        private IEnumerator ScreenZoom(Vector2 screenPosition, float amount, float time)
+        {
+            Level level = SceneAs<Level>();
+            yield return level.ZoomTo(screenPosition, amount, time);
+        }
+        private IEnumerator PlayerZoomAcross(Player player, float amount, float time, float xOffset, float yOffset)
+        {
+            Level level = SceneAs<Level>();
+            yield return level.ZoomAcross(ScreenCoords(player.Position + new Vector2(xOffset, yOffset), level), amount, time);
+        }
+        private Vector2 ScreenCoords(Vector2 position, Level level)
+        {
+            return position - level.Camera.Position;
+        }
+        private bool CalidusLookAround = true;
+        private float? musicVolume;
+        private IEnumerator LookBackAndForth()
+        {
+            while (CalidusLookAround)
+            {
+                Calidus.LookDir = Calidus.Looking.UpRight;
+                yield return 1;
+                Calidus.LookDir = Calidus.Looking.UpLeft;
+                yield return 1;
+            }
+        }
+        private IEnumerator EmotionThenNormal(string emotion, float wait)
+        {
+            Calidus.Emotion(emotion);
+            yield return wait;
+            Calidus.Emotion("normal");
+        }
+
+        private IEnumerator SayAndWait(string id, float waitTime)
+        {
+            yield return Textbox.Say(id);
+            yield return waitTime;
+        }
+        public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, int positionX = 0, int positionY = 0)
+        {
+            Level level = scene as Level;
+            Player player = level.GetPlayer();
+            if (level == null || player == null)
+            {
+                return;
+            }
+            if (string.IsNullOrEmpty(room))
+            {
+                return;
+            }
+            level.OnEndOfFrame += delegate
+            {
+                Vector2 levelOffset = level.LevelOffset;
+                Vector2 val2 = player.Position - levelOffset;
+                Vector2 val3 = level.Camera.Position - levelOffset;
+                Vector2 offset = new Vector2(positionY, positionX);
+                Facings facing = player.Facing;
+                level.Remove(player);
+                level.UnloadLevel();
+                level.Session.Level = room;
+                Session session = level.Session;
+                Level level2 = level;
+                Rectangle bounds = level.Bounds;
+                float num = bounds.Left;
+                bounds = level.Bounds;
+                session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
+                level.Session.FirstLevel = false;
+                level.LoadLevel(Player.IntroTypes.Transition);
+
+                level.Camera.Position = level.LevelOffset + val3 + offset.Floor();
+                level.Add(player);
+                if (snapToSpawnPoint && session.RespawnPoint.HasValue)
+                {
+                    player.Position = session.RespawnPoint.Value + offset.Floor();
+                }
+                else
+                {
+                    player.Position = level.LevelOffset + val2 + offset.Floor();
+                }
+
+                player.Facing = facing;
+                player.Hair.MoveHairBy(level.LevelOffset - levelOffset + offset.Floor());
+                if (level.Wipe != null)
+                {
+                    level.Wipe.Cancel();
+                }
+            };
+        }
+        public static void InstantTeleport(Scene scene, Player player, string room, Action<Level> onEnd = null)
+        {
+            Level level = scene as Level;
+            if (level == null)
+            {
+                return;
+            }
+            if (string.IsNullOrEmpty(room))
+            {
+                return;
+            }
+            level.OnEndOfFrame += delegate
+            {
+                Vector2 levelOffset = level.LevelOffset;
+                Vector2 val2 = player.Position - level.LevelOffset; ;
+                Vector2 val3 = level.Camera.Position - level.LevelOffset;
+                float zoom = level.Zoom;
+                float zoomTarget = level.ZoomTarget;
+                Facings facing = player.Facing;
+                level.Remove(player);
+                level.UnloadLevel();
+                level.Session.Level = room;
+                Session session = level.Session;
+                Level level2 = level;
+                Rectangle bounds = level.Bounds;
+                float num = bounds.Left;
+                bounds = level.Bounds;
+                session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
+                level.Session.FirstLevel = false;
+                level.LoadLevel(Player.IntroTypes.None);
+                level.Camera.Position = level.LevelOffset + val3;
+                level.Zoom = zoom;
+                level.ZoomTarget = zoomTarget;
+                player.Position = level.LevelOffset + val2;
+                player.Facing = facing;
+                player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
+                if (level.Wipe != null)
+                {
+                    level.Wipe.Cancel();
+                }
+
+                onEnd?.Invoke(level);
+            };
+        }
+        private IEnumerator End(Player player, Level level)
+        {
+            if (!TagCheck(Tags.Global))
+            {
+                AddTag(Tags.Global);
+            }
+            level.Flash(Color.White, true);
+            level.Remove(Calidus);
+            InstantTeleport(level, player, "0-lcomp", null);
+            yield return null;
+            player.Speed.X = -64;
+            player.StateMachine.State = Player.StDummy;
+            yield return 0.3f;
+            yield return Textbox.Say("Ca21");
+            yield return 0.2f;
+            yield return Textbox.Say("Ca22");
+            yield return 1;
+            yield return Textbox.Say("Ca23");
+            Audio.PauseMusic = false;
+            level.InCutscene = false;
+            player.StateMachine.State = Player.StNormal;
+            RemoveTag(Tags.Global);
+            EndCutscene(level);
+        }
+    }
+}

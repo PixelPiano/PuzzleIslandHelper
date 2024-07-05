@@ -8,7 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/LabGeneratorPuzzle")]
     [Tracked]

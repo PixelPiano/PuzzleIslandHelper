@@ -4,7 +4,7 @@ using Monocle;
 using Celeste.Mod.Entities;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities.GearEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
 {
 
     [CustomEntity("PuzzleIslandHelper/GearLauncher")]

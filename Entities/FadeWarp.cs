@@ -5,7 +5,7 @@ using Monocle;
 using System;
 using System.Collections;
 // PuzzleIslandHelper.FadeWarp
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/FadeWarp")]
     [Tracked]
@@ -93,6 +93,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                 }
             }
 
+
             if (routine.Finished && !usesWipe)
             {
                 RemoveTag(Tags.Global);
@@ -102,6 +103,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         private IEnumerator Cutscene(Player player)
         {
             AddTag(Tags.Global);
+            talk.Enabled = false;
             if (!usesWipe)
             {
                 for (float i = 0; i < 1; i += Engine.DeltaTime * FadeSpeed * FadeSpeedMultiplier)
@@ -182,7 +184,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             {
                 if (!Unlocked)
                 {
-                    //play unlocking sound
+                    //todo: play unlocking sound
                     EventInstance sfx;
                     sfx = Audio.Play("event:/PianoBoy/stool_hit_ground", Position);
                     while (Audio.IsPlaying(sfx))
@@ -231,9 +233,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                 EndTimer = 0.5f
             };
         }
-        private void SetOnGround(Entity entity)
+/*        private void SetOnGround(Entity entity)
         {
-
             if (Scene as Level is not null)
             {
                 try
@@ -249,7 +250,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                 }
                 entity.Position.Y -= 1;
             }
-        }
+        }*/
         private IEnumerator TeleportPlayer(Player player, bool wasNotInvincible, Camera camera)
         {
             yield return null;
@@ -263,7 +264,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
 
                         if (target.onGround)
                         {
-                            SetOnGround(player);
+                            //SetOnGround(player);
                         }
                         camera.Position = player.CameraTarget;
                         break;
@@ -283,7 +284,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         }
         private void End()
         {
-
             Transitioning = false;
             player.StateMachine.State = 0;
             RemoveTag(Tags.Global);

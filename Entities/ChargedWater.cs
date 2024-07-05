@@ -6,7 +6,7 @@ using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/ChargedWater")]
     [TrackedAs(typeof(ColoredWater))]

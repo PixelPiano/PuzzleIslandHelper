@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.PuzzleEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/ChainedMonitor")]
     [Tracked]

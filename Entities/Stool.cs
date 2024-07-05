@@ -5,7 +5,7 @@ using System;
 using System.Collections;
 using MonoMod.Utils;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/Stool")]
     [Tracked]
@@ -18,26 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         public bool IsHeld = false;
         private bool Inverted;
         private EntityID id;
-        public bool FlagState
-        {
-            get
-            {
-                if (SceneAs<Level>() is not null)
-                {
-                    Level level = SceneAs<Level>();
-                    if (Inverted)
-                    {
-                        return !level.Session.GetFlag(flag);
-                    }
-                    else
-                    {
-                        return level.Session.GetFlag(flag);
-                    }
-                }
-                return false;
-
-            }
-        }
+        public bool FlagState => (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag)) != Inverted;
         private static bool InRefill = false;
         private bool PlatformState = false;
         private bool inRoutine = false;
@@ -66,7 +47,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         private Collision onCollideH;
 
         private Player player;
-        private Level l;
 
         private Coroutine routine;
         public Entity GetRider()
@@ -117,7 +97,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         : base(data.Position + offset)
         {
             this.id = id;
-            Inverted = data.Bool("invertFlag");
+            Inverted = data.Bool("inverted");
             flag = data.Attr("flag");
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/stool/"));
             sprite.AddLoop("down", "stoolext", 0.1f, 0);
@@ -369,6 +349,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         {
             base.Awake(scene);
             platform.OnDashCollide = OnDashed;
+            SetState();
+        }
+        public void SetState()
+        {
+            Visible = platform.Visible = Collidable = platform.Collidable = Hold.Visible = FlagState;
         }
         public static void Load()
         {
@@ -407,11 +392,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
         public override void Update()
         {
             base.Update();
-            if (!string.IsNullOrEmpty(flag) && !FlagState)
-            {
-                RemoveSelf();
-                platform.RemoveSelf();
-            }
+            if(Scene is not Level level) return;
+            SetState();
+            if(!FlagState) return;
             Hold.CheckAgainstColliders();
             sprite.SetColor(refillColor);
             orig_Color = refillColor;
@@ -440,7 +423,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
             }
 
             Depth = player.Depth + 1;
-            l = Scene as Level;
+            level = Scene as Level;
             #region Copied
             if (swatTimer > 0f)
             {
@@ -505,31 +488,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
                 }
                 MoveH(Speed.X * Engine.DeltaTime, onCollideH);
                 MoveV(Speed.Y * Engine.DeltaTime, onCollideV);
-                if (Center.X > l.Bounds.Right)
+                if (Center.X > level.Bounds.Right)
                 {
                     MoveH(32f * Engine.DeltaTime);
-                    if (Left - 8f > l.Bounds.Right)
+                    if (Left - 8f > level.Bounds.Right)
                     {
                         RemoveSelf();
                     }
                 }
-                else if (Left < l.Bounds.Left)
+                else if (Left < level.Bounds.Left)
                 {
-                    Left = l.Bounds.Left;
+                    Left = level.Bounds.Left;
                     Speed.X *= -0.4f;
                 }
-                else if (Top < l.Bounds.Top - 4)
+                else if (Top < level.Bounds.Top - 4)
                 {
-                    Top = l.Bounds.Top + 4;
+                    Top = level.Bounds.Top + 4;
                     Speed.Y = 0f;
                 }
-                else if (Bottom > l.Bounds.Bottom && SaveData.Instance.Assists.Invincible)
+                else if (Bottom > level.Bounds.Bottom && SaveData.Instance.Assists.Invincible)
                 {
-                    Bottom = l.Bounds.Bottom;
+                    Bottom = level.Bounds.Bottom;
                     Speed.Y = -300f;
                     Audio.Play("event:/game/general/assist_screenbottom", Position);
                 }
-                if (X < l.Bounds.Left + 10)
+                if (X < level.Bounds.Left + 10)
                 {
                     MoveH(32f * Engine.DeltaTime);
                 }

@@ -4,7 +4,7 @@ using Monocle;
 using Color = Microsoft.Xna.Framework.Color;
 
 // PuzzleIslandHelper.VoidLight
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.GameplayEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/VoidLight")]
     [Tracked]

@@ -111,7 +111,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public Collider Box;
         public VirtualRenderTarget Mask, FillMask, FillTarget, BGTarget, FGTarget, BGCache, FGCache;
 
-        private readonly int[] indices;
+        public int[] indices;
         public float[] VerticeAlpha;
         public float[] PointLineAlphas;
         public float[] PointLineAmount;
@@ -151,8 +151,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             CreateArrays(nodes);
             Add(VertexBreathing);
             Box = PianoUtils.Boundaries(Points, offset);
-            SwapBG = swapBG;
-            SwapFG = swapFG;
         }
         public ShiftArea(Vector2 position) : base(position)
         {

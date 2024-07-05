@@ -21,18 +21,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool UsesFlag;
         public bool UseRawDeltaTime;
         private float dummyTimer;
-        public bool UseIdentityMatrix;
-        public bool State
-        {
-            get
-            {
-                if (ForceLevelRender)
-                {
-                    return true;
-                }
-                return FlagState;
-            }
-        }
+        public bool UseIdentityMatrix = true;
         public bool FlagState
         {
             get
@@ -42,7 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
         public ShaderOverlay(string path, string flag = "", bool forceRender = false, float alpha = 1)
-            : this(ShaderHelper.TryGetEffect(path,true), flag, forceRender, alpha)
+            : this(ShaderHelper.TryGetEffect(path, true), flag, forceRender, alpha)
         {
         }
         public ShaderOverlay(Effect effect, string flag = "", bool forceRender = false, float alpha = 1) : base()
@@ -52,19 +41,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Alpha = alpha;
             ForceLevelRender = forceRender;
         }
+        public virtual bool ShouldRender()
+        {
+            return (ForceLevelRender || FlagState) && Effect != null && Effect.Parameters != null;
+        }
+        public virtual void AfterApply()
+        {
+
+        }
+        public virtual void BeforeApply()
+        {
+
+        }
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
             Effect?.Dispose();
             Effect = null;
         }
-        public virtual void ApplyParameters(bool identity)
+        public virtual void ApplyParameters()
         {
-            Level level = FrostModule.GetCurrentLevel();
-            if (Effect is null)
-            {
-                return;
-            }
+            if (Scene is not Level level || Effect is null || Effect.Parameters is null) return;
             if (UseRawDeltaTime)
             {
                 dummyTimer += Engine.RawDeltaTime;
@@ -79,7 +76,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Matrix matrix = Matrix.CreateOrthographicOffCenter(0f, viewport.Width, viewport.Height, 0f, 0f, 1f);
             Matrix matrix2 = ((FrostModule.Framework == FrameworkType.FNA) ? Matrix.Identity : Matrix.CreateTranslation(-0.5f, -0.5f, 0f));
             Effect.Parameters["TransformMatrix"]?.SetValue(matrix2 * matrix);
-            Effect.Parameters["ViewMatrix"]?.SetValue(identity ? Matrix.Identity : level.Camera.Matrix);
+            Effect.Parameters["ViewMatrix"]?.SetValue(UseIdentityMatrix ? Matrix.Identity : level.Camera.Matrix);
         }
         public static void Load()
         {
@@ -94,7 +91,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static void Apply_HOOK(On.Celeste.Glitch.orig_Apply orig, VirtualRenderTarget source, float timer, float seed, float amplitude)
         {
             orig(source, timer, seed, amplitude);
-            Level level = FrostModule.GetCurrentLevel();
+            Level level = Engine.Scene as Level;
+            if (level == null) return;
             using List<Entity>.Enumerator enumerator = level.Tracker.SafeGetEntities<ShaderOverlay>().GetEnumerator();
             List<Entity> overlays = level.Tracker.GetEntities<ShaderOverlay>();
             if (!enumerator.MoveNext())
@@ -103,9 +101,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             foreach (ShaderOverlay so in overlays)
             {
-                if (so != null && so.State)
+                if (so != null && so.ShouldRender())
+                {
+                    so.BeforeApply();
+                }
+            }
+            foreach (ShaderOverlay so in overlays)
+            {
+                if (so != null && so.ShouldRender())
                 {
                     Apply(source, source, so, false, so.Alpha);
+                }
+            }
+            foreach (ShaderOverlay so in overlays)
+            {
+                if (so != null && so.ShouldRender())
+                {
+                    so.AfterApply();
                 }
             }
         }
@@ -115,7 +127,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return;
             }
-            overlay?.ApplyParameters(true);
+            overlay?.ApplyParameters();
             VirtualRenderTarget tempA = GameplayBuffers.TempA;
             Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
@@ -139,7 +151,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return;
             }
-            overlay?.ApplyParameters(true);
+            overlay?.ApplyParameters();
             VirtualRenderTarget tempA = GameplayBuffers.TempA;
             Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
@@ -163,7 +175,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return;
             }
-            overlay?.ApplyParameters(true);
+            overlay?.ApplyParameters();
             VirtualRenderTarget tempA = GameplayBuffers.TempA;
             Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);

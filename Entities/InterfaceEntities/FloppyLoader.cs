@@ -199,9 +199,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public override void Update()
         {
-            if (!clickedOnce && Interface.Monitor is not null)
+            if (!clickedOnce && Interface.monitor is not null)
             {
-                Position = OrigPosition = Interface.Monitor.BottomRight - new Vector2(Width, Height);
+                Position = OrigPosition = Interface.monitor.BottomRight - new Vector2(Width, Height);
             }
             if (!changing && Interface.LeftPressed && Interface.CollideCheck(this))
             {
