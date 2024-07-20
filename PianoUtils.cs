@@ -50,6 +50,13 @@ public static class PianoUtils
         float max = Calc.Max(range, -range);
         return Calc.Clamp(value, min, max);
     }
+    public static Ease.Easer Random()
+    {
+        return Calc.Random.Choose(Ease.BackIn, Ease.BackInOut, Ease.BackOut, Ease.BigBackIn, Ease.BigBackInOut, Ease.BigBackOut,
+            Ease.BounceIn, Ease.BounceOut, Ease.BounceInOut, Ease.CubeIn, Ease.CubeOut, Ease.CubeInOut, Ease.ElasticIn, Ease.ElasticInOut,
+            Ease.ElasticOut, Ease.ExpoIn, Ease.ExpoOut, Ease.ExpoInOut, Ease.Linear, Ease.QuadIn, Ease.QuadOut, Ease.QuadInOut, Ease.QuintIn,
+            Ease.QuintOut, Ease.QuintInOut, Ease.SineIn, Ease.SineOut, Ease.SineInOut);
+    }
     public static Vector2 ClampRange(Vector2 value, Vector2 range)
     {
         return new Vector2(ClampRange(value.X, range.X), ClampRange(value.Y, range.Y));

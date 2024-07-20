@@ -278,7 +278,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             Draw.SpriteBatch.End();
 
-            // Draw the level buffer onto our stencil
+            // Draw the level heeheeBuffer onto our stencil
             Draw.SpriteBatch.Begin(
                 SpriteSortMode.Deferred,
                 BlendState.AlphaBlend,
@@ -290,11 +290,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.Draw(GameplayBuffers.Level, Vector2.Zero, Color.White*opacity);
             Draw.SpriteBatch.End();
 
-            // start rendering to the level buffer again
+            // start rendering to the level heeheeBuffer again
             Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Level);
             ColorGrade.Set(GFX.ColorGrades[renderer.ColorGradeName]);
 
-            // Draw our stencil content over the level buffer, with the Color grade
+            // Draw our stencil content over the level heeheeBuffer, with the Color grade
             Draw.SpriteBatch.Begin(
                 SpriteSortMode.Deferred,
                 BlendState.AlphaBlend,

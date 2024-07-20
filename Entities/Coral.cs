@@ -154,7 +154,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             public void RenderAt(Vector2 offset)
             {
-                
                 Draw.Line(Start + offset, End + offset, Color, thickness);
             }
         }

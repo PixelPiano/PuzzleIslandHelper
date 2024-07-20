@@ -118,20 +118,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             opacityBufferCounter = 1;
         }
 
-
-        /*        internal static void Load()
-                {
-                    Everest.Events.Level.OnTransitionTo += Transition;
-                }
-                internal static void Unload()
-                {
-                    Everest.Events.Level.OnTransitionTo -= Transition;
-                }*/
-        private static void Transition(Level level, LevelData data, Vector2 dir)
-        {
-        }
-
-
         public override void Render(Scene scene)
         {
             base.Render(scene);
@@ -160,8 +146,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             start = false;
             Draw.SpriteBatch.End(); // stop drawing things like normal
 
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(MaskRenderTarget); // "when you draw, draw to my buffer"
-            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);// clear the buffer, since that doesn't get done automatically
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(MaskRenderTarget);
+            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
             GameplayRenderer.Begin(); // setup drawing again with standard properties
 
             // ...
@@ -171,7 +157,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
 
             Engine.Graphics.GraphicsDevice.SetRenderTarget(ObjectRenderTarget);
-            // note the custom RemoveMask to ignore *source* Alpha and *destination* colour
 
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
 

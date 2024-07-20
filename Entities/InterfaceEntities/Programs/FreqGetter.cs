@@ -28,8 +28,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 
             /*
              * 1: Position inside a level?
-             * 2: X position amount?
-             * 3: Y position amount?
+             * 2: X position YAmount?
+             * 3: Y position YAmount?
              * 4: Level has void area?
              * 5: Level has Dash Code?
              * 6: 

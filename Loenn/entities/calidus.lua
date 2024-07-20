@@ -8,6 +8,8 @@ calidus.depth = 0
 
 calidus.texture = "characters/PuzzleIslandHelper/Calidus/lonn"
 local directions = {"Center","Left","Right","Up","Down","UpLeft","DownLeft","DownRight","UpRight","Player"}
+local moods = {"Happy","Stern","Normal","RollEye","Laughing","Shakers","Nodders","Closed","Angry","Surprised","Wink","Eugh"} 
+
 function calidus.sprite(room,entity)
    local shapeSprite
    local path = "characters/PuzzleIslandHelper/Calidus/"
@@ -28,7 +30,8 @@ calidus.placements =
         {
             broken = false,
             looking = "Center",
-            startFloating = true
+            startFloating = true,
+            mood = "Normal"
         }
     }
 }
@@ -38,6 +41,10 @@ calidus.fieldInformation =
     looking = {
         editable = false,
         options = directions
+    },
+    mood = {
+        editable = false,
+        options = moods
     }
 }
 return calidus

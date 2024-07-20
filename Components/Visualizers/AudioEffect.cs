@@ -66,7 +66,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
                 // Save the channel count out for the update function
                 obj.Channels = inchannels;
 
-                // Copy the incoming buffer to process later
+                // Copy the incoming heeheeBuffer to process later
                 int lengthElements = (int)length * inchannels;
                 Marshal.Copy(inbuffer, obj.DataBuffer, 0, lengthElements);
 

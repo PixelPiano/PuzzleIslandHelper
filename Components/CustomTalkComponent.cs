@@ -69,6 +69,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public float Delay;
         public bool Muted;
         public bool Loop;
+        public Vector2 SpriteOffset;
         internal enum SpecialType
         {
             DotDotDot,
@@ -110,6 +111,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     CanHover = false;
                     break;
             }
+            Alpha = AlphaAtDistance;
+            SingleGraphic = true;
+        }
+        internal CustomTalkComponent(float x, float y, float width, float height, Vector2 drawAt, Action<Player> onTalk)
+: base(new Rectangle((int)x, (int)y, (int)width, (int)height), drawAt, onTalk, null)
+        {
             Alpha = AlphaAtDistance;
             SingleGraphic = true;
         }
@@ -248,7 +255,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 }
                 float alpha = this.alpha * Handler.Alpha;
                 Vector2 vector = level.Camera.Position.Floor();
-                Vector2 vector2 = Handler.Entity.Position + Handler.DrawAt - vector;
+                Vector2 vector2 = Handler.Entity.Position + Handler.DrawAt - vector + Handler.SpriteOffset;
                 if (SaveData.Instance != null && SaveData.Instance.Assists.MirrorMode)
                 {
                     vector2.X = 320f - vector2.X;

@@ -76,6 +76,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public override void Load()
         {
+            TrapdoorChandelier.GlobalUpdater.Load();
             CalidusCutscene.Load();
             InGameLogRenderer.Load();
             ConstantTimeBurst.Load();
@@ -116,11 +117,14 @@ namespace Celeste.Mod.PuzzleIslandHelper
             MazeData.Load();
             OuiFileFader.Load();
             BatteryRespawn.Load();
+
         }
 
 
         public override void Unload()
         {
+
+            TrapdoorChandelier.GlobalUpdater.Unload();
             CalidusCutscene.Unload();
             InGameLogRenderer.Unload();
             ConstantTimeBurst.Unload();

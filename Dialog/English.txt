@@ -14,6 +14,9 @@
 modoptions_PuzzleIslandHelperModule=Puzzle Island Helper Settings
 modoptions_PuzzleIslandHelperModule_InvIntensity=Invert Effect Intensity
 modoptions_PuzzleIslandHelperModule_InvIntensity_desc=Changes the intensity of the invert effect. 1 is easiest on the eyes, 5 is the full effect.
+modoptions_PuzzleIslandHelperModule_InvToggle_desc=Hold: Ability only active when button is held down.
+Toggle: Ability toggles on/off everytime the button is pressed.
+
 
 modoptions_PuzzleIslandHelperModule_InvState=Invert Ability
 

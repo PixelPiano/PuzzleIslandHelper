@@ -211,7 +211,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             /*            Tween alphaTween = Tween.Create(Tween.TweenMode.Oneshot, Ease.Linear, maxTime / 1.5f);
                         alphaTween.OnUpdate = (Tween t) =>
                         {
-                            Shader.Alpha = t.Eased;
+                            Shader.YAmount = t.Eased;
                         };
                         Add(alphaTween);
                         alphaTween.start();

@@ -328,7 +328,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 flags[i] = level.Session.GetFlag("codeDoor" + (i + 1));
                 if (flags[i])
                 {
-                    //amount++;
+                    //YAmount++;
                     if (!copy[i])
                     {
                         Audio.Play("event:/game/09_core/frontdoor_heartfill", Position);

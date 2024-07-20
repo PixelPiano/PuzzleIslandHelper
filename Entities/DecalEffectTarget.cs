@@ -35,6 +35,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Collider = new Hitbox(sprite.Width, sprite.Height, -sprite.Width / 2, -sprite.Height / 2);
             Tag |= Tags.TransitionUpdate;
         }
+        public override void DebugRender(Camera camera)
+        {
+            if (Collider != null)
+            {
+                Collider.Render(camera, Collidable ? Color.Red * 0.5f : Color.DarkRed * 0.5f);
+            }
+
+            Components.DebugRender(camera);
+
+        }
         public override void Added(Scene scene)
         {
             base.Added(scene);

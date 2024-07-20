@@ -242,8 +242,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void DebugRender(Camera camera)
         {
-            base.DebugRender(camera);
-            DrawTextures();
+            //base.DebugRender(camera);
+            //DrawTextures();
         }
         public void DrawRect()
         {

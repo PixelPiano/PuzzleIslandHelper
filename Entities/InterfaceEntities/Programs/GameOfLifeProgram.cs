@@ -98,7 +98,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 
             if (Scene.OnInterval(5 / 60f))
             {
-                // game logic, run every frame
+                // game logic, run every flip
                 for (int x = 0; x < W; x++)
                 {
                     for (int y = 0; y < H; y++)

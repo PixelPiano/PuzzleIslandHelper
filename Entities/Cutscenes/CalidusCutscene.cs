@@ -26,6 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             SecondIntro,
             First,
             Second,
+            SecondA,
             Third,
             TEST
         }
@@ -57,15 +58,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 }
                 base.Update();
             }
-            public override bool ShouldRender()
-            {
-                return Amplitude >= 0 && base.ShouldRender();
-            }
             public override void BeforeApply()
             {
                 base.BeforeApply();
                 if (player is null) return;
                 player.Visible = false;
+            }
+            public override void AfterApply()
+            {
+                base.AfterApply();
+                if (player is null) return;
+                Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Level);
+                GameplayRenderer.Begin();
+                player.Render();
+                Draw.SpriteBatch.End();
+            }
+            public override bool ShouldRender()
+            {
+                return Amplitude >= 0 && base.ShouldRender();
             }
 
             public override void Removed(Scene scene)
@@ -77,15 +87,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 }
             }
 
-            public override void AfterApply()
-            {
-                base.AfterApply();
-                if (player is null) return;
-                Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Level);
-                GameplayRenderer.Begin();
-                player.Render();
-                Draw.SpriteBatch.End();
-            }
             public override void ApplyParameters()
             {
                 base.ApplyParameters();
@@ -153,7 +154,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 {
                     foreach (Block b in Blocks)
                     {
-                        b.Position = b.origPosition - Vector2.UnitY * calidus.FloatAmount;
+                        b.Position = b.origPosition - Vector2.UnitY * calidus.FloatTarget;
                     }
                 }
                 foreach (Block b in Blocks)
@@ -277,12 +278,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public override void OnBegin(Level level)
         {
             Player player = level.GetPlayer();
-
-            if (GetCutsceneFlag(level, Cutscene))
-            {
-                EndCutscene(Level);
-                return;
-            }
+            /*
+                        if (GetCutsceneFlag(level, Cutscene))
+                        {
+                            EndCutscene(Level);
+                            return;
+                        }*/
             switch (Cutscene)
             {
                 case Cutscenes.FirstIntro:
@@ -298,6 +299,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 case Cutscenes.Second:
                     PianoModule.Session.TimesMetWithCalidus = 2;
                     Add(new Coroutine(Cutscene2(player, level)));
+                    break;
+                case Cutscenes.SecondA:
+                    PianoModule.Session.TimesMetWithCalidus = 2;
+                    Add(new Coroutine(Cutscene2B(player, level)));
                     break;
                 case Cutscenes.Third:
                     PianoModule.Session.TimesMetWithCalidus = 3;
@@ -323,7 +328,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 SetCutsceneFlag();
             }
             Player player = Level.GetPlayer();
-            if (player != null && (WasSkipped || (int)Cutscene < 2))
+            if (player != null && (WasSkipped || (int)Cutscene < 2) || Cutscene == Cutscenes.SecondA)
             {
                 player.StateMachine.State = Player.StNormal;
             }
@@ -346,6 +351,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                             {
                                 InstantTeleport(level, player, "0-lcomp", null);
                                 level.InCutscene = false;
+                            }
+                            break;
+                        case Cutscenes.Second:
+                            if (Calidus != null)
+                            {
+                                Calidus.Look(Calidus.Looking.DownRight);
+                                Calidus.CanFloat = true;
+                                Calidus.Position = Calidus.OrigPosition;
                             }
                             break;
                     }
@@ -621,7 +634,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 PlayerPoke, Reassemble, PlayerToMarker2, PlayerToMarker3, PlayerToMarker4,//25 - 29
                 PlayerToMarker5, PlayerToMarkerCalidus, PanToCalidus); //30 - 32
             yield return Level.ZoomBack(1);
-            yield return null;
+            EndCutscene(Level);
+        }
+        private IEnumerator Cutscene2B(Player player, Level level)
+        {
+            player.StateMachine.State = Player.StDummy;
+            yield return player.DummyWalkTo(Level.Marker("player5").X);
+            player.Facing = Facings.Right;
+            yield return Level.ZoomTo(level.Marker("camera2", true) + Vector2.UnitX * 32, 1.4f, 1);
+            yield return Textbox.Say("Calidus2b",
+                Normal, Stern, LookPlayer, LookDownRight, LookRight, WaitForOne);
+            yield return Level.ZoomBack(1);
+            player.StateMachine.State = Player.StNormal;
+            EndCutscene(Level);
         }
         private IEnumerator PanToCalidus()
         {
@@ -672,19 +697,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             if (Level.GetPlayer() is not Player player || Calidus == null) yield break;
             yield return Level.ZoomAcross(Level.Marker("cameraZoom", true), 1.7f, 1.5f);
-            Calidus.Surprised(true);
-            Calidus.Look(Calidus.Looking.Right);
-            Calidus.LookSpeed = 2;
-            Add(new Coroutine(Calidus.FallApartRoutine()));
-            Add(new Coroutine(WaitThenBackUp(player)));
+
+            Add(new Coroutine(WaitThenFallApart(0.5f)));
+            Add(new Coroutine(WaitThenBackUp(0.5f, player)));
             yield return DoubleSay("HEYCALIDUS", "CalidusAHHH");
             yield return Calidus.WaitForFallenApart();
             yield return 0.2f;
             Calidus.LookSpeed = 1;
         }
-        private IEnumerator WaitThenBackUp(Player player)
+
+        private IEnumerator WaitThenFallApart(float time)
         {
-            yield return 0.7f;
+            yield return time;
+            Add(new Coroutine(ZoomWobble(1.9f, 3, 0.1f)));
+            Calidus.Surprised(true);
+            Calidus.Look(Calidus.Looking.Right);
+            Calidus.LookSpeed = 2;
+            yield return Calidus.FallApartRoutine();
+        }
+        private IEnumerator ZoomWobble(float to, int loops, float interval)
+        {
+            float from = Level.Zoom;
+            Vector2 point = Level.Marker("cameraZoom", true);
+            for (int i = 0; i < loops; i++)
+            {
+                yield return Level.ZoomAcross(point, to, interval);
+                yield return Level.ZoomAcross(point, from, interval);
+            }
+        }
+        private IEnumerator WaitThenBackUp(float time, Player player)
+        {
+            yield return time;
             player.Jump();
             yield return null;
             while (!player.OnGround())
@@ -877,20 +920,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private IEnumerator CaliTurnRight()
         {
             Calidus.LookDir = Calidus.Looking.Right;
+            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 16, 1, Ease.SineInOut);
             yield return null;
         }
         private Vector2 caliMoveBackPosition;
         private IEnumerator CaliMoveCloser()
         {
-            caliMoveBackPosition = Calidus.Position;
-            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * -8, 0.5f);
+            if (Level.GetPlayer() is Player player)
+            {
+                Calidus.FloatTo(player.Center + (Calidus.Position - player.Center) * 0.7f, 0.5f);
+            }
             yield return null;
         }
         private IEnumerator CaliMoveBack()
         {
             if (caliMoveBackPosition != Vector2.Zero)
             {
-                Calidus.FloatTo(caliMoveBackPosition, 1, Ease.SineOut);
+                Calidus.FloatTo(Calidus.OrigPosition, 1, Ease.SineOut);
             }
             yield return null;
         }

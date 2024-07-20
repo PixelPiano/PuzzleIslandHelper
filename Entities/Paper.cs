@@ -29,6 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             DialogID = data.Attr("dialogID", "TestDialogue");
             Collider = new Hitbox(data.Width, data.Height);
             Add(Talk = new DotX3(Collider, Interact));
+            Talk.SpriteOffset = Vector2.UnitX;
             Talk.VisibleFromDistance = true;
             Talk.AlphaAtDistance = 0.5f;
 

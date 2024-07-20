@@ -81,7 +81,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             player = level.Tracker.GetEntity<Player>();
         }
 
-        //Called once per frame. Not called if Entity.Active is false.
+        //Called once per flip. Not called if Entity.Active is false.
         //Used for game logic, not for rendering.
         public override void Update()
         {

@@ -516,7 +516,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private IEnumerator IdleFloat()
         {
             yield break;
-            /*int amount = 4;
+            /*int YAmount = 4;
             while (true)
             {
                 idleFloat = 0;
@@ -527,12 +527,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         idleFloat = 0;
                         break;
                     }
-                    idleFloat = Calc.LerpClamp(-amount, amount, Ease.SineInOut(i));
+                    idleFloat = Calc.LerpClamp(-YAmount, YAmount, Ease.SineInOut(i));
                     yield return null;
                 }
                 if (!(Respawning || Moving))
                 {
-                    idleFloat = amount;
+                    idleFloat = YAmount;
                 }
 
                 for (float i = 0; i < 1; i += Engine.DeltaTime)
@@ -542,7 +542,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         idleFloat = 0;
                         break;
                     }
-                    idleFloat = Calc.LerpClamp(amount, -amount, Ease.SineInOut(i));
+                    idleFloat = Calc.LerpClamp(YAmount, -YAmount, Ease.SineInOut(i));
                     yield return null;
                 }
                 yield return null;

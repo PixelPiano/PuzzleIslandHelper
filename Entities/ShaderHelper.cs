@@ -36,6 +36,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static Effect ApplyParameters(this Effect effect, Level level, Matrix matrix, float? amplitude = null)
         {
             var parameters = effect.Parameters;
+            
             parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
             parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
             parameters["CamPos"]?.SetValue(level.Camera.Position);

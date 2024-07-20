@@ -503,7 +503,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                     SetDragOffset = false;
                     if (!Buffering)
                     {
-                        cursorSprite.Play("idle"); //revert Cursor Texture if not being clicked
+                        cursorSprite.Play("idle"); //revert Cursor GlassTexture if not being clicked
                     }
                 }
                 if (DraggingWindow && Window.Drawing && Window.DraggingEnabled)

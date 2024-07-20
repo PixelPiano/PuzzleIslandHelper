@@ -4,6 +4,7 @@ using Monocle;
 using Celeste.Mod.Backdrops;
 using System.Collections;
 using System;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {

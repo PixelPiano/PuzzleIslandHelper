@@ -3,6 +3,7 @@ using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Reflection;
+using VivHelper;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {
@@ -15,58 +16,55 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private bool previousState;
         public static bool State;
         private static float OnTime;
-        private int LastTimelinePosition;
         public EventInstance invertAudio;
-        private bool MusicGlitchCutscene;
         private bool Transitioning;
         private bool WasTransitioning;
-        private int LoopCount;
-        private int Timer;
-        private int Last;
-        private bool Wait = false;
         public static bool HoldState;
-        private int Loops;
-        private int LastSaved;
         private static PropertyInfo engineDeltaTimeProp = typeof(Engine).GetProperty("DeltaTime");
         private static float baseTimeRate = 1f;
 
         public static float playerTimeRate = 1f;
-        private float SavedVolume;
-        private float Pitch;
         private Player player;
         public static bool ForcedState;
         public static bool EnforceState;
-        private string prevColorGrade;
 
         private float holdTimer;
-        private VirtualButton button;
         public static bool UseNormalTimeRate;
+        public bool wasReleased;
+        public PianoModuleSettings.InvertActivationModes Mode => PianoModule.Settings.ToggleInvert;
         public InvertOverlay(BinaryPacker.Element data) : this(data.Attr("colorgradeFlag"), data.AttrFloat("timeMod")) { }
+        public ButtonBinding Binding => PianoModule.Settings.InvertAbilityBinding;
         public InvertOverlay(string flag, float timeMod)
         {
             this.flag = flag;
 
             OnTime = timeMod;
-            button = (VirtualButton)typeof(Input).GetField("Dash").GetValue(null);
+
         }
 
         private bool CheckScene(Scene scene)
         {
-            player = (scene as Level).Tracker.GetEntity<Player>();
-            if (player is null)
+            if (scene is not Level level || level.GetPlayer() is not Player player)
             {
                 Reset(scene);
                 return false;
             }
-            if (player.Dead || player.StateMachine.State == 11)
+            if(level.Wipe != null)
             {
-                if (!HoldState)
-                {
-                    Reset(scene);
-                }
-                return false;
+                return true;
             }
             Transitioning = (scene as Level).Transitioning;
+            if (!Transitioning)
+            {
+                if (player.Dead || player.StateMachine.State == 11)
+                {
+                    if (!HoldState)
+                    {
+                        Reset(scene);
+                    }
+                    return false;
+                }
+            }
             if (Transitioning)
             {
                 if (!WasTransitioning)
@@ -87,6 +85,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         {
             base.Update(scene);
             Level level = scene as Level;
+
             if (PianoModule.Settings.InvertAbility)
             {
                 level.Session.SetFlag("invertOverlay");
@@ -98,33 +97,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             previousState = State;
             if (!HoldState)
             {
-                if (button.Check)
+                switch (Mode)
                 {
-                    holdTimer += Engine.DeltaTime;
+                    case PianoModuleSettings.InvertActivationModes.Toggle:
+                        if (Binding.Pressed) State = !State;
+                        break;
+                    case PianoModuleSettings.InvertActivationModes.Hold:
+                        bool check = Binding.Check;
+                        holdTimer = check ? holdTimer + Engine.DeltaTime : 0;
+                        State = check && holdTimer >= WaitTime;
+                        break;
                 }
-                else
-                {
-                    holdTimer = 0f;
-                    Engine.TimeRate = 1;
-                }
-                State = ((button.Check && holdTimer >= WaitTime) || (EnforceState && ForcedState));
-                level.Session.SetFlag(flag, State);
             }
+            if (EnforceState)
+            {
+                State = ForcedState;
+            }
+            if (!State) Engine.TimeRate = 1;
+            level.Session.SetFlag(flag, State);
             if (!CheckScene(scene))
             {
                 return;
             }
-
-
-            /*            #region GlitchMusic
-                        if (MusicGlitchCutscene && !Laser)
-                        {
-                            Event.CurrentMusicEventInstance?.setPitch(Pitch - 0.1f);
-                            Event.MusicVolume = 0.5f;
-                            MusicGlitch(Loops);
-                            return;
-                        }
-                        #endregion*/
 
             if (IsVisible(level))
             {
@@ -138,12 +132,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 }
                 if (previousState != State)
                 {
-                    level.NextColorGrade(State || (EnforceState && ForcedState) ? "PianoBoy/Inverted"+(PianoModule.Settings.InvertEffectIntensity * 20) : "none", 10f);
-                    if (State)
-                    {
-                        Audio.CurrentMusicEventInstance?.getTimelinePosition(out LastTimelinePosition);
-                    }
-
+                    level.NextColorGrade(State ? "PianoBoy/Inverted" + (PianoModule.Settings.InvertEffectIntensity * 20) : "none", 10f);
                     Engine.TimeRate = State ? OnTime : Engine.TimeRate;
                     if (State)
                     {
@@ -155,32 +144,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                         invertAudio?.setPaused(true);
                         Audio.CurrentMusicEventInstance?.setPaused(false);
                     }
-
-                    if (!State)
-                    {
-                        Audio.CurrentMusicEventInstance?.setPaused(false);
-                        if (Audio.CurrentMusicEventInstance is not null)
-                        {
-                            Audio.CurrentMusicEventInstance.getParameterValue("PitchShift", out float value, out float finalvalue);
-                            if (finalvalue == 0)
-                            {
-                                Audio.SetMusicParam("PitchShift", 1);
-                            }
-                            else
-                            {
-                                Audio.SetMusicParam("PitchShift", 0);
-                            }
-                        }
-                    }
                 }
-            }
-            else
-            {
-                /*                if(Event.CurrentMusicEventInstance is not null)
-                                {
-                                    Event.CurrentMusicEventInstance.setPaused(false);
-                                    Event.CurrentMusicEventInstance.setParameterValue("PitchShift", 0);
-                                }*/
             }
         }
 
@@ -224,51 +188,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
             }
         }
-        private void MusicGlitch(int loops)
-        {
-            int random = 0;
-            if (Audio.CurrentMusicEventInstance is null)
-            {
-                return;
-            }
-            Audio.CurrentMusicEventInstance.getDescription(out EventDescription desc);
-            desc.getLength(out int limit);
-            if (LoopCount == 0)
-            {
-                Last = LastTimelinePosition;
-                LastSaved = Last;
-            }
-            if (LoopCount < loops)
-            {
-                if (!Wait)
-                {
-                    random = Calc.Random.Range(0, limit);
-                    Audio.CurrentMusicEventInstance.setTimelinePosition(random);
-                    Wait = true;
-                    Timer = 4;
-                }
-                if (Timer != 0)
-                {
-                    Timer--;
-                    Audio.CurrentMusicEventInstance.setTimelinePosition(random);
-                    return;
-                }
-                Wait = false;
-                LoopCount++;
-            }
-            if (LoopCount == loops)
-            {
-                LoopCount = 0;
-                Wait = false;
-                MusicGlitchCutscene = false;
-                Audio.MusicVolume = SavedVolume;
-                Audio.CurrentMusicEventInstance.setPitch(Pitch);
-                Audio.CurrentMusicEventInstance.setTimelinePosition(LastTimelinePosition);
-                Audio.CurrentMusicEventInstance.setPaused(false);
-                State = false;
-                previousState = false;
-            }
-        }
         private void Reset(Scene scene)
         {
             if (invertAudio != null)
@@ -292,56 +211,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             ForcedState = false;
             EnforceState = false;
         }
-
-        /* public class MusicGlitch : Entity
-    {
-        private Coroutine routine;
-        private bool Activated;
-        private readonly int loops;
-        private IEnumerator DistortMusic(int loops)
-        {
-            int random;
-            Event.CurrentMusicEventInstance.getPitch(out float Pitch, out float FinalPitch);
-            Event.CurrentMusicEventInstance.setPitch(Pitch - 0.1f);
-            Event.MusicVolume = 0.5f;
-            InvertOverlay.WaitForGlitch = true;
-            Event.CurrentMusicEventInstance.getTimelinePosition(out int position);
-            for (int i = 0; i < loops; i++)
-            {
-                Event.CurrentMusicEventInstance.getDescription(out EventDescription desc);
-                desc.getLength(out int length);
-                random = Calc.Random.Range(0, length);
-                for (float j = 0; j < 5; j += Engine.DeltaTime)
-                {
-                    Event.CurrentMusicEventInstance.setTimelinePosition(random);
-                    yield return null;
-                }
-            }
-            Event.CurrentMusicEventInstance.setTimelinePosition(position);
-            yield return null;
-        }
-        public override void BeenAdded(Scene scene)
-        {
-            base.BeenAdded(scene);
-            routine = new Coroutine(DistortMusic(loops));
-            Add(routine);
-            Activated = true;
-        }
-        public MusicGlitch()
-        : base(Vector2.Zero)
-        {
-            loops = Calc.Random.Range(3, 9);
-        }
-        public override void Update()
-        {
-            base.Update();
-            if (Activated && !routine.Active)
-            {
-                InvertOverlay.WaitForGlitch = false;
-                EjectSelf();
-            }
-        }
-    }*/
     }
 }
 

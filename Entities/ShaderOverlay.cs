@@ -1,9 +1,11 @@
 using Celeste.Mod.Entities;
+using FMOD;
 using FrostHelper;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
+using System;
 using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -59,6 +61,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Effect?.Dispose();
             Effect = null;
         }
+        public virtual void EffectRender()
+        {
+
+        }
         public virtual void ApplyParameters()
         {
             if (Scene is not Level level || Effect is null || Effect.Parameters is null) return;
@@ -78,12 +84,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Effect.Parameters["TransformMatrix"]?.SetValue(matrix2 * matrix);
             Effect.Parameters["ViewMatrix"]?.SetValue(UseIdentityMatrix ? Matrix.Identity : level.Camera.Matrix);
         }
-        public static void Load()
+        internal static void Load()
         {
             //Note: don't add onContentUpdate, it messes with things. Just use runCompiler.bat
             On.Celeste.Glitch.Apply += Apply_HOOK;
         }
-        public static void Unload()
+        internal static void Unload()
         {
             On.Celeste.Glitch.Apply -= Apply_HOOK;
 
@@ -121,6 +127,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
+        public Action MaskRender;
         public static void Apply(VirtualRenderTarget source, VirtualRenderTarget target, ShaderOverlay overlay = null, bool clear = false, float alpha = 1)
         {
             if (source is null || target is null)
@@ -128,12 +135,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             overlay?.ApplyParameters();
+
             VirtualRenderTarget tempA = GameplayBuffers.TempA;
             Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
             Engine.Instance.GraphicsDevice.Clear(Color.Transparent);
 
             Draw.SpriteBatch.Draw((RenderTarget2D)source, Vector2.Zero, Color.White);
+            overlay?.EffectRender();
             GameplayRenderer.End();
             Engine.Instance.GraphicsDevice.SetRenderTarget(target);
             if (clear)
@@ -145,6 +154,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.Draw((RenderTarget2D)tempA, Vector2.Zero, Color.White * alpha);
             Draw.SpriteBatch.End();
         }
+
         public static void Apply(VirtualRenderTarget source, VirtualRenderTarget target, Rectangle destinationRectangle, ShaderOverlay overlay = null, bool clear = false, float alpha = 1)
         {
             if (source is null || target is null)

@@ -4,7 +4,6 @@ using Celeste.Mod;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
-using System.Collections.Generic;
 
 public class ShaderFX
 {
@@ -20,10 +19,12 @@ public class ShaderFX
     public static Effect PlayerStatic;
     public static Effect Sway;
     public static Effect GlitchAura;
+    public static Effect InvertOrb;
     public static void LoadFXs()
     {
 
         Jitter = LoadFx("jitter");
+        InvertOrb = LoadFx("invertOrb");
         MonitorDecal = LoadFx("monitorDecal");
         Static = LoadFx("static");
         LCD = LoadFx("lcd");
@@ -51,6 +52,7 @@ public class ShaderFX
         PlayerStatic?.Dispose();
         Sway?.Dispose();
         GlitchAura?.Dispose();
+        InvertOrb?.Dispose();
     }
     public static void Load()
     {

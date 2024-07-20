@@ -99,11 +99,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
         /// </summary>  
         public static VirtualRenderTarget DrawThenMask(this VirtualRenderTarget obj, Action MaskDraw, Action Drawing, Matrix matrix, Effect effect = null)
         {
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(MaskRenderTarget);
-            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
             MaskRenderTarget.SetRenderMask(MaskDraw, matrix);
             obj.DrawToObject(Drawing, matrix, true, effect);
-
             obj.MaskToObject(MaskRenderTarget);
             return obj;
         }
@@ -191,7 +188,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
         public static VirtualRenderTarget AddGlitch(VirtualRenderTarget obj, float glitchAmount, float glitchAmplitude)
         {
             float glitchSave = Glitch.Value;
-            Glitch.Value = glitchAmount;;
+            Glitch.Value = glitchAmount; ;
             Glitch.Apply(obj, timer, seed, glitchAmplitude);
             Glitch.Value = glitchSave;
             return obj;
@@ -208,7 +205,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             Draw.SpriteBatch.Draw(obj, l.Camera.Position, col);
         }
         /// <summary>  
-        /// Draws a Texture to the specified Target  
+        /// Draws a GlassTexture to the specified Target  
         /// </summary>  
         public static VirtualRenderTarget SetRenderMask(VirtualRenderTarget RenderTarget, Sprite sprite, Level l)
         {
@@ -264,6 +261,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
                 DepthStencilState.Default,
                 RasterizerState.CullNone,
                 null, Matrix.Identity);
+            Draw.SpriteBatch.Draw(mask, Vector2.Zero, Color.White);
+            Draw.SpriteBatch.End();
+            return obj;
+        }
+        /// <summary>  
+        /// Masks over the obj Target with the mask Target's contents 
+        /// </summary>  
+        public static VirtualRenderTarget MaskToObject(VirtualRenderTarget obj, VirtualRenderTarget mask, Effect effect)
+        {
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(obj);
+            Draw.SpriteBatch.Begin(
+                SpriteSortMode.Deferred,
+                AlphaMaskBlendState,
+                SamplerState.PointClamp,
+                DepthStencilState.Default,
+                RasterizerState.CullNone,
+                effect, Matrix.Identity);
             Draw.SpriteBatch.Draw(mask, Vector2.Zero, Color.White);
             Draw.SpriteBatch.End();
             return obj;
