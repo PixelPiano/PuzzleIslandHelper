@@ -1,14 +1,9 @@
 ﻿using Celeste.Mod.Entities;
-using Celeste.Mod.Meta;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
 using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections;
-using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

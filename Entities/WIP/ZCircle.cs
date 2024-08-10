@@ -152,7 +152,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         private void DrawLines()
         {
-            //CircleTexture(Position);
+            //CircleTexture(Offset);
             for (int i = 1; i < Points.Count; i++)
             {
                 Draw.Line(Points[i - 1].Position, Points[i].Position, GetPointColor(i - 1));

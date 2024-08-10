@@ -1,4 +1,3 @@
-using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -98,7 +97,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             _visible = true;
 
 
-            //start scrolling text
+            //Start scrolling text
             for (int k = 0; k < DialogIDs.Length; k++)
             {
                 while (CurrentNode < FText.Nodes.Count)

@@ -11,7 +11,9 @@ labTubeLight.placements = {
     name = "Lab Tube Light",
     data = {
         width = 16,
-        digital = false
+        digital = false,
+        broken = false,
+        flipY = false
     }
 }
 
@@ -23,6 +25,9 @@ function labTubeLight.sprite(room, entity)
     local p = path;
     if entity.digital then
         p = path .. "Digi"
+    end
+    if entity.broken then
+        p = path .. "BrokenLonn"
     end
     local leftSprite = drawableSprite.fromTexture(p, entity)
 

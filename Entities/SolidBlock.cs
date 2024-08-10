@@ -1,8 +1,6 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Collections;
-using Celeste.Mod.CherryHelper;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 // PuzzleIslandHelper.MovingPlatform
 namespace Celeste.Mod.PuzzleIslandHelper.Entities

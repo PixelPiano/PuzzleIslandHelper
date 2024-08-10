@@ -11,7 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         public bool Receiver;
         public string TeleportTo = "forestMemory";
-        public Renderer renderer;
+        public Monocle.Renderer renderer;
         public enum PhoneTypes
         {
             Can,

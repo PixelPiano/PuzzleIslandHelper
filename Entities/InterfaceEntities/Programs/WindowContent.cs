@@ -1,5 +1,3 @@
-using Celeste.Mod.Core;
-using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,18 +7,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
     [Tracked]
     public class WindowContent : Entity
     {
-        public static BetterWindow LastWindow;
-        public BetterWindow Window;
+        public static Window LastWindow;
+        public Window Window;
         public MiniLoader MiniLoader;
         public Interface Interface;
         public List<WindowComponent> ProgramComponents = new();
         public bool Preserve;
         public bool DraggingEnabled = true;
         public bool ClosingEnabled = true;
-
         public string Name;
 
-        public WindowContent(BetterWindow window)
+        public WindowContent(Window window)
         {
             Window = window;
             Interface = window.Interface;
@@ -50,11 +47,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
 
         }
-        public virtual void OnClosed(BetterWindow window)
+        public virtual void OnClosed(Window window)
         {
         }
         
-        public virtual void OnOpened(BetterWindow window)
+        public virtual void OnOpened(Window window)
         {
             Window = window;
             Interface = window.Interface;

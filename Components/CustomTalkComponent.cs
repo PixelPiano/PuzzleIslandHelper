@@ -1,9 +1,6 @@
-using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
-using System.Runtime.InteropServices;
-using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {

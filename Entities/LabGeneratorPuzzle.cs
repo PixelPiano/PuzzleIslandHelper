@@ -966,7 +966,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             private void UpdateConnections()
-            {//Clear lit & visited flag of all lineColors
+            {//Clear lit & visited Flag of all lineColors
                 bool hitDanger = false;
                 for (int x = 0; x < Columns; x++)
                 {

@@ -173,7 +173,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             {
                 float delayScalar = 1f;
                 int charSkip = 5;
-                //start scrolling text
+                //Start scrolling text
                 while (true)
                 {
                     for (int k = 0; k < DialogIDs.Count; k++)
@@ -248,7 +248,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            //TextHelper = new ViewContentText(Position + CurveOffset, Dialogs, 35f, (int)Dimensions.X, 0, Screen);
+            //TextHelper = new ViewContentText(Offset + CurveOffset, Dialogs, 35f, (int)Dimensions.X, 0, Screen);
         }
         public void Fade(bool fadeIn, Ease.Easer ease = null, float duration = 1)
         {

@@ -1,13 +1,6 @@
-using Celeste.Mod.CommunalHelper.Entities.StrawberryJam;
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {

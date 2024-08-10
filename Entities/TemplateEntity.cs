@@ -54,10 +54,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             //an example of a good final constructor before feeding it down into the base constructor would be:
 
             /*
-             * public TemplateEntity(Vector2 position, float width, float height, string flag = "", bool inverted = false) : base(position)
+             * public TemplateEntity(Vector2 position, float width, float height, string Flag = "", bool inverted = false) : base(position)
              * {
              *      Collider = new Hitbox(width, height);
-             *      this.flag = flag;
+             *      this.Flag = Flag;
              *      this.inverted = inverted;
              * }
              */
@@ -93,8 +93,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                //if flag is false but we've inverted the condition, the flag state won't match inverted, which is true
-                //otherwise, if flag is true and we haven't inverted the condition, the flag state won't match inverted, which is false
+                //if Flag is false but we've inverted the condition, the Flag state won't match inverted, which is true
+                //otherwise, if Flag is true and we haven't inverted the condition, the Flag state won't match inverted, which is false
                 flagState = level.Session.GetFlag(flag) != inverted;
             }
 
@@ -114,7 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         //Handles drawing and rendering. Not called if Entity.Visible is false.
         public override void Render()
         {
-            //base.Render() renders all the components the Entity is managing, including our Machine component.
+            //base.Render() renders all the components the Entity is managing, including our Sprite component.
             //Any component that isn't Visible won't be rendered.
             base.Render();
         }

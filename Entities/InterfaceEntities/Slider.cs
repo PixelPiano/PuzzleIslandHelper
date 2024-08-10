@@ -1,7 +1,5 @@
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
-using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
@@ -35,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private float from;
         private float to;
         private Vector2 yOffset;
-        public Slider(BetterWindow window, float width, float from, float to, float startAt = 0) : base(window, GFX.Game["objects/PuzzleIslandHelper/interface/slider/handle"])
+        public Slider(Window window, float width, float from, float to, float startAt = 0) : base(window, GFX.Game["objects/PuzzleIslandHelper/interface/slider/handle"])
         {
             Collider = new Hitbox(width, Texture.Height);
             LineWidth = width;

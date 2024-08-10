@@ -1,4 +1,3 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
@@ -15,14 +14,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public bool Flipped;
         public static bool PipeCutsceneStarted;
         private bool InRoutine;
-        public BetterButton FixButton;
+        public Button FixButton;
 
 
-        public PipeProgram(BetterWindow window) : base(window)
+        public PipeProgram(Window window) : base(window)
         {
             Name = "Pipe";
         }
-        public override void OnOpened(BetterWindow window)
+        public override void OnOpened(Window window)
         {
 
             base.OnOpened(window);
@@ -32,7 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             base.Added(scene);
             ProgramComponents.Add(new CustomButton(Window, "Switch", 35f, Vector2.Zero, Switch));
             Circle circle = new Circle(27 / 2f);
-            ProgramComponents.Add(FixButton = new BetterButton(Window, circle,  "greenCircle", OnFixClicked, FixPipes()));
+            ProgramComponents.Add(FixButton = new Button(Window, circle,  "greenCircle", OnFixClicked, FixPipes()));
             FixButton.Position = new Vector2(Window.WindowWidth / 2, Window.WindowHeight / 2) - new Vector2(FixButton.Width / 2, FixButton.Height / 2);
             FixButton.Visible = false;
             FixButton.Disabled = true;

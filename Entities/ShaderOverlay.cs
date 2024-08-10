@@ -1,5 +1,4 @@
 using Celeste.Mod.Entities;
-using FMOD;
 using FrostHelper;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;

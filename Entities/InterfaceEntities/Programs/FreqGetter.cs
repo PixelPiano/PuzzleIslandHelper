@@ -1,9 +1,6 @@
 
 using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
-using FrostHelper;
-using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
@@ -27,7 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 
 
             /*
-             * 1: Position inside a level?
+             * 1: Offset inside a level?
              * 2: X position YAmount?
              * 3: Y position YAmount?
              * 4: Level has void area?

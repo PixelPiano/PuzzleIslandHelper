@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
-using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
 

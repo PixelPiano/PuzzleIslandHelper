@@ -334,7 +334,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (mode == Mode.Monitoring)
             {
                 Draw.LineAngle(VisionCoords(Direction.Angle().ToDeg(), true), Gun.Rotation + 180f, 20, Color.Magenta);
-                //Draw.Line(Position + (Gun.Position * Gun.Rotation), Player.Center, From.Magenta);
+                //Draw.Line(Offset + (Gun.Offset * Gun.Rotation), Player.Center, From.Magenta);
             }
 
         }

@@ -2,7 +2,6 @@
 using Celeste.Mod.PuzzleIslandHelper.MenuElements;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

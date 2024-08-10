@@ -1,15 +1,7 @@
-
-using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
-using ExtendedVariants.Entities.ForMappers;
-using ExtendedVariants.UI;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
@@ -19,22 +11,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
     public class Folder : WindowContent
     {
         public List<ComputerIcon> Icons = new();
-        public BetterButton UpButton;
-        public BetterButton DownButton;
+        public Button UpButton;
+        public Button DownButton;
         public Vector2 Padding = Vector2.One * 4;
         private float totalHeight;
         private float scrollOffset;
         public string Text;
         public float ScrollSpeed = 30f * Engine.DeltaTime;
 
-        public Folder(BetterWindow window) : base(window)
+        public Folder(Window window) : base(window)
         {
             Name = "Folder";
         }
-        public override void OnOpened(BetterWindow window)
+        public override void OnOpened(Window window)
         {
             base.OnOpened(window);
-            //DownButton.Position.X = UpButton.Position.X = Buttons[0].Position.X + Buttons[0].Width + Padding.X;
+            //DownButton.Offset.X = UpButton.Offset.X = Buttons[0].Offset.X + Buttons[0].Width + Padding.X;
             DownButton.Position.Y = window.CaseHeight - DownButton.Height - Padding.Y;
             UpButton.Position.Y += 4;
             DownButton.ImageOffset = DownButton.HalfArea;
@@ -44,8 +36,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             base.Added(scene);
 
-            UpButton = new BetterButton(Window, "arrow");
-            DownButton = new BetterButton(Window, "arrow");
+            UpButton = new Button(Window, "arrow");
+            DownButton = new Button(Window, "arrow");
             DownButton.Outline = UpButton.Outline = true;
             DownButton.CenterOrigin();
             DownButton.Rotation = 180f.ToRad();

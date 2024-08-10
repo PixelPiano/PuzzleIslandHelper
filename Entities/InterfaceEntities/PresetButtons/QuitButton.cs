@@ -7,10 +7,10 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
 
-    [TrackedAs(typeof(BetterButton))]
-    public class QuitButton : BetterButton
+    [TrackedAs(typeof(Button))]
+    public class QuitButton : Button
     {
-        public QuitButton(BetterWindow window, Action OnClicked = null, IEnumerator Routine = null) : base(window,null, OnClicked, Routine)
+        public QuitButton(Window window, Action OnClicked = null, IEnumerator Routine = null) : base(window,null, OnClicked, Routine)
         {
             AutoPosition = true;
             Text = "Quit";

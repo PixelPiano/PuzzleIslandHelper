@@ -2,7 +2,6 @@
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
-using System.Threading;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
 {

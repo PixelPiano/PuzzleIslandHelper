@@ -460,7 +460,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 c.X = Calc.Approach(from.X, to.X, i * MathHelper.Distance(from.X, to.X));
                 c.Y = Calc.Approach(from.Y, to.Y, i * MathHelper.Distance(from.Y, to.Y));
-                //c.Position = Vector2.Lerp(from, to, i * Vector2.Distance(from, to));
+                //c.Offset = Vector2.Lerp(from, to, i * Vector2.Distance(from, to));
             }
             for (float i = 0; i < 1; i += 0.01f)
             {

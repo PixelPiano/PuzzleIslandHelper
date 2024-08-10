@@ -1,9 +1,6 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
-using System.Collections;
 // PuzzleIslandHelper.ArtifactSlot
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -11,14 +8,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [TrackedAs(typeof(FallingBlock))]
     public class LameFallingBlock : FallingBlock
     {
-        private string flag;
+        public string Flag;
         private bool inverted;
         private bool triggered => Triggered;
-        public bool FlagState => (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag)) != inverted;
-        public LameFallingBlock(EntityData data, Vector2 offset) : base(data.Position + offset, data.Char("tiletype"), data.Width, data.Height, data.Bool("finalBoss"), data.Bool("behind"), false)
+        public bool FlagState => (string.IsNullOrEmpty(Flag) || SceneAs<Level>().Session.GetFlag(Flag)) != inverted;
+        public LameFallingBlock(Vector2 position, string flag, bool inverted, char tiletype, float width, float height, bool finalboss, bool behind, bool climbfall) : base(position, tiletype, (int)width, (int)height, finalboss, behind, climbfall)
         {
-            flag = data.Attr("flag");
-            inverted = data.Bool("invertFlag");
+            this.Flag = flag;
+            this.inverted = inverted;
+        }
+        public LameFallingBlock(EntityData data, Vector2 offset) :
+            this(data.Position + offset, data.Attr("flag"), data.Bool("invertFlag"), data.Char("tiletype"), data.Width, data.Height, data.Bool("finalBoss"), data.Bool("behind"), false)
+        {
         }
         public static void Load()
         {
@@ -28,10 +29,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             On.Celeste.FallingBlock.PlayerFallCheck -= FallingBlock_PlayerFallCheck;
         }
+        public virtual void OnFall()
+        {
 
+        }
         private static bool FallingBlock_PlayerFallCheck(On.Celeste.FallingBlock.orig_PlayerFallCheck orig, FallingBlock self)
         {
-            if (self is LameFallingBlock block && !block.FlagState) return false;
+            if (self is LameFallingBlock block)
+            {
+                if (!block.FlagState) return false;
+                block.OnFall();
+            }
             return orig(self);
         }
     }

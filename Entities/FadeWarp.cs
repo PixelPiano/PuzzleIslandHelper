@@ -2,7 +2,6 @@ using Celeste.Mod.Entities;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
 // PuzzleIslandHelper.FadeWarp
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -241,14 +240,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     while (!entity.CollideCheck<SolidTiles>())
                     {
-                        entity.Position.Y += 1;
+                        entity.Offset.Y += 1;
                     }
                 }
                 catch
                 {
-                    Console.WriteLine($"{entity} could not find any SolidTiles below it to set it's Y Position to");
+                    Console.WriteLine($"{entity} could not find any SolidTiles below it to set it's Y Offset to");
                 }
-                entity.Position.Y -= 1;
+                entity.Offset.Y -= 1;
             }
         }*/
         private IEnumerator TeleportPlayer(Player player, bool wasNotInvincible, Camera camera)

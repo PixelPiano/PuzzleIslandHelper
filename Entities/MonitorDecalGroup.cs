@@ -1,6 +1,5 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections.Generic;
 
@@ -94,7 +93,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (ScaleDecal)
             {
                 CustomDecal.Scale = new Vector2(width / CustomDecal.Width, height / CustomDecal.Height);
-                //CustomDecal.Position += new Vector2(((CustomDecal.Width * CustomDecal.TextScale.X) - CustomDecal.Width)/4, ((CustomDecal.Height * CustomDecal.TextScale.Y) - CustomDecal.Height)/4);
+                //CustomDecal.Offset += new Vector2(((CustomDecal.Width * CustomDecal.TextScale.X) - CustomDecal.Width)/4, ((CustomDecal.Height * CustomDecal.TextScale.Y) - CustomDecal.Height)/4);
 
             }
         }

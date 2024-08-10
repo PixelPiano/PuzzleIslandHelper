@@ -8,7 +8,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using VivHelper.Entities.Spinner2;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

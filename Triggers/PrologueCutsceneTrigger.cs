@@ -2,8 +2,6 @@ using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Collections;
-using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {

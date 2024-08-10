@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Celeste.Mod;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Microsoft.Xna.Framework;
 using Monocle;
 

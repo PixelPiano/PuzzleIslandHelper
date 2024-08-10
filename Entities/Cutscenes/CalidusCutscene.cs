@@ -4,15 +4,12 @@ using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using VivHelper.Effects;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
@@ -206,75 +203,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             return (scene as Level).Session.GetFlag("CalidusCutscene" + cutscene.ToString() + "Watched");
         }
-        public static void Load()
-        {
-            //IL.Celeste.FancyText.Parse += FancyText_Parse;
-        }
-        public static void Unload()
-        {
-            //IL.Celeste.FancyText.Parse -= FancyText_Parse;
-        }
-        private static void FancyText_Parse(ILContext il)
-        {
-            ILCursor cursor = new ILCursor(il);
-            cursor.Index = -1;
-            if (cursor.TryGotoPrev(MoveType.Before,
-                   instr => instr.MatchLdloc(6),
-                   instr => instr.Match(OpCodes.Ldc_I4_1),
-                   instr => instr.Match(OpCodes.Add),
-                   instr => instr.MatchStloc(6)
-                   ))
-            {
-                Instruction loopStart = cursor.Next;
-                cursor.Index = 0;
-                if (cursor.TryGotoNext(MoveType.After,
-                    instr => instr.MatchLdcR4(0f),
-                    instr => instr.MatchStloc(9)
-                    ))
-                {
-                    VariableReference text = il.Body.Variables[7];
-                    VariableReference list = il.Body.Variables[8];
-                    cursor.Emit(OpCodes.Ldloc, text);
-                    cursor.Emit(OpCodes.Ldloc, list);
-                    cursor.EmitDelegate(EvaluateText);
-                    cursor.Emit(OpCodes.Brtrue, loopStart);
-                }
-            }
-        }
-        private static bool EvaluateText(string text, List<string> list)
-        {
-            bool found = false;
-            if (Engine.Scene is Level level && level.Tracker.GetEntity<Calidus>() is Calidus calidus)
-            {
-                if ((text[0] == 'c') && list.Count > 1)
-                {
-                    string output = "Found valid c command:";
-                    for (int i = 0; i < list.Count; i++)
-                    {
-                        output += "\n" + i + ":" + list[i];
-                    }
-                    Console.WriteLine(output);
-                    if (list[0].Equals("look"))
-                    {
-                        if (Enum.TryParse(list[1], true, out Calidus.Looking result))
-                        {
-                            Console.WriteLine("Found valid look command: " + result);
-                            calidus.Look(result);
-                            found = true;
-                        }
-
-                    }
-                    else if (list[0].Equals("mood") && Enum.TryParse(list[1], true, out Calidus.Mood result2))
-                    {
-                        Console.WriteLine("Found valid mood command: " + list[1]);
-                        calidus.Emotion(result2);
-                        found = true;
-                    }
-                }
-            }
-            return found;
-        }
-
         public override void OnBegin(Level level)
         {
             Player player = level.GetPlayer();
@@ -404,6 +332,100 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator Dialogue3(Player player, Level level)
         {
+            yield return Textbox.Say("CalidusCutscene3",
+                Normal, Stern, Surprised, Angry, WaitForOne, AngryApproach, ApproachPlayer, TugOnBook, LetGoOfBook, WaitForTwo);
+        }
+        private IEnumerator AngryApproach()
+        {
+            Calidus?.FloatTo(Calidus.Position - Vector2.UnitX * 16, 0.1f);
+            yield return null;
+        }
+        private IEnumerator ApproachPlayer()
+        {
+            if (Level.GetPlayer() is Player player && Calidus != null)
+            {
+                Calidus.CanFloat = false;
+                yield return Calidus.FloatToRoutine(player.CenterRight + new Vector2(Calidus.OrbSprite.Width, -Calidus.Height / 2), 1.5f, Ease.CubeOut);
+            }
+            yield return null;
+        }
+        private bool tuggingOnBook;
+        private bool freeToLetGo;
+        private IEnumerator TugOnBook()
+        {
+            if (Level.GetPlayer() is Player player && Calidus != null)
+            {
+                Add(new Coroutine(tugRoutine(player, Calidus)));
+            }
+            yield return null;
+        }
+        private IEnumerator tugRoutine(Player player, Calidus calidus)
+        {
+            tuggingOnBook = true;
+            float tugDist = 5;
+            float singleTugTime = 0.3f;
+            while (tuggingOnBook)
+            {
+                float pFrom = player.Position.X;
+                float cFrom = calidus.Position.X;
+                float time = singleTugTime + Calc.Random.Range(-0.1f, 0.1f);
+                Tween tug = Tween.Create(Tween.TweenMode.YoyoOneshot, Ease.Linear, time, true);
+                tug.OnUpdate = t =>
+                {
+                    player.Position.X = Calc.LerpClamp(pFrom, pFrom + tugDist, t.Eased);
+                    calidus.Position.X = Calc.LerpClamp(cFrom, cFrom + tugDist, t.Eased);
+                };
+                Add(tug);
+                yield return time * 2;
+                player.Position.X = pFrom;
+                calidus.Position.X = cFrom;
+                yield return Calc.Random.Choose(0.1f, 0.5f);
+            }
+            freeToLetGo = true;
+        }
+        private IEnumerator LetGoOfBook()
+        {
+            if (Level.GetPlayer() is Player player && Calidus != null)
+            {
+                tuggingOnBook = false;
+                while (!freeToLetGo) yield return null;
+                yield return 0.4f;
+                float pFrom = player.Position.X;
+                float cFrom = Calidus.Position.X;
+
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.1f)
+                {
+                    player.Position.X = Calc.LerpClamp(pFrom, pFrom - 4, Ease.SineIn(i));
+                    Calidus.Position.X = Calc.LerpClamp(cFrom, cFrom + 4, Ease.SineIn(i));
+                    yield return null;
+                }
+                pFrom = player.Position.X;
+                cFrom = Calidus.Position.X;
+                Tween shake = Tween.Create(Tween.TweenMode.YoyoLooping, null, 0.2f, true);
+                shake.OnUpdate = t =>
+                {
+                    player.Position.X = pFrom + Calc.LerpClamp(-1, 1, t.Eased);
+                    Calidus.Position.X = cFrom + Calc.LerpClamp(-1, 1, t.Eased);
+                };
+                Add(shake);
+                yield return 2;
+                Remove(shake);
+                Coroutine text = new Coroutine(Textbox.Say("maddyScream"));
+                Add(text);
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.4f)
+                {
+                    player.Position.X = pFrom + Calc.LerpClamp(0, -24, Ease.CubeInOut(i));
+                    Calidus.Position.X = cFrom + Calc.LerpClamp(0, 24, Ease.CubeInOut(i));
+                    yield return null;
+                }
+                while (!text.Finished) yield return null;
+                yield return 0.1f;
+            }
+
+            yield return null;
+        }
+        private IEnumerator Dialogue3Beta(Player player, Level level)
+        {
             yield return Calidus.Say("Cc1", "normal");
             Calidus.LookDir = Calidus.Looking.Right;
             yield return Calidus.Say("Cc2", "stern");
@@ -422,16 +444,97 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 choices.RemoveAt(ChoicePrompt.Choice);
             }
             yield return Textbox.Say("Cc4");
+            Calidus.Symbols.Visible = false;
             yield return Calidus.Say("Cc5", "eugh");
-            Calidus.Symbols.Position.X += Calidus.OrbSprite.Width / 2;
+            //Calidus.Symbols.Offset.X += Calidus.OrbSprite.Width;
             yield return Calidus.Say("Cc6", "angry");
             Calidus.Symbols.Visible = false;
-            Calidus.Symbols.Position.X -= Calidus.OrbSprite.Width / 2;
+            //Calidus.Symbols.Offset.X -= Calidus.OrbSprite.Width / 2;
             yield return Calidus.Say("Cc7", "surprised", WaitForOne, Approach, BackOff);
             yield return Calidus.Say("Cc8", "stern", AuraSmall, Approach);
             yield return Calidus.Say("Cc9", "surprised", AuraMedium, WalkLeft);
             yield return Calidus.Say("Cc10", "stern");
-            yield return Textbox.Say("Cc11", AuraLarge, WalkRight, SmallBurst);
+            yield return Textbox.Say("Cc11", AuraLarge, WalkRight, FlashIn);
+        }
+        private IEnumerator FlashIn()
+        {
+            BlackFlash flash = new BlackFlash();
+            Scene.Add(flash);
+            yield return flash.FlashIn(0.5f);
+        }
+        private IEnumerator FlashOut()
+        {
+            if (Scene.Tracker.GetEntity<BlackFlash>() is BlackFlash flash)
+            {
+                yield return flash.FlashOut(0.5f);
+            }
+            yield return null;
+        }
+        [Tracked]
+        public class BlackFlash : Entity
+        {
+            private float whiteAlpha;
+            private float blackAlpha;
+            public BlackFlash() : base()
+            {
+                Depth = -100000;
+            }
+            public override void Render()
+            {
+                base.Render();
+                if (Scene is not Level level) return;
+                if (blackAlpha > 0)
+                {
+                    Draw.Rect(level.Camera.Position, 320, 180, Color.Black * blackAlpha);
+                }
+                if (whiteAlpha > 0)
+                {
+                    Draw.Rect(level.Camera.Position, 320, 180, Color.White * whiteAlpha);
+                }
+            }
+            public IEnumerator FlashIn(float whiteTime)
+            {
+                blackAlpha = 0;
+                whiteAlpha = 0;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.07f)
+                {
+                    whiteAlpha = Calc.LerpClamp(0, 1f, i);
+                    yield return null;
+                }
+                whiteAlpha = 1;
+                blackAlpha = 1;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / whiteTime)
+                {
+                    whiteAlpha = Calc.LerpClamp(1f, 0, Ease.SineIn(i));
+                    yield return null;
+                }
+                whiteAlpha = 0;
+                yield return null;
+            }
+            public IEnumerator FlashOut(float whiteTime)
+            {
+                blackAlpha = 1;
+                whiteAlpha = 0;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.07f)
+                {
+                    whiteAlpha = Calc.LerpClamp(0, 1f, i);
+                    yield return null;
+                }
+                whiteAlpha = 1;
+                blackAlpha = 0;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / whiteTime)
+                {
+                    whiteAlpha = Calc.LerpClamp(1f, 0, Ease.SineIn(i));
+                    yield return null;
+                }
+                whiteAlpha = 0;
+                RemoveSelf();
+                yield return null;
+            }
+        }
+        private IEnumerator FlashBlackIn()
+        {
+            yield return null;
         }
         public override void Awake(Scene scene)
         {
@@ -466,7 +569,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return 0.1f;
             //Calidus.LookAtPlayer = true;
             yield return 1;
-            yield return Calidus.Say("Cc12", "surprised");
+            yield return Calidus.Say("Cc12", "surprised", FlashOut);
             yield return 0.9f;
             SwapNext(Color.White * 0.3f, player);
             LargePulse();
@@ -482,7 +585,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 16, 5);
             float from = Engine.TimeRate;
             InvertOverlay.HoldState = true;
-            //time slows down, as it gets to 0 the bursts start reversing back to madeline
+            //time slows down, as it gets to 0 the bursts Start reversing back to madeline
             for (float i = 0; i < 1; i += Engine.RawDeltaTime / 1.3f)
             {
                 Engine.TimeRate = Calc.LerpClamp(from, 0, Ease.SineInOut(i));
@@ -502,8 +605,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             //once they all return to her, short glitchy sequence, then a very large glitchy blast
             //madeline and calidus both sent flying in opposite directions, glitch a bit and then disappear
             ConstantTimeBurst.AddBurst(player.Center, 2, 0, 320, 1);
-            yield return SwapRoutine(6, 0.2f, null, player);
-            yield return 0.5f;
+            float interval = 0.2f;
+            for (int i = 0; i < 20; i++)
+            {
+                SwapNext(null, player);
+                yield return interval;
+                interval *= 0.9f;
+                if (interval < Engine.DeltaTime) interval = Engine.DeltaTime;
+            }
             player.Visible = false;
             Calidus.Visible = false;
             QuickGlitch playerGlitch = new QuickGlitch(player, Vector2.One * 4, Engine.DeltaTime, 8, 0.8f);
@@ -747,14 +856,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
         }
 
-        private IEnumerator Cutscene3(Player player, Level level)
+        private IEnumerator Cutscene3Beta(Player player, Level level)
         {
             level.Add(aura = new Aura());
             player.Position = level.DefaultSpawnPoint;
             level.Camera.Position = level.LevelOffset;
             Calidus.LookDir = Calidus.Looking.Left;
             yield return Intro3(player, level);
-            yield return Dialogue3(player, level);
+            yield return Dialogue3Beta(player, level);
+            yield return GlitchCutscene(player, level);
+            EndCutscene(level);
+            yield return null;
+        }
+        private IEnumerator Cutscene3(Player player, Level level)
+        {
+            player.Position = level.DefaultSpawnPoint;
+            level.Camera.Position = level.LevelOffset;
+            Calidus.LookDir = Calidus.Looking.Left;
+            yield return Intro3(player, level);
+            yield return Dialogue3Beta(player, level);
             yield return GlitchCutscene(player, level);
             EndCutscene(level);
             yield return null;

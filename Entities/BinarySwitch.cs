@@ -329,9 +329,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             }
                             Add(levels[i] = new Border(GFX.Game, "objects/PuzzleIslandHelper/eightSwitch/"));
                             levels[i].AddLoop("idle", "levelLight", 0.1f);
-                            levels[i].Position.X = sprites[5].Position.X + ((levels[i].Width + 1) * _i);
-                            levels[i].Position.Y = i > 8 ? -38 : -43;
-                            levels[i].Position.X -= i > 8 ? levels[i].Width + 1 : 0;
+                            levels[i].Offset.X = sprites[5].Offset.X + ((levels[i].Width + 1) * _i);
+                            levels[i].Offset.Y = i > 8 ? -38 : -43;
+                            levels[i].Offset.X -= i > 8 ? levels[i].Width + 1 : 0;
                             levels[i].PlayEvent("idle");
                             _i++;
                         }*/

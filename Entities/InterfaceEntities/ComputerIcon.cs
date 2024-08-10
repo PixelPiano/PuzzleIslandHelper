@@ -1,4 +1,3 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
 using Color = Microsoft.Xna.Framework.Color;
@@ -76,6 +75,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public override void Render() //(Only called if base.Visible is true
         {
+            if(Interface.ForceHide) return;
             base.Render();
 
             Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, Position, Color.White * Alpha);

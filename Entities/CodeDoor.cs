@@ -10,18 +10,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class CodeDoor : Solid
     {
         public string flag;
+        private bool usesFlag;
         private Sprite doorSprite;
         private Vector2 orig_Position;
         private bool Unlocking;
         private bool Unlocked;
         private Vector2 destination;
         private bool Sideways;
-        public CodeDoor(EntityData data, Vector2 offset)
-            : base(data.Position + offset, 8, 48, false)
+        public CodeDoor(Vector2 position, string flag, bool sideways, bool usesFlag = true) : base(position, 8, 48, false)
         {
             Tag |= Tags.TransitionUpdate;
-            flag = data.Attr("flag");
-            Sideways = data.Bool("sideways");
+            this.flag = flag;
+            Sideways = sideways;
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/machineDoor/"));
             doorSprite.AddLoop("idle", "codeIdle", 0.1f);
             doorSprite.AddLoop("unlocked", "codeUnlock", 0.1f, 10);
@@ -39,8 +39,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Depth = -1;
             doorSprite.Play("idle");
             destination = new Vector2(Sideways ? orig_Position.X - Width : Position.X, Sideways ? Position.Y : orig_Position.Y - Width);
+            this.usesFlag = usesFlag;
         }
-        private IEnumerator Unlock()
+        public CodeDoor(EntityData data, Vector2 offset)
+            : this(data.Position + offset, data.Attr("flag"), data.Bool("sideways"))
+        {
+
+        }
+        private IEnumerator UnlockRoutine()
         {
             Unlocked = true;
             Vector2 orig = Position;
@@ -63,7 +69,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if ((scene as Level).Session.GetFlag(flag))
+            if (usesFlag && (scene as Level).Session.GetFlag(flag))
             {
                 Unlocking = true;
                 Unlocked = true;
@@ -71,23 +77,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Position = destination;
             }
         }
+        public void Unlock()
+        {
+            if(Unlocked || Unlocking) return;
+            Unlocking = true;
+            Audio.Play("event:/game/09_core/frontdoor_heartfill", Position);
+            doorSprite.Play("unlock");
+            doorSprite.OnChange = (s, s2) =>
+            {
+                if (s == "unlock" && s2 == "unlocked" && !Unlocked)
+                {
+                    Add(new SoundSource("event:/PianoBoy/labDoorOpen"));
+                    Add(new Coroutine(UnlockRoutine()));
+                }
+            };
+        }
         public override void Update()
         {
             base.Update();
-            if(Unlocked) return;
-            if (SceneAs<Level>().Session.GetFlag(flag) && !Unlocking)
+            if (!Unlocked && usesFlag && SceneAs<Level>().Session.GetFlag(flag) && !Unlocking)
             {
-                Unlocking = true;
-                Audio.Play("event:/game/09_core/frontdoor_heartfill", Position);
-                doorSprite.Play("unlock");
-                doorSprite.OnChange = (s, s2) =>
-                {
-                    if (s == "unlock" && s2 == "unlocked" && !Unlocked)
-                    {
-                        Add(new SoundSource("event:/PianoBoy/labDoorOpen"));
-                        Add(new Coroutine(Unlock()));
-                    }
-                };
+                Unlock();
             }
         }
     }

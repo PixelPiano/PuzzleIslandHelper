@@ -2,11 +2,7 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
-using System.Security.Claims;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
 {

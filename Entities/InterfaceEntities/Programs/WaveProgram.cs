@@ -1,15 +1,10 @@
 
 using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
-using ExtendedVariants.Entities.ForMappers;
-using ExtendedVariants.UI;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using YamlDotNet.Serialization;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
@@ -25,8 +20,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public List<Vector2> Output = new();
         public float XOffset;
         public List<FreqPlayback> Buttons = new();
-        public BetterButton UpButton;
-        public BetterButton DownButton;
+        public Button UpButton;
+        public Button DownButton;
         public Vector2 Padding = Vector2.One * 4;
         private float totalHeight;
         private float scrollOffset;
@@ -38,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public float ScrollSpeed = 30f * Engine.DeltaTime;
 
         public Slider Slider;
-        public WaveProgram(BetterWindow window) : base(window)
+        public WaveProgram(Window window) : base(window)
         {
             Name = "Wave";
             Sound = new AudioEffect(true);
@@ -55,7 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                             t.Seconds);
             return answer;
         }
-        public override void OnOpened(BetterWindow window)
+        public override void OnOpened(Window window)
         {
             base.OnOpened(window);
             DownButton.Position.X = UpButton.Position.X = Buttons[0].Position.X + Buttons[0].Width + Padding.X;
@@ -89,8 +84,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 y += Buttons[i].Height + Padding.Y;
                 totalHeight = y;
             }
-            UpButton = new BetterButton(Window, "arrow");
-            DownButton = new BetterButton(Window, "arrow");
+            UpButton = new Button(Window, "arrow");
+            DownButton = new Button(Window, "arrow");
             DownButton.Outline = UpButton.Outline = true;
             DownButton.CenterOrigin();
             DownButton.Rotation = 180f.ToRad();
@@ -117,7 +112,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             Sound.PlayEvent(path);
         }
 
-        public override void OnClosed(BetterWindow window)
+        public override void OnClosed(Window window)
         {
             base.OnClosed(window);
             Sound.StopEvent();

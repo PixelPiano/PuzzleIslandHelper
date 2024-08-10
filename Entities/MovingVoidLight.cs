@@ -150,7 +150,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(OpacityTween);
             Add(CircleTween);
             scene.Add(system = new ParticleSystem(Depth, 20));
-            //system.Position += Vector2.One * 6;
+            //system.Offset += Vector2.One * 6;
             CircleTween.Start();
             OpacityTween.Start();
             #endregion

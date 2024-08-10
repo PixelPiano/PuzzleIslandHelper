@@ -1,6 +1,5 @@
 ﻿using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using ExtendedVariants.Entities.ForMappers;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;

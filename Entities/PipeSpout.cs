@@ -246,7 +246,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Moving = true;
                 RenderTextures = true;
                 CanCollide = true;
-                //start
+                //Start
                 AdjustHideOffset(1);
                 switch (HideMethod)
                 {

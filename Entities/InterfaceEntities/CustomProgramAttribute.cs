@@ -9,7 +9,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     //     This Program will be loaded when a matching ID is detected.
     //     Read More.
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public class CustomProgramAttribute : Attribute
+    public class CustomProgram : Attribute
     {
         //
         // Summary:
@@ -23,7 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         // Parameters:
         //   ids:
         //     A list of unique identifiers for this Program.
-        public CustomProgramAttribute(params string[] ids)
+        public CustomProgram(params string[] ids)
         {
             IDs = ids;
             

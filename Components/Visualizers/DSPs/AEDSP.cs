@@ -1,7 +1,6 @@
 ﻿using FMOD;
 using FMOD.Studio;
 using System;
-using static Celeste.Mod.CommunalHelper.Components.ElytraCollision;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs
 {

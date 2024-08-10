@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public string DialogID;
         public FancyTextExt.Text Text;
         private ChatText Helper;
-        public ChatLogProgram(BetterWindow window) : base(window)
+        public ChatLogProgram(Window window) : base(window)
         {
             Name = "ChatLog";
             Text = FancyTextExt.Parse(Dialog.Get(DialogID), (int)Width, 30, Vector2.Zero);

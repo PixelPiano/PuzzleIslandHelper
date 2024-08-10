@@ -17,8 +17,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private int maxLines;
         private float maxBarLength;
         public bool Finished;
-        public BetterWindow Window;
-        public MiniLoader(BetterWindow window, Vector2 textposition, int maxLines, string[] dialogs, float textSize, float maxLineLength, float maxBarLength) : base(true, true)
+        public Window Window;
+        public MiniLoader(Window window, Vector2 textposition, int maxLines, string[] dialogs, float textSize, float maxLineLength, float maxBarLength) : base(true, true)
         {
             Window = window;
             offset = textposition;
@@ -83,9 +83,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             public float LineYOffset;
             public const float BarHeight = 24;
             public float BarWidth;
-            public BetterWindow Window;
+            public Window Window;
 
-            public MiniLoaderText(BetterWindow window, Vector2 RenderPosition, string[] dialogs, float textSize, int maxLineWidth, float maxBarWidth, int maxLines)
+            public MiniLoaderText(Window window, Vector2 RenderPosition, string[] dialogs, float textSize, int maxLineWidth, float maxBarWidth, int maxLines)
             {
                 Window = window;
                 Position = RenderPosition;
@@ -127,7 +127,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 float delayScalar = 1f;
                 int charSkip = 5;
-                //start scrolling text
+                //Start scrolling text
                 for (int k = 0; k < DialogIDs.Count; k++)
                 {
                     CurrentLine = 0;

@@ -1,21 +1,13 @@
-
-using Celeste.Mod.Core;
-using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
-using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
-using MonoMod.Utils;
-using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
     [Tracked]
-    public class BetterWindow : Entity
+    public class Window : Entity
     {
         public Sprite Sprite;
         public Sprite xSprite;
@@ -47,13 +39,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
         public bool DraggingEnabled = true;
         public bool ClosingEnabled = true;
-        public List<BetterButton> Buttons => Components.GetAll<BetterButton>().ToList();
+        public List<Button> Buttons => Components.GetAll<Button>().ToList();
         public List<WindowComponent> CustomComponents = new();
         private Color TabColor = Color.Blue;
         public Interface Interface;
         public float Alpha = 1;
 
-        public BetterWindow(Vector2 position, Interface inter)
+        public Window(Vector2 position, Interface inter)
         {
             Interface = inter;
             Depth = Interface.BaseDepth - 4;
@@ -65,7 +57,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             float y = CaseHeight - 3;
             float x = CaseWidth - 3;
             float xSpace = 8;
-            foreach (BetterButton button in Buttons)
+            foreach (Button button in Buttons)
             {
                 if (button.AutoPosition)
                 {
@@ -92,47 +84,73 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public override void Render()
         {
+            if(Interface.ForceHide) return;
             if (!Drawing)
             {
                 base.Render();
                 return;
             }
-            int x = (int)Position.X, y = (int)Position.Y;
-            TabArea.Width = (int)CaseWidth - (int)xSprite.Width;
-            TabArea.X = x;
-            TabArea.Y = y - tabHeight;
-            Draw.Rect(Position, (int)CaseWidth, (int)CaseHeight, Interface.NightMode ? Color.DarkSlateGray * Alpha : Color.White * Alpha);
-            Draw.HollowRect(Position, (int)CaseWidth, (int)CaseHeight, Color.Gray * Alpha);
-            CurrentProgram?.WindowRender();
-            Draw.Rect(new Vector2(TabArea.X, TabArea.Y), (int)CaseWidth, tabHeight, TabColor * Alpha);
-            base.Render();
-            if (ClosingEnabled)
+            else
             {
-                this.x.Position = new Vector2(TabArea.X + (int)CaseWidth - 8, TabArea.Y + 1); //must be adjusted after rectangles are drawn
-                xSprite.Color = Color.White * Alpha;
-                xSprite.Play("idle");
-                xSprite.Render();
+                TabArea.Width = (int)CaseWidth - (int)xSprite.Width;
+                TabArea.X = (int)Position.X;
+                TabArea.Y = (int)Position.Y - tabHeight;
+
+                Draw.Rect(Position, (int)CaseWidth, (int)CaseHeight, Interface.NightMode ? Color.DarkSlateGray * Alpha : Color.White * Alpha);
+                Draw.HollowRect(Position, (int)CaseWidth, (int)CaseHeight, Color.Gray * Alpha);
+
+                CurrentProgram?.WindowRender();
+
+                Draw.Rect(new Vector2(TabArea.X, TabArea.Y), (int)CaseWidth, tabHeight, TabColor * Alpha);
+                base.Render();
+                if (ClosingEnabled)
+                {
+                    x.Position = new Vector2(TabArea.X + (int)CaseWidth - 8, TabArea.Y + 1); //must be adjusted after rectangles are drawn
+                    xSprite.Color = Color.White * Alpha;
+                    xSprite.Play("idle");
+                    xSprite.Render();
+                }
+                TextWindow.TextWidth = (int)TextCaseWidth;
+                TextWindow.Drawing = true;
             }
-            TextWindow.TextWidth = (int)TextCaseWidth;
-            TextWindow.Drawing = true;
         }
         public void DisableButtons()
         {
-            foreach (BetterButton button in Buttons)
+            foreach (Button button in Buttons)
             {
                 button.Disabled = true;
             }
         }
         public void EnableButtons()
         {
-            foreach (BetterButton button in Buttons)
+            foreach (Button button in Buttons)
             {
                 button.Disabled = false;
             }
         }
         public override void Update()
         {
-            UpdateWindow();
+            if (CurrentProgram != null)
+            {
+                ClosingEnabled = CurrentProgram.ClosingEnabled;
+                DraggingEnabled = CurrentProgram.DraggingEnabled;
+            }
+
+            string lower = Name.ToLower();
+
+            if (lower == "text" || lower == "info")
+            {
+                if (TextWindow is not null && TextWindow.activeText is not null)
+                {
+                    CaseHeight = (int)((TextWindow.activeText.BaseSize * TextWindow.activeText.Lines / 6 * TextWindow.textScale) + TextWindow.activeText.BaseSize / 6 + 3);
+                }
+            }
+            TabColor = Color.Lerp(lower == "unknown" ? Color.Red : Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
+            foreach (WindowComponent c in CustomComponents)
+            {
+                c.Active = Drawing;
+            }
+
             CenterX = Calc.Clamp(CenterX, Interface.monitor.X, Interface.monitor.Right);
             Position.Y = Calc.Clamp(Position.Y, Interface.monitor.Y + TabArea.Height, Interface.monitor.Bottom);
             Position = Position.Floor();
@@ -144,18 +162,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 x.Collider = backupCollider;
             }
             TextWindow.TextPosition = Position.Floor() + TextOffset * Vector2.One;
-            if(CurrentProgram != null)
-            {
-                ClosingEnabled = CurrentProgram.ClosingEnabled;
-                DraggingEnabled = CurrentProgram.DraggingEnabled;
-            }
             WasDrawing = Drawing;
             base.Update();
             if (Drawing)
             {
                 SetButtonPosition();
             }
-            foreach (BetterButton b in Buttons)
+            foreach (Button b in Buttons)
             {
                 b.Alpha = Alpha;
                 if (b.Pressing)
@@ -179,23 +192,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Visible = Drawing;
             x.Visible = Drawing && ClosingEnabled;
             scene.Add(TextWindow = new TextWindow(Interface, Interface.CurrentIconName));
-        }
-        public void UpdateWindow()
-        {
-            string lower = Name.ToLower();
-            if (lower == "text" || lower == "info")
-            {
-                if (TextWindow is not null && TextWindow.activeText is not null)
-                {
-                    CaseHeight = (int)((TextWindow.activeText.BaseSize * TextWindow.activeText.Lines / 6 * TextWindow.textScale) + TextWindow.activeText.BaseSize / 6 + 3);
-                }
-            }
-            TabColor = Color.Lerp(lower == "unknown" ? Color.Red : Color.Blue, Color.Black, Interface.NightMode ? 0.5f : 0);
-            foreach (WindowComponent c in CustomComponents)
-            {
-                c.Active = Drawing;
-            }
-
         }
 
 

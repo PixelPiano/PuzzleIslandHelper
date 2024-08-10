@@ -5,12 +5,9 @@ using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue.TransferScene.CutsceneShiftAreas;
-using static Celeste.Mod.PuzzleIslandHelper.Triggers.SceneSwitch;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 {
@@ -466,7 +463,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             Celeste.Freeze(1);
             yield return 1;
             Level.Flash(Color.White, true);
-            centerTriangle.Shatter(); //tell the shards to start moving
+            centerTriangle.Shatter(); //tell the shards to Start moving
             InvertOverlay.ResetState();
             Level.Shake(3);
             player.Visible = false;

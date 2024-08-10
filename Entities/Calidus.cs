@@ -4,9 +4,7 @@ using Celeste.Mod.Entities;
 using System;
 using System.Collections;
 using System.Linq;
-using Celeste.Mod.FancyTileEntities;
 using System.Collections.Generic;
-using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -668,6 +666,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Symbols.Play("eugh");
             while (CurrentMood == Mood.Eugh || !Continue)
             {
+                Symbols.Position = OrbSprite.Position + Vector2.One;
                 yield return null;
             }
             Symbols.Visible = false;

@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
     {
         public const int W = 22;
         public const int H = 11;
-        public GameOfLifeProgram(BetterWindow window) : base(window)
+        public GameOfLifeProgram(Window window) : base(window)
         {
             Name = "GameOfLife";
             currentCells = new bool[W, H];
@@ -45,7 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 new CustomButton(Window, "Load", 35f, Vector2.Zero, LoadPreset),
             };
         }
-        public override void OnOpened(BetterWindow window)
+        public override void OnOpened(Window window)
         {
             base.OnOpened(window);
             window.CaseWidth++;

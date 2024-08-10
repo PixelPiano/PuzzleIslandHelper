@@ -13,7 +13,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
     {
         public static bool AccessTeleporting;
         public InputBox Box;
-        public AccessProgram(BetterWindow window) : base(window)
+        public AccessProgram(Window window) : base(window)
         {
             Name = "Access";
         }
@@ -35,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             base.Awake(scene);
             ProgramComponents.Add(Box = new InputBox(Window, CheckIfValidPass));
         }
-        public override void OnOpened(BetterWindow window)
+        public override void OnOpened(Window window)
         {
             base.OnOpened(window);
         }

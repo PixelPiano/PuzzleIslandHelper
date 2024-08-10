@@ -5,8 +5,6 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
-using YamlDotNet.Core.Tokens;
-using static FrostHelper.Entities.GrowBlock;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

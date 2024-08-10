@@ -233,7 +233,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                 yield return null;
             }
             _timer = 0;
-            //start scrolling text
+            //Start scrolling text
             yield return TypeFirstTexts();
             yield return TypeIsThat();
             yield return TypeWorld();

@@ -4,18 +4,15 @@ using System;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
-using FrostHelper;
 using Celeste.Mod.PuzzleIslandHelper.MenuElements;
-using IL.Monocle;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -41,6 +38,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             base.PrepareMapDataProcessors(context);
             context.Add<PianoMapDataProcessor>();
+            
         }
         public static void LoadCustomData()
         {
@@ -76,8 +74,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public override void Load()
         {
+            BitrailTransporter.Load();
+            FloatyAlterBlock.Load();
+            UserInput.Load();
             TrapdoorChandelier.GlobalUpdater.Load();
-            CalidusCutscene.Load();
             InGameLogRenderer.Load();
             ConstantTimeBurst.Load();
             LameFallingBlock.Load();
@@ -114,6 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             PrologueSequence.Load();
             ShiftAreaRenderer.Load();
             ProgramLoader.Load();
+            TerminalProgramLoader.Load();
             MazeData.Load();
             OuiFileFader.Load();
             BatteryRespawn.Load();
@@ -123,9 +124,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
         public override void Unload()
         {
-
+            BitrailTransporter.Unload();
+            BitrailNode.Unload();
+            FloatyAlterBlock.Unload();
+            UserInput.Unload();
             TrapdoorChandelier.GlobalUpdater.Unload();
-            CalidusCutscene.Unload();
             InGameLogRenderer.Unload();
             ConstantTimeBurst.Unload();
             LameFallingBlock.Unload();

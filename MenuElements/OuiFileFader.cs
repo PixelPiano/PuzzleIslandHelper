@@ -1,15 +1,10 @@
-﻿using System;
-using Monocle;
+﻿using Monocle;
 using Microsoft.Xna.Framework;
 using MonoMod.Cil;
 using Mono.Cecil.Cil;
 using MonoMod.RuntimeDetour;
 using System.Reflection;
-using System.ComponentModel;
-using System.Windows.Input;
 using System.Collections.Generic;
-using System.Linq;
-using System.Xml.Schema;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.MenuElements

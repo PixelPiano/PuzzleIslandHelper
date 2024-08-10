@@ -375,7 +375,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                         {
                             if (Cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("X")))
                             {
-                                Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at index {Cursor.Index} in CIL code for {Cursor.Method.Name}");
+                                Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at startIndex {Cursor.Index} in CIL code for {Cursor.Method.Name}");
 
                                 Cursor.EmitDelegate(getScaleMultiplier);
                                 Cursor.Emit(OpCodes.Mul);
@@ -386,7 +386,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                         {
                             if (Cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("X")))
                             {
-                                Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at index {Cursor.Index} in CIL code for {Cursor.Method.Name}");
+                                Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at startIndex {Cursor.Index} in CIL code for {Cursor.Method.Name}");
 
                                 Cursor.EmitDelegate(getScaleMultiplier);
                                 Cursor.Emit(OpCodes.Mul);

@@ -67,7 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             newTiles = self.Get<TileGrid>("tiles");
             newCutout = self.Get<EffectCutout>("cutout");
 
-            // hide the block if the flag is initially inactive.
+            // hide the block if the Flag is initially inactive.
             if (SceneAs<Level>().Session.GetFlag(flag) == inverted)
             {
                 if (newCutout != null) newCutout.Alpha = newTiles.Alpha = 0f;
@@ -84,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             bool isCollidable = SceneAs<Level>().Session.GetFlag(flag) != inverted && !CollideCheck<Player>();
             timer += Engine.RawDeltaTime;
             seed = Calc.Random.NextFloat();
-            // the block is only collidable if the flag is set.
+            // the block is only collidable if the Flag is set.
             glitch = !wasCollidable && isCollidable || wasCollidable && !isCollidable;
             if (glitch && !inRoutine && !forceChange)
             {

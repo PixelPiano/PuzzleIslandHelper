@@ -12,7 +12,12 @@ uniform float4x4 ViewMatrix;
 DECLARE_TEXTURE(text, 0);
 float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 {
-	return float4(1,1,0,1);
+	float4 color = SAMPLE_TEXTURE(text, uv);
+	if(color.a <= 0)
+	{
+		return color;
+	}
+	return float4(1,1,1,1);
 }
 
 void SpriteVertexShader(inout float4 color: COLOR0,

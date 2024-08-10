@@ -1,18 +1,8 @@
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
-using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
-using FrostHelper;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Mono.Cecil;
 using Monocle;
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
@@ -140,7 +130,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void OnClick()
         {
             base.OnClick();
-            State = !State;
+            clickedOnce = true;
+            if (!changing)
+            {
+                State = !State;
+                if (State)
+                {
+                    routine.Replace(Open());
+                }
+                else
+                {
+                    routine.Replace(Close());
+                }
+            }
             if (State) ShowPanel();
         }
         public void HidePanel()
@@ -167,10 +169,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 i.Visible = true;
             }
         }
-        public override void Render()
-        {
-            base.Render();
-        }
         private IEnumerator Open()
         {
             changing = true;
@@ -188,7 +186,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             changing = true;
             ShowPanel();
             State = false;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / 0.8f)
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 0.4f)
             {
                 Position.X = Calc.LerpClamp(OrigPosition.X - width, OrigPosition.X, Ease.CubeIn(i));
                 yield return null;
@@ -202,18 +200,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             if (!clickedOnce && Interface.monitor is not null)
             {
                 Position = OrigPosition = Interface.monitor.BottomRight - new Vector2(Width, Height);
-            }
-            if (!changing && Interface.LeftPressed && Interface.CollideCheck(this))
-            {
-                clickedOnce = true;
-                if (State)
-                {
-                    routine.Replace(Close());
-                }
-                else
-                {
-                    routine.Replace(Open());
-                }
             }
             Position = Position.Floor();
             UpdateIconPositions();

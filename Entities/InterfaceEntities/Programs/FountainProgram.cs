@@ -10,14 +10,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
     {
         public bool Flipped;
         public static bool PipeCutsceneStarted;
-        public BetterButton FixButton;
+        public Button FixButton;
 
 
-        public FountainProgram(BetterWindow window) : base(window)
+        public FountainProgram(Window window) : base(window)
         {
             Name = "Fountain";
         }
-        public override void OnOpened(BetterWindow window)
+        public override void OnOpened(Window window)
         {
             base.OnOpened(window);
         }
@@ -25,7 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             base.Added(scene);
             Circle circle = new Circle(27 / 2f);
-            ProgramComponents.Add(FixButton = new BetterButton(Window, circle, "objects/PuzzleIslandHelper/interface/pipes/fixedButton/", OnClicked));
+            ProgramComponents.Add(FixButton = new Button(Window, circle, "objects/PuzzleIslandHelper/interface/pipes/fixedButton/", OnClicked));
             FixButton.Position = new Vector2(Window.WindowWidth / 2, Window.WindowHeight / 2) - new Vector2(FixButton.Width / 2, FixButton.Height / 2);
             FixButton.Visible = true;
             FixButton.Disabled = false;

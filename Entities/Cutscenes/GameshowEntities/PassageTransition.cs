@@ -1,7 +1,4 @@
-﻿using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
-using ExtendedVariants.Entities.ForMappers;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections;

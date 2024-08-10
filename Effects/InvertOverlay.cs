@@ -3,7 +3,6 @@ using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Reflection;
-using VivHelper;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {

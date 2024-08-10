@@ -5,7 +5,6 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -56,6 +55,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 base.BeforeApply();
                 if (player is null) return;
                 player.Visible = false;
+            }
+            public override void Removed(Scene scene)
+            {
+                base.Removed(scene);
+                if(player is not null)
+                {
+                    player.Visible = true;
+                }
             }
             public override void AfterApply()
             {

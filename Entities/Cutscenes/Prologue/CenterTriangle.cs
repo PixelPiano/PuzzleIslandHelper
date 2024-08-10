@@ -1,14 +1,9 @@
 ﻿using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
 {

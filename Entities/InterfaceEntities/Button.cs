@@ -6,8 +6,8 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
 
-    [TrackedAs(typeof(BetterButton))]
-    public class BetterButton : WindowImage
+    [TrackedAs(typeof(Button))]
+    public class Button : WindowImage
     {
         public bool AutoPosition;
         public Action OnClicked;
@@ -77,18 +77,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 return DefaultPath + "default/";
             }
         }
-        public BetterButton(BetterWindow window, Circle circle, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : this(window, customPath, OnClicked, Routine)
+        public Button(Window window, Circle circle, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : this(window, customPath, OnClicked, Routine)
         {
             Circle = circle;
             UsesCircleCollider = true;
         }
-        public BetterButton(BetterWindow window, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : base(window, GFX.Game[GetPath(customPath) + "button00"])
+        public Button(Window window, string customPath = null, Action OnClicked = null, IEnumerator Routine = null) : base(window, GFX.Game[GetPath(customPath) + "button00"])
         {
             this.customPath = customPath;
             Path = GetPath(customPath);
             this.OnClicked = OnClicked;
             this.Routine = Routine;
             ButtonCollider = new Hitbox(Texture.Width, Texture.Height);
+        }
+        public void Hide()
+        {
+            Disabled = true;
+            Visible = false;
+        }
+        public void Show()
+        {
+            Disabled = false;
+            Visible = true;
         }
         public virtual void RunActions()
         {

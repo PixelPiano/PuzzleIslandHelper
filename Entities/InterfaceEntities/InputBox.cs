@@ -45,7 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 return (box - cam) * 6;
             }
         }
-        public InputBox(BetterWindow window, Func<string, bool> onSubmit = null) : base(window)
+        public InputBox(Window window, Func<string, bool> onSubmit = null) : base(window)
         {
             this.onSubmit = onSubmit;
 

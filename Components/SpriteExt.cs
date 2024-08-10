@@ -1,10 +1,4 @@
-using Celeste.Mod.Entities;
-using Microsoft.Xna.Framework;
-using Mono.Cecil.Cil;
 using Monocle;
-using MonoMod.Cil;
-using MonoMod.Utils;
-using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {

@@ -1,12 +1,8 @@
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -473,7 +469,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private IEnumerator CompleteRoutine()
         {
 
-            //todo: make new background image
+            //todo: make new BackgroundColor image
             //Audio.Play("event:/PianoBoy/GrassMazeComplete");
             while (!icon.AtTarget)
             {

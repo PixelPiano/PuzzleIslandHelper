@@ -1,8 +1,5 @@
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
-using System;
-using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {

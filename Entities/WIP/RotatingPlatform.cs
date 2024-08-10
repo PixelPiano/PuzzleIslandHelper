@@ -18,7 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 
         private bool MovedOnce = false;
 
-        private Vector2 node; //Position to move to
+        private Vector2 node; //Offset to move to
 
         private string flag;
 
@@ -230,8 +230,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             /*            switch (MoveMeth)
             {
                 case MoveMethod.OnFlag:
-                    previousState = SceneAs<Level>().Session.GetFlag(flag);
-                    if (SceneAs<Level>().Session.GetFlag(flag))
+                    previousState = SceneAs<Level>().Session.GetFlag(Flag);
+                    if (SceneAs<Level>().Session.GetFlag(Flag))
                     {
                         //MoveTo(node);
                     }
@@ -257,15 +257,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             {
                 Speed = Vector2.Zero;
             }
-            offset = newTiles.Position;
+            offset = newTiles.Offset;
             scaleTimer = moving && scaleTimer > 0 ? scaleTimer - Engine.DeltaTime : 0;
             switch (detectMode)
             {
-                case DetectMode.Position:
+                case DetectMode.Offset:
                     Detector.X = (int)(X - DetectRadius.X);
                     Detector.Y = (int)(Y - DetectRadius.Y);
                     break;
-                case DetectMode.start:
+                case DetectMode.Start:
                     Detector.X = (int)(startPosition.X - DetectRadius.X);
                     Detector.Y = (int)(startPosition.Y - DetectRadius.Y);
                     break;
@@ -273,7 +273,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             switch (MoveMeth)
             {
                 case MoveMethod.OnFlag:
-                    Valid = previousState != SceneAs<Level>().Session.GetFlag(flag);
+                    Valid = previousState != SceneAs<Level>().Session.GetFlag(Flag);
                     break;
 
                 case MoveMethod.OnPlayerNear:

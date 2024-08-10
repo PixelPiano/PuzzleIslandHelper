@@ -869,7 +869,7 @@ internal class Shapes
                 Vector3 vb = vertices[b];
                 Vector3 mid = new Vector3(va.X + vb.X, va.Y + vb.Y, va.Z + vb.Z) / 2f;
 
-                // add the new vertex to the list and return its index, which we also cache here
+                // add the new vertex to the list and return its startIndex, which we also cache here
                 index = vertices.Count;
                 vertices.Add(mid);
                 cache.Add(key, index);

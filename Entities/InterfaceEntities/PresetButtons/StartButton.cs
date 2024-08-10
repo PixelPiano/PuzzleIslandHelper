@@ -7,10 +7,10 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
 
-    [TrackedAs(typeof(BetterButton))]
-    public class StartButton : BetterButton
+    [TrackedAs(typeof(Button))]
+    public class StartButton : Button
     {
-        public StartButton(BetterWindow window, Action OnClicked = null, IEnumerator Routine = null) : base(window, null, OnClicked, Routine)
+        public StartButton(Window window, Action OnClicked = null, IEnumerator Routine = null) : base(window, null, OnClicked, Routine)
         {
             AutoPosition = true;
             Text = "start";

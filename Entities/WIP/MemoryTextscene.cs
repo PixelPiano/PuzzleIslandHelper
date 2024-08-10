@@ -99,7 +99,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             _visible = true;
 
 
-            //start scrolling text
+            //Start scrolling text
             for (int k = 0; k < DialogIDs.Length; k++)
             {
                 while (CurrentNode < FText.Nodes.Count)

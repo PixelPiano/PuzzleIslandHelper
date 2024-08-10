@@ -1,7 +1,6 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System.Collections;
 // PuzzleIslandHelper.LabDoor
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

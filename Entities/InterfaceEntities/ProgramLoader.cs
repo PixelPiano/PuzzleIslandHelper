@@ -1,25 +1,15 @@
-﻿using Celeste.Mod.CommunalHelper;
-using Celeste.Mod.Core;
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
-using Microsoft.Xna.Framework;
-using Monocle;
-using MonoMod.Utils;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
     public static class ProgramLoader
     {
-        public delegate WindowContent ContentLoader(BetterWindow window);
+        public delegate WindowContent ContentLoader(Window window);
         public static readonly Dictionary<string, ContentLoader> ContentLoaders = new Dictionary<string, ContentLoader>();
-        public static bool LoadCustomProgram(string name, BetterWindow window, Level level)
+        public static bool LoadCustomProgram(string name, Window window, Level level)
         {
             if (ContentLoaders.TryGetValue(name, out var value))
             {
@@ -48,7 +38,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Type[] types = assembly.GetTypesSafe();
             foreach (Type type in types)
             {
-                foreach (CustomProgramAttribute customAttribute in type.GetCustomAttributes<CustomProgramAttribute>())
+                foreach (CustomProgram customAttribute in type.GetCustomAttributes<CustomProgram>())
                 {
                     string[] iDs = customAttribute.IDs;
                     foreach (string text in iDs)
@@ -74,10 +64,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                         text2 = text2.Trim();
                         text3 = text3.Trim();
                         ContentLoader loader = null;
-                        ConstructorInfo ctor = type.GetConstructor(new Type[] { typeof(BetterWindow) });
+                        ConstructorInfo ctor = type.GetConstructor(new Type[] { typeof(Window) });
                         if (ctor != null)
                         {
-                            loader = (BetterWindow window) => (WindowContent)ctor.Invoke(new object[] { window });
+                            loader = (Window window) => (WindowContent)ctor.Invoke(new object[] { window });
                         }
                         if (loader == null)
                         {

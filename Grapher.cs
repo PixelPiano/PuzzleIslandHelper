@@ -114,7 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Vector2 playerCenter =
                 player.Position - level.Camera.Position - new Vector2(0, player.Height / 2f);
 
-            // start rendering to our stencil
+            // Start rendering to our stencil
             Engine.Graphics.GraphicsDevice.SetRenderTarget(stencil);
             Engine.Graphics.GraphicsDevice.Clear(
                 ClearOptions.Target | ClearOptions.Stencil,
@@ -123,7 +123,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 0
             );
 
-            // start the stencil spritebatch
+            // Start the stencil spritebatch
             Draw.SpriteBatch.Begin(
                 SpriteSortMode.Immediate,
                 BlendState.AlphaBlend,
@@ -150,8 +150,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 yieldPointFromFunction(theta, k, ref currentValue);
                 st = prevValue + playerCenter;
-                end = currentValue + playerCenter;
-                Draw.Line(st, end, From.White, lineWidth);
+                CurrentNode = currentValue + playerCenter;
+                Draw.Line(st, CurrentNode, From.White, lineWidth);
                 prevValue = currentValue;
             }*/
             Vector2 distance = new Vector2(playerCenter.X+20, playerCenter.Y+20);
@@ -173,7 +173,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Draw.SpriteBatch.Draw(GameplayBuffers.Level, Vector2.Zero, Calc.HexToColor(luaColor)*colorAlpha);
             Draw.SpriteBatch.End();
 
-            // start rendering to the level heeheeBuffer again
+            // Start rendering to the level heeheeBuffer again
             Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Level);
             ColorGrade.Set(GFX.ColorGrades[ColorGradeName]);
             // Draw our stencil content over the level heeheeBuffer, with the Color grade

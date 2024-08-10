@@ -13,9 +13,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public float TextWidth;
         public Vector2 TextOffset;
         public float Alpha = 1;
-        public BetterButton ParentButton;
-        public BetterWindow Window;
-        public ButtonText(BetterButton parent, string text, float textSize, Vector2 Scale, Vector2 offset)
+        public Button ParentButton;
+        public Window Window;
+        public ButtonText(Button parent, string text, float textSize, Vector2 Scale, Vector2 offset)
         {
             Size = textSize;
             Tag = TagsExt.SubHUD;
@@ -28,12 +28,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Render()
         {
             base.Render();
+            
             if(Window is null)
             {
                 Window = ParentButton.Window;
                 if(Window is null) return;
             }
-            if (!Window.Drawing)
+            if (!Window.Drawing || Window.Interface.ForceHide)
             {
                 return;
             }

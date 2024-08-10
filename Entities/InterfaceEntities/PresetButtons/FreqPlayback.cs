@@ -1,16 +1,12 @@
-using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
-
-using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
 
-    [TrackedAs(typeof(BetterButton))]
+    [TrackedAs(typeof(Button))]
     public class FreqPlayback : ListButton
     {
         public string EventName;

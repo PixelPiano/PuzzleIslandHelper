@@ -27,45 +27,67 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private VertexLight light;
         private float DimAmount = 0.4f;
         private Color SpriteColor;
+        public bool Broken;
         private bool State
         {
             get
             {
-                return PianoModule.Session.RestoredPower;
+                return PianoModule.Session.RestoredPower && !Broken;
             }
         }
+        private bool FlipY;
         private bool Flickering;
         private bool digital;
-        public LabTubeLight(Vector2 position, int length, bool digital) : base(position, length, 8, false)
+        private float dimAmount;
+        public LabTubeLight(Vector2 position, int length, bool digital, bool broken, bool flipY) : base(position, length, 8, false)
         {
             Tag |= Tags.TransitionUpdate;
+
             this.digital = digital;
+            Broken = broken;
             Position = position;
-            SpriteColor = Color.Lerp(Color.White, Color.Black, 0.2f);
+            FlipY = flipY;
+            dimAmount = Broken ? 0.4f : 0.2f;
+            SpriteColor = Color.Lerp(Color.White, Color.Black, dimAmount);
             Length = Math.Max(16, length);
             Depth = -1;
-            MTexture mTexture = GFX.Game["objects/PuzzleIslandHelper/machines/gizmos/tubeLight" + (digital ? "Digi" : "")];
+            MTexture mTexture = GFX.Game["objects/PuzzleIslandHelper/machines/gizmos/tubeLight" + (digital ? "Digi" : broken ? "Broken" : "")];
             Image image;
-            Add(image = new Image(mTexture.GetSubtexture(0, 0, 8, 8)));
+            int y = 0;
+            if (Broken)
+            {
+                y = Calc.Random.Range(0, 3) * 8;
+            }
+            Add(image = new Image(mTexture.GetSubtexture(0, y, 8, 8)));
+            image.Effects = flipY ? SpriteEffects.FlipVertically : default;
             image.Color = SpriteColor;
             images.Add(image);
 
             for (int i = 0; i < Length - 16; i += 8)
             {
-                Add(image = new Image(mTexture.GetSubtexture(8, 0, 8, 8)));
+                if (Broken)
+                {
+                    y = Calc.Random.Range(0, 3) * 8;
+                }
+                Add(image = new Image(mTexture.GetSubtexture(8, y, 8, 8)));
                 image.Position.X = i + 8;
+                image.Effects = flipY ? SpriteEffects.FlipVertically : default;
                 images.Add(image);
-
             }
-            Add(image = new Image(mTexture.GetSubtexture(16, 0, 8, 8)));
+            if (Broken)
+            {
+                y = Calc.Random.Range(0, 3) * 8;
+            }
+            Add(image = new Image(mTexture.GetSubtexture(16, y, 8, 8)));
+            image.Effects = flipY ? SpriteEffects.FlipVertically : default;
             image.Position.X = Length - 8;
             images.Add(image);
 
             Add(sfx = new SoundSource());
             Collider = new Hitbox(Length, 8);
             sfx.Position = new Vector2(Length / 2, 4);
-            Add(bloom = new BloomPoint(new Vector2(Length / 2, 4), 0.1f, Length / 2));
-            Add(light = new VertexLight(new Vector2(Length / 2, 24), digital ? Color.Green : Color.White, 0.86f, 64, 120));
+            Add(bloom = new BloomPoint(new Vector2(Length / 2, 4), Broken ? 0.05f : 0.15f, Length / 2));
+            Add(light = new VertexLight(new Vector2(Length / 2, flipY ? 0 : 24), digital ? Color.Green : Color.White, Broken ? 0.3f : 0.86f, (int)Width, (int)Width + 16));
             OnDashCollide = DashCollision;
         }
         internal static void Load()
@@ -114,7 +136,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private DashCollisionResults DashCollision(Player player, Vector2 direction)
         {
-            if (State)
+            if (State && !Broken)
             {
                 //play spark sound
                 //emit tiny electricity
@@ -135,7 +157,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return null;
         }
         public LabTubeLight(EntityData data, Vector2 position)
-            : this(data.Position + position, Math.Max(16, data.Width),data.Bool("digital"))
+            : this(data.Position + position, Math.Max(16, data.Width), data.Bool("digital"), data.Bool("broken"), data.Bool("flipY"))
         {
         }
         public override void Update()
@@ -159,7 +181,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (!Flickering)
                 {
-                    i.Color = State ? SpriteColor : Color.Lerp(Color.White, Color.Black, 0.2f);
+                    i.Color = State ? SpriteColor : Color.Lerp(Color.White, Color.Black, dimAmount);
                 }
             }
         }
@@ -174,7 +196,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 RoutineAdded = true;
                 Add(PeriodicFlicker);
             }
-
         }
         private IEnumerator FlickerShort()
         {
@@ -207,11 +228,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator Flicker()
         {
+            float min = Broken ? 0.5f : 3;
+            float max = Broken ? 1 : 15;
             while (true)
             {
-                yield return Calc.Random.Range(3, 15f);
-
-                for (int i = 0; i < 3; i++)
+                yield return Calc.Random.Range(min, max);
+                int loops = Broken ? 6 : 3;
+                for (int i = 0; i < loops; i++)
                 {
                     if (i == 0 || Calc.Random.Chance(0.7f))
                     {
@@ -219,7 +242,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         {
                             yield return null;
                         }
-                        if (Flickering)
+                        if (Flickering && !Broken)
                         {
                             yield return Calc.Random.Range(1, 2);
                         }

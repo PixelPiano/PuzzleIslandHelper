@@ -1,19 +1,76 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
 using Celeste.Mod.PuzzleIslandHelper;
-using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
+using System.Linq;
 
 public class PianoCommands
 {
+
+    [Command("ftprogram", "starts a program on the fake terminal entity")]
+    public static void AddFakeProgram(string programName)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        FakeTerminal terminal = level.Tracker.GetEntity<FakeTerminal>();
+        if (terminal == null)
+        {
+            Engine.Commands.Log("Current Scene does not contain a FakeTerminal entity.");
+            return;
+        }
+        if (!TerminalProgramLoader.LoadCustomProgram(programName, terminal, level))
+        {
+            Engine.Commands.Log($"\"{programName}\" is not a valid program name.");
+            return;
+        }
+    }
+    [Command("ftwrite", "sends text to the fake terminal entity")]
+    private static void AddFakeText(string text)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        string[] words = text.Split('_');
+        string t = "";
+        foreach (string s in words)
+        {
+            t += s.Replace('_', ' ');
+        }
+        foreach (FakeTerminal terminal in level.Tracker.GetEntities<FakeTerminal>())
+        {
+            terminal.AddText(t);
+        }
+    }
+    [Command("ftclear", "Clears text from the fake terminal entity")]
+    private static void ClearFakeText()
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        foreach(TerminalProgram p in level.Tracker.GetEntities<TerminalProgram>())
+        {
+            p.RemoveSelf();
+        }
+        foreach (FakeTerminal terminal in level.Tracker.GetEntities<FakeTerminal>())
+        {
+            terminal.Clear();
+        }
+
+    }
     [Command("debugint", "sets a debug int value")]
     private static void SetDebugInt(int num)
     {

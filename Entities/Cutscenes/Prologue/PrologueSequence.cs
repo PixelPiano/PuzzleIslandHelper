@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using FrostHelper;
 using Microsoft.Xna.Framework;

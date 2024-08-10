@@ -1,11 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Monocle;
 using Celeste.Mod.Entities;
-using System;
-using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities;
 using System.Collections;
-using System.Security.Cryptography.X509Certificates;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

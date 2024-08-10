@@ -1,15 +1,11 @@
 ﻿using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using ExtendedVariants.Entities.ForMappers;
-using FrostHelper;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using static Celeste.Mod.PuzzleIslandHelper.Components.Segment;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 {

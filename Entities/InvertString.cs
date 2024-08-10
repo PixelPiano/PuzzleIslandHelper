@@ -2,8 +2,6 @@ using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Microsoft.Xna.Framework;
 using Monocle;
-using MonoMod;
-using MonoMod.Utils;
 // PuzzleIslandHelper.FloatingCobweb
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

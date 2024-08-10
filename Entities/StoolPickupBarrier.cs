@@ -1,5 +1,4 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
@@ -73,15 +72,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             EasyRendering.MaskToObject(StoolPickupObject, StoolPickupMask);
 
         }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            Drawing();
-        }
-        private Vector2 ToInt(Vector2 vector)
-        {
-            return new Vector2((int)vector.X, (int)vector.Y);
-        }
         private void Drawing()
         {
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
@@ -125,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         stool.GlassTexture.From = _color * i;
                         yield return null;
                     }
-                    stool.Position = stool.orig_Pos;
+                    stool.Offset = stool.orig_Pos;
                     yield return 0.02f;
                     stool.Respawned = true;
                     for (float i = 0; i < 1; i += 0.1f)

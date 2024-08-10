@@ -117,7 +117,7 @@ codeResearchC=
 	{# 000000}The logic and reasoning behind a code seems to vary per FOA, but they all share one similarity:
 	Directions.
 	Each code is a combination of the 8 cardinal directions.
-	Up, down, left right, up left, down left, up right, down right.
+	Up, Down, Left, Right, Up-left, Down-left, Up-right, Down-right.
 	They seem to gravitate towards themes, the codes we've managed to decipher tend to reflect the general area as a whole.
 	For example: We recently encountered an FOA down in Pipeworks.
 	Near the area of the FOA was a long winding pipe, no intersections.

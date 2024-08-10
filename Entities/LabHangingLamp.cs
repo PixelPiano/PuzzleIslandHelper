@@ -250,7 +250,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Collision.MoveV(LampSpeed.Y, OnCollideV);
                 Lamp.Position = Collision.Position - Position + new Vector2(4, 6);
                 HandleVertices();
-                //bloom.Position = Collision.Position;
+                //bloom.Offset = Collision.Offset;
                 light.Position = Collision.Position;
                 if (HomeRun)
                 {

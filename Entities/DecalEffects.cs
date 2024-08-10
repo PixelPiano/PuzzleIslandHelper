@@ -87,7 +87,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public DecalEffects(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
-            //flag = data.Attr("flag");
+            //Flag = data.Attr("Flag");
             Tag |= Tags.TransitionUpdate;
             shouldFade = data.Bool("cameraFade");
             Depth = data.Int("depth", 1);

@@ -1,18 +1,7 @@
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
-using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
-using FrostHelper;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Mono.Cecil;
 using Monocle;
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {

@@ -15,7 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public static readonly float TextScale = 0.8f;
         public static ComputerIcon CurrentIcon;
         public Interface Interface;
-        public BetterWindow Window;
+        public Window Window;
         private string CurrentTabText => CurrentIcon.TabText;
         public IconText(Interface computer)
         {

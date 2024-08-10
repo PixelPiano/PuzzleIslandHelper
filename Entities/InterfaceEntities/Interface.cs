@@ -2,17 +2,12 @@ using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
-using FrostHelper;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Security.Cryptography.X509Certificates;
-using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
@@ -91,16 +86,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public string CurrentIconName = "invalid";
 
         public Rectangle MouseRectangle;
+        public bool UsesStartupMonitor => Machine is not null && Machine.UsesStartupMonitor;
         public bool MonitorLoaded;
         public Monitor monitor;
-        private PowerButton Power;
-        private Entity MachineEntity;
-        public BetterWindow Window;
+        public PowerButton Power;
+        public Window Window;
         public InterfaceCursor Cursor;
-        private InterfaceBorder Border;
+        public InterfaceBorder Border;
         public Sprite cursorSprite;
-        private Sprite Machine;
-        private SoundSource whirringSfx;
+        public SoundSource whirringSfx;
+        public InterfaceMachine Machine;
 
         private ComputerIcon[] Icons;
         public List<WindowContent> Content = new();
@@ -111,12 +106,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private float cursorAlpha = 1;
 
         public bool FakeStarting;
-        public enum Versions
-        {
-            Lab,
-            Pipes
-        }
-        public Versions Version;
+
+        public bool ForceHide = false;
 
 
         public Vector2 MousePosition
@@ -142,7 +133,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private Vector2 spacing = new Vector2(8, 16); //spacing between the icons
         private Vector2 DragOffset; //used to correctly align Window with Cursor while being dragged
         private Color startColor = Color.LimeGreen;
-        private Color backgroundColor;
+        public Color BackgroundColor;
         //the order of icons in sequential order. If string is not a valid icon name, is replaced with the "invalid" symbol when drawn.
         public List<string> IconIDs = new();
         public List<string> WindowText = new();
@@ -240,35 +231,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 return true;
             }
         }
-        public Interface(EntityData data, Vector2 offset)
-            : base(data.Position + offset)
+        public Interface(Color background, InterfaceMachine machine) : base()
         {
-            Buffering = false;
-            Version = data.Enum<Versions>("type");
+            BackgroundColor = background;
             Tag |= Tags.TransitionUpdate;
             Add(whirringSfx = new SoundSource());
-            switch (Version)
-            {
-                case Versions.Lab:
-                    backgroundColor = Color.Green;
-                    Machine = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/");
-                    Machine.FlipX = data.Bool("flipX");
-                    Machine.AddLoop("idle", "keyboard", 0.1f);
-                    break;
-                case Versions.Pipes:
-                    backgroundColor = Color.Orange;
-                    Machine = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/pipes/");
-                    Machine.FlipX = data.Bool("flipX");
-                    Machine.AddLoop("idle", "machine", 0.1f);
-                    break;
-            }
-            startColor = Color.Lerp(backgroundColor, Color.White, 0.1f);
-
-            float talkYOffset = Version == Versions.Lab ? 0 : -8;
-
-            Add(Talk = new DotX3(0, 0, Machine.Width, Machine.Height - (int)talkYOffset, new Vector2(Machine.Width / 2, 0), Interact));
-            Talk.PlayerMustBeFacing = false;
-
+            startColor = Color.Lerp(BackgroundColor, Color.White, 0.1f);
+            Machine = machine;
         }
         public void LoadModules(Scene scene)
         {
@@ -278,15 +247,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
                 //hey it's me, half a year later, and it's still bad but i think it's better this way for the story not gonna lie
                 //a scuffed computer that *just* barely runs fits really well with the level of professional the manufacturers of it had
-                scene.Add(Window = new BetterWindow(Position, this));
+                scene.Add(Window = new Window(Position, this));
                 scene.Add(new IconText(this));
 
                 //InterfaceCursor and Border are just generic entities but with tags that tell them to render in screen-space rather than world-space
                 scene.Add(Cursor = new InterfaceCursor());
             }
-            FloppyLoader fl = new FloppyLoader(this);
-            scene.Add(fl);
-            scene.Add(Border = new InterfaceBorder());
+            if (Machine.UsesFloppyLoader)
+            {
+                scene.Add(new FloppyLoader(this));
+            }
+            scene.Add(Border = new InterfaceBorder(this));
 
             if (!FakeStarting)
             {
@@ -297,7 +268,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 scene.Add(Power = new PowerButton(this));
                 scene.Add(new Nightmode(this));
             }
-            scene.Add(monitor = new Monitor(startColor));
+            scene.Add(monitor = new Monitor(startColor, this));
 
             //create sprites and add them to their corresponding entities
             string path = "objects/PuzzleIslandHelper/interface/";
@@ -318,6 +289,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         {
             public Sprite Sprite;
             public float Alpha;
+            public Interface Parent;
             public bool TurningOff => Sprite.CurrentAnimationID == "turnOff";
             public bool Idle => Sprite.CurrentAnimationID == "idle";
             public bool StartingUp => Sprite.CurrentAnimationID == "boot";
@@ -325,7 +297,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 Sprite.SetColor(color);
             }
-            public Monitor(Color color) : base()
+            public Monitor(Color color, Interface parent) : base()
             {
                 Depth = BaseDepth;
                 Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/");
@@ -336,15 +308,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 Sprite.SetColor(color);
                 Add(Sprite);
                 Collider = new Hitbox(Sprite.Width, Sprite.Height);
+                Parent = parent;
             }
             public override void Render()
             {
+                if (Parent.ForceHide) return;
                 if (Alpha > 0)
                 {
                     Draw.Rect(Collider, Color.Black * Alpha);
                 }
                 base.Render();
-
             }
             public void StartUp()
             {
@@ -361,10 +334,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Interacting = false;
             level = scene as Level;
             Depth = BaseDepth;
-            scene.Add(MachineEntity = new Entity(Position));
-            MachineEntity.Depth = 2;
-            MachineEntity.Add(Machine);
-            Machine.Play("idle");
         }
         public void QuickLoadPreset(string preset)
         {
@@ -600,7 +569,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             /*            if (!DraggingWindow && CollideCheck(Power))
                         {
-                            foreach (BetterButton button in Window.Buttons)
+                            foreach (Button button in Window.Buttons)
                             {
                                 if (button.Pressing)
                                 {
@@ -663,11 +632,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             player.StateMachine.State = Player.StNormal;
             yield return null;
         }
-        private IEnumerator FakeStart()
+        public IEnumerator FakeStart()
         {
             FakeStarting = true;
             LoadModules(level);
-            start();
+            Start();
             while (monitor is null || !monitor.Idle)
             {
                 yield return null;
@@ -681,63 +650,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             yield return CloseInterfaceRoutine(false, false);
             FakeStarting = false;
         }
-        private void StartPreset(string preset)
+        public void StartPreset(string preset)
         {
             if (string.IsNullOrEmpty(preset)) return;
             LoadModules(level); //see image 2
             TryGetPreset(preset);
             AddIcons(level);
-            start();
+            Start();
         }
         private IEnumerator BeginSequence(Player player)
         {
             player.StateMachine.State = Player.StDummy;
-
-            if (Version == Versions.Lab && !PianoModule.Session.RestoredPower)
-            {
-                if (PianoModule.Session.TimesMetWithCalidus < 1)
-                {
-                    PianoModule.Session.Interface = this;
-                    LoadModules(level);
-                    YouHaveMail mail = new YouHaveMail(this, "mailTextA", "Important");
-                    Scene.Add(mail);
-                    AddProgram("mail");
-                    yield return null;
-                    start();
-                }
-                else
-                {
-                    yield return Textbox.Say("interfaceNoPower");
-                    player.StateMachine.State = Player.StNormal;
-                }
-            }
-            else
-            {
-                PianoModule.Session.Interface = this;
-                if (PianoModule.Session.TimesMetWithCalidus < 2 && Version != Versions.Pipes)
-                {
-                    PianoModule.Session.Interface = this;
-                    LoadModules(level);
-                    YouHaveMail mail = new YouHaveMail(this, "mailTextB", "Power!");
-                    Scene.Add(mail);
-                    AddProgram("mail");
-                    yield return null;
-                    start();
-                }
-                else if (PianoModule.Session.CollectedDisks.Count == 0 && Version == Versions.Lab)
-                {
-                    yield return FakeStart();
-                }
-                else
-                {
-                    string preset = Version == Versions.Pipes ? "Pipes" : PianoModule.Session.CollectedDisks[0].Preset;
-                    StartPreset(preset);
-                }
-                yield return null;
-            }
-
+            yield return Machine.OnBegin(player, level);
         }
-        private void start()
+        public void Start()
         {
             if (Scene is not Level level) return;
             PianoModule.Session.Interface = this;
@@ -790,7 +716,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private IEnumerator ScreenOn()
         {
             PianoModule.Session.MonitorActivated = true;
-            if (Version == Versions.Lab)
+            if (UsesStartupMonitor)
             {
                 yield return MonitorIconAnim(true);
                 yield return 0.3f;
@@ -812,7 +738,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             yield return null;
         }
 
-        private void Interact(Player player)
+        public void BeginInteract(Player player)
         {
             //play click sound
             FakeStarting = false;
@@ -856,7 +782,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                         dc.Visible = state;
                     }
                 }
-                monitor.SetColor(Color.Lerp(startColor, backgroundColor, Ease.SineInOut(i)));
+                monitor.SetColor(Color.Lerp(startColor, BackgroundColor, Ease.SineInOut(i)));
                 count++;
                 yield return null;
             }
@@ -932,6 +858,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             level.Lighting.Alpha = Calc.LerpClamp(0, prevLightAlpha, amount);
             level.Bloom.Strength = Calc.LerpClamp(0, prevBloomStrength, amount);
         }
+        public bool InFlickerRoutine;
+        public IEnumerator FlickerHide()
+        {
+            InFlickerRoutine = true;
+            float interval = 0.06f;
+            ForceHide = false;
+            for (int i = 0; i < 3; i++)
+            {
+                ForceHide = true;
+                yield return interval;
+                ForceHide = false;
+                yield return interval;
+            }
+            ForceHide = true;
+            InFlickerRoutine = false;
+        }
+        public IEnumerator FlickerReveal()
+        {
+            InFlickerRoutine = true;
+            float interval = 0.06f;
+            ForceHide = true;
+            for (int i = 0; i < 3; i++)
+            {
+                ForceHide = false;
+                yield return interval;
+                ForceHide = true;
+                yield return interval;
+            }
+            ForceHide = false;
+            InFlickerRoutine = false;
+
+        }
         public IEnumerator CloseInterfaceRoutine(bool fast, bool lockPlayer = false)
         {
             Closing = true;
@@ -943,7 +901,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 if (!fast) yield return FlickerIcons(true);
             }
 
-            if (Version == Versions.Pipes)
+            if (!UsesStartupMonitor)
             {
                 whirringSfx.Param("Computer state", 1);
             }
@@ -951,7 +909,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Audio.SetMusicParam("fade", 1);
             player.StateMachine.State = lockPlayer ? Player.StDummy : 0;
             LightCleanup(false, FakeStarting);
-            if (Version == Versions.Lab)
+            if (UsesStartupMonitor)
             {
                 yield return 0.8f;
                 whirringSfx.Param("Computer state", 1);
@@ -1085,10 +1043,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public class PowerButton : DesktopClickable
         {
             public Sprite sprite;
-            public PowerButton(Interface inter) : base(inter)
+            public PowerButton(Interface inter, string path = "objects/PuzzleIslandHelper/interface/") : base(inter)
             {
                 Depth = BaseDepth - 1;
-                Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/"));
+                Add(sprite = new Sprite(GFX.Game, path));
                 sprite.AddLoop("idle", "power", 1f);
                 Collider = new Hitbox(sprite.Width, sprite.Height);
                 sprite.Play("idle");
@@ -1119,7 +1077,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         [Tracked]
         public class InterfaceCursor : Entity
         {
-
             public InterfaceCursor()
             {
                 Tag = TagsExt.SubHUD;
@@ -1149,9 +1106,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
 
         }
-        private class InterfaceBorder : Entity
+        public class InterfaceBorder : Entity
         {
             public Image Border;
+            public Interface Parent;
             public float Alpha
             {
                 get
@@ -1168,13 +1126,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 }
             }
             private float alpha;
-            public InterfaceBorder() : base()
+            public const int BorderEdgeWidth = 96;
+            public const int BorderEdgeHeight = 60;
+            public InterfaceBorder(Interface parent) : base()
             {
                 Tag = TagsExt.SubHUD;
 
                 Add(Border = new Image(GFX.Game["objects/PuzzleIslandHelper/interface/border00"]));
                 Border.Color = Color.White * 0;
                 Depth = BaseDepth - 7;
+                Parent = parent;
+            }
+            public override void Render()
+            {
+                if (Parent.ForceHide) return;
+                base.Render();
             }
         }
     }

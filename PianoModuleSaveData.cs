@@ -4,6 +4,22 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSaveData : EverestModuleSaveData
     {
+        public Dictionary<string, bool> Achievements = new();
+        public void GiveAchievement(string name)
+        {
+            SetAchievement(name, true);
+        }
+        public void SetAchievement(string name, bool value)
+        {
+            if (Achievements.ContainsKey(name))
+            {
+                Achievements[name] = value;
+            }
+            else
+            {
+                Achievements.Add(name, value);
+            }
+        }
         public enum Endings
         {
             Null,

@@ -55,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
              * F: You're the one who brought up sticky notes of all things.
              * C: (You had the most ellipses.)
              * F: Gimme a sec.
-             * *sounds of clanging and smart scientist noises and Huouin Kyouma voice in the background but digitalized*
+             * *sounds of clanging and smart scientist noises and Huouin Kyouma voice in the BackgroundColor but digitalized*
              * 
              * C: Hell of a password huh
              * F: Can't ever be too secure.

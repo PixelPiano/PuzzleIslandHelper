@@ -6,14 +6,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
-using System.Linq;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
-using System.Reflection;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using ExtendedVariants.Module;
-using VivHelper.Triggers;
-using ExtendedVariants.Variants;
-using static Celeste.Mod.CommunalHelper.Backdrops.Cloudscape;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {

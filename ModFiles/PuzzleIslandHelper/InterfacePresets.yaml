@@ -6,6 +6,10 @@
 #The key is the name of the preset
 #The list holds the icons/programs the interface should load if the preset is used
 Layouts:
+  WorldShift:
+    Icons:
+      - ID: WorldShift
+        Tab: ShiftManager
   Portfolio: #This is the preset I used in the video showcasing the interface in-game
     Icons:
       - ID: Text

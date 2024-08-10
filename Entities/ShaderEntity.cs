@@ -1,11 +1,8 @@
-using Celeste.Mod.Entities;
-using FMOD;
 using FrostHelper;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

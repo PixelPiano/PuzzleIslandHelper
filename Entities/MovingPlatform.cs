@@ -32,7 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Rectangle Detector;
 
 
-        private Vector2 node; //Position to move to
+        private Vector2 node; //Offset to move to
 
         private Vector2 DetectRadius;
 
@@ -280,7 +280,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             yield break;
                         }
                         int spacingMax = 8;
-                        Vector2 pos = Position;
+                        Vector2 pos = Offset;
                         From baseColor = From.Purple;
                         for (int i = 0; i < 4; i++)
                         {

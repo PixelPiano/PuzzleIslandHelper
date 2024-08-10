@@ -1,18 +1,15 @@
 
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections.Generic;
 using System.Reflection;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.FancyTextExt;
-using Char = Celeste.Mod.PuzzleIslandHelper.Entities.FancyTextExt.Char;
 using Color = Microsoft.Xna.Framework.Color;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
     public class TextWindow : Entity
     {
-        #region Variables
         private static readonly Dictionary<string, List<string>> fontPaths;
         public FancyTextExt.Text activeText;
         private static string fontName = "alarm clock";
@@ -24,14 +21,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             // Fonts.paths is private static and never instantiated besides in the static constructor, so we only need to get the reference to it once.
             fontPaths = (Dictionary<string, List<string>>)typeof(Fonts).GetField("paths", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
         }
-        public List<FancyTextExt.Node> Nodes => activeText.Nodes;
+        public List<Node> Nodes => activeText.Nodes;
 
         public Vector2 TextPosition;
         public int TextWidth = 0;
         public float textScale = 0.7f;
-        #endregion
         public Interface Interface;
-        public BetterWindow Window;
+        public Window Window;
         public TextWindow(Interface inter, string dialog)
         {
             Tag |= TagsExt.SubHUD | Tags.TransitionUpdate;
@@ -56,7 +52,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Render()
         {
             base.Render();
-            if (Scene is not Level level)
+            if (Scene is not Level level || Interface.ForceHide)
             {
                 return;
             }

@@ -2,8 +2,6 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using Microsoft.Xna.Framework;
-using System.Collections.Generic;
-using FrostHelper;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

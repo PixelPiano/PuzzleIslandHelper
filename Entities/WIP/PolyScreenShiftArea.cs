@@ -4,7 +4,6 @@ using Monocle;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections;
-using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 
