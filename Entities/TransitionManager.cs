@@ -36,9 +36,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             switch (Transition)
             {
                 case Type.BeamMeUp: (scene as Level).Add(new BeamMeUp(roomName, true)); break;
-                //case Type.Elevator: (scene as Level).Add(new ElevatorTransition(roomName)); break;
-                //case Type.Gremlins: (scene as Level).Add(new BeamMeUp(roomName, true)); break;
-                //case Type.Fold: (scene as Level).Add(new FoldTransition(roomName)); break;
+                //case Node.Elevator: (scene as Level).Add(new ElevatorTransition(roomName)); break;
+                //case Node.Gremlins: (scene as Level).Add(new BeamMeUp(roomName, true)); break;
+                //case Node.Fold: (scene as Level).Add(new FoldTransition(roomName)); break;
             }
             Started = true;
         }

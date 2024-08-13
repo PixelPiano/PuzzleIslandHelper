@@ -122,7 +122,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             string prevId = arrowSprite.CurrentAnimationID;
 
             int slightY = scene.OnInterval(8 / 60) ? 2 : 0;
-            //float gravTime = (directionA == Direction.None && Flag) || (directionB == Direction.None && !Flag) ? 0 : Engine.DeltaTime;
+            //float gravTime = (directionA == Dir.None && Flag) || (directionB == Dir.None && !Flag) ? 0 : Engine.DeltaTime;
             noGravityTimer = CurrentDirection() != Direction.None && NoGravity ? Engine.DeltaTime : 0;
 
             if (hitWall || hitFloor)

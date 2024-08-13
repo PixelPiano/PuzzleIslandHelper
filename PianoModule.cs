@@ -13,6 +13,7 @@ using Celeste.Mod.PuzzleIslandHelper.MenuElements;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
+using Celeste.Mod.PuzzleIslandHelper.Helpers;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -125,7 +126,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override void Unload()
         {
             BitrailTransporter.Unload();
-            BitrailNode.Unload();
+            BitrailHelper.Unload();
             FloatyAlterBlock.Unload();
             UserInput.Unload();
             TrapdoorChandelier.GlobalUpdater.Unload();

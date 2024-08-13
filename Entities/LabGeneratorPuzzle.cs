@@ -1184,7 +1184,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             private void Drawing()
             {
-                foreach (Node node in Nodes) //Nodes
+                foreach (Node node in Nodes) //DirectionCombos
                 {
                     node.Render();
                 }
