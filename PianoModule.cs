@@ -39,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             base.PrepareMapDataProcessors(context);
             context.Add<PianoMapDataProcessor>();
-            
+
         }
         public static void LoadCustomData()
         {
@@ -75,6 +75,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public override void Load()
         {
+            PlayerCalidus.Load();
             BitrailTransporter.Load();
             FloatyAlterBlock.Load();
             UserInput.Load();
@@ -125,6 +126,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
         public override void Unload()
         {
+            PlayerCalidus.Unload();
             BitrailTransporter.Unload();
             BitrailHelper.Unload();
             FloatyAlterBlock.Unload();

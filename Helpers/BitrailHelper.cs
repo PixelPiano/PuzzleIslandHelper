@@ -105,7 +105,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                 int x = (int)pos.X / 8;
                 int y = (int)pos.Y / 8;
                 Grid[x, y] = true;
-                BitrailNode node = new BitrailNode(pos.Floor(),d);
+                BitrailNode node = new BitrailNode(pos.Floor(), d);
                 nodes.Add(node);
             }
             return nodes;
@@ -117,7 +117,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             {
                 if (node.Node is Nodes.DeadEnd or Nodes.Single)
                 {
-                    dict.Add(node, new Hitbox(10, 10));
+                    dict.Add(node, new Hitbox(8,8));
                 }
             }
             return dict;
@@ -130,12 +130,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             {
                 if (node.Node is Nodes.DeadEnd or Nodes.Single)
                 {
-                    string levelName = data.GetAt(node.RenderPosition).Name;
-                    if (!dict.ContainsKey(levelName))
+                    LevelData lData = data.GetAt(node.RenderPosition);
+                    if (lData != null)
                     {
-                        dict.Add(levelName, new());
+                        string levelName = lData.Name;
+                        if (!dict.ContainsKey(levelName))
+                        {
+                            dict.Add(levelName, new());
+                        }
+                        dict[levelName].Add(node);
                     }
-                    dict[levelName].Add(node);
                 }
             }
             return dict;
@@ -153,7 +157,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         }
         public static BitrailNode GetNeighbor(this BitrailNode from, Vector2 direction)
         {
-            if (from == null) return from;
+            if (from == null || direction == Vector2.Zero) return from;
             //if x is not 0, check left or right. otherwise, if y is not 0, check above or below
             BitrailNode result = direction.X != 0 ? direction.X > 0 ? from.NodeRight : from.NodeLeft : direction.Y > 0 ? from.NodeBelow : from.NodeAbove;
             return result ?? from;
@@ -181,7 +185,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                 _ => currentDirection
             };
         }
-        
+
         public static Vector2 NextSingleDirection(this BitrailNode node)
         {
             if (Enum.TryParse(node.Combo.ToString(), out Direction result))
@@ -192,6 +196,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         }
         public static bool HasSameDirection(this BitrailNode node, Vector2 direction)
         {
+            if (direction == Vector2.Zero && node.Control is BitrailNode.ControlTypes.Full) return true;
             if (direction.X > 0 && node.Directions.Contains(Direction.Right)) return true;
             if (direction.X < 0 && node.Directions.Contains(Direction.Left)) return true;
             if (direction.Y > 0 && node.Directions.Contains(Direction.Down)) return true;
@@ -229,6 +234,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         }
         public static bool NextDirectionValid(this BitrailNode node, Vector2 dir)
         {
+            if (node.Control == BitrailNode.ControlTypes.Full && dir == Vector2.Zero) return true;
             return node.Directions.Contains(VectorToDirection(dir));
         }
         public static string GetOrderedName(List<Direction> directions)

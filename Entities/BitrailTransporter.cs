@@ -19,7 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static bool Transporting;
         public string CurrentLevelName => SceneAs<Level>().Session.Level;
         public Grid Grid => BitrailHelper.Grid;
-        public Vector2 TransportPosition;
+        public Vector2 RailPosition;
         public Vector2 Dir;
         public HashSet<BitrailNode> Nodes = new();
         public Dictionary<string, HashSet<BitrailNode>> ExitNodesByLevel = new();
@@ -38,11 +38,51 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float nodeTimeLimit;
         private float nodeTimer;
         public float WarningAmount;
-        private bool ChangedDirectionsOnce;
+        public ParticleSystem Particles;
+        public ParticleType Particle = new()
+        {
+            Size = 2,
+            Source = GFX.Game["objects/PuzzleIslandHelper/particles/line01"],
+            Color = Color.LimeGreen * 0.5f,
+            Color2 = Color.Cyan * 0.8f,
+            ColorMode = ParticleType.ColorModes.Fade,
+            FadeMode = ParticleType.FadeModes.Linear,
+            ScaleOut = true,
+            SpinFlippedChance = true,
+            Friction = 1,
+            LifeMin = 0.5f,
+            LifeMax = 1.5f,
+            SpeedMin = 5,
+            SpeedMax = 10,
+            SpinMin = 0.5f,
+            SpinMax = 20
+        };
+        /*public class NodeAnimation : Sprite
+        {
+            public enum Anims
+            {
+                Enter,
+                Exit
+            }
+            private bool hide = true;
+            public NodeAnimation() : base(GFX.Game, "objects/PuzzleIslandHelper/bitRail/nodeAnimations/")
+            {
+                OnFinish = (s) =>
+                {
+                    RemoveSelf();
+                };
+
+            }
+            public void PlayAnimation(Anims anim)
+            {
+            }
+        }*/
         public BitrailTransporter() : base()
         {
             Depth = 1;
             Tag |= Tags.Global | Tags.TransitionUpdate;
+            Particles = new ParticleSystem(Depth - 1, 200);
+            Particles.Tag = Tag;
             BitrailHelper.InitializeGrids();
             Collider = new Hitbox(Grid.Width, Grid.Height);
             Position = BitrailHelper.MapPosition;
@@ -54,9 +94,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(exitAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { IgnoreNode = null; }, 0.4f, false));
             Add(dashAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { DashedFrom = null; }, 0.5f, false));
         }
+
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            scene.Add(Particles);
             Player = scene.GetPlayer();
             BitrailHelper.PrepareNodes(Nodes);
             BitrailHelper.AssignFamilies(Nodes);
@@ -66,6 +108,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            PrevRailPosition = RailPosition;
             if (Scene is not Level level || level.GetPlayer() is not Player player || player.Dead)
             {
                 Transporting = false;
@@ -146,16 +189,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 StopEjectTimer();
             }
-            Vector2 target = CurrentNode.RenderPosition;
-            if (TransportPosition != target) //move to the position at the rate set by "Speed"
+            Vector2 target = CurrentNode.RenderPosition + Vector2.One * 4;
+            if (RailPosition != target) //move to the position at the rate set by "Speed"
             {
-                MoveWithParticles(Calc.Approach(TransportPosition, target, Speed * Engine.DeltaTime));
+                RailPosition = Calc.Approach(RailPosition, target, Speed * Engine.DeltaTime);
+                if (Scene.OnInterval(2f / 60f))
+                {
+                    EmitParticle();
+                }
             }
             else if (CurrentNode != null)
             {
                 if (CurrentNode.Node is BitrailNode.Nodes.Exit)
                 {
-                    HopEject(Player, true);
+                    LameEject(Player);
                     return;
                 }
                 else if (CurrentNode.Bounces > 0)
@@ -171,9 +218,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 PreviousNode = CurrentNode;
                 CurrentNode = CurrentNode.GetNeighbor(Dir);
             }
-            player.MoveToX(TransportPosition.X + player.Width / 2);
-            player.MoveToY(TransportPosition.Y + player.Height / 2);
-
+            player.MoveToX(RailPosition.X);
+            player.MoveToY(RailPosition.Y + player.Height / 2);
         }
         public override void Render()
         {
@@ -186,7 +232,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (Transporting)
             {
-                Draw.Rect(TransportPosition, 8, 8, Color.Red);
+                Draw.Rect(RailPosition - Vector2.One * 4, 8, 8, Color.Red);
             }
         }
         public override void DebugRender(Camera camera)
@@ -198,10 +244,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Draw.HollowRect(pair.Value, color);
             }
         }
-        public override void SceneEnd(Scene scene)
+        public override void Removed(Scene scene)
         {
-            base.SceneEnd(scene);
+            base.Removed(scene);
             Reset(this);
+            Particles.RemoveSelf();
         }
         public static void Reset(BitrailTransporter t)
         {
@@ -212,10 +259,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             t.CurrentNode = null;
             t.PreviousNode = null;
         }
+        public Vector2 PrevRailPosition;
+        public bool Stopped => PrevRailPosition == RailPosition;
         public void DashEject(Player player)
         {
             Eject();
-            DashedFrom = TransportPosition;
+            DashedFrom = RailPosition;
             dashAlarm.Start();
             player?.StateMachine.ForceState(Player.StDash);
         }
@@ -230,7 +279,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     player.RefillDash();
                 }
                 player.Jump(false);
-                player.Speed += Dir.SafeNormalize(0.5f) * Speed;
+                //player.Speed += Dir.SafeNormalize(0.5f) * Speed;
             }
         }
         public void LameEject(Player player)
@@ -238,27 +287,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Eject();
             if (player != null)
             {
+                player.Speed.Y = 0;
                 player.Speed.X += Dir.X * 0.5f * Speed;
             }
         }
         public void Eject()
         {
-            ChangedDirectionsOnce = false;
             exitAlarm.Start();
             StopEjectTimer();
+            Dir = Vector2.Zero;
             IgnoreNode = LastExitNode;
             PreviousNode = CurrentNode;
             FirstExitNode = null;
             CurrentNode = null;
             Transporting = false;
         }
-        public void MoveWithParticles(Vector2 to)
+        private bool swap;
+        private void EmitParticle()
         {
-            while (TransportPosition != to)
-            {
-                TransportPosition = Calc.Approach(TransportPosition, to, 1);
-                //todo:emit particles
-            }
+            Vector2 offset = (Dir.X != 0 ? Vector2.UnitY : Vector2.UnitX) * (swap ? -1 : 1);
+            Particle.Acceleration = offset;
+            Particles.Emit(Particle, RailPosition + offset * 2, offset.Angle());
+            swap = !swap;
         }
         public void StartEjectTimer(BitrailNode node)
         {
@@ -301,33 +351,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     switch (control)
                     {
                         case ControlTypes.Default:
-                            Dir = ValidateDirection(InputDirection(Dir), prev);
+                            Dir = CurrentNode.NextIntersectionDirection(InputDirection(Dir));
                             break;
                         case ControlTypes.Full:
                             Vector2 newDir = FullInputDirection();
-                            if (newDir == Vector2.Zero || CurrentNode.HasSameDirection(newDir)) Dir = newDir;
+                            if (CurrentNode.NextDirectionValid(newDir)) Dir = newDir;
                             break;
                         case ControlTypes.None:
                             Dir = CurrentNode.NextIntersectionDirection(Dir);
                             break;
                     }
-                    ChangedDirectionsOnce = true;
                     break;
                 case BitrailNode.Nodes.FourWay:
                     switch (control)
                     {
                         case ControlTypes.Default:
-                            Dir = ValidateDirection(InputDirection(Dir), prev);
+                            Dir = InputDirection(Dir);
                             break;
                         case ControlTypes.Full:
                             Vector2 newDir = FullInputDirection();
-                            if (newDir == Vector2.Zero || CurrentNode.HasSameDirection(newDir)) Dir = newDir;
+                            if (CurrentNode.NextDirectionValid(newDir)) Dir = newDir;
                             break;
                         case ControlTypes.None:
                             Dir = prev;
                             break;
                     }
-                    ChangedDirectionsOnce = true;
                     break;
                 case BitrailNode.Nodes.DeadEnd:
                     LastExitNode = CurrentNode;
@@ -336,17 +384,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         case ControlTypes.Default:
                         case ControlTypes.Full:
                             Vector2 newDir = FullInputDirection();
-                            if (newDir == Vector2.Zero || CurrentNode.HasSameDirection(newDir)) Dir = newDir;
+                            if (CurrentNode.HasSameDirection(newDir)) Dir = newDir;
                             break;
                         case ControlTypes.None:
                             Dir = CurrentNode.NextSingleDirection();
                             break;
                     }
-                    ChangedDirectionsOnce = true;
                     break;
                 case BitrailNode.Nodes.Corner:
                     Dir = CurrentNode.NextCornerDirection(Dir);
-                    ChangedDirectionsOnce = true;
                     break;
             }
         }
@@ -355,7 +401,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (startingNode == null || !startingNode.IsEntryPoint) return;
             Transporting = true;
             FirstExitNode = LastExitNode = CurrentNode = startingNode;
-            TransportPosition = CurrentNode.RenderPosition;
+            RailPosition = CurrentNode.RenderPosition;
             player.Speed = Vector2.Zero;
             switch (CurrentNode.Control)
             {
@@ -370,11 +416,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         Dir = Calc.Ceiling(Vector2.UnitY * player.DashDir.Y);
                     }
                     break;
+                case ControlTypes.Full:
+                    Vector2 newDir = FullInputDirection();
+                    if (CurrentNode.HasSameDirection(newDir)) Dir = newDir;
+                    break;
                 case ControlTypes.None:
                     Dir = CurrentNode.NextSingleDirection();
-                    break;
-                case ControlTypes.Full:
-                    Dir = ValidateDirection(FullInputDirection(), Vector2.Zero);
                     break;
             }
             player.Collidable = false;
@@ -387,7 +434,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             foreach (KeyValuePair<BitrailNode, Collider> pair in ExitColliders)
             {
-                ExitColliders[pair.Key].Position = pair.Key.Position + Position - Vector2.One;
+                ExitColliders[pair.Key].Position = pair.Key.Position + Position;
             }
         }
         public static void Unload()

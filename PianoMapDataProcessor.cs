@@ -30,24 +30,27 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
             Action<BinaryPacker.Element> bitrailNodeHandler = data =>
-          {
-              BitrailData raildata = new BitrailData
-              {
-                  MapData = MapData,
-                  LevelName = levelName,
-                  Offset = new(data.AttrFloat("x"), data.AttrFloat("y")),
-                  Bounces = data.AttrInt("bounces"),
-                  IsExit = data.AttrBool("isExit"),
-                  GroupID = data.Attr("groupId"),
-                  Color = Calc.HexToColor(data.Attr("color")),
-                  TimeLimit = data.AttrFloat("timeLimit", -1),
-                  ControlType = (BitrailNode.ControlTypes)Enum.Parse(typeof(BitrailNode.ControlTypes), data.Attr("control", "Default"))
-          };
-            if (raildata is not null)
             {
-                Bitrails.Add(raildata);
-            }
-        };
+                BitrailData raildata = new BitrailData
+                {
+                    MapData = MapData,
+                    LevelName = levelName,
+                    Offset = new(data.AttrFloat("x"), data.AttrFloat("y")),
+                    Bounces = data.AttrInt("bounces"),
+                    IsExit = data.AttrBool("isExit"),
+                    GroupID = data.Attr("groupId"),
+                    Color = Calc.HexToColor(data.Attr("color")),
+                    TimeLimit = data.AttrFloat("timeLimit", -1),
+                    ControlType = (BitrailNode.ControlTypes)Enum.Parse(typeof(BitrailNode.ControlTypes), data.Attr("control", "Default"))
+                };
+                if (raildata is not null)
+                {
+                    Bitrails.Add(raildata);
+                }
+            };
+            Action<BinaryPacker.Element> playerCalidusHandler = data =>
+            {
+            };
             return new Dictionary<string, Action<BinaryPacker.Element>> {
                 {
                     "level", level =>
@@ -57,26 +60,33 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         if (levelName.StartsWith("lvl_")) {
                             levelName = levelName.Substring(4);
                         }
-}
+                    }
+                },
+
+                {
+                    "entity:PuzzleIslandHelper/BitrailNode", node =>
+                    {
+                        bitrailNodeHandler(node);
+                    }
                 },
                 {
-    "entity:PuzzleIslandHelper/BitrailNode", node =>
-    {
-        bitrailNodeHandler(node);
-    }
-                }
+                    "entity:PuzzleIslandHelper/PlayerCalidus", playerCalidus =>
+                    {
+
+                    }
+                },
             };
         }
 
         public override void Reset()
-{
-    // reset the dictionary for the current map and mode.
-    Bitrails = new List<BitrailData>();
-}
+        {
+            // reset the dictionary for the current map and mode.
+            Bitrails = new List<BitrailData>();
+        }
 
-public override void End()
-{
-    levelName = null;
-}
+        public override void End()
+        {
+            levelName = null;
+        }
     }
 }

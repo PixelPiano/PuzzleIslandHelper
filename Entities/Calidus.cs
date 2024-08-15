@@ -40,7 +40,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             DownRight,
             DownLeft,
             Center,
-            Player
+            Player,
+            Target
         }
         public Looking LookDir = Looking.Center;
         public Mood CurrentMood = Mood.Normal;
@@ -48,7 +49,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private int ArmLoopCount;
         private int ArmBuffer = 60;
         private int heeheeBuffer = 2;
-        public const float FloatHeight = 6;
+        public float FloatHeight = 6;
         public float LookSpeed = 1;
 
         public Part BrokenParts;
@@ -78,9 +79,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool Broken;
         public bool Talkable;
 
+        public Collider SpriteBox;
         public List<Part> Parts = new();
         private MTexture Star;
         public TalkComponent Talk;
+
+        public bool IsPlayer;
 
         private ParticleType HeeHee = new ParticleType
         {
@@ -295,6 +299,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void Interact(Player player)
         {
+            if (IsPlayer) return;
             Scene.Add(new CalidusCutscene(CalidusCutscene.Cutscenes.SecondA));
         }
         public override void Added(Scene scene)
@@ -308,10 +313,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 BrokenParts.Play("broken");
                 Position -= new Vector2(BrokenParts.Width / 2, BrokenParts.Height / 2);
-                Collider = new Hitbox(BrokenParts.Width, BrokenParts.Height);
+                SpriteBox = new Hitbox(BrokenParts.Width / 2, BrokenParts.Height / 2);
             }
             OrigPosition = Position;
-            if ((scene as Level).Session.Level == "digiRuinsLabB3")
+            if ((scene as Level).Session.Level == "digiRuinsLabB3" && !IsPlayer)
             {
                 Add(Talk = new TalkComponent(new Rectangle((int)Collider.Position.X, 0, (int)Width, (int)Height + 24), OrbSprite.Center.XComp(), Interact));
             }
@@ -329,7 +334,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void Update()
         {
-            if (Talk != null)
+            if (Talk != null && !IsPlayer)
             {
                 if (CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.Second))
                 {
@@ -367,9 +372,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             if (Broken) return; //////////////////////////////////
 
+            LookTargetEnabled = LookDir == Looking.Player || LookDir == Looking.Target;
             if (LookDir == Looking.Player)
             {
-                LookTargetEnabled = true;
                 LookTarget = player.Center;
             }
             StarRotation = RenderStar ? 0 : StarRotation + Engine.DeltaTime * 3;
@@ -395,7 +400,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Looking.UpRight => new Vector2(4, -4),
                 Looking.DownLeft => new Vector2(-4, 4),
                 Looking.DownRight => Vector2.One * 4,
-                Looking.Player => RotatePoint(OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, LookTarget).ToDeg()),
+                Looking.Target or Looking.Player => RotatePoint(OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, LookTarget).ToDeg()),
                 Looking.Center => Vector2.Zero,
                 _ => Vector2.Zero
             };
@@ -594,7 +599,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             EyeSprite.Position += OrbSprite.Center;
             Arms[0].Position.X += -(Arms[0].Width + 1);
             Arms[1].Position.X += OrbSprite.Width;
-            Collider = new Hitbox(Arms[0].Width * 2 + 3 + OrbSprite.Width, OrbSprite.Height, Arms[0].X - 5);
+            SpriteBox = new Hitbox(Arms[0].Width * 2 + 3 + OrbSprite.Width, OrbSprite.Height, Arms[0].X - 5);
+            Collider = new Hitbox(OrbSprite.Width, OrbSprite.Height);
             Position -= new Vector2(6, 4);
             Add(new Coroutine(AddRoutines(fromBroken)));
         }
@@ -615,7 +621,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(new Coroutine(FloatLoop()));
             Add(new Coroutine(ArmLoop()));
             Add(new Coroutine(Blink()));
-            Add(new Coroutine(DuckBounceCheck()));
+            if (!IsPlayer)
+            {
+                Add(new Coroutine(DuckBounceCheck()));
+            }
         }
         private void PlayerFace(Player player)
         {

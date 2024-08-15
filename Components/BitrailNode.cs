@@ -221,8 +221,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 {
                     1 => Color.Cyan,
                     2 => Color.Red,
-                    3 => Color.Pink,
-                    _ => Color.Purple
+                    _ => Color.Purple,
                 };
                 Draw.Rect(RenderPosition + Vector2.One * 2, 4, 4, color);
             }
