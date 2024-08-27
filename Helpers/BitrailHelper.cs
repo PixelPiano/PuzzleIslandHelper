@@ -110,25 +110,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             }
             return nodes;
         }
-        public static Dictionary<BitrailNode, Collider> CreateExitColliders(HashSet<BitrailNode> nodes)
+        public static Dictionary<BitrailNode, Collider> CreateExitColliders(HashSet<BitrailNode> nodes, Predicate<BitrailNode> predicate = null)
         {
             Dictionary<BitrailNode, Collider> dict = new();
             foreach (BitrailNode node in nodes)
             {
-                if (node.Node is Nodes.DeadEnd or Nodes.Single)
+                if (node.Node is Nodes.DeadEnd or Nodes.Single && (predicate == null || predicate(node)))
                 {
-                    dict.Add(node, new Hitbox(8,8));
+                    dict.Add(node, new Hitbox(8, 8));
                 }
             }
             return dict;
         }
-        public static Dictionary<string, HashSet<BitrailNode>> ExitNodesByLevel(HashSet<BitrailNode> nodes, Level level)
+        public static Dictionary<string, HashSet<BitrailNode>> NodesByLevel(HashSet<BitrailNode> nodes, Level level, Predicate<BitrailNode> predicate = null)
         {
             Dictionary<string, HashSet<BitrailNode>> dict = new();
             MapData data = level.Session.MapData;
             foreach (BitrailNode node in nodes)
             {
-                if (node.Node is Nodes.DeadEnd or Nodes.Single)
+                if (predicate == null || predicate(node))
                 {
                     LevelData lData = data.GetAt(node.RenderPosition);
                     if (lData != null)

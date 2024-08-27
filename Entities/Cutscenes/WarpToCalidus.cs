@@ -167,7 +167,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 level.LoadLevel(Player.IntroTypes.None);
 
                 level.Camera.Position = level.LevelOffset + val3 + offset.Floor();
-                //level.Add(player);
                 if (snapToSpawnPoint && session.RespawnPoint.HasValue)
                 {
                     player.Position = session.RespawnPoint.Value + offset.Floor();

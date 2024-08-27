@@ -10,10 +10,17 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
 using System.Linq;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.PlayerCalidus;
 
 public class PianoCommands
 {
 
+    [Command("cInv", "sets any CalidusPlayer entity's RoboInventory")]
+    public static void SetCalidusInventory(int inventory)
+    {
+        Upgrades upgrade = (Upgrades)Calc.Clamp(inventory, 0, 5);
+        SetInventory(upgrade);
+    }
     [Command("ftprogram", "starts a program on the fake terminal entity")]
     public static void AddFakeProgram(string programName)
     {
@@ -61,7 +68,7 @@ public class PianoCommands
             Engine.Commands.Log("Current Scene is currently not a level.");
             return;
         }
-        foreach(TerminalProgram p in level.Tracker.GetEntities<TerminalProgram>())
+        foreach (TerminalProgram p in level.Tracker.GetEntities<TerminalProgram>())
         {
             p.RemoveSelf();
         }
@@ -71,15 +78,20 @@ public class PianoCommands
         }
 
     }
-    [Command("debugint", "sets a debug int value")]
+    [Command("di", "sets a debug int value")]
     private static void SetDebugInt(int num)
     {
         PianoModule.Session.DEBUGINT = num;
     }
-    [Command("debugbool", "sets a debug bool value")]
+    [Command("db", "sets a debug bool value")]
     private static void SetDebugBool(bool value)
     {
         PianoModule.Session.DEBUGBOOL = value;
+    }
+    [Command("dv", "sets a debug vector value")]
+    private static void SetDebugVector(int x, int y)
+    {
+        PianoModule.Session.DEBUGVECTOR = new Vector2(x, y);
     }
     [Command("sspinnerflag", "sets a flag for sound spinners")]
     private static void SetSoundSpinnerFlag(string id, bool state = true)

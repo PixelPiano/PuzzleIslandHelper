@@ -304,9 +304,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             /*How to render stuff with Shader effects:
              * 1. You need two render targets.
              * 2. Render the stuff you want affected by the Shader to RT 1 (in this case, whatever is in "CoolStuff()".
-             * 3. Draw the contents of RT 1 to RT 2, but this acceleration using the ShaderFX.CurvedScreen.
+             * 3. Draw the contents of RT 1 to RT 2, but this time using the ShaderFX.CurvedScreen.
              * 4. In Render(), draw RT 2.
-             * Note: ID avoid inconsistent render positions, use Matrix.Identity/Vector2.Zero in BeforeRender(), and then render to whatever position you like in Render().
+             * Note: ID avoid inconsistent render positions, use Matrix.Identity/Vector2.Zeroth in BeforeRender(), and then render to whatever position you like in Render().
              * Also stop pestering rendering pros about your jank stuff ok
              */
             if (Scene is not Level level) return;
@@ -318,7 +318,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, ShaderFX.CurvedScreen, Matrix.Identity);
             Draw.SpriteBatch.Draw(Target, Vector2.Zero, Color.White);
             Draw.SpriteBatch.End();
-            //Target.MaskToObject(Mask);
+            //RushTarget.MaskToObject(Mask);
         }
 
         public void ApplyParameters(Level level)

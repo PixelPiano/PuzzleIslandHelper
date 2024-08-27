@@ -3,9 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Helpers;
+using ExtendedVariants.Variants;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using static Celeste.DustGraphic;
 using static Celeste.Mod.PuzzleIslandHelper.Components.BitrailNode;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -23,6 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Vector2 Dir;
         public HashSet<BitrailNode> Nodes = new();
         public Dictionary<string, HashSet<BitrailNode>> ExitNodesByLevel = new();
+        public static Dictionary<string, HashSet<BitrailNode>> NodesByLevel = new();
         public Dictionary<BitrailNode, Collider> ExitColliders = new();
         public BitrailNode CurrentNode;
         public BitrailNode IgnoreNode;
@@ -39,6 +41,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float nodeTimer;
         public float WarningAmount;
         public ParticleSystem Particles;
+        private float dist;
+        private float distLimit = 7;
+        private PlayerCalidus pC;
         public ParticleType Particle = new()
         {
             Size = 2,
@@ -77,14 +82,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
             }
         }*/
+        private static VirtualRenderTarget _buffer;
+        public static VirtualRenderTarget Buffer = _buffer ??= VirtualContent.CreateRenderTarget("bitrailTarget", 24, 24);
+        private static VirtualRenderTarget _mask;
+        public static VirtualRenderTarget Mask = _mask ??= VirtualContent.CreateRenderTarget("bitrailMask", 24, 24);
+        private BeforeRenderHook hook;
         public BitrailTransporter() : base()
         {
-            Depth = 1;
+            Depth = -10002;
             Tag |= Tags.Global | Tags.TransitionUpdate;
             Particles = new ParticleSystem(Depth - 1, 200);
             Particles.Tag = Tag;
             BitrailHelper.InitializeGrids();
-            Collider = new Hitbox(Grid.Width, Grid.Height);
             Position = BitrailHelper.MapPosition;
             Nodes = BitrailHelper.CreateNodes();
             foreach (BitrailNode node in Nodes)
@@ -93,20 +102,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Add(exitAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { IgnoreNode = null; }, 0.4f, false));
             Add(dashAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { DashedFrom = null; }, 0.5f, false));
+            Add(hook = new BeforeRenderHook(BeforeRender));
         }
+
+
 
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            Level level = scene as Level;
             scene.Add(Particles);
             Player = scene.GetPlayer();
+            pC = Player as PlayerCalidus;
             BitrailHelper.PrepareNodes(Nodes);
             BitrailHelper.AssignFamilies(Nodes);
             ExitColliders = BitrailHelper.CreateExitColliders(Nodes);
-            ExitNodesByLevel = BitrailHelper.ExitNodesByLevel(Nodes, scene as Level);
+            NodesByLevel = BitrailHelper.NodesByLevel(Nodes, level);
+            ExitNodesByLevel = BitrailHelper.NodesByLevel(Nodes, level,
+                item => item.Node is BitrailNode.Nodes.DeadEnd or BitrailNode.Nodes.Single);
+
+            foreach (BitrailNode node in Nodes)
+            {
+                if (node.Node is not BitrailNode.Nodes.Single or BitrailNode.Nodes.DeadEnd or BitrailNode.Nodes.Exit)
+                {
+                    if (Collide.CheckPoint(level.SolidTiles, node.Position))
+                    {
+                        node.SwitchToInSolid();
+                    }
+                }
+            }
         }
+        private float dashTimer = 0;
+        public static bool IgnoreLevel;
         public override void Update()
         {
+            IgnoreLevel = !NodesByLevel.ContainsKey(CurrentLevelName);
+            if (IgnoreLevel)
+            {
+                Transporting = false;
+                DashedFrom = null;
+                return;
+            }
             base.Update();
             PrevRailPosition = RailPosition;
             if (Scene is not Level level || level.GetPlayer() is not Player player || player.Dead)
@@ -116,6 +152,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             Player = player;
+            if (Player is PlayerCalidus)
+            {
+                pC = Player as PlayerCalidus;
+            }
+            bool playerDashing = pC != null ? pC.Blipping : player.DashAttacking;
+            dashTimer = Calc.Max(0, dashTimer - Engine.DeltaTime);
             if (WaitingForEject && nodeTimeLimit > 0)
             {
                 nodeTimer -= Engine.DeltaTime;
@@ -133,17 +175,43 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 TransportUpdate(player);
                 if (!level.Transitioning)
                 {
-                    if (Input.DashPressed || Input.CrouchDashPressed)
+                    if (pC != null)
                     {
-                        DashEject(player);
+                        if (dashTimer <= 0 && Input.CrouchDashPressed)
+                        {
+                            Vector2 dir = new Vector2(Input.MoveX.Value, Input.MoveY.Value);
+                            if (dir == Vector2.Zero) dir = Dir;
+                            Vector2 speed = dir * 240f;
+                            if (pC.TryGetBlipTarget(pC.Position, speed, out Vector2 target))
+                            {
+                                pC.CrouchDashed = true;
+                                DashEject(player);
+                            }
+                        }
+                        else if (!player.CollideCheck<Solid>())
+                        {
+                            if (dashTimer <= 0 && Input.DashPressed)
+                            {
+                                dashTimer = Engine.DeltaTime * 10;
+                                DashEject(player);
+                            }
+                        }
                     }
-                    else if (Input.Jump.Pressed)
+                    else if (!player.CollideCheck<Solid>())
                     {
-                        HopEject(player, true);
+                        if (dashTimer <= 0 && Input.DashPressed)
+                        {
+                            dashTimer = Engine.DeltaTime * 10;
+                            DashEject(player);
+                        }
+                        else if (Input.Jump.Pressed)
+                        {
+                            HopEject(player, true);
+                        }
                     }
                 }
             }
-            else if (player.DashAttacking && !level.Transitioning)
+            else if (dashTimer <= 0 && playerDashing && !level.Transitioning)
             {
                 OnEnter(Colliding(player), player);
             }
@@ -192,17 +260,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Vector2 target = CurrentNode.RenderPosition + Vector2.One * 4;
             if (RailPosition != target) //move to the position at the rate set by "Speed"
             {
+                Vector2 prev = RailPosition;
                 RailPosition = Calc.Approach(RailPosition, target, Speed * Engine.DeltaTime);
-                if (Scene.OnInterval(2f / 60f))
+                dist += Vector2.Distance(prev, RailPosition);
+                if (dist > distLimit)
                 {
-                    EmitParticle();
+                    for (float d = 0; d < dist; d += distLimit)
+                    {
+                        EmitParticle(Vector2.Lerp(prev, RailPosition, d / dist));
+                    }
+                    dist %= distLimit;
                 }
             }
             else if (CurrentNode != null)
             {
                 if (CurrentNode.Node is BitrailNode.Nodes.Exit)
                 {
-                    LameEject(Player);
+                    LameEject(player);
                     return;
                 }
                 else if (CurrentNode.Bounces > 0)
@@ -218,11 +292,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 PreviousNode = CurrentNode;
                 CurrentNode = CurrentNode.GetNeighbor(Dir);
             }
-            player.MoveToX(RailPosition.X);
-            player.MoveToY(RailPosition.Y + player.Height / 2);
+            Vector2 offset;
+            if (player is PlayerCalidus)
+            {
+                offset = Vector2.One * -4;
+            }
+            else
+            {
+                offset = Vector2.UnitY * player.Height / 2;
+            }
+            player.Position.X = RailPosition.X + offset.X;
+            player.Position.Y = RailPosition.Y + offset.Y;
+            player.Position.Floor();
         }
         public override void Render()
         {
+            if (IgnoreLevel)
+            {
+                Draw.Rect(SceneAs<Level>().Camera.Position, 8, 8, Color.Blue);
+                return;
+            }
             foreach (BitrailNode node in Nodes)
             {
                 if (node.OnScreen)
@@ -232,8 +321,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (Transporting)
             {
-                Draw.Rect(RailPosition - Vector2.One * 4, 8, 8, Color.Red);
+                Draw.Rect(SceneAs<Level>().Camera.Position, 16, 8, Color.Yellow);
+                Draw.SpriteBatch.Draw((Texture2D)Buffer, RailPosition - Vector2.One * 12, Color.White);
+                //Draw.Rect(RailPosition - Vector2.One * 4, 8, 8, Color.Red);
             }
+        }
+        private void RenderMask()
+        {
+            string levelName = CurrentLevelName;
+            Vector2 topLeft = RailPosition - Vector2.One * 12;
+            if (NodesByLevel.ContainsKey(levelName))
+            {
+                foreach (BitrailNode node in NodesByLevel[levelName])
+                {
+                    if (node.OnScreen && Vector2.DistanceSquared(node.RenderPosition, RailPosition) < 144f)
+                    {
+                        node.RenderAt(node.RenderPosition - topLeft);
+                    }
+                }
+            }
+        }
+        private void RenderOverlay()
+        {
+            Draw.Rect(Vector2.Zero, 24, 24, Color.Red);
+        }
+
+        private void BeforeRender()
+        {
+            if (IgnoreLevel) return;
+            Buffer.DrawThenMaskWhite(RenderMask, RenderOverlay, Matrix.Identity);
         }
         public override void DebugRender(Camera camera)
         {
@@ -243,6 +359,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Color color = pair.Key == FirstExitNode ? Color.Cyan : pair.Key == IgnoreNode ? Color.Gray : pair.Key == LastExitNode ? Color.Yellow : Color.Blue;
                 Draw.HollowRect(pair.Value, color);
             }
+            Draw.Point(RailPosition, Color.White);
         }
         public override void Removed(Scene scene)
         {
@@ -252,6 +369,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static void Reset(BitrailTransporter t)
         {
+            IgnoreLevel = false;
             Transporting = false;
             t.FirstExitNode = null;
             t.LastExitNode = null;
@@ -263,15 +381,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool Stopped => PrevRailPosition == RailPosition;
         public void DashEject(Player player)
         {
-            Eject();
+            Eject(player);
             DashedFrom = RailPosition;
             dashAlarm.Start();
-            player?.StateMachine.ForceState(Player.StDash);
+            if (player != null)
+            {
+                if (player is PlayerCalidus c)
+                {
+                    c.StateMachine.ForceState(PlayerCalidus.BlipState);
+                }
+                else
+                {
+                    player?.StateMachine.ForceState(Player.StDash);
+                }
+                player.Visible = false;
+                Add(new Coroutine(VisibilityRoutine(player)));
+            }
+        }
+        private IEnumerator VisibilityRoutine(Player player)
+        {
+            yield return null;
+            player.Visible = true;
         }
         public void HopEject(Player player, bool refill)
         {
-            Eject();
-            if (player != null)
+            Eject(player, true);
+            if (player != null && player is not PlayerCalidus)
             {
                 if (refill)
                 {
@@ -279,20 +414,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     player.RefillDash();
                 }
                 player.Jump(false);
-                //player.Speed += Dir.SafeNormalize(0.5f) * Speed;
             }
         }
         public void LameEject(Player player)
         {
-            Eject();
             if (player != null)
             {
-                player.Speed.Y = 0;
-                player.Speed.X += Dir.X * 0.5f * Speed;
+                if (player.CollideCheck<Solid>())
+                {
+                    Dir = Vector2.Zero;
+                    player.Die(Vector2.Zero);
+                }
+                else
+                {
+                    player.Speed.Y += Dir.Y * 0.5f * Speed;
+                    player.Speed.X += Dir.X * 0.5f * Speed;
+                    player.Visible = false;
+                    Add(new Coroutine(VisibilityRoutine(player)));
+                }
             }
+            Eject(player, true);
         }
-        public void Eject()
+
+        public void Eject(Player player)
         {
+            if (player is PlayerCalidus c)
+            {
+                c.InRail = false;
+            }
             exitAlarm.Start();
             StopEjectTimer();
             Dir = Vector2.Zero;
@@ -302,12 +451,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             CurrentNode = null;
             Transporting = false;
         }
+        public void Eject(Player player, bool forceNormalState)
+        {
+            if (forceNormalState && player is PlayerCalidus c)
+            {
+                c.StateMachine.ForceState(PlayerCalidus.NormalState);
+            }
+            Eject(player);
+        }
         private bool swap;
         private void EmitParticle()
         {
             Vector2 offset = (Dir.X != 0 ? Vector2.UnitY : Vector2.UnitX) * (swap ? -1 : 1);
             Particle.Acceleration = offset;
             Particles.Emit(Particle, RailPosition + offset * 2, offset.Angle());
+            swap = !swap;
+        }
+        private void EmitParticle(Vector2 position)
+        {
+            Vector2 offset = (Dir.X != 0 ? Vector2.UnitY : Vector2.UnitX) * (swap ? -1 : 1);
+            Particle.Acceleration = offset;
+            Particles.Emit(Particle, position + offset * 2, offset.Angle());
             swap = !swap;
         }
         public void StartEjectTimer(BitrailNode node)
@@ -396,12 +560,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     break;
             }
         }
+
         public void OnEnter(BitrailNode startingNode, Player player)
         {
             if (startingNode == null || !startingNode.IsEntryPoint) return;
+            if (player is PlayerCalidus c)
+            {
+                if (c.NoRailTimer > 0) return;
+                c.StateMachine.ForceState(PlayerCalidus.RailState);
+                c.InRail = true;
+                c.AddBitrailAbsorb(startingNode);
+            }
+            dashTimer = Engine.DeltaTime * 10;
             Transporting = true;
             FirstExitNode = LastExitNode = CurrentNode = startingNode;
-            RailPosition = CurrentNode.RenderPosition;
+            RailPosition = CurrentNode.RenderPosition + Vector2.One * 4;
             player.Speed = Vector2.Zero;
             switch (CurrentNode.Control)
             {
@@ -442,18 +615,43 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;
             On.Celeste.Player.Render -= Player_Render;
             On.Celeste.Player.TransitionTo -= Player_TransitionTo;
+            Everest.Events.Level.OnTransitionTo -= Level_OnTransitionTo;
             On.Celeste.Player.Update -= Player_Update;
             Everest.Events.Player.OnSpawn -= Player_OnSpawn;
+            Everest.Events.Player.OnDie -= Player_OnDie;
             On.Celeste.PlayerCollider.Check -= PlayerCollider_Check;
+            NodesByLevel.Clear();
+            _mask?.Dispose();
+            _mask = null;
+            _buffer?.Dispose();
+            _buffer = null;
         }
         public static void Load()
         {
             Everest.Events.LevelLoader.OnLoadingThread += LevelLoader_OnLoadingThread;
             On.Celeste.Player.Render += Player_Render;
             On.Celeste.Player.TransitionTo += Player_TransitionTo;
+            Everest.Events.Level.OnTransitionTo += Level_OnTransitionTo;
             On.Celeste.Player.Update += Player_Update;
+            Everest.Events.Player.OnDie += Player_OnDie;
             Everest.Events.Player.OnSpawn += Player_OnSpawn;
             On.Celeste.PlayerCollider.Check += PlayerCollider_Check;
+        }
+
+        private static void Player_OnDie(Player obj)
+        {
+            Reset(obj.Scene);
+            CheckedLevel = false;
+        }
+        public override void SceneBegin(Scene scene)
+        {
+            base.SceneBegin(scene);
+            //CheckLevel((scene as Level).Session.Level);
+        }
+
+        private static void Level_OnTransitionTo(Level level, LevelData next, Vector2 direction)
+        {
+            //CheckLevel(next.Name);
         }
 
         private static void Reset(Scene scene)
@@ -463,7 +661,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Reset(bT);
             }
         }
-
+        public static bool CheckedLevel;
+        public static void CheckLevel(string levelName)
+        {
+            if (CheckedLevel) return;
+            IgnoreLevel = !NodesByLevel.ContainsKey(levelName);
+            CheckedLevel = true;
+        }
         private static void Player_OnSpawn(Player obj)
         {
             Reset(obj.Scene);
@@ -482,6 +686,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private static bool Player_TransitionTo(On.Celeste.Player.orig_TransitionTo orig, Player self, Vector2 target, Vector2 direction)
         {
+
             if (Transporting)
             {
                 self.UpdateHair(applyGravity: false);

@@ -48,7 +48,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 x = size * count;
                 if (x >= 1f) break;
 
-                // Too far from Target sample X
+                // Too far from RushTarget sample X
                 while (Math.Abs(x - cx) > tolerate)
                 {
                     // Use the derivative to make an educated jump towards the next sample based on "urgence"

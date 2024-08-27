@@ -137,18 +137,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 base.Added(entity);
                 CenterOrigin();
-                Position += new Vector2(Width / 2, Height / 2);
+                Position += new Vector2(Width / 2, Height / 2).Floor();
             }
             public void DrawOutline()
             {
                 DrawOutline(Color.Black * OutlineOpacity);
             }
-            public override void Render()
+            public void DrawOutline(Vector2 at)
+            {
+                Vector2 from = Position;
+                Position = at + Offset;
+                DrawOutline();
+                Position = from;
+            }
+            public void RenderAt(Vector2 at)
             {
                 if (Texture != null)
                 {
-                    Texture.Draw(RenderPosition + Offset, Origin, Color, Scale, Rotation, Effects);
+                    Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, at + Offset, null, Color, Rotation, Origin, Scale, Effects, 0);
                 }
+            }
+            public override void Render()
+            {
+                RenderAt(RenderPosition);
             }
             public void Fall(float distanceToFloor)
             {

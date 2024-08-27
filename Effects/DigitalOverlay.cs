@@ -241,7 +241,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 RasterizerState.CullNone,
                 null, Matrix.Identity);
 
-            //draw mask to object Target
+            //draw mask to object RushTarget
             Draw.SpriteBatch.Draw(MaskRenderTarget, Vector2.Zero, Color.White);
 
             GameplayRenderer.End();

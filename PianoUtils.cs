@@ -43,6 +43,45 @@ public static class PianoUtils
             }
         }
     }
+    public static void StandardBegin(this SpriteBatch spriteBatch)
+    {
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone);
+    }
+    public static void StandardBegin(this SpriteBatch spriteBatch, Effect effect)
+    {
+         Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect);
+    }
+    public static void StandardBegin(this SpriteBatch spriteBatch, Effect effect, Matrix matrix)
+    {
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect, matrix);
+    }
+    public static void FNAWakeUpSlap(this SpriteBatch spriteBatch, Effect effect)
+    {
+         Draw.SpriteBatch.StandardBegin(effect);
+        Draw.Rect(0,0,1,1,Color.Transparent);
+        Draw.SpriteBatch.End();
+    }
+    public static void SetRenderTarget(this VirtualRenderTarget source, Color? clear = null)
+    {
+        Engine.Graphics.GraphicsDevice.SetRenderTarget(source);
+        if (clear.HasValue)
+        {
+            Engine.Graphics.GraphicsDevice.Clear(clear.Value);
+        }
+    }
+    public static VirtualRenderTarget Apply(this VirtualRenderTarget source, VirtualRenderTarget bufferSameSizeAsSource, Effect effect, Vector2 position = default)
+    {
+        bufferSameSizeAsSource.SetRenderTarget(Color.Transparent);
+        Draw.SpriteBatch.StandardBegin(effect);
+        Draw.SpriteBatch.Draw((RenderTarget2D)source, position, Color.White);
+        Draw.SpriteBatch.End();
+        source.SetRenderTarget(Color.Transparent);
+        Draw.SpriteBatch.StandardBegin(effect);
+        Draw.SpriteBatch.Draw((RenderTarget2D)bufferSameSizeAsSource, position, Color.White);
+        Draw.SpriteBatch.End();
+        return source;
+
+    }
     public static float ClampRange(float value, float range)
     {
         float min = Calc.Min(range, -range);

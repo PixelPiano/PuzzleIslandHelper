@@ -44,7 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 return;
             }
-            Shader.ApplyScreenSpaceParameters(level);
+            Shader.ApplyVectorZeroParams(level);
 
 
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
@@ -64,7 +64,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
             if (CanRender)
             {
-                //Draw.SpriteBatch.Draw(GameplayBuffers.Gameplay, Vector2.Zero, From.White);
+                //Draw.SpriteBatch.Draw(GameplayBuffers.Gameplay, Vector2.Zeroth, From.White);
 
                 Draw.SpriteBatch.Draw(Target, Vector2.Zero, Color.White);
             }

@@ -8,6 +8,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
     [CustomBackdrop("PuzzleIslandHelper/DigitalGrid")]
     public class DigitalGrid : Backdrop
     {
+        public static float CalidusEyeDiff;
         private float SpacingY;
         private float SpacingX;
         private bool MovingEnabled;
@@ -109,6 +110,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 base.Render(scene);
                 return;
             }
+            Color color = Color.Lerp(this.color, Color.Black, CalidusEyeDiff);
             Vector2 cam = level.Camera.Position;
             Vector2 current = cam - compensation;
             GameplayRenderer.End();
@@ -125,7 +127,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                     current.Y += SpacingY;
 
                 }
-            } //Draw to render Target
+            }
             if (VerticalLines)
             {
                 float startY = cam.Y - compensation.Y;
@@ -155,7 +157,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                                    RasterizerState.CullNone,
                                    effect,
                                    level.Camera.Matrix);
-            Draw.SpriteBatch.Draw(GridRenderTarget, Vector2.Zero, Color.White); //Draw content of render Target to level
+            Draw.SpriteBatch.Draw(GridRenderTarget, Vector2.Zero, Color.White); //Draw content of render RushTarget to level
         }
     }
 }

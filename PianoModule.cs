@@ -14,6 +14,7 @@ using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
 using Celeste.Mod.PuzzleIslandHelper.Helpers;
+using IL.Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -75,6 +76,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public override void Load()
         {
+
+            DigiFolliage.BgFolliageRenderer.Load();
             PlayerCalidus.Load();
             BitrailTransporter.Load();
             FloatyAlterBlock.Load();
@@ -120,12 +123,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
             MazeData.Load();
             OuiFileFader.Load();
             BatteryRespawn.Load();
-
+            SineHelper.Load();
         }
 
 
         public override void Unload()
         {
+
+            SineHelper.Unload();
+            DigiFolliage.BgFolliageRenderer.Unload();
             PlayerCalidus.Unload();
             BitrailTransporter.Unload();
             BitrailHelper.Unload();

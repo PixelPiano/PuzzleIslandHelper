@@ -255,7 +255,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Dust.SpeedMax = Speed.X - Speed.Y;
             if (!moving)
             {
-                Speed = Vector2.Zero;
+                Speed = Vector2.Zeroth;
             }
             offset = newTiles.Offset;
             scaleTimer = moving && scaleTimer > 0 ? scaleTimer - Engine.DeltaTime : 0;

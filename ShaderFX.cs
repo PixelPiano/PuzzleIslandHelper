@@ -20,6 +20,7 @@ public class ShaderFX
     public static Effect Sway;
     public static Effect GlitchAura;
     public static Effect InvertOrb;
+    public static Effect BitrailAbsorb;
     public static void LoadFXs()
     {
 
@@ -36,6 +37,7 @@ public class ShaderFX
         PlayerStatic = LoadFx("playerStatic");
         Sway = LoadFx("huskSway");
         GlitchAura = LoadFx("glitchAura");
+        BitrailAbsorb = LoadFx("bitrailAbsorb");
 
     }
     public static void DisposeFXs()
@@ -53,6 +55,7 @@ public class ShaderFX
         Sway?.Dispose();
         GlitchAura?.Dispose();
         InvertOrb?.Dispose();
+        BitrailAbsorb?.Dispose();
     }
     public static void Load()
     {

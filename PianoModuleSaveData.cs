@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSaveData : EverestModuleSaveData
     {
+        public PlayerCalidus.CalidusInventory CalidusInventory { get; set; }
         public Dictionary<string, bool> Achievements = new();
         public void GiveAchievement(string name)
         {

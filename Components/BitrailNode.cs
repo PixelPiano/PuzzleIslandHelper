@@ -21,6 +21,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public BitrailNode NodeRight;
         public BitrailNode NodeAbove;
         public BitrailNode NodeBelow;
+        public Vector2 RenderCenter => RenderPosition + new Vector2(Width, Height) / 2;
         public bool Intersection;
         public int CellX;
         public int CellY;
@@ -196,6 +197,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     frame += 15;
                 }
                 IsEntryPoint = Node is Nodes.DeadEnd or Nodes.Single;
+                Frame = frame;
                 Texture = GetTexture(frame);
                 SecondaryTex = Control switch
                 {
@@ -205,15 +207,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 };
             }
         }
-        public override void Render()
+        public void SwitchToInSolid()
+        {
+            if (Frame > 6 && Frame < 16)
+            {
+                Texture = GFX.Game["objects/PuzzleIslandHelper/bitRail/inSolidNode" + Frame];
+                InSolid = true;
+            }
+        }
+        public int Frame;
+        public bool InSolid;
+        public void RenderAt(Vector2 position)
         {
             if (Texture != null)
             {
-                Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, RenderPosition, null, Color.Lerp(Color, Color.Red, WarningAmount), Rotation, Origin, Scale, Effects, 0);
+                Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, position, null, Color.Lerp(Color, Color.Red, WarningAmount), Rotation, Origin, Scale, Effects, 0);
             }
             if (SecondaryTex != null)
             {
-                Draw.SpriteBatch.Draw(SecondaryTex.Texture.Texture_Safe, RenderPosition, null, Color.Lerp(Color, Color.Red, WarningAmount), Rotation, Origin, Scale, Effects, 0);
+                Draw.SpriteBatch.Draw(SecondaryTex.Texture.Texture_Safe, position, null, Color.Lerp(Color, Color.Red, WarningAmount), Rotation, Origin, Scale, Effects, 0);
             }
             if (Bounces > 0)
             {
@@ -223,8 +235,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     2 => Color.Red,
                     _ => Color.Purple,
                 };
-                Draw.Rect(RenderPosition + Vector2.One * 2, 4, 4, color);
+                Draw.Rect(position + Vector2.One * 2, 4, 4, color);
             }
+        }
+        public override void Render()
+        {
+            RenderAt(RenderPosition);
         }
         public override void Update()
         {

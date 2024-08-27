@@ -136,7 +136,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             if (Scene is not Level level || !RenderStuff) return;
 
             Effect effect = ShaderFX.PlayerStatic;
-            effect.ApplyScreenSpaceParameters(level);
+            effect.ApplyVectorZeroParams(level);
             Target.DrawThenMask(RenderPlayer, RenderPlayer, Matrix.Identity, effect);
         }
 

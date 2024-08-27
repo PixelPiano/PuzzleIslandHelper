@@ -1,4 +1,5 @@
 using Celeste.Mod.Backdrops;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -84,7 +85,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         {
             base.Update(scene);
             Level level = scene as Level;
-
+            if(level.GetPlayer() is PlayerCalidus)
+            {
+                State = false;
+                return;
+            }
             if (PianoModule.Settings.InvertAbility)
             {
                 level.Session.SetFlag("invertOverlay");

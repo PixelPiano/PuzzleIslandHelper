@@ -23,10 +23,19 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
         }
     }
+    public struct CalidusSpawnerData
+    {
+        public string EyeFlag;
+        public string HeadFlag;
+        public string LeftArmFlag;
+        public string RightArmFlag;
+    }
+
     public class PianoMapDataProcessor : EverestMapDataProcessor
     {
         private string levelName;
         public static List<BitrailData> Bitrails = new();
+        public static Dictionary<string, CalidusSpawnerData> CalidusSpawners = new();
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
             Action<BinaryPacker.Element> bitrailNodeHandler = data =>
@@ -48,8 +57,20 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     Bitrails.Add(raildata);
                 }
             };
-            Action<BinaryPacker.Element> playerCalidusHandler = data =>
+            Action<BinaryPacker.Element> calidusSpawnerHandler = data =>
             {
+                CalidusSpawnerData cData = new()
+                {
+                    EyeFlag = data.Attr("eyeFlag"),
+                    HeadFlag = data.Attr("headFlag"),
+                    LeftArmFlag = data.Attr("leftArmFlag"),
+                    RightArmFlag = data.Attr("rightArmFlag")
+                };
+                if (!CalidusSpawners.ContainsKey(levelName))
+                {
+                    CalidusSpawners.Add(levelName, cData);
+                }
+
             };
             return new Dictionary<string, Action<BinaryPacker.Element>> {
                 {
@@ -70,9 +91,9 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     }
                 },
                 {
-                    "entity:PuzzleIslandHelper/PlayerCalidus", playerCalidus =>
+                    "entity:PuzzleIslandHelper/CalidusSpawner", spawner =>
                     {
-
+                        calidusSpawnerHandler(spawner);
                     }
                 },
             };
@@ -82,6 +103,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             // reset the dictionary for the current map and mode.
             Bitrails = new List<BitrailData>();
+            CalidusSpawners = new();
         }
 
         public override void End()

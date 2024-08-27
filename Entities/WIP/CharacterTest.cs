@@ -39,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                         Played = true;
 
                         Add(new Coroutine(OpenPassage(Player)));*/
-            //level.Add(new MemoryTextscene(Vector2.Zero));
+            //level.Add(new MemoryTextscene(Vector2.Zeroth));
         }
         private IEnumerator Cutscene(Player player)
         {

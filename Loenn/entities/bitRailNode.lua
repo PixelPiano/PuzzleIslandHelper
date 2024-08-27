@@ -51,15 +51,17 @@ local function getNodeSprites(entity, rectangles)
         name = name .. "e"
     end
 
-
+    
     local sprites = {}
     local sprite = drawableSprite.fromTexture("objects/PuzzleIslandHelper/bitRail/"..name, entity)
     sprite:setColor(controlToColor[entity.control])
     table.insert(sprites, sprite)
+    sprite:setJustification(0,0)
     if entity.bounces > 0 then
         local square = drawableSprite.fromTexture("objects/PuzzleIslandHelper/bitRail/smallSquare", entity)
         square:setColor(bouncesToColor[entity.bounces])
         table.insert(sprites, square)
+        square:setJustification(0,0)
     end
 
     return sprites

@@ -15,8 +15,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+
         public int DEBUGINT { get; set; }
         public bool DEBUGBOOL { get; set; }
+        public Vector2 DEBUGVECTOR { get; set; }
         public int TimesMetWithCalidus;
         public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
         public ForkAmpState ForkAmpState = new();

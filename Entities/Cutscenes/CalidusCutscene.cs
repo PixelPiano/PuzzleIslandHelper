@@ -207,7 +207,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             Player player = level.GetPlayer();
             /*
-                        if (GetCutsceneFlag(level, Cutscene))
+                        if (GetCutsceneFlag(level, Upgrade))
                         {
                             EndCutscene(Level);
                             return;

@@ -34,11 +34,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static Effect ApplyParameters(this Effect effect, Level level, Matrix matrix, float? amplitude = null)
         {
             var parameters = effect.Parameters;
-            
+
             parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
             parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
             parameters["CamPos"]?.SetValue(level.Camera.Position);
-            parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
+            parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320f));
             parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
 
             Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
@@ -56,7 +56,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return effect;
         }
-        public static Effect ApplyStandardParameters(this Effect effect, Level level, bool identity)
+        public static Effect ApplyCameraParams(this Effect effect, Level level)
+        {
+            var parameters = effect.Parameters;
+            Matrix matrix = level.Camera.Matrix;
+            parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
+            parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
+            parameters["CamPos"]?.SetValue(level.Camera.Position);
+            parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
+            parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
+
+            Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
+
+            Matrix projection = Matrix.CreateOrthographicOffCenter(0, viewport.Width, viewport.Height, 0, 0, 1);
+            // from communal helper
+            Matrix halfPixelOffset = Matrix.Identity;
+
+            parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
+
+            parameters["ViewMatrix"]?.SetValue(matrix);
+
+            return effect;
+        }
+        public static Effect ApplyStandardParams(this Effect effect, Level level, bool identity)
         {
             var parameters = effect.Parameters;
             Matrix matrix = identity ? Matrix.Identity : level.Camera.Matrix;
@@ -78,7 +100,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             return effect;
         }
-        public static Effect ApplyScreenSpaceParameters(this Effect effect, Level level)
+        public static Effect ApplyVectorZeroParams(this Effect effect, Level level)
         {
             var parameters = effect.Parameters;
             parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);

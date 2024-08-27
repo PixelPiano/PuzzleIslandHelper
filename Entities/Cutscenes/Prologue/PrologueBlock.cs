@@ -135,7 +135,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             }
             ClearedMask = true;
             if (!UsingEffect || Scene is not Level level) return;
-            ShaderFX.FuzzyAppear.ApplyScreenSpaceParameters(level);
+            ShaderFX.FuzzyAppear.ApplyVectorZeroParams(level);
             ShaderFX.FuzzyAppear.Parameters["Amplitude"]?.SetValue(Amplitude);
 
             #region DrawToObject

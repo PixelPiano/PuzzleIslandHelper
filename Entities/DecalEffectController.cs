@@ -212,7 +212,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             amplitudeTemp = Calc.Random.Range(15f, 30f);
             player = Scene.Tracker.GetEntity<Player>();
 
-            //check if the Player is touching any of the Target decals' bounds
+            //check if the Player is touching any of the RushTarget decals' bounds
             if (player is not null)
             {
                 foreach (DecalEffectTarget entity in entityList)

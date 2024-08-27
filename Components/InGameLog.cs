@@ -61,7 +61,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         }
 
     }
-    [CustomEntity("PuzzleIslandHelper/InGameLogRenderer")]
     [Tracked]
     public class InGameLogRenderer : Entity
     {
