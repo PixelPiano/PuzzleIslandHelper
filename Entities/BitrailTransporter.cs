@@ -184,7 +184,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             Vector2 speed = dir * 240f;
                             if (pC.TryGetBlipTarget(pC.Position, speed, out Vector2 target))
                             {
-                                pC.CrouchDashed = true;
                                 DashEject(player);
                             }
                         }

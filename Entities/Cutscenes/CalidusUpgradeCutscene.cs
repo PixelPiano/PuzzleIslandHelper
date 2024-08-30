@@ -5,7 +5,6 @@ using Monocle;
 using System.Collections;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.PlayerCalidus;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.Calidus;
-using System.Security.Claims;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
@@ -42,17 +41,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                         case Upgrades.Nothing:
                             Add(new Coroutine(NothingScene()));
                             break;
-                        case Upgrades.NothingGrounded:
-                            Add(new Coroutine(NothingGroundedScene()));
+                        case Upgrades.Grounded:
+                            Add(new Coroutine(GroundedScene()));
+                            break;
+                        case Upgrades.Slowed:
+                            Add(new Coroutine(SlowedScene()));
+                            break;
+                        case Upgrades.Weakened:
+                            Add(new Coroutine(WeakenedScene()));
                             break;
                         case Upgrades.Eye:
                             Add(new Coroutine(EyeScene()));
                             break;
                         case Upgrades.Head:
                             break;
-                        case Upgrades.LeftArm:
+                        case Upgrades.Arms:
                             break;
-                        case Upgrades.RightArm:
+                        case Upgrades.Blip:
                             break;
                     }
                 }
@@ -62,6 +67,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 }
             }
         }
+        private IEnumerator DigitalGlitch(float fadeDuration = 1.6f, float waitDuration = 0.8f)
+        {
+            for (float i = 0; i < 1; i += Engine.DeltaTime / fadeDuration)
+            {
+                Glitch.Value = Calc.LerpClamp(0, 0.4f, i);
+                yield return null;
+            }
+            Glitch.Value = 1;
+            yield return waitDuration;
+            Glitch.Value = 0;
+        }
         private IEnumerator NothingScene()
         {
             SetInventory(CalidusInventory.Nothing);
@@ -70,22 +86,44 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return null;
             EndCutscene(Level);
         }
-        private IEnumerator NothingGroundedScene()
+        private IEnumerator GroundedScene()
         {
-            for(float i = 0; i<1; i += Engine.DeltaTime / 1.6f)
-            {
-                Glitch.Value = Calc.LerpClamp(0, 0.4f, i);
-                yield return null;
-            }
-            Glitch.Value = 1;
-            yield return 0.8f;
-            Glitch.Value = 0;
-            SetInventory(CalidusInventory.NothingGrounded);
+            yield return DigitalGlitch();
+            Level.Add(new MiniTextbox("calidus_grounded"));
+            SetInventory(CalidusInventory.Grounded);
             SetLighting(Level, 1);
             Calidus.LightingShiftAmount = 1;
             yield return null;
             EndCutscene(Level);
         }
+        private IEnumerator SlowedScene()
+        {
+            yield return DigitalGlitch(0.8f, 0.2f);
+            Level.Add(new MiniTextbox("calidus_slowed"));
+            SetInventory(CalidusInventory.Slowed);
+            SetLighting(Level, 1);
+            Calidus.LightingShiftAmount = 1;
+            yield return null;
+            EndCutscene(Level);
+        }
+        private IEnumerator WeakenedScene()
+        {
+            yield return DigitalGlitch(0.3f, 0.8f);
+            Level.Add(new MiniTextbox("calidus_weakened"));
+            SetInventory(CalidusInventory.Weakened);
+            SetLighting(Level, 1);
+            Calidus.LightingShiftAmount = 1;
+            yield return null;
+            EndCutscene(Level);
+        }
+        private IEnumerator EyeScene()
+        {
+            yield return ZoomAndWalk(Calidus, "walkTo", "camera", 1.4f, 1);
+            yield return Textbox.Say("calidus_eye_cutscene", Normal, Stern, Surprised, AbsorbEye);
+            yield return Level.ZoomBack(1f);
+            EndCutscene(Level);
+        }
+
         private IEnumerator ZoomAndWalk(PlayerCalidus player, float walkToX, Vector2 screenSpaceFocusPoint, float zoom, float duration, float speedMultiplier = 1)
         {
             Coroutine z = new Coroutine(Level.ZoomTo(screenSpaceFocusPoint, zoom, duration));
@@ -99,20 +137,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             float walk = Level.Marker(walkToMarker).X;
             yield return ZoomAndWalk(player, walk, screen, zoom, duration, speedMultiplier);
         }
-        private IEnumerator EyeScene()
-        {
-            yield return ZoomAndWalk(Calidus, "walkTo", "camera", 1.4f, 1);
-            yield return Textbox.Say("calidus_eye_cutscene", Normal, Stern, Surprised, AbsorbEye);
-            yield return Level.ZoomBack(1f);
-            EndCutscene(Level);
-        }
-
         public override void OnEnd(Level level)
         {
             level.ResetZoom();
             Glitch.Value = 0;
             SetInventory(Upgrade);
-            if (Calidus is not null)
+            if (Calidus is not null && Calidus.StateMachine.State == DummyState)
             {
                 Calidus.StateMachine.State = NormalState;
             }

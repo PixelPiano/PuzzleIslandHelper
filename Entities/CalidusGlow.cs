@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework.Graphics.PackedVector;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
-   
+
     [Tracked]
     public class CalidusGlow : GraphicsComponent
     {
@@ -33,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             FloatAmount = Calc.Approach(FloatAmount, Floats ? 1 : 0, Engine.DeltaTime);
-            FloatOffset = (float)Math.Sin(Scene.TimeActive) * FloatHeight;
+            FloatOffset = (float)Math.Sin(Scene.TimeActive) * FloatHeight * FloatAmount;
         }
         public void BeforeRender()
         {
@@ -44,10 +44,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Render();
             if (Scene is not Level level) return;
             Shader.ApplyParameters(level, level.Camera.Matrix, Amplitude);
+            if (Entity is PlayerCalidus calidus)
+            {
+                Shader.Parameters["Weakened"]?.SetValue(calidus.RoboInventory.Weak);
+            }
+
             Draw.SpriteBatch.End();
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap,
                 DepthStencilState.None, RasterizerState.CullNone, Shader, level.Camera.Matrix);
-            Draw.SpriteBatch.Draw(Buffer, (RenderPosition + Vector2.UnitY * (FloatOffset * FloatAmount)).Floor(), Color.White);
+            Draw.SpriteBatch.Draw(Buffer, (RenderPosition + Vector2.UnitY * FloatOffset).Floor(), Color.White);
             Draw.SpriteBatch.End();
             GameplayRenderer.Begin();
         }

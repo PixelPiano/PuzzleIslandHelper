@@ -11,137 +11,93 @@ using System.Collections.Generic;
 using System.Linq;
 using Looking = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Looking;
 using Mood = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Mood;
-using Part = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Part;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [TrackedAs(typeof(Player))]
     public class PlayerCalidus : Player
     {
-
-
-        [TrackedAs(typeof(ShaderOverlay))]
-        public class CalidusVision : ShaderOverlay
-        {
-            public PlayerCalidus Calidus;
-            public CalidusVision(PlayerCalidus calidus) : base("PuzzleIslandHelper/Shaders/CalidusVision")
-            {
-                Calidus = calidus;
-                Tag |= Tags.Persistent | Tags.TransitionUpdate;
-            }
-            public override void Update()
-            {
-                base.Update();
-                if (Calidus.HasEye)
-                {
-                    Amplitude = Calc.Approach(Amplitude, 0, Engine.DeltaTime);
-                }
-                else
-                {
-                    Amplitude = 1;
-                }
-            }
-            public override bool ShouldRender()
-            {
-                return base.ShouldRender() && (!Calidus.HasEye || Amplitude > 0);
-            }
-            public override void ApplyParameters()
-            {
-                base.ApplyParameters();
-                Effect.Parameters["PlayerCenter"]?.SetValue(Calidus.Center);
-            }
-        }
-        public CalidusVision Vision;
-        public struct CalidusInventory
-        {
-            public static readonly CalidusInventory Nothing = new CalidusInventory(canFly: true);
-            public static readonly CalidusInventory NothingGrounded = new CalidusInventory();
-            public static readonly CalidusInventory EyeUpgrade = new CalidusInventory(canSee: true, jumps: 1, jumpMult: 0.4f);
-            public static readonly CalidusInventory HeadUpgrade = new CalidusInventory(canSee: true, jumps: 1, jumpMult: 0.75f, canDash: true);
-            public static readonly CalidusInventory LeftArmUpgrade = new CalidusInventory(canSee: true, jumps: 2, jumpMult: 0.75f, canFly: true);
-            public static readonly CalidusInventory RightArmUpgrade = new CalidusInventory(canSee: true, jumps: 2, jumpMult: 0.75f, canFly: true, canAttack: true);
-            public static readonly CalidusInventory BlipUpgrade = new CalidusInventory(canSee: true, jumps: 2, jumpMult: 1f, canFly: true, canBlip: true, canAttack: true);
-            public bool CanSee;
-            public float JumpMult;
-            public int Jumps;
-            public bool CanDash;
-            public bool CanFly;
-            public bool CanBlip;
-            public bool CanAttack;
-            public CalidusInventory(bool canSee = false, int jumps = 0, float jumpMult = 0, bool canDash = false, bool canFly = false, bool canBlip = false, bool canAttack = false)
-            {
-                CanSee = canSee;
-                Jumps = jumps;
-                CanDash = canDash;
-                CanFly = canFly;
-                CanBlip = canBlip;
-                CanAttack = canAttack;
-                JumpMult = jumpMult;
-            }
-        }
-        public Vector2 LastBlipDir;
-        public Vector2 SpriteOffset;
-
-        public bool CrouchDashed;
-        public CalidusGlow Glow;
-        public CalidusInventory RoboInventory => PianoModule.SaveData.CalidusInventory;
-        public Vector2 OrigPosition;
-
-        public bool Moving;
-        public Vector2 LastBlip;
-
-        public Collider SpriteBox => sprite.SpriteBox;
-        public bool HasHead => RoboInventory.CanDash;
-        public bool HasEye => RoboInventory.CanSee;
-        public bool HasLeftArm => RoboInventory.Jumps >= 2;
-        public bool HasRightArm => RoboInventory.CanAttack;
-        public bool InRail;
-        public const int NormalState = 0;
-        public const int DummyState = 11;
-        public const int BlipState = 2;
-        public const int RailState = 26;
-
-        public float LightingShiftAmount;
-        private CalidusSpawnerData Data;
-
         public enum Upgrades
         {
             Nothing,
-            NothingGrounded,
+            Grounded,
+            Slowed,
+            Weakened,
             Eye,
             Head,
-            LeftArm,
-            RightArm,
-            Blip
+            Blip,
+            Arms,
         }
-        public bool Blipping => State == BlipState;
-        public int State => StateMachine.State;
-        public float NoRailTimer;
-        public bool StartedBlipping;
-        public bool ValidatingBlip;
+        public const float AlphaDefault = 1;
+        public const float EndFadeDefault = 64;
+        public const float LightingDiff = 0.5f;
+        public const float MaxFlyTime = 1.2f;
+        public const float MaxRollRate = 15f;
+        public const int NormalState = 0;
+        public const int BlipState = 2;
+        public const int DummyState = 11;
+        public const int RailState = 26;
+        public const int FlyState = 27;
+        public const float StartFadeDefault = 32;
+        public static readonly Dictionary<Upgrades, CalidusInventory> Inventories = new()
+        {
+            {Upgrades.Nothing,CalidusInventory.Nothing},
+            {Upgrades.Grounded,CalidusInventory.Grounded},
+            {Upgrades.Slowed,CalidusInventory.Slowed},
+            {Upgrades.Weakened,CalidusInventory.Weakened},
+            {Upgrades.Eye,CalidusInventory.EyeUpgrade},
+
+            {Upgrades.Head,CalidusInventory.HeadUpgrade},
+            {Upgrades.Arms, CalidusInventory.ArmUpgrade},
+            {Upgrades.Blip,CalidusInventory.FullUpgrade},
+        };
         public int Jumps;
         public int JumpsUsed;
-        public bool FlyToggled;
-        public bool DashEnabled => RoboInventory.CanDash;
-        public bool FlyEnabled => RoboInventory.CanFly;
-        public bool BlipEnabled => RoboInventory.CanBlip;
-        public bool CanJump => (RoboInventory.Jumps > 1 || onGround || jumpGraceTimer > 0) && RoboInventory.Jumps > 0 && Jumps > 0 && Input.Jump.Pressed;
-        public bool CanBlip => CanNormalDash && BlipEnabled;
-        public bool CanNormalDash => DashEnabled && Dashes > 0 && (Input.DashPressed || Input.CrouchDashPressed && dashCooldownTimer <= 0f && (TalkComponent.PlayerOver == null || !Input.Talk.Pressed));
-
-        public CalidusSprite sprite;
-        private bool jumping;
-        public const float MaxRollRate = 15f;
+        public float GravityMult = 1;
         private int chainedJumps;
-        public Vector2 LastDashOrBlipDir;
-        private float chainedJumpTimer;
-        public bool ForceShake;
+
+        public int State => StateMachine.State;
+        public float SpeedMult => Math.Max((1 * (1 - SlugMult)) - RoboInventory.Slowness, 0);
+        public bool BlipEnabled => RoboInventory.Blip;
+        public bool Blipping => State == BlipState;
+        public bool CanSee => RoboInventory.CanSee;
+
+        public bool CanBlip => BlipEnabled && Dashes > 0 && Input.CrouchDashPressed && dashCooldownTimer <= 0f && (TalkComponent.PlayerOver == null || !Input.Talk.Pressed);
+
+        public bool CanJump => !Blipping && !FlyToggled && (onGround || jumpGraceTimer > 0) && RoboInventory.Jumps > 0 && Jumps > 0 && Input.Jump.Pressed;
+
+        public bool FlyEnabled => RoboInventory.Fly;
         public bool Shaking => ForceShake || shakeTimer > 0;
+        public bool Sluggish => State != DummyState && State != RailState && RoboInventory.Weak;
+        public Collider SpriteBox => sprite.SpriteBox;
+        public CalidusInventory RoboInventory => PianoModule.SaveData.CalidusInventory;
+
+
+        private float chainedJumpTimer;
         private float shakeTimer;
-        public const float LightingDiff = 0.5f;
-        public const float StartFadeDefault = 32;
-        public const float EndFadeDefault = 64;
-        public const float AlphaDefault = 1;
+        public float FlyTimer;
+        public float LightingShiftAmount;
+        public float NoRailTimer;
+        public float SlugMult;
+        public bool FlyToggled;
+        public bool ForceShake;
+        public bool InRail;
+        public bool Moving;
+        public bool StartedBlipping;
+        public bool ValidatingBlip;
+        public bool HasHead => RoboInventory.Sticky;
+        private bool jumping;
+
+        public Vector2 LastBlip;
+        public Vector2 LastBlipDir;
+        public Vector2 LastDashOrBlipDir;
+        public Vector2 OrigPosition;
+        public Vector2 SpriteOffset;
+        private CalidusSpawnerData Data;
+        public CalidusSprite sprite;
+        public CalidusVision Vision;
+        public CalidusGlow Glow;
+
         public PlayerCalidus(Vector2 position, CalidusSpawnerData data) : base(position, PlayerSpriteMode.Madeline)
         {
             Glow = new CalidusGlow(24);
@@ -154,6 +110,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 LookDir = Looking.Center,
                 CurrentMood = Mood.Normal,
             };
+            Add(new Coroutine(SlogRoutine()));
             Depth = 0;
             Data = data;
             Tag |= Tags.Persistent;
@@ -174,10 +131,54 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(new BeforeRenderHook(BeforeRender));
             Light.Position = new Vector2(3);
         }
-        public void BeforeRender()
+        public static bool LevelContainsSpawner(Level level, out CalidusSpawnerData data)
         {
-            Glow.BeforeRender();
+            data = default;
+            if (PianoMapDataProcessor.CalidusSpawners.ContainsKey(level.Session.Level))
+            {
+                data = PianoMapDataProcessor.CalidusSpawners[level.Session.Level];
+                return true;
+            }
+            return false;
         }
+
+        public static void SetInventory(Upgrades upgrade)
+        {
+            PianoModule.SaveData.CalidusInventory = Inventories[upgrade];
+        }
+
+        public static void SetInventory(CalidusInventory inv)
+        {
+            PianoModule.SaveData.CalidusInventory = inv;
+        }
+
+        public static void SetLighting(Level level, float amount)
+        {
+            level.Lighting.Alpha = level.BaseLightingAlpha + LightingDiff * amount;
+            level.Session.LightingAlphaAdd = LightingDiff * amount;
+        }
+
+        public void absorbRender()
+        {
+            Vector2 prev = Position;
+            Position = (SpriteBox.HalfSize - Vector2.One * 4 + Vector2.UnitY * SpriteBox.Height / 2).Floor();
+            RenderParts();
+            Position = prev;
+        }
+
+        public void AddBitrailAbsorb(BitrailNode node)
+        {
+            Visible = false;
+            Vector2 pos = node.RenderPosition + Vector2.One * 4 - Vector2.One * 20;
+            Collider c = new Hitbox(40, 40, pos.X, pos.Y);
+            Vector2 p = c.HalfSize - Collider.HalfSize.Floor() - Vector2.One;
+            Action action = new(() =>
+            {
+                RenderPartsAt(p);
+            });
+            Scene.Add(new BitrailAbsorb(action, c, Color.Green, Color.LightBlue, this));
+        }
+
         public override void Added(Scene scene)
         {
             base.Added(scene);
@@ -190,16 +191,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Vision = new CalidusVision(this);
             scene.Add(Vision);
         }
-        public override void Removed(Scene scene)
+
+        public void ApproachScaleOne()
         {
-            base.Removed(scene);
-            Vision.RemoveSelf();
+            Vector2 newScale = sprite.Scale;
+            newScale.X = Calc.Approach(newScale.X, 1f, 1.75f * Engine.DeltaTime);
+            newScale.Y = Calc.Approach(newScale.Y, 1f, 1.75f * Engine.DeltaTime);
+            SetScale(newScale);
         }
+
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             if (FlyEnabled) FlyToggled = true;
-            origLightingAdd = (scene as Level).Session.LightingAlphaAdd;
             Components.RemoveAll<PlayerSprite>();
             Components.RemoveAll<PlayerHair>();
             Components.RemoveAll<StateMachine>();
@@ -208,553 +212,68 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Collider = new Hitbox(7, 7, 0, 0);
             Glow.Position = -Vector2.One * Glow.Size / 2f + Collider.HalfSize;
         }
-
-        public StateMachine CreateStateMachine()
+        public bool OnGround()
         {
-            StateMachine stateMachine = new StateMachine(27);
-            stateMachine.SetCallbacks(NormalState, normalUpdate, null, normalBegin, normalEnd);
-            stateMachine.SetCallbacks(DummyState, dummyUpdate, null, dummyBegin);
-            stateMachine.SetCallbacks(RailState, railUpdate, null, railBegin, railEnd);
-            stateMachine.SetCallbacks(BlipState, blipUpdate, BlipCoroutine, blipBegin, blipEnd);
-
-            return stateMachine;
-        }
-
-        public void CallBlipEvents()
-        {
-            if (calledDashEvents)
+            Vector2 check = Position + Vector2.UnitY * Math.Sign(GravityMult);
+            if (!CollideCheck<Solid>(check))
             {
-                return;
-            }
-
-            calledDashEvents = true;
-            if (CurrentBooster == null)
-            {
-                SaveData.Instance.TotalDashes++;
-                level.Session.Dashes++;
-                Stats.Increment(Stat.DASHES);
-                bool flag = DashDir.Y < 0f || (DashDir.Y == 0f && DashDir.X > 0f);
-                if (DashDir == Vector2.Zero)
+                if (GravityMult >= 0 && !IgnoreJumpThrus)
                 {
-                    flag = Facing == Facings.Right;
+                    return CollideCheckOutside<JumpThru>(Position + Vector2.UnitY);
                 }
-                if (DashDir.X == 0 && DashDir.Y != 0)
-                {
-                    SetScale(new Vector2(0.6f, 1));
-                }
-                if (flag)
-                {
-                    //Play("event:/char/calidus/blip_right");
-                }
-                else
-                {
-                    //Play("event:/char/calidus/blip_left");
-                }
-
-                foreach (DashListener component in base.Scene.Tracker.GetComponents<DashListener>())
-                {
-                    if (component.OnDash != null)
-                    {
-                        component.OnDash(DashDir);
-                    }
-                }
+                return false;
             }
-            else
-            {
-                CurrentBooster.PlayerBoosted(this, DashDir);
-                CurrentBooster = null;
-            }
-        }
-
-        public int StartBlip()
-        {
-            demoDashed = Input.CrouchDashPressed;
-            Input.Dash.ConsumeBuffer();
-            Input.CrouchDash.ConsumeBuffer();
-            sprite.LookSpeed = 5;
-            if (!FlyToggled)
-            {
-                Dashes--;
-            }
-            return BlipState;
-
-        }
-        public void Emotion(Mood mood)
-        {
-            sprite.Emotion(mood);
-        }
-        public void Look(Looking dir)
-        {
-            sprite.Look(dir);
-        }
-        public int normalUpdate()
-        {
-            if (CanNormalDash)
-            {
-                if (Input.CrouchDashPressed && BlipEnabled)
-                {
-                    CrouchDashed = true;
-                }
-                return StartBlip();
-            }
-            if (CanJump)
-            {
-                CalidusJump();
-                return NormalState;
-            }
-
-            float maxMoveXMult = 1f;
-            float maxMoveYMult = 1f;
-            float speedXMult = 90f;
-            float speedYMult = 90f;
-            float xDir = Input.MoveX.Value;
-            float yDir = 1;
-            if (!FlyToggled)
-            {
-                speedYMult += 45f;
-                speedXMult *= 0.9f;
-                maxMoveYMult = 1.6f;
-            }
-            else
-            {
-                yDir = Input.MoveY.Value;
-            }
-
-            float xmult = Math.Abs(Speed.X) > speedXMult && Math.Sign(Speed.X) == xDir ? 400f : 500f;
-            float ymult = Math.Abs(Speed.Y) > speedYMult && Math.Sign(Speed.Y) == yDir ? 200f : 500f;
-            Speed.X = Calc.Approach(Speed.X, speedXMult * xDir, xmult * maxMoveXMult * Engine.DeltaTime);
-            Speed.Y = Calc.Approach(Speed.Y, speedYMult * yDir, ymult * maxMoveYMult * Engine.DeltaTime);
-            if (varJumpTimer > 0f)
-            {
-                if (!FlyToggled && (AutoJump || Input.Jump.Check))
-                {
-                    Speed.Y = Math.Min(Speed.Y, varJumpSpeed);
-                }
-                else
-                {
-                    varJumpTimer = 0f;
-                }
-            }
-            return NormalState;
-        }
-        public void RefillJumps()
-        {
-            Jumps = RoboInventory.Jumps;
-        }
-        public void MidAirJumpEvents()
-        {
-            sprite.ThrowArmDown();
-        }
-        public void CalidusJump(bool particles = true, bool playSfx = true)
-        {
-            sprite.RollRotation = 0;
-            Jumps--;
-            JumpsUsed++;
-            jumping = true;
-            Input.Jump.ConsumeBuffer();
-            jumpGraceTimer = 0f;
-            varJumpTimer = 0.2f;
-            AutoJump = false;
-            dashAttackTimer = 0f;
-            gliderBoostTimer = 0f;
-            wallSlideTimer = 1.2f;
-            wallBoostTimer = 0f;
-            Speed.X += 40f * (float)moveX;
-            if (!onGround)
-            {
-                sprite.ThrowArmDown();
-                level.Add(Engine.Pooler.Create<SpeedRing>().Init(Center, -Vector2.UnitY.Angle(), Color.White));
-            }
-            chainedJumps = chainedJumpTimer > 0 && onGround ? chainedJumps + 1 : 0;
-            bool boosted = HasHead && chainedJumps > 1 && onGround;
-            float speedY = (boosted ? -190 : -135) * RoboInventory.JumpMult;
-            Speed.Y = speedY;
-            Speed += LiftBoost;
-            varJumpSpeed = Speed.Y;
-            if (boosted)
-            {
-                ShakeFor(0.2f);
-                level.Add(Engine.Pooler.Create<SpeedRing>().Init(Center, -Vector2.UnitY.Angle(), Color.White));
-                chainedJumps = -1;
-                //chainedJumpTimer = 0;
-            }
-            if (playSfx)
-            {
-                if (launched)
-                {
-                    Play("event:/char/madeline/jump_assisted");
-                }
-
-                if (dreamJump)
-                {
-                    Play("event:/char/madeline/jump_dreamblock");
-                }
-                else
-                {
-                    Play("event:/char/madeline/jump");
-                }
-            }
-
-            SetScale(new Vector2(0.6f - (boosted ? 0.2f : 0), 1.4f));
-            if (particles)
-            {
-                if (onGround)
-                {
-                    int index = -1;
-                    Platform platformByPriority = SurfaceIndex.GetPlatformByPriority(CollideAll<Platform>(Position + Vector2.UnitY, temp));
-                    if (platformByPriority != null)
-                    {
-                        index = platformByPriority.GetLandSoundIndex(this);
-                    }
-                    ParticleType type = DustParticleFromSurfaceIndex(index);
-                    int amount = (boosted ? 4 : 2) / (HasHead ? 1 : 2);
-                    if (boosted)
-                    {
-                        float speedMin = type.SpeedMin;
-                        float speedMax = type.SpeedMax;
-                        type.SpeedMin *= 4;
-                        type.SpeedMax *= 4;
-
-                        Dust.Burst(BottomLeft, -165f.ToRad(), amount, type);
-                        Dust.Burst(BottomRight, -(float)(Math.PI / 12f), amount, type);
-                        type.SpeedMin = speedMin;
-                        type.SpeedMax = speedMax;
-                    }
-                    Dust.Burst(BottomCenter, -(float)Math.PI / 2f, amount, type);
-                }
-            }
-
-            SaveData.Instance.TotalJumps++;
-        }
-        public void normalBegin()
-        {
-        }
-
-        public void normalEnd()
-        {
-
-        }
-        public int dummyUpdate()
-        {
-            if (!DummyMoving)
-            {
-                if (Math.Abs(Speed.X) > 90f && DummyMaxspeed)
-                {
-                    Speed.X = Calc.Approach(Speed.X, 90f * (float)Math.Sign(Speed.X), 2500f * Engine.DeltaTime);
-                }
-
-                if (DummyFriction)
-                {
-                    Speed.X = Calc.Approach(Speed.X, 0f, 1000f * Engine.DeltaTime);
-                }
-            }
-            return DummyState;
-        }
-        public void dummyBegin()
-        {
-            DummyBegin();
-        }
-        public int railUpdate()
-        {
-            Speed = Vector2.Zero;
-            return RailState;
-        }
-        public void absorbRender()
-        {
-            Vector2 prev = Position;
-            Position = (SpriteBox.HalfSize - Vector2.One * 4 + Vector2.UnitY * SpriteBox.Height / 2).Floor();
-            RenderParts();
-            Position = prev;
-        }
-        public void AddBitrailAbsorb(BitrailNode node)
-        {
-            Visible = false;
-            Vector2 pos = node.RenderPosition + Vector2.One * 4 - Vector2.One * 20;
-            Collider c = new Hitbox(40, 40, pos.X, pos.Y);
-            Vector2 p = Vector2.One * 20 - Collider.HalfSize.Floor() + Vector2.One * 2;
-            Action action = new(() =>
-            {
-                RenderPartsAt(p);
-            });
-            //Scene.Add(new BitrailAbsorb(action,c, node.RenderPosition + Vector2.One * 4, Color.Green, Color.LightBlue, this));
-            Scene.Add(new BitrailAbsorb(action, c, Color.Green, Color.LightBlue, this));
-        }
-        public void railBegin()
-        {
-        }
-        public void railEnd()
-        {
-        }
-        public int blipUpdate()
-        {
-            StartedBlipping = false;
-            if (dashTrailTimer > 0f)
-            {
-                dashTrailTimer -= Engine.DeltaTime;
-                if (dashTrailTimer <= 0f)
-                {
-                    CreateTrail();
-                    dashTrailCounter--;
-                    if (dashTrailCounter > 0)
-                    {
-                        dashTrailTimer = 0.1f;
-                    }
-                }
-            }
-            if (CanJump)
-            {
-                CalidusJump();
-                return NormalState;
-            }
-            if (SaveData.Instance.Assists.SuperDashing && CanBlip)
-            {
-                StartBlip();
-                StateMachine.ForceState(BlipState);
-                return BlipState;
-            }
-            //dash particles
-            /*            if (Speed != Vector2.Zeroth && level.OnInterval(0.02f))
-                        {
-                            ParticleType type = P_DashA;
-                            level.ParticlesFG.Emit(type, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Angle());
-                        }
-            */
-            return BlipState;
-        }
-        public void blipBegin()
-        {
-            sprite.LookSpeed = 100;
-            calledDashEvents = false;
-            dashStartedOnGround = false;
-            launched = false;
-            canCurveDash = true;
-            if (Engine.TimeRate > 0.25f)
-            {
-                Celeste.Freeze(0.05f);
-            }
-            dashCooldownTimer = 0.2f;
-            dashRefillCooldownTimer = 0.1f;
-            StartedDashing = true;
-            wallSlideTimer = 1.2f;
-            dashTrailTimer = 0f;
-            dashTrailCounter = 0;
-            if (!SaveData.Instance.Assists.DashAssist)
-            {
-                Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
-            }
-
-            dashAttackTimer = 0.3f;
-            gliderBoostTimer = 0.55f;
-            if (SaveData.Instance.Assists.SuperDashing)
-            {
-                dashAttackTimer += 0.15f;
-            }
-
-            beforeDashSpeed = Speed;
-            Speed = Vector2.Zero;
-            DashDir = Vector2.Zero;
-        }
-        public void blipEnd()
-        {
-            CallBlipEvents();
-            demoDashed = false;
-            sprite.LookSpeed = 0.5f;
-        }
-        public bool TryGetBlipTarget(Vector2 from, Vector2 speed, out Vector2 target)
-        {
-            Vector2 dir = Calc.Sign(speed);
-            if (speed == Vector2.Zero)
-            {
-                target = from;
-                return true;
-            }
-            target = from + (speed * Engine.DeltaTime).Floor();
-            float dist = Vector2.Distance(from, target);
-            while (CollideCheck<Solid>(target) && dist > 0)
-            {
-                target += -dir;
-                dist -= 1;
-            }
-            target.Floor();
-            LevelData data = SceneAs<Level>().Session.MapData.GetAt(target);
-            if (dist > 0f && data != null && data.Spawns != null && data.Spawns.Count > 0)
-            {
-                LastBlipDir = dir;
-                LastDashOrBlipDir = dir;
-                LastBlip = target;
-                return true;
-            }
-            return false;
-        }
-        public IEnumerator DummyMoveTo(float x, float speedMultiplier = 1)
-        {
-            DummyMoving = true;
-            while (Math.Abs(x - X) > 4f && Scene != null && (!CollideCheck<Solid>(Position + Vector2.UnitX * Math.Sign(x - X))))
-            {
-                Speed.X = Calc.Approach(Speed.X, (float)Math.Sign(x - X) * 64f * speedMultiplier, 1000f * Engine.DeltaTime);
-                yield return null;
-            }
-            DummyMoving = false;
-
-        }
-        public IEnumerator BlipCoroutine()
-        {
-            yield return null;
-
-            if (SaveData.Instance.Assists.DashAssist)
-            {
-                Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
-            }
-            level.Displacement.AddBurst(Center, 0.4f, 8f, 64f, 0.5f, Ease.QuadOut, Ease.QuadOut);
-
-            Vector2 value = lastAim;
-            if (OverrideDashDirection.HasValue)
-            {
-                value = OverrideDashDirection.Value;
-            }
-
-            value = CorrectDashPrecision(value);
-            Vector2 speed = value * 240f;
-            if (Math.Sign(beforeDashSpeed.X) == Math.Sign(speed.X) && Math.Abs(beforeDashSpeed.X) > Math.Abs(speed.X))
-            {
-                speed.X = beforeDashSpeed.X;
-            }
-
-            Speed = speed;
-            if (CollideCheck<Water>())
-            {
-                Speed *= 0.75f;
-            }
-            gliderBoostDir = (DashDir = value);
-            SceneAs<Level>().DirectionalShake(DashDir, 0.2f);
-            if (DashDir.X != 0f)
-            {
-                Facing = (Facings)Math.Sign(DashDir.X);
-            }
-
-            CallDashEvents();
-            if (CrouchDashed)
-            {
-                //Add burst effect here
-                Visible = false;
-                if (TryGetBlipTarget(Position, Speed * 16, out Vector2 target))
-                {
-                    Vector2 prev = Position;
-                    if (target != prev)
-                    {
-                        Speed = Vector2.Zero;
-                    }
-                    Position = target.Floor();
-                    yield return 0.15f;
-                    level.Displacement.AddBurst(Center, 0.4f, 8f, 64f, 0.5f, Ease.QuadOut, Ease.QuadOut);
-                    Visible = true;
-                }
-                else
-                {
-                    yield return 0.15f;
-                    Visible = true;
-                }
-            }
-            else
-            {
-                SlashFx.Burst(Center, DashDir.Angle());
-                LastDashOrBlipDir = DashDir;
-                CreateTrail();
-                yield return 0.15f;
-                CreateTrail();
-                Speed /= 2f;
-            }
-            CrouchDashed = false;
-            StateMachine.State = NormalState;
-        }
-        public void SetScale(Vector2 scale)
-        {
-            sprite.Scale = scale;
-        }
-        public void ApproachScaleOne()
-        {
-            Vector2 newScale = sprite.Scale;
-            newScale.X = Calc.Approach(newScale.X, 1f, 1.75f * Engine.DeltaTime);
-            newScale.Y = Calc.Approach(newScale.Y, 1f, 1.75f * Engine.DeltaTime);
-            SetScale(newScale);
-        }
-        private float origLightingAdd;
-        public static void SetLighting(Level level, float amount)
-        {
-            level.Lighting.Alpha = level.BaseLightingAlpha + LightingDiff * amount;
-            level.Session.LightingAlphaAdd = LightingDiff * amount;
-        }
-        public void SetBaseUpgradeLighting(Level level)
-        {
-            Light.StartRadius = Calc.Approach(Light.StartRadius, 40, Engine.DeltaTime);
-            Light.EndRadius = Calc.Approach(Light.EndRadius, 80, Engine.DeltaTime);
-            if (!HasEye)
-            {
-                LightingShiftAmount = Calc.Approach(LightingShiftAmount, 1, Engine.DeltaTime);
-            }
-            else
-            {
-                LightingShiftAmount = Calc.Approach(LightingShiftAmount, 0, Engine.DeltaTime);
-            }
-            SetLighting(level, LightingShiftAmount);
-            DigitalGrid.CalidusEyeDiff = LightingShiftAmount * 0.7f;
-        }
-
-        private IEnumerator GlowFlicker()
-        {
-            float startFade = Light.StartRadius + 8;
-            float endFade = Light.EndRadius + 16;
-            float duration;
-            float alpha = 1;
-            while (true)
-            {
-                while (HasEye) yield return null;
-
-                float stFrom = startFade;
-                float endFrom = endFade;
-                float alphaFrom = alpha;
-
-                startFade = StartFadeDefault + Calc.Random.Range(-2, 2f);
-                endFade = startFade * 2;
-                duration = Calc.Random.Range(0.1f, 0.3f);
-                alpha = 0.6f + (0.4f * MathHelper.Distance(startFade, StartFadeDefault) / 8f);
-                for (float i = 0; i < 1; i += Engine.DeltaTime / duration)
-                {
-                    float ease = Ease.SineIn(i);
-                    Light.StartRadius = Calc.LerpClamp(stFrom, startFade, ease);
-                    Light.EndRadius = Calc.LerpClamp(endFrom, endFade, ease);
-                    Glow.Amplitude = Light.Alpha;
-                    yield return null;
-                }
-            }
+            return true;
         }
         public override void Update()
         {
             if (Scene is not Level level) return;
             SetBaseUpgradeLighting(level);
             moveX = Input.MoveX.Value;
-            Glow.Floats = !HasEye && FlyEnabled && FlyToggled;
+            Glow.Floats = !CanSee && FlyEnabled && FlyToggled;
             if (moveX != 0)
             {
                 Facing = (Facings)moveX;
             }
-            if (!RoboInventory.CanFly)
+            if (!RoboInventory.Fly)
             {
                 FlyToggled = false;
             }
+            /*            if (noGravChangeTimer > 0)
+                        {
+                            noGravChangeTimer -= Engine.DeltaTime;
+                        }
+                        else
+                        {
+
+                            noGravChangeTimer = 0;
+                            if (Input.Jump.Check && Speed.Y <= 0)
+                            {
+                                if (CollideCheck<Solid>(TopCenter - Vector2.UnitY))
+                                {
+                                    GravityMult = -1;
+                                }
+                            }
+                        }*/
+
+
+
             onGround = OnGround();
             if (onGround)
             {
                 RefillDash();
                 RefillStamina();
-                RefillJumps();
+                if (Math.Sign(Speed.Y) == Math.Sign(GravityMult))
+                {
+                    RefillJumps();
+                }
             }
             int xDir = Math.Sign(Speed.X);
-            if (chainedJumpTimer > 0)
+            if (chainedJumpTimer > 0 && !Blipping)
             {
                 chainedJumpTimer -= Engine.DeltaTime;
             }
-            if (onGround && HasEye)
+            if (onGround && CanSee)
             {
                 JumpsUsed = 0;
                 jumpGraceTimer = 0;
@@ -766,7 +285,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 float mult = Calc.Clamp(Math.Abs(Speed.X), 0, 90f) / 90f;
                 sprite.RollRotation += xDir * mult * MaxRollRate;
                 sprite.RollRotation = (float)Math.Round(sprite.RollRotation) % 90;
-                if (xDir != 0 && Scene.OnInterval((HasHead ? 5f : 10f) / 60f))
+                if (Visible && xDir != 0 && Scene.OnInterval(10f / (Blipping ? 2f : 1f) / 60f))
                 {
                     Dust.Burst(BottomCenter - Vector2.UnitX * (xDir * 3), (Vector2.UnitX * -xDir).Angle(), 1, null);
                 }
@@ -780,11 +299,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 jumpGraceTimer -= Engine.DeltaTime;
             }
             Depth = 0;
-
-            if (State != DummyState && onGround && Input.MoveX.Value == 0)
-            {
-                sprite.RollRotation = Calc.Approach(sprite.RollRotation, 0, MaxRollRate * 2f);
-            }
             JustRespawned = !(JustRespawned && Speed != Vector2.Zero);
             dashAttackTimer = Calc.Max(0, dashAttackTimer - Engine.DeltaTime);
             dashCooldownTimer = Calc.Max(0, dashCooldownTimer - Engine.DeltaTime);
@@ -798,9 +312,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 spriteOffset += Calc.Random.ShakeVector();
             }
             sprite.HasHead = HasHead;
-            sprite.HasEye = HasEye;
-            sprite.HasLeftArm = HasLeftArm;
-            sprite.HasRightArm = HasRightArm;
+            sprite.HasEye = CanSee;
+            sprite.HasArms = BlipEnabled;
+
+            if (!onGround || (onGround && Speed.X == 0))
+            {
+                sprite.RollRotation = Calc.Approach(sprite.RollRotation, 0, MaxRollRate * 2f);
+            }
+            if (!onGround)
+            {
+                GravityMult = Calc.Approach(GravityMult, 1, 250f * Engine.DeltaTime);
+            }
 
             Position += spriteOffset;
             Components.Update();
@@ -843,14 +365,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             PreviousPosition = Position;
             if (StateMachine.State != RailState)
             {
-                MoveH(Speed.X * Engine.DeltaTime, newOnCollideH);
+                MoveH(Speed.X * SpeedMult * Engine.DeltaTime, newOnCollideH);
             }
 
             if (StateMachine.State != RailState)
             {
                 MoveV(Speed.Y * Engine.DeltaTime, newOnCollideV);
             }
-            Moving = Input.MoveX.Value != 0 || Input.MoveY.Value != 0;
+            if (FlyToggled)
+            {
+                Moving = Input.MoveX.Value != 0 || Input.MoveY.Value != 0;
+            }
+            else
+            {
+                Moving = Input.MoveX.Value != 0;
+            }
+
             SpriteBox.Position = (Center - SpriteBox.HalfSize).Floor();
 
             foreach (Trigger entity in Scene.Tracker.GetEntities<Trigger>())
@@ -900,91 +430,384 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     diedInGBJ = 0;
                 }
             }
-            Position.Floor();
-        }
-        private void newOnCollideH(CollisionData data)
-        {
-            if (StateMachine.State == RailState) return;
-            if (data.Hit != null && data.Hit.OnCollide != null)
+            if (!Dead && State != RailState)
             {
-                data.Hit.OnCollide(data.Direction);
-            }
-            Speed.X = 0f;
-        }
-
-        private void newOnCollideV(CollisionData data)
-        {
-            if (StateMachine.State == RailState) return;
-            if (Speed.Y < 0f)
-            {
-                int num3 = 4;
-
-                if (Speed.X <= 0.01f)
+                foreach (PlayerCollider component2 in base.Scene.Tracker.GetComponents<PlayerCollider>())
                 {
-                    for (int j = 1; j <= num3; j++)
+                    if (component2.Check(this))
                     {
-                        if (!CollideCheck<Solid>(Position + new Vector2(-j, -1f)))
-                        {
-                            Position += new Vector2(-j, -1f);
-                            return;
-                        }
-                    }
-                }
-
-                if (Speed.X >= -0.01f)
-                {
-                    for (int k = 1; k <= num3; k++)
-                    {
-                        if (!CollideCheck<Solid>(Position + new Vector2(k, -1f)))
-                        {
-                            Position += new Vector2(k, -1f);
-                            return;
-                        }
+                        return;
                     }
                 }
             }
-            if (data.Hit != null && data.Hit.OnCollide != null)
-            {
-                data.Hit.OnCollide(data.Direction);
-            }
-            Speed.Y = 0f;
         }
-        public void RenderPartsAt(Vector2 position)
+
+        public void BeforeRender()
         {
-            sprite.RenderAt(position);
+            Glow.BeforeRender();
         }
-        public void RenderParts()
+
+        public void blipBegin()
         {
-            sprite.RenderAt(Position);
+            sprite.LookSpeed = 100;
+            calledDashEvents = false;
+            dashStartedOnGround = false;
+            launched = false;
+            canCurveDash = true;
+            if (Engine.TimeRate > 0.25f)
+            {
+                Celeste.Freeze(0.05f);
+            }
+            dashCooldownTimer = 0.2f;
+            dashRefillCooldownTimer = 0.1f;
+            StartedDashing = true;
+            wallSlideTimer = 1.2f;
+            dashTrailTimer = 0f;
+            dashTrailCounter = 0;
+            if (!SaveData.Instance.Assists.DashAssist)
+            {
+                Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
+            }
+
+            dashAttackTimer = 0.3f;
+            gliderBoostTimer = 0.55f;
+            if (SaveData.Instance.Assists.SuperDashing)
+            {
+                dashAttackTimer += 0.15f;
+            }
+
+            beforeDashSpeed = Speed;
+            Speed = Vector2.Zero;
+            DashDir = Vector2.Zero;
         }
-        public override void Render()
+
+        public IEnumerator BlipCoroutine()
         {
-            if (!HasEye)
+            yield return null;
+
+            if (SaveData.Instance.Assists.DashAssist)
             {
-                Glow.Render();
+                Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
             }
-            else if (StateMachine.State != RailState && !InRail)
+            level.Displacement.AddBurst(Center, 0.4f, 8f, 64f, 0.5f, Ease.QuadOut, Ease.QuadOut);
+
+            Vector2 value = lastAim;
+            if (OverrideDashDirection.HasValue)
             {
-                RenderParts();
+                value = OverrideDashDirection.Value;
+            }
+
+            value = CorrectDashPrecision(value);
+            Vector2 speed = value * 240f;
+            if (Math.Sign(beforeDashSpeed.X) == Math.Sign(speed.X) && Math.Abs(beforeDashSpeed.X) > Math.Abs(speed.X))
+            {
+                speed.X = beforeDashSpeed.X;
+            }
+
+            Speed = speed;
+            if (CollideCheck<Water>())
+            {
+                Speed *= 0.75f;
+            }
+            gliderBoostDir = (DashDir = value);
+            SceneAs<Level>().DirectionalShake(DashDir, 0.2f);
+            if (DashDir.X != 0f)
+            {
+                Facing = (Facings)Math.Sign(DashDir.X);
+            }
+
+            CallDashEvents();
+            /*            if (BlipEnabled)
+                        {*/
+
+            //todo: Add cool custom burst effect here
+            Visible = false;
+            if (TryGetBlipTarget(Position, Speed * 16, out Vector2 target))
+            {
+                Vector2 prev = Position;
+                if (target != prev)
+                {
+                    Speed = Vector2.Zero;
+                }
+                Position = target.Floor();
+                yield return 0.15f;
+                level.Displacement.AddBurst(Center, 0.4f, 8f, 64f, 0.5f, Ease.QuadOut, Ease.QuadOut);
+                Visible = true;
+            }
+            else
+            {
+                yield return 0.15f;
+                Visible = true;
+            }
+            /*}
+                        else
+                        {
+                            SlashFx.Burst(Center, DashDir.Angle());
+                            LastDashOrBlipDir = DashDir;
+                            CreateTrail();
+                            yield return 0.15f;
+                            CreateTrail();
+                            Speed /= 2f;
+                        }*/
+            StateMachine.State = NormalState;
+        }
+
+        public void blipEnd()
+        {
+            CallBlipEvents();
+            demoDashed = false;
+            sprite.LookSpeed = 0.5f;
+        }
+
+        public int blipUpdate()
+        {
+            StartedBlipping = false;
+            if (dashTrailTimer > 0f)
+            {
+                dashTrailTimer -= Engine.DeltaTime;
+                if (dashTrailTimer <= 0f)
+                {
+                    CreateTrail();
+                    dashTrailCounter--;
+                    if (dashTrailCounter > 0)
+                    {
+                        dashTrailTimer = 0.1f;
+                    }
+                }
+            }
+            if (CanJump)
+            {
+                CalidusJump();
+                return NormalState;
+            }
+            if (SaveData.Instance.Assists.SuperDashing && CanBlip)
+            {
+                StartBlip();
+                StateMachine.ForceState(BlipState);
+                return BlipState;
+            }
+            //dash particles
+            /*            if (Speed != Vector2.Zero && level.OnInterval(0.02f))
+                        {
+                            ParticleType type = P_DashA;
+                            level.ParticlesFG.Emit(type, Center + Calc.Random.Range(Vector2.One * -2f, Vector2.One * 2f), DashDir.Angle());
+                        }
+            */
+            return BlipState;
+        }
+        private float noGravChangeTimer;
+        public override bool IsRiding(Solid solid)
+        {
+            if (State == RailState) return false;
+            return base.IsRiding(solid);
+        }
+        public void CalidusJump(bool particles = true, bool playSfx = true)
+        {
+
+            bool fromFloor = GravityMult >= 0;
+            sprite.RollRotation = 0;
+            Jumps--;
+            JumpsUsed++;
+            jumping = true;
+            Input.Jump.ConsumeBuffer();
+            jumpGraceTimer = 0f;
+            varJumpTimer = 0.2f;
+            AutoJump = false;
+            dashAttackTimer = 0f;
+            gliderBoostTimer = 0f;
+            wallSlideTimer = 1.2f;
+            wallBoostTimer = 0f;
+            if (fromFloor && CollideCheck<Solid>(Position - Vector2.UnitY))
+            {
+                GravityMult = -1;
+            }
+            chainedJumps = !FlyToggled && chainedJumpTimer > 0 && onGround && HasHead ? chainedJumps + 1 : 0;
+            bool boosted = HasHead && chainedJumps > 1 && onGround;
+            bool blipping = Blipping;
+            float speedY = (boosted ? blipping ? -220 : -190 : -135) * RoboInventory.JumpMult;
+            Speed.Y = speedY * GravityMult;
+            Speed.X += 40f * moveX * (boosted && blipping ? 2.3f : 1);
+            Vector2 lift = LiftBoost;
+            Speed.X += lift.X;
+            Speed.Y += lift.Y * GravityMult;
+            varJumpSpeed = Speed.Y;
+            if (!fromFloor)
+            {
+                GravityMult = 1;
+                noGravChangeTimer = 0.2f;
+            }
+            if (boosted)
+            {
+                ShakeFor(0.2f);
+                level.Add(Engine.Pooler.Create<SpeedRing>().Init(Center, -Vector2.UnitY.Angle(), Color.White));
+                chainedJumps = -1;
+            }
+            if (playSfx)
+            {
+                if (launched)
+                {
+                    Play("event:/char/madeline/jump_assisted");
+                }
+
+                if (dreamJump)
+                {
+                    Play("event:/char/madeline/jump_dreamblock");
+                }
+                else
+                {
+                    Play("event:/char/madeline/jump");
+                }
+            }
+            SetScale(new Vector2(0.6f - (boosted ? 0.2f : 0), 1.4f));
+            if (particles)
+            {
+                if (onGround)
+                {
+                    int index = -1;
+                    Platform platformByPriority = SurfaceIndex.GetPlatformByPriority(CollideAll<Platform>(Position + Vector2.UnitY, temp));
+                    if (platformByPriority != null)
+                    {
+                        index = platformByPriority.GetLandSoundIndex(this);
+                    }
+                    ParticleType type = DustParticleFromSurfaceIndex(index);
+                    int amount = (boosted ? 4 : 2) / (HasHead ? 1 : 2);
+                    if (boosted)
+                    {
+                        float speedMin = type.SpeedMin;
+                        float speedMax = type.SpeedMax;
+                        type.SpeedMin *= 4;
+                        type.SpeedMax *= 4;
+                        Dust.Burst(BottomLeft, -165f.ToRad(), amount, type);
+                        Dust.Burst(BottomRight, -15f.ToRad(), amount, type);
+                        type.SpeedMin = speedMin;
+                        type.SpeedMax = speedMax;
+                    }
+                    Dust.Burst(BottomCenter, -(float)Math.PI / 2f, amount, type);
+
+                }
+            }
+            SaveData.Instance.TotalJumps++;
+        }
+
+        public void CallBlipEvents()
+        {
+            if (calledDashEvents)
+            {
+                return;
+            }
+
+            calledDashEvents = true;
+            if (CurrentBooster == null)
+            {
+                SaveData.Instance.TotalDashes++;
+                level.Session.Dashes++;
+                Stats.Increment(Stat.DASHES);
+                bool flag = DashDir.Y < 0f || (DashDir.Y == 0f && DashDir.X > 0f);
+                if (DashDir == Vector2.Zero)
+                {
+                    flag = Facing == Facings.Right;
+                }
+                if (DashDir.X == 0 && DashDir.Y != 0)
+                {
+                    SetScale(new Vector2(0.6f, 1));
+                }
+                if (flag)
+                {
+                    //Play("event:/char/calidus/blip_right");
+                }
+                else
+                {
+                    //Play("event:/char/calidus/blip_left");
+                }
+
+                foreach (DashListener component in base.Scene.Tracker.GetComponents<DashListener>())
+                {
+                    if (component.OnDash != null)
+                    {
+                        component.OnDash(DashDir);
+                    }
+                }
+            }
+            else
+            {
+                CurrentBooster.PlayerBoosted(this, DashDir);
+                CurrentBooster = null;
             }
         }
+
+        public StateMachine CreateStateMachine()
+        {
+            StateMachine stateMachine = new StateMachine(27);
+            stateMachine.SetCallbacks(NormalState, normalUpdate, null, normalBegin, normalEnd);
+            stateMachine.SetCallbacks(DummyState, dummyUpdate, null, dummyBegin);
+            stateMachine.SetCallbacks(RailState, railUpdate, null, railBegin, railEnd);
+            stateMachine.SetCallbacks(BlipState, blipUpdate, BlipCoroutine, blipBegin, blipEnd);
+
+            return stateMachine;
+        }
+
         public override void DebugRender(Camera camera)
         {
             Draw.HollowRect(SpriteBox, Color.SlateBlue);
             Draw.HollowRect(Collider, Color.Red);
             Draw.HollowRect(LastBlip, 7, 7, Color.White);
             Draw.Point(Position + Light.Position, Color.Yellow);
+            Draw.Point(Position, Color.Magenta);
         }
 
-        internal static void Load()
+        public void dummyBegin()
         {
-            On.Celeste.Level.LoadNewPlayer += On_Level_LoadNewPlayer;
-            On.Celeste.Level.LoadNewPlayerForLevel += On_Level_LoadNewPlayerForLevel;
-            On.Celeste.Player.BeforeUpTransition += Player_BeforeUpTransition;
-            On.Celeste.Player.BeforeDownTransition += Player_BeforeDownTransition;
-            On.Celeste.Player.TransitionTo += Player_TransitionTo;
-            On.Celeste.Player.Die += Player_Die;
+            DummyBegin();
         }
+
+        public IEnumerator DummyMoveTo(float x, float speedMultiplier = 1)
+        {
+            if (StateMachine.State != DummyState)
+            {
+                StateMachine.State = DummyState;
+            }
+            DummyMoving = true;
+            while (Math.Abs(x - X) > 4f && Scene != null && (!CollideCheck<Solid>(Position + Vector2.UnitX * Math.Sign(x - X))))
+            {
+                Speed.X = Calc.Approach(Speed.X, (float)Math.Sign(x - X) * 64f * speedMultiplier, 1000f * Engine.DeltaTime);
+                yield return null;
+            }
+            DummyMoving = false;
+
+        }
+
+        public int dummyUpdate()
+        {
+            if (!DummyMoving)
+            {
+                if (Math.Abs(Speed.X) > 90f && DummyMaxspeed)
+                {
+                    Speed.X = Calc.Approach(Speed.X, 90f * (float)Math.Sign(Speed.X), 2500f * Engine.DeltaTime);
+                }
+
+                if (DummyFriction)
+                {
+                    Speed.X = Calc.Approach(Speed.X, 0f, 1000f * Engine.DeltaTime);
+                }
+            }
+            return DummyState;
+        }
+
+        public void Emotion(Mood mood)
+        {
+            sprite.Emotion(mood);
+        }
+
+        public void Look(Looking dir)
+        {
+            sprite.Look(dir);
+        }
+
+        public void MidAirJumpEvents()
+        {
+            sprite.ThrowArmDown();
+        }
+
         public PlayerDeadBody neworig_Die(Vector2 direction, bool evenIfInvincible = false, bool registerDeathInStats = true)
         {
             Session session = level.Session;
@@ -1044,12 +867,285 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             return null;
         }
+
+        public void normalBegin()
+        {
+        }
+
+        public void normalEnd()
+        {
+
+        }
+
+        public int normalUpdate()
+        {
+            if (CanBlip)
+            {
+                return StartBlip();
+            }
+            if (CanJump)
+            {
+                CalidusJump();
+                return NormalState;
+            }
+            float maxMoveXMult = 0.5f;
+            float maxMoveYMult = 0.5f;
+            float speedXMult = 90f;
+            float speedYMult = 90f;
+            float xDir = Input.MoveX.Value;
+            float yDir = 1;
+            if (!FlyToggled)
+            {
+                speedYMult += 70f;
+                speedXMult *= 0.9f;
+                maxMoveYMult = 1.6f;
+                maxMoveXMult = 1f;
+            }
+            else
+            {
+                yDir = Input.MoveY.Value;
+            }
+
+
+            float xmult = Math.Abs(Speed.X) > speedXMult && Math.Sign(Speed.X) == xDir ? 400f : 500f;
+            float ymult = Math.Abs(Speed.Y) > speedYMult && Math.Sign(Speed.Y) == yDir ? 200f : 500f;
+            Speed.X = Calc.Approach(Speed.X, speedXMult * xDir, xmult * maxMoveXMult * Engine.DeltaTime);
+            Speed.Y = Calc.Approach(Speed.Y, speedYMult * yDir, ymult * maxMoveYMult * GravityMult * Engine.DeltaTime);
+            if (varJumpTimer > 0f)
+            {
+                if (!FlyToggled && (AutoJump || Input.Jump.Check))
+                {
+                    Speed.Y = Math.Min(Speed.Y, varJumpSpeed);
+                }
+                else
+                {
+                    varJumpTimer = 0f;
+                }
+            }
+            return NormalState;
+        }
+
+        public void railBegin()
+        {
+        }
+
+        public void railEnd()
+        {
+        }
+
+        public int railUpdate()
+        {
+            Speed = Vector2.Zero;
+            return RailState;
+        }
+
+        public void RefillJumps()
+        {
+            Jumps = RoboInventory.Jumps;
+        }
+
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            Vision.RemoveSelf();
+        }
+
+        public override void Render()
+        {
+            if (!CanSee)
+            {
+                Glow.Render();
+            }
+            else if (StateMachine.State != RailState && !InRail)
+            {
+                RenderParts();
+            }
+        }
+
+        public void RenderParts()
+        {
+            sprite.RenderAt(Position);
+        }
+
+        public void RenderPartsAt(Vector2 position)
+        {
+            sprite.RenderAt(position);
+        }
+
+        public void SetBaseUpgradeLighting(Level level)
+        {
+            Light.StartRadius = Calc.Approach(Light.StartRadius, 40, Engine.DeltaTime);
+            Light.EndRadius = Calc.Approach(Light.EndRadius, 80, Engine.DeltaTime);
+            if (!CanSee)
+            {
+                LightingShiftAmount = Calc.Approach(LightingShiftAmount, 1, Engine.DeltaTime);
+            }
+            else
+            {
+                LightingShiftAmount = Calc.Approach(LightingShiftAmount, 0, Engine.DeltaTime);
+            }
+            SetLighting(level, LightingShiftAmount);
+            DigitalGrid.CalidusEyeDiff = LightingShiftAmount * 0.7f;
+        }
+
+        public void SetScale(Vector2 scale)
+        {
+            sprite.Scale = scale;
+        }
+
+        public IEnumerator SlogRoutine()
+        {
+            while (true)
+            {
+                SlugMult = 0;
+                while (!Sluggish)
+                {
+                    yield return null;
+                }
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.5f)
+                {
+                    SlugMult = Calc.LerpClamp(0, 1, Ease.QuadIn(i));
+                    yield return null;
+                }
+                SlugMult = 1;
+                yield return 0.1f;
+
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.8f)
+                {
+                    SlugMult = Calc.LerpClamp(1, 0, Ease.QuadIn(i));
+                    yield return null;
+                }
+                while (!Moving)
+                {
+                    yield return null;
+                }
+                yield return 0.5f;
+            }
+        }
+
+        public int StartBlip()
+        {
+            demoDashed = Input.CrouchDashPressed;
+            Input.CrouchDash.ConsumeBuffer();
+            sprite.LookSpeed = 5;
+            if (!FlyToggled)
+            {
+                Dashes--;
+            }
+            return BlipState;
+
+        }
+
+        public bool TryGetBlipTarget(Vector2 from, Vector2 speed, out Vector2 target)
+        {
+            Vector2 dir = Calc.Sign(speed);
+            if (speed == Vector2.Zero)
+            {
+                target = from;
+                return true;
+            }
+            target = from + (speed * Engine.DeltaTime).Floor();
+            float dist = Vector2.Distance(from, target);
+            while (CollideCheck<Solid>(target) && dist > 0)
+            {
+                target += -dir;
+                dist -= 1;
+            }
+            target.Floor();
+            Level level = Scene as Level;
+            LevelData data = level.Session.MapData.GetAt(target);
+            LevelData thisData = level.Session.LevelData;
+            if (dist > 0f && data != null &&
+                (data.Equals(thisData) || (data.Spawns != null && data.Spawns.Count > 0
+                && level.Tracker.GetEntity<BlipTransitionController>() == null)))
+            {
+                LastBlipDir = dir;
+                LastDashOrBlipDir = dir;
+                LastBlip = target;
+                return true;
+            }
+            return false;
+        }
+
+        internal static void Load()
+        {
+            On.Celeste.Level.LoadNewPlayer += On_Level_LoadNewPlayer;
+            On.Celeste.Level.LoadNewPlayerForLevel += On_Level_LoadNewPlayerForLevel;
+            On.Celeste.Player.BeforeUpTransition += Player_BeforeUpTransition;
+            On.Celeste.Player.BeforeDownTransition += Player_BeforeDownTransition;
+            On.Celeste.Player.TransitionTo += Player_TransitionTo;
+            On.Celeste.Player.Die += Player_Die;
+        }
+
+        internal static void Unload()
+        {
+            On.Celeste.Level.LoadNewPlayer -= On_Level_LoadNewPlayer;
+            On.Celeste.Level.LoadNewPlayerForLevel -= On_Level_LoadNewPlayerForLevel;
+            On.Celeste.Player.BeforeUpTransition -= Player_BeforeUpTransition;
+            On.Celeste.Player.BeforeDownTransition -= Player_BeforeDownTransition;
+        }
+
+        private static Player On_Level_LoadNewPlayer(On.Celeste.Level.orig_LoadNewPlayer orig, Vector2 position, PlayerSpriteMode spriteMode)
+        {
+            if (Engine.Scene is Level level)
+            {
+                if (LevelContainsSpawner(level, out CalidusSpawnerData data))
+                {
+                    _ = orig(position, spriteMode);
+                    return new PlayerCalidus(position, data);
+                }
+            }
+            return orig(position, spriteMode);
+        }
+
+        private static Player On_Level_LoadNewPlayerForLevel(On.Celeste.Level.orig_LoadNewPlayerForLevel orig, Vector2 position, PlayerSpriteMode spriteMode, Level lvl)
+        {
+            if (LevelContainsSpawner(lvl, out CalidusSpawnerData data))
+            {
+                _ = orig(position, spriteMode, lvl);
+                return new PlayerCalidus(position + new Vector2(2, -3), data);
+            }
+            return orig(position, spriteMode, lvl);
+        }
+
+        private static void Player_BeforeDownTransition(On.Celeste.Player.orig_BeforeDownTransition orig, Player self)
+        {
+            if (self is PlayerCalidus c)
+            {
+                if (!c.InRail) c.Speed.Y = Math.Max(0f, c.Speed.Y);
+                foreach (Entity entity in c.Scene.Tracker.GetEntities<Platform>())
+                {
+                    if (entity is not SolidTiles && c.CollideCheckOutside(entity, c.Position + Vector2.UnitY * c.Height))
+                    {
+                        entity.Collidable = false;
+                    }
+                }
+            }
+            else
+            {
+                orig(self);
+            }
+        }
+
+        private static void Player_BeforeUpTransition(On.Celeste.Player.orig_BeforeUpTransition orig, Player self)
+        {
+            if (self is PlayerCalidus c)
+            {
+                c.Speed.X = 0f;
+                c.dashCooldownTimer = 0.2f;
+            }
+            else
+            {
+                orig(self);
+            }
+        }
+
         private static PlayerDeadBody Player_Die(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats)
         {
             if (self is PlayerCalidus pC)
             {
                 Level level = self.Scene as Level;
-                PlayerDeadBody playerDeadBody = pC.orig_Die(direction, evenIfInvincible, registerDeathInStats);
+                PlayerDeadBody playerDeadBody = pC.neworig_Die(direction, evenIfInvincible, registerDeathInStats);
                 if (playerDeadBody != null)
                 {
                     Everest.Events.Player.Die(self);
@@ -1111,151 +1207,148 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
 
-        private static void Player_BeforeDownTransition(On.Celeste.Player.orig_BeforeDownTransition orig, Player self)
+        private IEnumerator GlowFlicker()
         {
-            if (self is PlayerCalidus c)
+            float startFade = Light.StartRadius + 8;
+            float endFade = Light.EndRadius + 16;
+            float duration;
+            float alpha = 1;
+            while (true)
             {
-                if (!c.InRail) c.Speed.Y = Math.Max(0f, c.Speed.Y);
-                foreach (Entity entity in c.Scene.Tracker.GetEntities<Platform>())
+                while (CanSee) yield return null;
+
+                float stFrom = startFade;
+                float endFrom = endFade;
+                float alphaFrom = alpha;
+
+                startFade = StartFadeDefault + Calc.Random.Range(-2, 2f);
+                endFade = startFade * 2;
+                duration = Calc.Random.Range(0.1f, 0.3f);
+                alpha = 0.6f + (0.4f * MathHelper.Distance(startFade, StartFadeDefault) / 8f);
+                for (float i = 0; i < 1; i += Engine.DeltaTime / duration)
                 {
-                    if (entity is not SolidTiles && c.CollideCheckOutside(entity, c.Position + Vector2.UnitY * c.Height))
+                    float ease = Ease.SineIn(i);
+                    Light.StartRadius = Calc.LerpClamp(stFrom, startFade, ease);
+                    Light.EndRadius = Calc.LerpClamp(endFrom, endFade, ease);
+                    Glow.Amplitude = Light.Alpha;
+                    yield return null;
+                }
+            }
+        }
+
+        private void newOnCollideH(CollisionData data)
+        {
+            if (StateMachine.State == RailState) return;
+            if (data.Hit != null && data.Hit.OnCollide != null)
+            {
+                data.Hit.OnCollide(data.Direction);
+            }
+            Speed.X = 0f;
+        }
+
+        private void newOnCollideV(CollisionData data)
+        {
+            if (StateMachine.State == RailState) return;
+            if (Speed.Y < 0f)
+            {
+                int num3 = 4;
+
+                if (Speed.X <= 0.01f)
+                {
+                    for (int j = 1; j <= num3; j++)
                     {
-                        entity.Collidable = false;
+                        if (!CollideCheck<Solid>(Position + new Vector2(-j, -1f)))
+                        {
+                            Position += new Vector2(-j, -1f);
+                            return;
+                        }
+                    }
+                }
+
+                if (Speed.X >= -0.01f)
+                {
+                    for (int k = 1; k <= num3; k++)
+                    {
+                        if (!CollideCheck<Solid>(Position + new Vector2(k, -1f)))
+                        {
+                            Position += new Vector2(k, -1f);
+                            return;
+                        }
                     }
                 }
             }
-            else
+            if (data.Hit != null && data.Hit.OnCollide != null)
             {
-                orig(self);
+                data.Hit.OnCollide(data.Direction);
+            }
+            Speed.Y = 0f;
+        }
+
+        public struct CalidusInventory
+        {
+            public static readonly CalidusInventory Nothing = new CalidusInventory(canFly: true);
+            public static readonly CalidusInventory Grounded = new CalidusInventory();
+            public static readonly CalidusInventory Slowed = new CalidusInventory(slowAmount: 0.3f);
+            public static readonly CalidusInventory Weakened = new CalidusInventory(slowAmount: 0.7f, weakened: true);
+            public static readonly CalidusInventory EyeUpgrade = new CalidusInventory(canSee: true, jumps: 1, jumpMult: 0.2f);
+            public static readonly CalidusInventory HeadUpgrade = new CalidusInventory(canSee: true, jumps: 1, jumpMult: 0.75f, canStick: true);
+            public static readonly CalidusInventory ArmUpgrade = new CalidusInventory(canSee: true, canStick: true, jumps: 1, jumpMult: 0.75f, canBlip: true);
+            public static readonly CalidusInventory FullUpgrade = new CalidusInventory(canSee: true, canStick: true, jumps: 2, jumpMult: 1f, canFly: true, canBlip: true);
+            public bool Sticky;
+            public bool Blip;
+            public bool Fly;
+            public bool CanSee;
+            public float JumpMult;
+            public int Jumps;
+            public float Slowness;
+            public bool Weak;
+            public CalidusInventory(float slowAmount = 0, bool weakened = false, bool canSee = false, int jumps = 0, float jumpMult = 0, bool canStick = false, bool canFly = false, bool canBlip = false)
+            {
+                CanSee = canSee;
+                Jumps = jumps;
+                Sticky = canStick;
+                Fly = canFly;
+                Blip = canBlip;
+                JumpMult = jumpMult;
+                Slowness = slowAmount;
+                Weak = weakened;
             }
         }
 
-        private static void Player_BeforeUpTransition(On.Celeste.Player.orig_BeforeUpTransition orig, Player self)
+        [TrackedAs(typeof(ShaderOverlay))]
+        public class CalidusVision : ShaderOverlay
         {
-            if (self is PlayerCalidus c)
+            public PlayerCalidus Calidus;
+            public CalidusVision(PlayerCalidus calidus) : base("PuzzleIslandHelper/Shaders/CalidusVision")
             {
-                c.Speed.X = 0f;
-                c.dashCooldownTimer = 0.2f;
+                Calidus = calidus;
+                Tag |= Tags.Persistent | Tags.TransitionUpdate;
             }
-            else
+            public override void ApplyParameters()
             {
-                orig(self);
+                base.ApplyParameters();
+                Effect.Parameters["PlayerCenter"]?.SetValue(Calidus.Center + Vector2.UnitY * Calidus.Glow.FloatOffset);
             }
-        }
 
-        internal static void Unload()
-        {
-            On.Celeste.Level.LoadNewPlayer -= On_Level_LoadNewPlayer;
-            On.Celeste.Level.LoadNewPlayerForLevel -= On_Level_LoadNewPlayerForLevel;
-            On.Celeste.Player.BeforeUpTransition -= Player_BeforeUpTransition;
-            On.Celeste.Player.BeforeDownTransition -= Player_BeforeDownTransition;
-        }
-        public static bool LevelContainsSpawner(Level level, out CalidusSpawnerData data)
-        {
-            data = default;
-            if (PianoMapDataProcessor.CalidusSpawners.ContainsKey(level.Session.Level))
+            public override bool ShouldRender()
             {
-                data = PianoMapDataProcessor.CalidusSpawners[level.Session.Level];
-                return true;
+                return base.ShouldRender() && (!Calidus.CanSee || Amplitude > 0);
             }
-            return false;
-        }
-        private static Player On_Level_LoadNewPlayer(On.Celeste.Level.orig_LoadNewPlayer orig, Vector2 position, PlayerSpriteMode spriteMode)
-        {
-            if (Engine.Scene is Level level)
+
+            public override void Update()
             {
-                if (LevelContainsSpawner(level, out CalidusSpawnerData data))
+                base.Update();
+                if (Calidus.CanSee)
                 {
-                    _ = orig(position, spriteMode);
-                    return new PlayerCalidus(position, data);
+                    Amplitude = Calc.Approach(Amplitude, 0, Engine.DeltaTime);
+                }
+                else
+                {
+                    Amplitude = 1;
                 }
             }
-            return orig(position, spriteMode);
         }
-        private static Player On_Level_LoadNewPlayerForLevel(On.Celeste.Level.orig_LoadNewPlayerForLevel orig, Vector2 position, PlayerSpriteMode spriteMode, Level lvl)
-        {
-            if (LevelContainsSpawner(lvl, out CalidusSpawnerData data))
-            {
-                _ = orig(position, spriteMode, lvl);
-                return new PlayerCalidus(position + new Vector2(2, -3), data);
-            }
-            return orig(position, spriteMode, lvl);
-        }
-
-        public static void SetInventory(Upgrades upgrade)
-        {
-            PianoModule.SaveData.CalidusInventory = upgrade switch
-            {
-                Upgrades.Eye => CalidusInventory.EyeUpgrade,
-                Upgrades.Head => CalidusInventory.HeadUpgrade,
-                Upgrades.LeftArm => CalidusInventory.LeftArmUpgrade,
-                Upgrades.RightArm => CalidusInventory.RightArmUpgrade,
-                Upgrades.Blip => CalidusInventory.BlipUpgrade,
-                Upgrades.NothingGrounded => CalidusInventory.NothingGrounded,
-                _ => CalidusInventory.Nothing
-            };
-        }
-        public static void SetInventory(CalidusInventory inv)
-        {
-            PianoModule.SaveData.CalidusInventory = inv;
-        }
-
         #region Inherited from Calidus.cs
-        private Vector2 GetLookOffset()
-        {
-            return sprite.LookDir switch
-            {
-                Looking.Left => -Vector2.UnitX * 4,
-                Looking.Right => Vector2.UnitX * 4,
-                Looking.Up => -Vector2.UnitY * 4,
-                Looking.Down => Vector2.UnitY * 4,
-                Looking.UpLeft => Vector2.One * -4,
-                Looking.UpRight => new Vector2(4, -4),
-                Looking.DownLeft => new Vector2(-4, 4),
-                Looking.DownRight => Vector2.One * 4,
-                Looking.Target => RotatePoint(sprite.OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, sprite.LookTarget).ToDeg()),
-                Looking.Center => Vector2.Zero,
-                _ => Vector2.Zero
-            };
-        }
-        public IEnumerator FloatToRoutine(Vector2 position, float time, Ease.Easer ease = null)
-        {
-            Vector2 from = Position;
-            ease ??= Ease.Linear;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
-            {
-                Position = Vector2.Lerp(from, position, ease(i));
-                yield return null;
-            }
-        }
-        public void MoveTo(Vector2 position)
-        {
-            Position = position;
-        }
-        public void FloatTo(Vector2 position, float time, Ease.Easer ease = null)
-        {
-            Add(new Coroutine(FloatToRoutine(position, time, ease)));
-        }
-        public IEnumerator Say(string id, string emotion, params Func<IEnumerator>[] events)
-        {
-            sprite.Emotion(emotion);
-            yield return Textbox.Say(id, events);
-        }
-
-        public void ShakeFor(float time)
-        {
-            shakeTimer = time;
-        }
-        public void StartShaking()
-        {
-            ForceShake = true;
-        }
-        public void StopShaking()
-        {
-            ForceShake = false;
-            shakeTimer = 0;
-        }
-
         public static Vector2 RotatePoint(Vector2 pointToRotate, Vector2 centerPoint, double angleInDegrees)
         {
             double angleInRadians = angleInDegrees * (Math.PI / 180);
@@ -1271,6 +1364,67 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     (int)
                     (sinTheta * (pointToRotate.X - centerPoint.X) +
                     cosTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.Y)
+            };
+        }
+
+        public void FloatTo(Vector2 position, float time, Ease.Easer ease = null)
+        {
+            Add(new Coroutine(FloatToRoutine(position, time, ease)));
+        }
+
+        public IEnumerator FloatToRoutine(Vector2 position, float time, Ease.Easer ease = null)
+        {
+            Vector2 from = Position;
+            ease ??= Ease.Linear;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                Position = Vector2.Lerp(from, position, ease(i));
+                yield return null;
+            }
+        }
+
+        public void MoveTo(Vector2 position)
+        {
+            Position = position;
+        }
+
+        public IEnumerator Say(string id, string emotion, params Func<IEnumerator>[] events)
+        {
+            sprite.Emotion(emotion);
+            yield return Textbox.Say(id, events);
+        }
+
+        public void ShakeFor(float time)
+        {
+            shakeTimer = time;
+        }
+
+        public void StartShaking()
+        {
+            ForceShake = true;
+        }
+
+        public void StopShaking()
+        {
+            ForceShake = false;
+            shakeTimer = 0;
+        }
+
+        private Vector2 GetLookOffset()
+        {
+            return sprite.LookDir switch
+            {
+                Looking.Left => -Vector2.UnitX * 4,
+                Looking.Right => Vector2.UnitX * 4,
+                Looking.Up => -Vector2.UnitY * 4,
+                Looking.Down => Vector2.UnitY * 4,
+                Looking.UpLeft => Vector2.One * -4,
+                Looking.UpRight => new Vector2(4, -4),
+                Looking.DownLeft => new Vector2(-4, 4),
+                Looking.DownRight => Vector2.One * 4,
+                Looking.Target => RotatePoint(sprite.OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, sprite.LookTarget).ToDeg()),
+                Looking.Center => Vector2.Zero,
+                _ => Vector2.Zero
             };
         }
         #endregion

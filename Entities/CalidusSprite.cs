@@ -36,8 +36,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float LookSpeed = 1;
         public bool HasHead;
         public bool HasEye;
-        public bool HasLeftArm;
-        public bool HasRightArm;
+        public bool HasArms;
 
 
         public float RollRotation;
@@ -90,6 +89,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public bool OnGround;
             public float FallOffset;
             public CalidusSprite Parent;
+            public bool UseOwnScale;
+            public Vector2 OutlineOffset;
+            public Vector2 SpriteScale;
             public new Vector2 RenderPosition
             {
                 get
@@ -112,28 +114,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 CenterOrigin();
                 Position += new Vector2(Width / 2, Height / 2).Floor();
             }
-            public void DrawOutline()
+            public void DrawOutlineAt(Vector2 position)
             {
-                DrawOutline(Color.Black * OutlineOpacity);
+                DrawOutlineAt(position + Offset, Color.Black * OutlineOpacity);
             }
-            public void DrawOutline(Vector2 at)
+            public void DrawOutlineAt(Vector2 position, Color color, int offset = 1)
             {
-                Vector2 from = Position;
-                Position = at + Offset;
-                DrawOutline();
-                Position = from;
+                Color color2 = Color;
+                Color = color;
+                for (int i = -1; i < 2; i++)
+                {
+                    for (int j = -1; j < 2; j++)
+                    {
+                        if (i != 0 || j != 0)
+                        {
+                            RenderAt(position + new Vector2(i * offset, j * offset) + OutlineOffset);
+                        }
+                    }
+                }
+                Color = color2;
             }
             public void RenderAt(Vector2 at)
             {
                 if (Texture != null)
                 {
-                    Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, at + Offset, null, Color, Rotation, Origin, Scale, Effects, 0);
+                    Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, at + Offset, null, Color, Rotation, Origin, UseOwnScale ? Scale : SpriteScale, Effects, 0);
                 }
             }
             public override void Render()
             {
-                base.Render();
-                RenderAt(RenderPosition);
             }
         }
 
@@ -241,7 +250,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (p.Visible)
                 {
-                    p.DrawOutline(position + p.Position);
+                    p.DrawOutlineAt(position + p.Position);
                 }
             }
             foreach (Part p in Parts)
@@ -261,22 +270,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Update();
             OrbSprite.Visible = HasHead;
             EyeSprite.Visible = HasEye;
-            Arms[0].Visible = HasLeftArm;
-            Arms[1].Visible = HasRightArm;
+            Arms[0].Visible = Arms[1].Visible = HasArms;
             if (HasHead)
             {
                 OrbSprite.Rotation = RollRotation.ToRad();
-            }
-            else if (HasEye)
-            {
-                EyeSprite.Rotation = RollRotation.ToRad();
             }
             Arms[0].Offset.X = ArmOffsets[0];
             Arms[1].Offset.X = ArmOffsets[1];
             LookTargetEnabled = HasHead && LookDir == Looking.Target;
             foreach (Part p in Parts)
             {
-                p.Scale = Scale;
+                p.SpriteScale = Scale;
             }
         }
         private IEnumerator BlinkInterval(int times, float interval, bool endState)
@@ -357,8 +361,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             };
             OrbSprite.Position -= Vector2.One * 2;
             EyeSprite.Position += OrbSprite.Center;
-            //Arms[0].Position.X += -(Arms[0].Width + 1);
-            //Arms[1].Position.X += OrbSprite.Width;
             int armOffset = 4;
             Arms[0].Position = OrbSprite.Position - Vector2.UnitX * (Arms[0].Width + armOffset);
             Arms[1].Position = OrbSprite.Position + Vector2.UnitX * (OrbSprite.Width / 2 + armOffset - 1);
@@ -800,26 +802,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (CanFloat)
                 {
                     Color target = Color.Lerp(Color.White, Color.Black, 0.2f);
-                    float armPosX = ArmOffsets[0];
-                    float armRightPosX = ArmOffsets[1];
                     float delay = Engine.DeltaTime / 2;
-                    int armDistance = 1;
+
                     for (float i = 0; i < 1; i += Engine.DeltaTime)
                     {
-                        ArmOffsets[0] = (int)Math.Round(Calc.LerpClamp(armPosX, armPosX - armDistance, Ease.SineInOut(i)));
-                        ArmOffsets[1] = (int)Math.Round(Calc.LerpClamp(armRightPosX, armRightPosX + armDistance, Ease.SineInOut(i)));
                         OrbSprite.Color = Color.Lerp(target, Color.White, Ease.SineInOut(i));
                         yield return delay;
                     }
-                    armPosX = ArmOffsets[0];
-                    armRightPosX = ArmOffsets[1];
+                    ArmOffsets[0] = -1;
+                    Arms[0].OutlineOffset.X = 1;
+                    ArmOffsets[1] = 1;
+                    Arms[1].OutlineOffset.X = -1;
                     for (float i = 0; i < 1; i += Engine.DeltaTime)
                     {
-                        ArmOffsets[0] = (int)Math.Round(Calc.LerpClamp(armPosX, armPosX + armDistance, Ease.SineInOut(i)));
-                        ArmOffsets[1] = (int)Math.Round(Calc.LerpClamp(armRightPosX, armRightPosX - armDistance, Ease.SineInOut(i)));
                         OrbSprite.Color = Color.Lerp(Color.White, target, Ease.SineInOut(i));
                         yield return delay;
                     }
+                    ArmOffsets[0] = ArmOffsets[1] = 0;
+                    Arms[0].OutlineOffset.X = Arms[1].OutlineOffset.X = 0;
                 }
                 yield return null;
             }

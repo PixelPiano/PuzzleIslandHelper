@@ -8,17 +8,64 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEnti
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.PlayerCalidus;
 
 public class PianoCommands
 {
-
+    [Command("play_as_calidus", "turns the Player entity into PlayerCalidus")]
+    public static void BecomeCalidus()
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        if (level.GetPlayer() is not Player player)
+        {
+            Engine.Commands.Log("Current Scene does not contain a player.");
+            return;
+        }
+        if (player is PlayerCalidus)
+        {
+            Engine.Commands.Log("Current Scene already contains PlayerCalidus.");
+            return;
+        }
+        level.Remove(player);
+        player = new PlayerCalidus(player.Position - Vector2.UnitY * 3, new());
+        level.Add(player);
+    }
+    [Command("play_as_player", "turns the PlayerCalidus entity into Player")]
+    public static void BecomePlayer()
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        if (level.GetPlayer() is not Player player)
+        {
+            Engine.Commands.Log("Current Scene does not contain a player.");
+            return;
+        }
+        if (player is PlayerCalidus)
+        {
+            level.Remove(player);
+            player = new Player(player.Position + Vector2.UnitY * 3, player.DefaultSpriteMode);
+            level.Add(player);
+        }
+        else
+        {
+            Engine.Commands.Log("Current Scene does not contain a PlayerCalidus player.");
+            return;
+        }
+    }
     [Command("cInv", "sets any CalidusPlayer entity's RoboInventory")]
     public static void SetCalidusInventory(int inventory)
     {
-        Upgrades upgrade = (Upgrades)Calc.Clamp(inventory, 0, 5);
+        Upgrades upgrade = (Upgrades)Calc.Clamp(inventory, 0, Enum.GetValues(typeof(Upgrades)).Length);
         SetInventory(upgrade);
     }
     [Command("ftprogram", "starts a program on the fake terminal entity")]

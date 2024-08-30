@@ -2,7 +2,7 @@ local calidusUpgradeTrigger = {}
 
 calidusUpgradeTrigger.name = "PuzzleIslandHelper/CalidusUpgradeTrigger"
 
-local upgrades = {"Nothing","NothingGrounded","Eye","Head","LeftArm","RightArm","Blip"}
+local upgrades = {"Nothing","Grounded","Slowed","Weakened","Eye","Head","Arms","Blip"}
 calidusUpgradeTrigger.placements =
 {
     {
