@@ -1,4 +1,4 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper

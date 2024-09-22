@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
+using VivHelper.Entities;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.BitrailTransporter;
 using Direction = Celeste.Mod.PuzzleIslandHelper.Components.BitrailNode.Direction;
 using DirectionCombos = Celeste.Mod.PuzzleIslandHelper.Components.BitrailNode.DirectionCombos;
 using Nodes = Celeste.Mod.PuzzleIslandHelper.Components.BitrailNode.Nodes;
@@ -155,6 +158,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                 node.InitializeDirections();
             }
         }
+        public static int NodesOnScreen(HashSet<BitrailNode> nodes)
+        {
+            int amount = 0;
+            foreach (var node in nodes)
+            {
+                if (node.OnScreen)
+                {
+                    amount++;
+                }
+            }
+            return amount;
+            //return nodes.Select(item => item.OnScreen).Count();
+        }
         public static BitrailNode GetNeighbor(this BitrailNode from, Vector2 direction)
         {
             if (from == null || direction == Vector2.Zero) return from;
@@ -174,17 +190,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                 _ => direction
             };
         }
-        public static Vector2 NextDirection(this BitrailNode node, Vector2 currentDirection)
-        {
-            return node.Node switch
-            {
-                Nodes.DeadEnd => NextSingleDirection(node),
-                Nodes.Single => Vector2.Zero,
-                Nodes.Corner => NextCornerDirection(node, currentDirection),
-                Nodes.ThreeWay => NextIntersectionDirection(node, currentDirection),
-                _ => currentDirection
-            };
-        }
 
         public static Vector2 NextSingleDirection(this BitrailNode node)
         {
@@ -194,7 +199,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             }
             return Vector2.Zero;
         }
-        public static bool HasSameDirection(this BitrailNode node, Vector2 direction)
+        public static bool HasDirection(this BitrailNode node, Vector2 direction)
         {
             if (direction == Vector2.Zero && node.Control is BitrailNode.ControlTypes.Full) return true;
             if (direction.X > 0 && node.Directions.Contains(Direction.Right)) return true;
@@ -203,9 +208,54 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             if (direction.Y < 0 && node.Directions.Contains(Direction.Up)) return true;
             return false;
         }
-        public static Vector2 NextIntersectionDirection(this BitrailNode node, Vector2 direction)
+        public static bool HasDirection(this BitrailNode node, Direction direction)
         {
-            if (HasSameDirection(node, direction)) return direction;
+            return node.Directions.Contains(direction);
+        }
+        public static Vector2 NextIntersectionDirection(this BitrailNode node, Vector2 prev, Vector2 current, Vector2 input, AutoDirModes mode)
+        {
+            if (current != Vector2.Zero && ((current.X != 0 && current.X == -input.X) || (current.Y != 0 && current.Y == -input.Y)))
+            {
+                input = current;
+            }
+            if (HasDirection(node, input)) return input;
+            else if (HasDirection(node, current)) return current;
+            switch (mode)
+            {
+                case AutoDirModes.TurnLeft:
+                    Vector2? left = node.LeftTurn(input);
+                    if (left.HasValue)
+                    {
+                        return left.Value;
+                    }
+                    break;
+                case AutoDirModes.TurnRight:
+                    Vector2? right = node.RightTurn(input);
+                    if (right.HasValue)
+                    {
+                        return right.Value;
+                    }
+                    break;
+                case AutoDirModes.Clock:
+                    if (prev.Y != 0 && node.HasDirection(VectorToDirection(-prev.YComp())))
+                    {
+                        return -prev.YComp();
+                    }
+                    else if (prev.X != 0 && node.HasDirection(VectorToDirection(-prev.XComp())))
+                    {
+                        return -prev.XComp();
+                    }
+                    else
+                    {
+                        return current;
+                    }
+                case AutoDirModes.Off:
+                    return input;
+            }
+            return input;
+        }
+        public static Vector2? LeftTurn(this BitrailNode node, Vector2 direction)
+        {
             if (direction.X > 0 && node.Directions.Contains(Direction.Up))
             {
                 return -Vector2.UnitY;
@@ -222,7 +272,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             {
                 return -Vector2.UnitX;
             }
-            return direction;
+            return null;
+        }
+        public static Vector2? RightTurn(this BitrailNode node, Vector2 direction)
+        {
+            if (direction.X > 0 && node.Directions.Contains(Direction.Down))
+            {
+                return Vector2.UnitY;
+            }
+            else if (direction.X < 0 && node.Directions.Contains(Direction.Up))
+            {
+                return -Vector2.UnitY;
+            }
+            else if (direction.Y > 0 && node.Directions.Contains(Direction.Left))
+            {
+                return -Vector2.UnitX;
+            }
+            else if (direction.Y < 0 && node.Directions.Contains(Direction.Right))
+            {
+                return Vector2.UnitX;
+            }
+            return null;
         }
         public static Vector2 DirectionToVector(Direction direction)
         {

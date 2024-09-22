@@ -15,10 +15,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
-
+        public Dictionary<string, Vector2> PortalNodePositions = new();
+       
         public int DEBUGINT { get; set; }
-        public bool DEBUGBOOL { get; set; }
+        public bool DEBUGBOOL1 { get; set; }
+        public bool DEBUGBOOL2 {get; set;}
+        public bool DEBUGBOOL3 {get; set;}
+        public bool DEBUGBOOL4 {get; set;}
         public Vector2 DEBUGVECTOR { get; set; }
+        public List<RecordedMemory> Memories = new();
         public int TimesMetWithCalidus;
         public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
         public ForkAmpState ForkAmpState = new();

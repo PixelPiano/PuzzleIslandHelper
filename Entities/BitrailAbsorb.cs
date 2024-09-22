@@ -146,6 +146,8 @@ public class BitrailAbsorb : Entity
         }
     }
     public Func<Vector2> GetTarget;
+    public bool Finished;
+    public bool Disabled;
     private ParticleType Particle = new()
     {
         Size = 1,
@@ -158,14 +160,17 @@ public class BitrailAbsorb : Entity
     public FizzleOut Fizzle;
     public void EmitParticle()
     {
-        Vector2 from = Center + Vector2.UnitX * Calc.Random.Range(-Width, Width) / 2 * (1 - Fizzle.Percent);
-        from.Y += Calc.Random.Range(0, 3);
+        if (!Disabled)
+        {
+            Vector2 from = Center + Vector2.UnitX * Calc.Random.Range(-Width, Width) / 2 * (1 - Fizzle.Percent);
+            from.Y += Calc.Random.Range(0, 3);
 
-        Particle p2 = new();
-        Particle p = Particle.Create(ref p2, from, Calc.Random.Choose(Color.Green, Color.LightGreen));
-        ParticleData data = new ParticleData(p, from, 0.2f, GetTarget);
-        Add(data);
-        Data.Add(data);
+            Particle p2 = new();
+            Particle p = Particle.Create(ref p2, from, Calc.Random.Choose(Color.Green, Color.LightGreen));
+            ParticleData data = new ParticleData(p, from, 0.2f, GetTarget);
+            Add(data);
+            Data.Add(data);
+        }
     }
     public BitrailAbsorb(Action draw, Collider collider, Color color1, Color color2, Entity approach) : this(draw, collider.AbsolutePosition, collider.Width, collider.Height, color1, color2, delegate { return approach.Center; })
     {
@@ -184,7 +189,6 @@ public class BitrailAbsorb : Entity
         int h = (int)height;
         Collider = new Hitbox(w, h);
     }
-
     public override void Update()
     {
         base.Update();
@@ -194,6 +198,7 @@ public class BitrailAbsorb : Entity
             {
                 if (!data.Finished) return;
             }
+            Finished = true;
             RemoveSelf();
         }
         if (Fizzle.Percent < 0.85f)

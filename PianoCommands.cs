@@ -4,6 +4,7 @@ using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
@@ -11,10 +12,42 @@ using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.PlayerCalidus;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.PlayerCalidus;
 
 public class PianoCommands
 {
+    [Command("portalNodes", "blueh")]
+    private static void PortalNodes()
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        if (level.Tracker.GetEntity<TrianglePortal>() is not TrianglePortal portal)
+        {
+            Engine.Commands.Log("Level does not contain a TrianglePortal entity.");
+            return;
+        }
+        portal.AddNodePositions();
+    }
+    [Command("memTest", "create and play a recorded memory")]
+    public static void MemoryTest(int? frames = null, bool? persist = null)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        if (frames == null)
+        {
+            Engine.Commands.Log("Please provide the number of frames to capture.");
+            return;
+        }
+        persist ??= false;
+        RecordedMemory memory = new RecordedMemory(frames.Value, persist.Value);
+        level.Add(memory);
+    }
     [Command("play_as_calidus", "turns the Player entity into PlayerCalidus")]
     public static void BecomeCalidus()
     {
@@ -66,6 +99,10 @@ public class PianoCommands
     public static void SetCalidusInventory(int inventory)
     {
         Upgrades upgrade = (Upgrades)Calc.Clamp(inventory, 0, Enum.GetValues(typeof(Upgrades)).Length);
+        SetCalidusInventory(upgrade);
+    }
+    public static void SetCalidusInventory(Upgrades upgrade)
+    {
         SetInventory(upgrade);
     }
     [Command("ftprogram", "starts a program on the fake terminal entity")]
@@ -130,10 +167,25 @@ public class PianoCommands
     {
         PianoModule.Session.DEBUGINT = num;
     }
-    [Command("db", "sets a debug bool value")]
-    private static void SetDebugBool(bool value)
+    [Command("db1", "sets a debug bool value")]
+    private static void SetDebugBool1(bool value)
     {
-        PianoModule.Session.DEBUGBOOL = value;
+        PianoModule.Session.DEBUGBOOL1 = value;
+    }
+    [Command("db2", "sets a debug bool value")]
+    private static void SetDebugBool2(bool value)
+    {
+        PianoModule.Session.DEBUGBOOL2 = value;
+    }
+    [Command("db3", "sets a debug bool value")]
+    private static void SetDebugBool3(bool value)
+    {
+        PianoModule.Session.DEBUGBOOL3 = value;
+    }
+    [Command("db4", "sets a debug bool value")]
+    private static void SetDebugBool4(bool value)
+    {
+        PianoModule.Session.DEBUGBOOL4 = value;
     }
     [Command("dv", "sets a debug vector value")]
     private static void SetDebugVector(int x, int y)

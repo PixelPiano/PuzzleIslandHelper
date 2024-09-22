@@ -1,8 +1,10 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections.Generic;
+using System.Security.Permissions;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -23,6 +25,24 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
         }
     }
+    public class PortalNodeData
+    {
+        public string LevelName;
+        public Vector2 Center => LevelData.Position + Offset;
+        public Vector2 PortalNodePosition;
+        public float Thickness;
+        public string Flag;
+        public Vector2 Offset;
+        public Vector2 RoomOffset;
+        public MapData MapData;
+        public Vector2? Start;
+        public Vector2? End;
+        public LevelData LevelData => MapData.Get(LevelName);
+        public PortalNodeData()
+        {
+
+        }
+    }
     public struct CalidusSpawnerData
     {
         public string EyeFlag;
@@ -35,6 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
     {
         private string levelName;
         public static List<BitrailData> Bitrails = new();
+        public static List<PortalNodeData> PortalNodes = new();
         public static Dictionary<string, CalidusSpawnerData> CalidusSpawners = new();
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
@@ -57,6 +78,21 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     Bitrails.Add(raildata);
                 }
             };
+            Action<BinaryPacker.Element> portalNodeHandler = data =>
+            {
+                PortalNodeData seeker = new PortalNodeData
+                {
+                    MapData = MapData,
+                    LevelName = levelName,
+                    Offset = new(data.AttrFloat("x"), data.AttrFloat("y")),
+                    Flag = data.Attr("flag"),
+                    Thickness = data.AttrFloat("thickness", 16)
+                };
+                if (seeker != null)
+                {
+                    PortalNodes.Add(seeker);
+                }
+            };
             Action<BinaryPacker.Element> calidusSpawnerHandler = data =>
             {
                 CalidusSpawnerData cData = new()
@@ -64,13 +100,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     EyeFlag = data.Attr("eyeFlag"),
                     HeadFlag = data.Attr("headFlag"),
                     LeftArmFlag = data.Attr("leftArmFlag"),
-                    RightArmFlag = data.Attr("rightArmFlag")
+                    RightArmFlag = data.Attr("rightArmFlag"),
                 };
                 if (!CalidusSpawners.ContainsKey(levelName))
                 {
                     CalidusSpawners.Add(levelName, cData);
                 }
-
             };
             return new Dictionary<string, Action<BinaryPacker.Element>> {
                 {
@@ -96,12 +131,19 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         calidusSpawnerHandler(spawner);
                     }
                 },
+                {
+                    "entity:PuzzleIslandHelper/PortalNode", portalNode =>
+                    {
+                        portalNodeHandler(portalNode);
+                    }
+                },
             };
         }
 
         public override void Reset()
         {
             // reset the dictionary for the current map and mode.
+            PortalNodes = new List<PortalNodeData>();
             Bitrails = new List<BitrailData>();
             CalidusSpawners = new();
         }

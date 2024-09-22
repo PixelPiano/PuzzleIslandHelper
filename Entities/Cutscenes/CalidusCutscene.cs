@@ -206,12 +206,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public override void OnBegin(Level level)
         {
             Player player = level.GetPlayer();
-            /*
-                        if (GetCutsceneFlag(level, Upgrade))
-                        {
-                            EndCutscene(Level);
-                            return;
-                        }*/
+
+            if (GetCutsceneFlag(level, Cutscene))
+            {
+                EndCutscene(Level);
+                return;
+            }
             switch (Cutscene)
             {
                 case Cutscenes.FirstIntro:
@@ -256,7 +256,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 SetCutsceneFlag();
             }
             Player player = Level.GetPlayer();
-            if (player != null && (WasSkipped || (int)Cutscene < 2) || Cutscene == Cutscenes.SecondA)
+            Calidus calidus = Level.Tracker.GetEntity<Calidus>();
+            if (calidus != null)
+            {
+                switch (Cutscene)
+                {
+                    case Cutscenes.Second:
+                        calidus.Emotion(Calidus.Mood.Normal);
+                        break;
+                    case Cutscenes.SecondA:
+                        calidus.Emotion(Calidus.Mood.Normal);
+                        calidus.Look(Calidus.Looking.DownRight);
+                        break;
+                    case Cutscenes.Third:
+                        break;
+                    case Cutscenes.TEST:
+                        break;
+                }
+
+            }
+            if (player != null && (WasSkipped || (int)Cutscene < 5))
             {
                 player.StateMachine.State = Player.StNormal;
             }
@@ -741,9 +760,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 LookPlayer, WaitForOne, WaitForTwo, CaliDramaticFloatAway, CaliStopBeingDramatic, //15 - 19
                 CaliTurnRight, CaliMoveCloser, CaliMoveBack, Closed, Nodders, //20 - 24
                 PlayerPoke, Reassemble, PlayerToMarker2, PlayerToMarker3, PlayerToMarker4,//25 - 29
-                PlayerToMarker5, PlayerToMarkerCalidus, PanToCalidus); //30 - 32
+                PlayerToMarker5, PlayerToMarkerCalidus, PanToCalidus, PlayerToMarker6, PlayerFaceLeft, PlayerFaceRight); //30 - 33
             yield return Level.ZoomBack(1);
             EndCutscene(Level);
+        }
+        private IEnumerator PlayerFaceLeft()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            player.Facing = Facings.Left;
+            yield return null;
+        }
+        private IEnumerator PlayerFaceRight()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            player.Facing = Facings.Right;
+            yield return null;
         }
         private IEnumerator Cutscene2B(Player player, Level level)
         {
@@ -792,6 +823,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             if (Level.GetPlayer() is not Player player) yield break;
             yield return player.DummyWalkTo(Level.Marker("player5").X);
+        }
+        private IEnumerator PlayerToMarker6()
+        {
+            if (Level.GetPlayer() is not Player player) yield break;
+            yield return player.DummyWalkTo(Level.Marker("player6").X);
         }
         private IEnumerator PlayerToMarkerCalidus()
         {
@@ -1456,6 +1492,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             level.Remove(Calidus);
             InstantTeleport(level, player, "0-lcomp", null);
             yield return null;
+            player = Engine.Scene.GetPlayer();
             player.Speed.X = -64;
             player.StateMachine.State = Player.StDummy;
             yield return 0.3f;

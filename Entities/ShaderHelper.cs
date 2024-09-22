@@ -56,6 +56,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return effect;
         }
+        public static Effect ApplyMatrixParameters(this Effect effect, Matrix matrix)
+        {
+            var parameters = effect.Parameters;
+
+            Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
+            Matrix projection = Matrix.CreateOrthographicOffCenter(0, viewport.Width, viewport.Height, 0, 0, 1);
+            // from communal helper
+            Matrix halfPixelOffset = Matrix.Identity;
+            Vector2 vector = new Vector2(Engine.Graphics.GraphicsDevice.Viewport.Width, Engine.Graphics.GraphicsDevice.Viewport.Height);
+            Matrix matrix3 = matrix * Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
+            matrix3 *= Matrix.CreateTranslation(-1f, 1f, 0f);
+            parameters["World"]?.SetValue(matrix3);
+            parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
+            parameters["ViewMatrix"]?.SetValue(matrix);
+            parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
+            return effect;
+        }
         public static Effect ApplyCameraParams(this Effect effect, Level level)
         {
             var parameters = effect.Parameters;

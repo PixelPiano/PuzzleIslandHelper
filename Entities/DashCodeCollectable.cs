@@ -128,8 +128,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             dataNode = data.Nodes[0];
 
 
-            Collider = new Hitbox
-            (data.Width, data.Height);
+            Collider = new Hitbox(data.Width, data.Height);
 
             spawned = false;
             collected = false;
@@ -218,7 +217,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             level.Shake();
             SoundEmitter.Play(collectSound, heart);
             Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
-
             for (int i = 0; i < 10; i++)
             {
                 Scene.Add(new AbsorbOrb(levelPosition + dataNode + new Vector2(8f, 8f), player));

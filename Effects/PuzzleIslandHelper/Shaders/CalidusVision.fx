@@ -100,7 +100,7 @@ float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 		 else return float4(0,0,0,1);
 	}
 
-	return lerp(from, to, lrp);
+	return lerp(cache,(from, to, lrp),Amplitude);
 }
 void safe2()
 {

@@ -16,9 +16,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public float Rotation;
         public float RotationRate;
         private float targetRotationRate;
-
-        public LoneEye(EntityData data, Vector2 offset) : base(data.Position + offset)
+        public EntityID id;
+        public LoneEye(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
+            this.id = id;
             Add(Sprite = new Sprite(GFX.Game, "characters/PuzzleIslandHelper/Calidus/"));
             Sprite.AddLoop("idle", "eyeFront", 0.1f);
             Sprite.Add("end", "flashEnd", 0.1f, "idle");

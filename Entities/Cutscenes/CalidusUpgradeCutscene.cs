@@ -1,10 +1,12 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.PlayerCalidus;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.PlayerCalidus;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.Calidus;
+using Looking = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Looking;
+using Mood = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Mood;
+using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
@@ -50,22 +52,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                         case Upgrades.Weakened:
                             Add(new Coroutine(WeakenedScene()));
                             break;
-                        case Upgrades.Eye:
-                            Add(new Coroutine(EyeScene()));
+                        case Upgrades.Vision:
+                            Add(new Coroutine(VisionScene()));
                             break;
-                        case Upgrades.Head:
+                        case Upgrades.Jumping:
+                            Add(new Coroutine(JumpingScene()));
                             break;
-                        case Upgrades.Arms:
+                        case Upgrades.Sticky:
+                            Add(new Coroutine(StickyScene()));
+                            break;
+                        case Upgrades.Rail:
+                            Add(new Coroutine(RailScene()));
                             break;
                         case Upgrades.Blip:
+                            Add(new Coroutine(BlipScene()));
                             break;
                     }
                 }
                 else
                 {
-                    EndCutscene(Level);
+                    ChangeInventory();
+                    RemoveSelf();
+                    //EndCutscene(Level);
                 }
             }
+        }
+        public void ChangeInventory()
+        {
+            PianoCommands.SetCalidusInventory(Upgrade);
+            //PianoModule.SaveData.CalidusInventory = Inventories[Upgrade];
         }
         private IEnumerator DigitalGlitch(float fadeDuration = 1.6f, float waitDuration = 0.8f)
         {
@@ -116,11 +131,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return null;
             EndCutscene(Level);
         }
-        private IEnumerator EyeScene()
+        private IEnumerator VisionScene()
         {
-            yield return ZoomAndWalk(Calidus, "walkTo", "camera", 1.4f, 1);
-            yield return Textbox.Say("calidus_eye_cutscene", Normal, Stern, Surprised, AbsorbEye);
-            yield return Level.ZoomBack(1f);
+            if (Level.Tracker.GetEntity<LoneEye>() is LoneEye eye)
+            {
+                Level.Session.DoNotLoad.Add(eye.id);
+                yield return ZoomAndWalk(Calidus, "walkto", "camera", 1.4f, 1);
+                yield return Textbox.Say("calidus_eye_cutscene", Normal, Stern, Surprised, AbsorbEye);
+                yield return Level.ZoomBack(1f);
+            }
+            EndCutscene(Level);
+        }
+        private IEnumerator JumpingScene()
+        {
+            yield return null;
+            EndCutscene(Level);
+        }
+        private IEnumerator StickyScene()
+        {
+
+            yield return null;
+            EndCutscene(Level);
+        }
+
+        private IEnumerator RailScene()
+        {
+
+            yield return null;
+            EndCutscene(Level);
+        }
+
+        private IEnumerator BlipScene()
+        {
+            yield return null;
             EndCutscene(Level);
         }
 
@@ -141,10 +184,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             level.ResetZoom();
             Glitch.Value = 0;
-            SetInventory(Upgrade);
-            if (Calidus is not null && Calidus.StateMachine.State == DummyState)
+            //SetInventory(Upgrade);
+            if (Calidus is not null)
             {
-                Calidus.StateMachine.State = NormalState;
+                if (Calidus.StateMachine.State == DummyState) Calidus.StateMachine.State = NormalState;
+                Calidus.Emotion(Mood.Normal);
             }
         }
         private IEnumerator AbsorbEye()
@@ -164,9 +208,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Calidus.SpriteOffset.X--;
 
             //add absorb effect
-            yield return eye.StartFloating(16, 2f, 2f);
+            yield return eye.StartFloating(16, 2f, 0.4f);
             yield return 1f;
-            yield return eye.Absorb(Center, 0.4f, Color.White);
+            yield return eye.Absorb(Calidus.Center, 0.4f, Color.White);
+            SetInventory(Upgrades.Vision);
             yield return null;
         }
         private IEnumerator Happy()

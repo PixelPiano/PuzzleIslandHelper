@@ -38,7 +38,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public Vector2 Speed;
         public Vector2 PatrolStart;
         public Vector2 PatrolEnd;
-        private bool floating;
+        public bool Floating;
         public const float PatrolSpeed = 40f;
         public Vector2 NextPatrolPosition;
         public float Rotation;
@@ -52,13 +52,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public const float RushRecoveryTime = 1;
         private Vector2 preRushPosition;
         public const float RushSpeed = 160f;
+        public bool DummyFacing;
+        public bool DummyFloating;
         private float patrolWaitTimer;
         private Vector2 prevPosition;
         public bool CycleComplete;
         public const int StSpinOut = 6;
         public int rotationMult = 1;
         public Vector2 hitNormal;
-        public MemoryScreen(EntityData data, Vector2 offset) : base(data.Position + offset)
+        public EntityID ID;
+        public MemoryScreen(EntityData data, Vector2 offset, EntityID iD) : base(data.Position + offset)
         {
             Sprite = new MemoryScreenSprite();
             Add(Sprite);
@@ -85,7 +88,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Tween floatTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, 1, true);
             floatTween.OnUpdate = t =>
             {
-                if (floating)
+                if (Floating || (StateMachine.State == StDummy && DummyFloating))
                 {
                     Sprite.FloatOffset = Calc.Approach(Sprite.FloatOffset, Calc.LerpClamp(-FloatDist, FloatDist, t.Eased), 30f * Engine.DeltaTime);
                 }
@@ -95,6 +98,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 }
             };
             Add(floatTween);
+            ID = iD;
         }
         public override void Awake(Scene scene)
         {
@@ -108,7 +112,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             {
                 player.Die(-Speed.Sign());
             }
-            if (StateMachine.State != StRushing)
+            if (StateMachine.State != StRushing && (StateMachine.State != StDummy || DummyFacing))
             {
                 int sign = Math.Sign(Position.X - prevPosition.X);
                 if (sign != 0) Facing = (Facings)sign;
@@ -145,7 +149,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         private void idleBegin()
         {
-            floating = true;
+            Floating = true;
         }
         private int idleUpdate()
         {
@@ -161,7 +165,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         private void patrolBegin()
         {
-            floating = true;
+            Floating = true;
             patrolWaitTimer = 1;
         }
 
@@ -203,7 +207,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         private void rushBegin()
         {
-            floating = false;
+            Floating = false;
         }
         private void spinBegin() { }
         private void spinEnd() { }
@@ -326,6 +330,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         private void dummyBegin()
         {
+            DummyFacing = true;
+            DummyFloating = true;
         }
         private int dummyUpdate()
         {
@@ -333,6 +339,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         private void dummyEnd()
         {
+            DummyFacing = false;
+            DummyFloating = false;
         }
         public void AdvanceWindowFrame()
         {

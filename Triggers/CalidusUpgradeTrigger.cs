@@ -2,7 +2,7 @@ using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Microsoft.Xna.Framework;
 using Monocle;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.PlayerCalidus;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.PlayerCalidus;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {

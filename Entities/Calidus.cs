@@ -429,7 +429,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Symbols.DrawSimpleOutline();
             }
-            EyeSprite.DrawOutline();
+            if (EyeSprite.Visible)
+            {
+                EyeSprite.DrawOutline();
+            }
             base.Render();
             if (RenderStar)
             {
@@ -578,6 +581,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         };
                         Glint.Stop();
                         Remove(Glint);
+
                     }
                 };
             }
@@ -590,6 +594,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             EyeSprite.Play("neutral");
             Arms[0].Play("idle");
             Arms[1].Play("idle");
+            OrbSprite.Visible = EyeSprite.Visible = Arms[0].Visible = Arms[1].Visible = true;
             Arms[0].OnLastFrame = (string s) =>
             {
                 if (!CanFloat) return;

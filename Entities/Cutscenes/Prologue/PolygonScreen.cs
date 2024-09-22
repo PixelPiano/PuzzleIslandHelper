@@ -249,8 +249,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             bool offsetRow = false;
             float adjustY = height / 2;
             float adjustX = 0;
-            int rows = (int)((bottom - top) / height);
-            int cols = (int)((right - left) / width);
             for (float j = top; j < bottom; j += height)
             {
                 for (float i = left; i < right; i += width / 2)

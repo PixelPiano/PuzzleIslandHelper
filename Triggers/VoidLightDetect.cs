@@ -15,7 +15,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             : base(data, offset)
         {
         }
-
+        public override void SceneEnd(Scene scene)
+        {
+            base.SceneEnd(scene);
+            InLight = false;
+        }
         public override void OnEnter(Player player)
         {
             InLight = true;

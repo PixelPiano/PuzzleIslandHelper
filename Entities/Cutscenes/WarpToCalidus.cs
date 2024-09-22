@@ -41,9 +41,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Glitch.Value = 1;
             yield return 0.5f;
             Audio.SetMusicParam("fade", 1);
-            int suffix = CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.First) ? 1 :
+            int suffix = CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.Third) ? 3 :
                          CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.Second) ? 2 :
-                         3;
+                         1;
             string room = "digiCalidus" + suffix;
             InstantTeleport(Scene, Scene.GetPlayer(), room);
         }

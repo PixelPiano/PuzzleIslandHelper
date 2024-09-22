@@ -131,6 +131,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         {
             base.Added(entity);
             Parent = entity as BitrailTransporter;
+            Vector2 p = RenderPosition;
+            Bounds = new Rectangle((int)p.X, (int)p.Y, 8, 8);
         }
         public void AddToGrid()
         {
@@ -209,14 +211,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         }
         public void SwitchToInSolid()
         {
-            if (Frame > 6 && Frame < 16)
-            {
-                Texture = GFX.Game["objects/PuzzleIslandHelper/bitRail/inSolidNode" + Frame];
-                InSolid = true;
-            }
+            Texture = GFX.Game["objects/PuzzleIslandHelper/bitRail/inSolidNode" + Frame];
+            InSolid = true;
         }
         public int Frame;
         public bool InSolid;
+        public bool InMask;
+        public Rectangle Bounds;
         public void RenderAt(Vector2 position)
         {
             if (Texture != null)
@@ -249,9 +250,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             if (Scene is Level level)
             {
                 Vector2 p = RenderPosition;
-                OnScreen = p.X + 16 >= level.Camera.Position.X && p.X - 16 < level.Camera.Position.X + 320
-                    && p.Y + 16 >= level.Camera.Position.Y && p.Y - 16 < level.Camera.Position.Y + 180;
+                OnScreen = InBounds(p, level.Camera.Position, 320, 180, 16);
             }
+        }
+        public bool InBounds(Vector2 check, Vector2 topLeft, float width, float height, float padding)
+        {
+            return check.X + padding >= topLeft.X && check.X - padding < topLeft.X + width
+                && check.Y + padding >= topLeft.Y && check.Y - 16 < topLeft.Y + height;
         }
     }
 }

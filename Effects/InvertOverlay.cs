@@ -1,5 +1,5 @@
 using Celeste.Mod.Backdrops;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;

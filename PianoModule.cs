@@ -15,6 +15,7 @@ using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
 using Celeste.Mod.PuzzleIslandHelper.Helpers;
 using IL.Monocle;
+using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -76,7 +77,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public override void Load()
         {
-
+            TilesColorgrade.Load();
             DigiFolliage.BgFolliageRenderer.Load();
             PlayerCalidus.Load();
             BitrailTransporter.Load();
@@ -124,12 +125,14 @@ namespace Celeste.Mod.PuzzleIslandHelper
             OuiFileFader.Load();
             BatteryRespawn.Load();
             SineHelper.Load();
+            PortalNodeManager.Load();
         }
 
 
         public override void Unload()
         {
-
+            PortalNodeManager.Unload();
+            TilesColorgrade.Unload();
             SineHelper.Unload();
             DigiFolliage.BgFolliageRenderer.Unload();
             PlayerCalidus.Unload();
@@ -179,6 +182,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             OuiFileFader.Unload();
             BatteryRespawn.Unload();
             CubeField.Unload();
+            DigitalField2.Unload();
         }
 
         public override void Initialize()
@@ -186,6 +190,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             PuzzleSpotlight.Initialize();
             CubeField.Initialize();
             BackgroundShape.Initialize();
+            DigitalField2.Initialize();
         }
     }
 }

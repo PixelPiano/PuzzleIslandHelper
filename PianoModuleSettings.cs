@@ -25,8 +25,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Toggle,
             Hold
         }
+        public enum StickyHoldMode
+        {
+            Click,
+            Hold
+        }
 
         [SettingSubText("modoptions_PuzzleIslandHelperModule_InvToggle_desc")]
         public InvertActivationModes ToggleInvert { get; set; } = InvertActivationModes.Hold;
+        [SettingSubText("modoptions_PuzzleIslandHelperModule_InvToggle_desc")]
+        public StickyHoldMode ToggleSticky { get; set; } = StickyHoldMode.Click;
     }
 }

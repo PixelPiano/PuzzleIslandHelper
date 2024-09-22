@@ -1,6 +1,6 @@
 local utils = require("utils")
 local drawableSprite = require("structs.drawable_sprite")
-local connectedEntities = require("helpers.connected_entities")
+--local connectedEntities = require("helpers.connected_entities")
 
 local bitRailNode = {}
 local controls = {"Default","None","Full"}
@@ -68,10 +68,29 @@ local function getNodeSprites(entity, rectangles)
 end
 
 function bitRailNode.sprite(room, entity)
-    local relevantNodes = utils.filter(getSearchPredicate(entity), room.entities)
-    connectedEntities.appendIfMissing(relevantNodes, entity)
-    local rectangles = getEntityRectangles(relevantNodes)
-    return getNodeSprites(entity, rectangles)
+    
+    local sprites = {}
+    local path = "objects/PuzzleIslandHelper/bitRail/"
+    if entity.isExit then
+        path = path .. "exitLonn"
+    else
+        path = path .. "0000"
+    end
+    local sprite = drawableSprite.fromTexture(path, entity)
+    sprite:setColor(controlToColor[entity.control])
+    table.insert(sprites, sprite)
+    sprite:setJustification(0,0)
+    if entity.bounces > 0 and not entity.isExit then
+        local square = drawableSprite.fromTexture("objects/PuzzleIslandHelper/bitRail/smallSquare", entity)
+        square:setColor(bouncesToColor[entity.bounces])
+        table.insert(sprites, square)
+        square:setJustification(0,0)
+    end
+    return sprites
+    --local relevantNodes = utils.filter(getSearchPredicate(entity), room.entities)
+    --connectedEntities.appendIfMissing(relevantNodes, entity)
+    --local rectangles = getEntityRectangles(relevantNodes)
+    --return getNodeSprites(entity, rectangles)
 end
 function getEntityRectangles(entities)
     local rectangles = {}

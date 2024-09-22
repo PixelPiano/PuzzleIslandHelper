@@ -1,9 +1,13 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
 using Celeste.Mod;
+using Celeste.Mod.CommunalHelper;
+using Celeste.Mod.CommunalHelper.Utils;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -43,13 +47,275 @@ public static class PianoUtils
             }
         }
     }
+    public static Mesh<VertexPositionColor> CreateTriWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Func<Vector2, Color> getColor)
+    {
+        Mesh<VertexPositionColor> mesh = new Mesh<VertexPositionColor>();
+        int exL = extend + 1;
+        int exR = extend + 2;
+        int exT = extend;
+        int exB = extend + 1;
+
+        TriWall meshPoints = CreateTriWall(areaWidth, areaHeight, triWidth, triHeight, exL, exR, exT, exB, out int rows, out int cols);
+        int count = rows * cols;
+        for (int r = 0; r < rows; r++)
+        {
+            for (int c = 0; c < cols; c++)
+            {
+                Vector2 uv = new Vector2(meshPoints[c, r].X / areaWidth, meshPoints[c, r].Y / areaHeight);
+                VertexPositionColor vertex = new(position + new Vector3(meshPoints[c, r], 0), getColor(uv));
+                mesh.AddVertex(vertex);
+            }
+        }
+        for (int i = 0; i < count; i++)
+        {
+            int a1 = i;
+            int b1 = i + 1;
+            int c1 = i + cols;
+            if (a1 / cols == b1 / cols)
+            {
+                if (c1 / cols % 2 == 0)
+                {
+                    c1++;
+                }
+                if (c1 < count)
+                {
+                    mesh.AddTriangle(a1, b1, c1);
+                }
+            }
+            int a2 = c1;
+            int c2 = c1 + 1;
+            if (c1 / cols == c2 / cols && c2 < count)
+            {
+                mesh.AddTriangle(a2, b1, c2);
+            }
+        }
+        return mesh;
+    }
+
+    public static LineMesh<VertexPositionColor> CreateTriLineWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Func<Vector2, Color> getColor)
+    {
+        LineMesh<VertexPositionColor> mesh = new LineMesh<VertexPositionColor>();
+        int exL = extend + 1;
+        int exR = extend + 2;
+        int exT = extend;
+        int exB = extend + 1;
+
+        TriWall meshPoints = CreateTriWall(areaWidth, areaHeight, triWidth, triHeight, exL, exR, exT, exB, out int rows, out int cols);
+        int count = rows * cols;
+        for (int r = 0; r < rows; r++)
+        {
+            for (int c = 0; c < cols; c++)
+            {
+                Vector2 uv = new Vector2(meshPoints[c, r].X / areaWidth, meshPoints[c, r].Y / areaHeight);
+                VertexPositionColor vertex = new(position + new Vector3(meshPoints[c, r], 0), getColor(uv));
+                mesh.AddVertex(vertex);
+            }
+        }
+        for (int i = 0; i < count; i++)
+        {
+            int o = i;
+            int d1 = i + 1;
+            int d2 = i + cols - 1;
+
+            int div = o / cols;
+            if (div == d1 / cols && d1 < count)
+            {
+                mesh.AddLine(o, d1);
+            }
+            if (div != d2 / cols)
+            {
+                if (d2 / cols % 2 == 0)
+                {
+                    d2++;
+                }
+                if (d2 < count)
+                {
+                    mesh.AddLine(o, d2);
+                }
+            }
+            int d3 = d2 + 1;
+            if (div != d3 / cols && d3 / cols == d2 / cols && d3 < count)
+            {
+                mesh.AddLine(o, d3);
+            }
+
+        }
+        return mesh;
+    }
+    public struct TriWall
+    {
+        public float Width;
+        public float Height;
+        public float TriangleWidth;
+        public float TriangleHeight;
+        public int ExtendL;
+        public int ExtendR;
+        public int ExtendU;
+        public int ExtendD;
+        public int Rows;
+        public int Columns;
+        public Vector2[,] Points;
+        public Vector2 this[int x, int y]
+        {
+            get
+            {
+                if (x >= 0 && y >= 0 && x < Columns && y < Rows)
+                {
+                    return Points[x, y];
+                }
+
+                return Vector2.Zero;
+            }
+            set
+            {
+                Points[x, y] = value;
+            }
+        }
+    }
+    public static Mesh<VertexPositionColor> CreateTriWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Color color)
+    {
+        Func<Vector2, Color> func = delegate { return color; };
+        return CreateTriWallMesh(position, areaWidth, areaHeight, triWidth, triHeight, extend, func);
+    }
+    public static TriWall CreateTriWall(float areaWidth, float areaHeight, float triHeight, float triWidth, int leftExtend, int rightExtend, int topExtend, int bottomExtend, out int rows, out int cols)
+    {
+
+        float top = topExtend * -triHeight;
+        float left = leftExtend * -triWidth;
+        float right = areaWidth + rightExtend * triWidth;
+        float bottom = areaHeight + bottomExtend * triHeight;
+        rows = (int)((bottom - top) / triHeight);
+        cols = (int)((right - left) / triWidth);
+        float xOffset = triWidth / 2f;
+        Vector2[,] grid = new Vector2[cols, rows];
+        for (int r = 0; r < rows; r++)
+        {
+            for (int c = 0; c < cols; c++)
+            {
+                grid[c, r] = new Vector2(left + c * triWidth + (r % 2 != 0 ? xOffset : 0), top + r * triHeight);
+            }
+        }
+        TriWall wall = new()
+        {
+            Points = grid,
+            ExtendD = bottomExtend,
+            ExtendU = topExtend,
+            ExtendL = leftExtend,
+            ExtendR = rightExtend,
+            Rows = rows,
+            Columns = cols,
+            Width = areaWidth,
+            Height = areaHeight,
+            TriangleWidth = triWidth,
+            TriangleHeight = triHeight
+        };
+        return wall;
+    }
+    public static List<Vector2?> GetTriWallPoints(float areaWidth, float areaHeight, float triHeight, float triWidth, int extend, bool itsnew)
+    {
+        List<Vector2?> screenpoints = new List<Vector2?>();
+
+        float top = extend * -triHeight;
+        float left = extend * -triWidth;
+        float right = areaWidth + extend * triWidth;
+        float bottom = areaHeight + extend * triHeight;
+        bool offsetHeight = false;
+        bool offsetRow = false;
+        float adjustY = triHeight / 2;
+        float adjustX = 0;
+        int r = (int)((bottom - top) / triHeight);
+        int c = (int)((right - left) / triWidth);
+        float xOffset = triWidth / 2;
+        Vector2[,] grid = new Vector2[c, r];
+        for (int i = 0; i < r; i++)
+        {
+            for (int j = 0; j < c; j++)
+            {
+                grid[j, i] = new Vector2(left + j * triWidth + (j % 2 == 0 ? xOffset : 0), top + r * triHeight);
+            }
+        }
+
+        for (float j = top; j < bottom; j += triHeight)
+        {
+            for (float i = left; i < right; i += triWidth / 2)
+            {
+                Vector2 pos = new Vector2(i + adjustX, (offsetHeight ? -1 : 1) * adjustY + j);
+                screenpoints.Add(pos);
+                offsetHeight = !offsetHeight;
+            }
+
+            offsetHeight = false;
+            adjustX = offsetRow ? triWidth / 2 : 0;
+            offsetRow = !offsetRow;
+            screenpoints.Add(null);
+        }
+        return screenpoints;
+    }
+
+
+    public static Vector2 TopLeft(this Rectangle rect)
+    {
+        return new Vector2(rect.Left, rect.Top);
+    }
+    public static Vector2 TopRight(this Rectangle rect)
+    {
+        return new Vector2(rect.Right, rect.Top);
+    }
+    public static Vector2 BottomLeft(this Rectangle rect)
+    {
+        return new Vector2(rect.Left, rect.Bottom);
+    }
+    public static Vector2 BottomRight(this Rectangle rect)
+    {
+        return new Vector2(rect.Right, rect.Bottom);
+    }
+    public static Vector2 Center(this Rectangle rect)
+    {
+        return new Vector2((int)(rect.Left + rect.Width / 2f), (int)(rect.Top + rect.Height / 2f));
+    }
+    public static Vector2 TopCenter(this Rectangle rect)
+    {
+        return new Vector2((int)(rect.Left + rect.Width / 2f), rect.Top);
+    }
+    public static Vector2 BottomCenter(this Rectangle rect)
+    {
+        return new Vector2((int)(rect.Left + rect.Width / 2f), rect.Bottom);
+    }
+    public static Vector2 CenterLeft(this Rectangle rect)
+    {
+        return new Vector2(rect.Left, (int)(rect.Top + rect.Height / 2f));
+    }
+    public static Vector2 CenterRight(this Rectangle rect)
+    {
+        return new Vector2(rect.Right, (int)(rect.Top + rect.Height / 2f));
+    }
+    public static bool Colliding(this Rectangle rect, Rectangle check)
+    {
+        return !(check.Left >= rect.Right) && !(check.Right <= rect.Left) && !(check.Top >= rect.Bottom) && !(check.Bottom <= rect.Top);
+    }
+    public static Vector2 Mod(this Vector2 vec, float mod)
+    {
+        return new Vector2(vec.X - vec.X % mod, vec.Y - vec.Y % mod);
+    }
+    public static Vector2 Mod(this Vector2 vec, int mod)
+    {
+        return new Vector2(vec.X - vec.X % mod, vec.Y - vec.Y % mod);
+    }
+    public static Vector2 Mod(this Vector2 vec, Vector2 mod)
+    {
+        return new Vector2(vec.X - vec.X % mod.X, vec.Y - vec.Y % mod.Y);
+    }
     public static void StandardBegin(this SpriteBatch spriteBatch)
     {
         Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone);
     }
     public static void StandardBegin(this SpriteBatch spriteBatch, Effect effect)
     {
-         Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect);
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect);
+    }
+    public static void StandardBegin(this SpriteBatch spriteBatch, Matrix matrix)
+    {
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
     }
     public static void StandardBegin(this SpriteBatch spriteBatch, Effect effect, Matrix matrix)
     {
@@ -57,8 +323,8 @@ public static class PianoUtils
     }
     public static void FNAWakeUpSlap(this SpriteBatch spriteBatch, Effect effect)
     {
-         Draw.SpriteBatch.StandardBegin(effect);
-        Draw.Rect(0,0,1,1,Color.Transparent);
+        Draw.SpriteBatch.StandardBegin(effect);
+        Draw.Rect(0, 0, 1, 1, Color.Transparent);
         Draw.SpriteBatch.End();
     }
     public static void SetRenderTarget(this VirtualRenderTarget source, Color? clear = null)
@@ -170,7 +436,7 @@ public static class PianoUtils
         Vector2 center = Vector2.Zero;
         foreach (VertexPositionColor v in list)
         {
-            center += v.Position.XY();
+            center += new Vector2(v.Position.X, v.Position.Y);
         }
         center /= list.Count();
         return center;
@@ -645,7 +911,7 @@ public static class PianoUtils
         return (scene as Level).GetPlayer();
     }
     public static Vector2? DoRaycast(Scene scene, Vector2 start, Vector2 end)
-=> DoRaycast(scene.Tracker.GetEntities<Solid>().Select(s => s.Collider), start, end);
+    => DoRaycast(scene.Tracker.GetEntities<Solid>().Select(s => s.Collider), start, end);
 
     public static Vector2? DoRaycast(IEnumerable<Collider> cols, Vector2 start, Vector2 end)
     {

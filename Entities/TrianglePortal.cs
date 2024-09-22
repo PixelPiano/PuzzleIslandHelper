@@ -55,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static VirtualRenderTarget PortalMask => _PortalMask ??= VirtualContent.CreateRenderTarget("PortalMask", 320, 180);
         public static VirtualRenderTarget PortalObject => _PortalObject ??= VirtualContent.CreateRenderTarget("PortalObject", 320, 180);
         public static VirtualRenderTarget ParticleObject => _ParticleObject ??= VirtualContent.CreateRenderTarget("PortalObject", 320, 180);
-        
+
         private float[] freezeTimes = new float[] { 1, 1, 0.8f, 0.7f, 0.5f, 0.38f, 0.2f, 0.1f, 0.15f, 0.2f, 2 };
         private List<Entity> blockList;
         public bool scaleStart = false;
@@ -115,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float angle3;
         private bool cutsceneAdded;
         private string teleportTo;
-        
+
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
@@ -277,7 +277,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             triangle.SetColor(Color.Green);
             triangle.Visible = false;
             triangle.Play("idle");
-            
+
             lightRenderA = lights[0].Position + Position + new Vector2(lights[0].Width / 2, lights[0].Height / 2);
             lightRenderB = lights[1].Position + Position + new Vector2(lights[1].Width / 2, lights[1].Height / 2);
             lightRenderC = lights[2].Position + Position + new Vector2(lights[2].Width / 2, lights[2].Height / 2);
@@ -296,6 +296,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Add(new Coroutine(RotationLerp(), false));
             }
+            AddNodePositions();
         }
         public override void Awake(Scene scene)
         {
@@ -303,6 +304,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             SceneAs<Level>().Session.SetFlag("TimerEvent", false);
             SceneAs<Level>().Session.SetFlag("GlitchCutsceneEnd", false);
             scene.Add(system = new ParticleSystem(Depth + 1, 1000));
+        }
+        public void AddNodePositions()
+        {
+            PianoModule.Session.PortalNodePositions.Clear();
+            PianoModule.Session.PortalNodePositions.Add(lightFlags[0], nodes[0].RenderPosition + Vector2.One * 4);
+            PianoModule.Session.PortalNodePositions.Add(lightFlags[1], nodes[1].RenderPosition + Vector2.One * 4);
+            PianoModule.Session.PortalNodePositions.Add(lightFlags[2], nodes[2].RenderPosition + Vector2.One * 4);
         }
         private void AppearParticles()
         {
@@ -348,7 +356,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 particlesBG.Emit(PlayerPoof, 4, player.Center, new Vector2(player.Width / 2, player.Height));
             }
         }
-        
+
 
         public override void Update()
         {
@@ -471,7 +479,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 yield break;
             }
-            //maddie get out of there oh no she cant hear us she's eating binary too loudly
             inEvent = true;
             player = Scene.Tracker.GetEntity<Player>();
             Vector2 _position = player.Position;
@@ -590,6 +597,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 rate = _rate;
             }
         }
-        
+
     }
 }

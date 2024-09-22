@@ -290,6 +290,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             public Sprite Sprite;
             public float Alpha;
             public Interface Parent;
+            public Image Cover;
+            public float CoverAlpha;
             public bool TurningOff => Sprite.CurrentAnimationID == "turnOff";
             public bool Idle => Sprite.CurrentAnimationID == "idle";
             public bool StartingUp => Sprite.CurrentAnimationID == "boot";
@@ -301,11 +303,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 Depth = BaseDepth;
                 Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/");
+                Cover = new Image(GFX.Game["objects/PuzzleIslandHelper/interface/cover00"]);
+                Add(Cover);
                 Sprite.AddLoop("idle", "idle", 1f);
                 Sprite.AddLoop("off", "off", 0.1f);
                 Sprite.Add("boot", "startUp", 0.07f, "idle");
                 Sprite.Add("turnOff", "shutDown", 0.07f, "off");
                 Sprite.SetColor(color);
+                Cover.Color = Sprite.Color * 0;
+
                 Add(Sprite);
                 Collider = new Hitbox(Sprite.Width, Sprite.Height);
                 Parent = parent;
@@ -327,7 +333,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 Sprite.Play("turnOff");
             }
+            public override void Update()
+            {
+                base.Update();
+                CoverAlpha = Sprite.CurrentAnimationID switch
+                {
+                    "idle" => Calc.Approach(CoverAlpha, 1, Engine.DeltaTime),
+                    "turnOff" => 0,
+                    _ => Calc.Approach(CoverAlpha, 0, Engine.DeltaTime)
+                };
+                Cover.SetColor(Sprite.Color * CoverAlpha);
+            }
         }
+        
         public override void Added(Scene scene)
         {
             base.Added(scene);
