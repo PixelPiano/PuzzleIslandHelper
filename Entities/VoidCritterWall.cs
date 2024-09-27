@@ -1,13 +1,9 @@
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using MonoMod.Utils;
-using System.Collections;
 using System.Collections.Generic;
 
 // PuzzleIslandHelper.VoidCritters
@@ -18,7 +14,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class VoidCritterWall : Entity
     {
         private bool InLight;
-        public static bool SimpleRender = true;
         public bool OnScreen;
         public static Effect Shader;
         public VirtualRenderTarget Target;
@@ -27,6 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public HashSet<CritterLight> Colliding = new();
         public static Vector2 Offset = Vector2.Zero;
         public EntityID ID;
+        public bool Simple => VoidCritterWallHelper.Simple;
         public VoidCritterWall(EntityData data, Vector2 offset, EntityID id)
         : base(data.Position + offset)
         {
@@ -41,12 +37,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
-            Draw.SpriteBatch.Draw(Light, Position - Offset, Color.Red * 0.5f);
+            if (!Simple)
+            {
+                Draw.SpriteBatch.Draw(Light, Position - Offset, Color.Red * 0.5f);
+            }
         }
         public void BeforeRender()
         {
-            if (Scene is not Level level) return;
             Light.SetRenderTarget(Color.Transparent);
+            if (Scene is not Level level || Simple) return;
             Draw.SpriteBatch.StandardBegin();
             {
                 Draw.SpriteBatch.Draw(VoidCritterWallHelper.Lights, level.Camera.Position - Position - Offset, Color.White);
@@ -62,7 +61,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            if (Scene is not Level level || !OnScreen) return;
+            if (Scene is not Level level || !OnScreen || Simple) return;
             Effect effect = ShaderHelperIntegration.GetEffect("PuzzleIslandHelper/Shaders/voidCritterWall");
             if (effect != null)
             {
@@ -84,7 +83,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 OnScreen = false;
                 return;
             }
-            if(level.GetPlayer() is not Player player) return;
+            if (level.GetPlayer() is not Player player) return;
             Rectangle c = level.Camera.GetBounds();
             Rectangle r = new Rectangle(c.Left - 8, c.Top - 8, c.Width + 16, c.Height + 16);
             OnScreen = Collider.Bounds.Colliding(r);

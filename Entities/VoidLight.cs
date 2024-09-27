@@ -100,13 +100,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Vector2 Center => Position + new Vector2(rectangle.Width, rectangle.Height) / 2f;
         public VoidSafeZone(Vector2 position, float width, float height, bool inverted) : base(true, true)
         {
-            IsSafe = !Inverted;
+            IsSafe = true;
+            //IsSafe = !Inverted;
             Position = position;
             Width = width;
             Height = height;
             Inverted = inverted;
             rectangle = new Rectangle((int)position.X, (int)position.Y, (int)width, (int)height);
-
         }
         public bool Colliding(Entity entity)
         {
@@ -246,10 +246,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             if (State)
             {
+                SafeZone.IsSafe = true;
                 sprite.Play("idle");
             }
             else
             {
+                SafeZone.IsSafe = false;
                 bloom.Visible = false;
                 light.Visible = false;
                 sprite.Play("off");
@@ -385,7 +387,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 LightSelf();
             }
-            Mask.Enabled = State;
+            SafeZone.IsSafe = Mask.Enabled = State;
             wasColliding = collided;
             collided = false;
         }

@@ -1,13 +1,6 @@
-using Celeste.Mod.CherryHelper;
-using Celeste.Mod.CommunalHelper.Backdrops;
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
-using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using MonoMod.Utils;
-using System.Collections;
 using System.Collections.Generic;
 
 // PuzzleIslandHelper.VoidCritters
@@ -16,9 +9,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class VoidCritterWallHelper : Entity
     {
-
+        public static bool Simple => PianoModule.Session.DEBUGBOOL1;
         private static VirtualRenderTarget _lights;
         public static VirtualRenderTarget Lights => _lights ??= VirtualContent.CreateRenderTarget("voidCritterWallLightBuffer", 320, 180);
+        private static VirtualRenderTarget _walls;
+        public static VirtualRenderTarget Walls => _walls ??= VirtualContent.CreateRenderTarget("voidCritterWallWallBuffer", 320, 180);
         public bool PlayerSafe;
         public static readonly BlendState Subtract = new()
         {
@@ -48,10 +43,60 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if (Scene is not Level level || level.GetPlayer() is not Player player) return;
-            PlayerSafe = player.Dead || player.JustRespawned || (player.Holding is Holdable h && h.Entity is VoidLamp) || !player.CollideCheck<VoidCritterWall>() || CollidingWithLight(player, level);
+            
+            if (Scene is not Level level || level.GetPlayer() is not Player player)
+            {
+                PlayerSafe = true;
+                return;
+            }
+            if(player.Dead || player.JustRespawned)
+            {
+                PlayerSafe = true;
+                return;
+            }
+            if (player.Holding is Holdable h && h.Entity is VoidLamp)
+            {
+                PlayerSafe = true;
+                return;
+            }
+            if (!player.CollideCheck<VoidCritterWall>())
+            {
+                PlayerSafe = true;
+                return;
+            }
+            if(CollidingWithLight(player, level))
+            {
+                PlayerSafe = true;
+                return;
+            }
+            if(VoidSafeZone.Check(player))
+            {
+                PlayerSafe = true;
+                return;
+            }
+            PlayerSafe = false;
+            
         }
         public void BeforeRender()
+        {
+            if (Simple)
+            {
+                SimpleBeforeRender();
+            }
+            else
+            {
+                ComplexBeforeRender();
+            }
+        }
+        public override void Render()
+        {
+            base.Render();
+            if (Simple)
+            {
+                SimpleRender();
+            }
+        }
+        public void ComplexBeforeRender()
         {
             Lights.SetRenderTarget(Color.Transparent);
             if (Scene is not Level level) return;
@@ -69,6 +114,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Draw.SpriteBatch.End();
         }
+        public void SimpleBeforeRender()
+        {
+            if (Scene is not Level level || level.Tracker.GetEntities<VoidCritterWall>() is not List<Entity> list || list.Count == 0) return;
+            if (level.Tracker.GetComponents<CritterLight>() is not List<Component> list2 || list2.Count == 0) return;
+
+            Lights.SetRenderTarget(Color.Transparent);
+            Draw.SpriteBatch.StandardBegin(level.Camera.Matrix);
+            {
+                foreach (CritterLight light in list2)
+                {
+                    if (light.OnScreen && light.Enabled)
+                    {
+                        light.DrawLight(Color.White);
+                    }
+                }
+            }
+            Draw.SpriteBatch.End();
+
+            Walls.SetRenderTarget(Color.Transparent);
+            Draw.SpriteBatch.StandardBegin(level.Camera.Matrix);
+            foreach (VoidCritterWall wall in list)
+            {
+                if (wall.OnScreen)
+                {
+                    Draw.Rect(wall.Collider, Color.White);
+                }
+            }
+            Draw.SpriteBatch.End();
+
+            Draw.SpriteBatch.StandardBegin(Subtract, level.Camera.Matrix);
+            {
+                Draw.SpriteBatch.Draw((RenderTarget2D)Lights, level.Camera.Position, Color.White);
+            }
+            Draw.SpriteBatch.End();
+        }
+        public void SimpleRender()
+        {
+            base.Render();
+            if (Scene is not Level level) return;
+            Draw.SpriteBatch.Draw((RenderTarget2D)Walls, level.Camera.Position, Color.MediumPurple);
+        }
         [OnLoad]
         public static void Load()
         {
@@ -85,6 +171,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             _lights?.Dispose();
             _lights = null;
+            _walls?.Dispose();
+            _walls = null;
             Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;
         }
 
