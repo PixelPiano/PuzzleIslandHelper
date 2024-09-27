@@ -70,7 +70,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (Visible && Recording && Frames != null && Frames[RecordFrame] != null && Scene is Level level)
             {
                 Frames[RecordFrame].SetRenderTarget(Color.Transparent);
-                Draw.SpriteBatch.StandardBegin(null, Matrix.Identity);
+                Draw.SpriteBatch.StandardBegin(Matrix.Identity);
                 Draw.SpriteBatch.Draw(GameplayBuffers.Gameplay, Vector2.Zero, Color.White);
                 Draw.SpriteBatch.End();
                 RecordFrame++;

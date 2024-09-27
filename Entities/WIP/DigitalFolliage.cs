@@ -84,10 +84,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public class BgFolliageRenderer : Entity
         {
             public static float Sine;
+            [OnLoad]
             public static void Load()
             {
                 Everest.Events.LevelLoader.OnLoadingThread += LevelLoader_OnLoadingThread;
             }
+            [OnUnload]
             public static void Unload()
             {
                 Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;

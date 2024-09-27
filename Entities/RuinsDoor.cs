@@ -159,11 +159,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             RemoveTag(Tags.Global);
             RemoveSelf();
         }
+        [OnLoad]
         public static void Load()
         {
             Everest.Events.Level.OnLoadLevel += Level_OnLoadLevel;
         }
-
+        [OnUnload]
         public static void Unload()
         {
             Everest.Events.Level.OnLoadLevel -= Level_OnLoadLevel;

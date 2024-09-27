@@ -90,10 +90,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 y += ActiveFont.FontSize.HeightOf(log.Text) + space;
             }
         }
+        [OnLoad]
         internal static void Load()
         {
             On.Celeste.LevelLoader.ctor += LevelLoader_ctor;
         }
+        [OnUnload]
         internal static void Unload()
         {
             On.Celeste.LevelLoader.ctor -= LevelLoader_ctor;

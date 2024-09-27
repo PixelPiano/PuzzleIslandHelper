@@ -12,15 +12,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
             {
                 public void ParseData()
                 {
-                    if(ID == null)
+                    if (ID == null)
                     {
                         ID = "";
                     }
-                    if(Tab == null)
+                    if (Tab == null)
                     {
                         Tab = "";
                     }
-                    if(Window == null)
+                    if (Window == null)
                     {
                         Window = "";
                     }
@@ -29,66 +29,68 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
                 public string Tab { get; set; }
                 public string Window { get; set; }
             }
-            public List<IconText> Icons { get; set;}
-    }
+            public List<IconText> Icons { get; set; }
+        }
 
-    public Dictionary<string, Presets> Layouts { get; set; }
-    public bool IsValid(string id)
-    {
-        if (Layouts == null || Layouts.Count == 0)
+        public Dictionary<string, Presets> Layouts { get; set; }
+        public bool IsValid(string id)
         {
-            Console.WriteLine("Layouts is null!");
-            return false;
-        }
-        if (!Layouts.ContainsKey(id))
-        {
-            Console.WriteLine("InterfaceData with key \"" + id + "\" does not exist");
-            return false;
-        }
-        return Layouts.ContainsKey(id);
-    }
-    public Presets GetPreset(string id)
-    {
-        if (!IsValid(id))
-        {
-            return null;
-        }
-        else return Layouts[id];
-    }
-    public static void Load()
-    {
-        Everest.Content.OnUpdate += Content_OnUpdate;
-    }
-    public static void Unload()
-    {
-        Everest.Content.OnUpdate -= Content_OnUpdate;
-    }
-    private static void Content_OnUpdate(ModAsset from, ModAsset to)
-    {
-        if (to.Format == "yml" || to.Format == ".yml")
-        {
-            try
+            if (Layouts == null || Layouts.Count == 0)
             {
-                AssetReloadHelper.Do("Reloading Interface Presets", () =>
+                Console.WriteLine("Layouts is null!");
+                return false;
+            }
+            if (!Layouts.ContainsKey(id))
+            {
+                Console.WriteLine("InterfaceData with key \"" + id + "\" does not exist");
+                return false;
+            }
+            return Layouts.ContainsKey(id);
+        }
+        public Presets GetPreset(string id)
+        {
+            if (!IsValid(id))
+            {
+                return null;
+            }
+            else return Layouts[id];
+        }
+        [OnLoad]
+        public static void Load()
+        {
+            Everest.Content.OnUpdate += Content_OnUpdate;
+        }
+        [OnUnload]
+        public static void Unload()
+        {
+            Everest.Content.OnUpdate -= Content_OnUpdate;
+        }
+        private static void Content_OnUpdate(ModAsset from, ModAsset to)
+        {
+            if (to.Format == "yml" || to.Format == ".yml")
+            {
+                try
                 {
-                    if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/InterfacePresets", out var asset)
-                        && asset.TryDeserialize(out InterfaceData myData))
+                    AssetReloadHelper.Do("Reloading Interface Presets", () =>
                     {
-                        PianoModule.InterfaceData = myData;
-                    }
-                }, () =>
+                        if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/InterfacePresets", out var asset)
+                            && asset.TryDeserialize(out InterfaceData myData))
+                        {
+                            PianoModule.InterfaceData = myData;
+                        }
+                    }, () =>
+                    {
+                        (Engine.Scene as Level)?.Reload();
+                    });
+
+                }
+                catch (Exception e)
                 {
-                    (Engine.Scene as Level)?.Reload();
-                });
+                    Logger.LogDetailed(e);
+                }
+            }
 
-            }
-            catch (Exception e)
-            {
-                Logger.LogDetailed(e);
-            }
         }
-
     }
-}
 
 }

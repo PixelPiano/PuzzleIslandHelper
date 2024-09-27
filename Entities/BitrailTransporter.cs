@@ -762,6 +762,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 ExitColliders[pair.Key].Position = pair.Key.Position + Position;
             }
         }
+        [OnUnload]
         public static void Unload()
         {
             Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;
@@ -775,7 +776,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             NodesByLevel.Clear();
         }
 
-
+        [OnLoad]
         public static void Load()
         {
             Everest.Events.LevelLoader.OnLoadingThread += LevelLoader_OnLoadingThread;

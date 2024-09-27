@@ -209,11 +209,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             MInput.Disabled = false;
         }
+        [OnLoad]
         public static void Load()
         {
             Selected = false;
             IL.Monocle.MInput.Update += MInput_Update;
         }
+        [OnUnload]
         public static void Unload()
         {
             Selected = false;

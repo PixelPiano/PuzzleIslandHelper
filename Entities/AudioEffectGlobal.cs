@@ -83,11 +83,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             toRemove.Clear();
         }
+        [OnUnload]
         public static void Unload()
         {
             RemoveAll();
             On.Celeste.LevelLoader.ctor -= LevelLoader_ctor;
         }
+        [OnLoad]
         public static void Load()
         {
             RemoveAll();

@@ -634,6 +634,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             return n;
 
         }
+        [OnUnload]
         public static void Unload()
         {
             _Target?.Dispose();

@@ -549,12 +549,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             }
         }
         #region Annoying stinky blegh
+        //[OnLoad]
         public static void Load()
         {
             speedHook = new ILHook(typeof(Player).GetMethod("orig_Update", BindingFlags.Public | BindingFlags.Instance), modSpeed);
             wallJumpHook = new ILHook(typeof(Player).GetMethod("orig_WallJump", BindingFlags.Instance | BindingFlags.NonPublic), modWallJump);
             IL.Celeste.Player.Jump += modJump;
         }
+        //[OnUnload]
         public static void Unload()
         {
             speedHook?.Dispose();

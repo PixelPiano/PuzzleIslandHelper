@@ -23,17 +23,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float BeamCount = 4;
         public float RotateRate = 0;
         public float GapLength = 0;
-        public float offsetRate=0;
-        public bool hasGaps=true;
-        public bool offset=false;
-        private static float oS=0;
+        public float offsetRate = 0;
+        public bool hasGaps = true;
+        public bool offset = false;
+        private static float oS = 0;
         private static readonly string circlePath = "decals/PianoBoy/util/circle";
         private static bool second = false;
         private static float rotateAd = 0f;
         private static MTexture filledCircle;
         private static VirtualRenderTarget stencil;
         private static AlphaTestEffect alphaTestEffect;
-        
+
         private static readonly DepthStencilState stencilMask = new()
         {
             StencilEnable = true,
@@ -43,7 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             DepthBufferEnable = false,
         };
 
-        private static readonly DepthStencilState stencilContent = new ()
+        private static readonly DepthStencilState stencilContent = new()
         {
             StencilEnable = true,
             StencilFunction = CompareFunction.LessEqual,
@@ -52,7 +52,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             DepthBufferEnable = false,
         };
         public PuzzleSpotlight(Vector2 position)
-         : this(position,false,"PianoBoy/Inverted",0,"spotlightFlag",0,0,0,0,0,0,false,false)
+         : this(position, false, "PianoBoy/Inverted", 0, "spotlightFlag", 0, 0, 0, 0, 0, 0, false, false)
         {
         }
         public PuzzleSpotlight(Vector2 position, bool state, string colorGradeName, float radius, string flag, float beamLength, float beamWidth, float beamCount, float rotateRate, float gapLength, float offsetRate, bool hasGaps, bool offset, bool secondDesign = false)
@@ -103,27 +103,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 oS += offsetRate * Engine.DeltaTime;
             }
-            rotateAd += DigitalCircle.rotationAdd/15;
+            rotateAd += DigitalCircle.rotationAdd / 15;
             if (second)
             {
                 BeamLength = DigitalCircle.beamLength;
                 Radius = DigitalCircle.radius;
             }
-            if(SceneAs<Level>().Session.GetFlag("colorCodeGrade") && second)
+            if (SceneAs<Level>().Session.GetFlag("colorCodeGrade") && second)
             {
                 RemoveSelf();
             }
         }
+        [OnLoad]
         public static void Load()
         {
             IL.Celeste.Level.Render += LevelRender;
         }
-
+        [OnUnload]
         public static void Unload()
         {
             IL.Celeste.Level.Render -= LevelRender;
         }
-
+        [OnInitialize]
         public static void Initialize()
         {
             // Can't set these up in the static constructor because...
@@ -187,11 +188,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 player.Position - level.Camera.Position - new Vector2(0, player.Height / 2f);
             if (second)
             {
-                playerCenter = new Vector2(24*8 - _Radius + 5, 14.5f*8 - _Radius + 13);
+                playerCenter = new Vector2(24 * 8 - _Radius + 5, 14.5f * 8 - _Radius + 13);
             }
             // Start rendering to our stencil
             Engine.Graphics.GraphicsDevice.SetRenderTarget(stencil);
-            Engine.Graphics.GraphicsDevice.Clear( ClearOptions.Target | ClearOptions.Stencil ,Color.Transparent, 0, 0);
+            Engine.Graphics.GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.Stencil, Color.Transparent, 0, 0);
 
             // Start the stencil spritebatch
             Draw.SpriteBatch.Begin(
@@ -219,13 +220,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             // Draw the beams
             if (second)
             {
-                for(int i = 0; i<renderer.BeamCount; i++)
+                for (int i = 0; i < renderer.BeamCount; i++)
                 {
-                    for(float k = 0; k<28; k++)
+                    for (float k = 0; k < 28; k++)
                     {
                         Draw.LineAngle(
                             playerCenter,
-                            ((float)Math.PI * 2f / renderer.BeamCount * i)-0.5f + renderer.RotateRate+(k/180f)+rotateAd,
+                            ((float)Math.PI * 2f / renderer.BeamCount * i) - 0.5f + renderer.RotateRate + (k / 180f) + rotateAd,
                             renderer.BeamLength,
                             Color.White,
                             renderer.BeamWidth
@@ -248,30 +249,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                 float angle;
-                 for (int i = 0; i < renderer.BeamCount; i++)
+                float angle;
+                for (int i = 0; i < renderer.BeamCount; i++)
                 {
-                   float current= renderer.GapLength +oS;
-                   for(int j=0;j<=320/(renderer.GapLength + renderer.BeamLength);j++){
-                        angle= ((float)Math.PI * 2f / renderer.BeamCount * i)+renderer.RotateRate;
-                         Draw.LineAngle(
-                             playerCenter + 
-                             (new Vector2((float)Math.Cos(angle),(float)Math.Sin(angle)))
-                             *current,
-                             angle,
-                             renderer.BeamLength,
-                             Color.White,
-                             renderer.BeamWidth
-                    );
-                        if(!renderer.offset){
+                    float current = renderer.GapLength + oS;
+                    for (int j = 0; j <= 320 / (renderer.GapLength + renderer.BeamLength); j++)
+                    {
+                        angle = ((float)Math.PI * 2f / renderer.BeamCount * i) + renderer.RotateRate;
+                        Draw.LineAngle(
+                            playerCenter +
+                            (new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)))
+                            * current,
+                            angle,
+                            renderer.BeamLength,
+                            Color.White,
+                            renderer.BeamWidth
+                   );
+                        if (!renderer.offset)
+                        {
                             current += renderer.GapLength + renderer.BeamLength;
-                        }else{
-                            current = (current+ renderer.GapLength + renderer.BeamLength) % 320;
+                        }
+                        else
+                        {
+                            current = (current + renderer.GapLength + renderer.BeamLength) % 320;
                             //oS += renderer.offsetRate * Engine.DeltaTime;
-                            
+
                         }
                     }
-                    
+
                 }
             }
 
@@ -286,7 +291,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 null
             );
             float opacity = second ? 0.8f : 1;
-            Draw.SpriteBatch.Draw(GameplayBuffers.Level, Vector2.Zero, Color.White*opacity);
+            Draw.SpriteBatch.Draw(GameplayBuffers.Level, Vector2.Zero, Color.White * opacity);
             Draw.SpriteBatch.End();
 
             // Start rendering to the level heeheeBuffer again
@@ -302,7 +307,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 null,
                 ColorGrade.Effect
             );
-            
+
             Draw.SpriteBatch.Draw(stencil, Vector2.Zero, Color.White);
             Draw.SpriteBatch.End();
         }

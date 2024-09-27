@@ -84,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Battery = PianoModule.Session.LastHeld;
         }
-
+        [OnLoad]
         public static void Load()
         {
             Everest.Events.Player.OnDie += Player_OnDie;
@@ -118,7 +118,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Battery.Position = toSet.Position;
             }
         }
-
+        [OnUnload]
         public static void Unload()
         {
             Everest.Events.Player.OnDie -= Player_OnDie;

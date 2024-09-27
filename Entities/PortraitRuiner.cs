@@ -74,11 +74,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.End();
             GameplayRenderer.Begin();
         }
+        [OnLoad]
         public static void Load()
         {
             IL.Celeste.Textbox.Render += Textbox_Render;
         }
-
+        [OnUnload]
         public static void Unload()
         {
             IL.Celeste.Textbox.Render -= Textbox_Render;

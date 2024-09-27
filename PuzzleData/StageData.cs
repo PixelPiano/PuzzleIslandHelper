@@ -40,10 +40,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.PuzzleData
             stage = null;
             return false;
         }
+        [OnLoad]
         public static void Load()
         {
             Everest.Content.OnUpdate += Content_OnUpdate;
         }
+        [OnUnload]
         public static void Unload()
         {
             Everest.Content.OnUpdate -= Content_OnUpdate;

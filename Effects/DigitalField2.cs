@@ -54,11 +54,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             Color color = Color.Lerp(Color.Blue, Color.Red, uv.Length());
             return color;
         }
+        [OnUnload]
         public static void Unload()
         {
             buffer?.Dispose();
             buffer = null;
         }
+        [OnInitialize]
         public static void Initialize()
         {
             buffer = VirtualContent.CreateRenderTarget("DigitalField2", 320, 180);

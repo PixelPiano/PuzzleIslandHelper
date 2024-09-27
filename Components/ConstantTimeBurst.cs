@@ -23,11 +23,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             burst.AlphaEaser = alphaEaser;
             return level.Displacement.Add(burst) as ConstantTimeBurst;
         }
+        [OnLoad]
         public static void Load()
         {
             On.Celeste.DisplacementRenderer.Add += DisplacementRenderer_Add;
             On.Celeste.DisplacementRenderer.Remove += DisplacementRenderer_Remove;
         }
+        [OnUnload]
         public static void Unload()
         {
             On.Celeste.DisplacementRenderer.Add -= DisplacementRenderer_Add;

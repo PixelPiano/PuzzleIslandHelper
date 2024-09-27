@@ -35,12 +35,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             base.SceneBegin(scene);
             RefreshBlockedBindings();
         }
+        [OnLoad]
         public static void Load()
         {
             CurrentlySelected = PreviouslySelected = false;
             BlockedBindings.Clear();
             On.Monocle.VirtualButton.Update += VirtualButton_Update;
         }
+        [OnUnload]
         public static void Unload()
         {
             CurrentlySelected = PreviouslySelected = false;

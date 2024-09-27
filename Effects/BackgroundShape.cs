@@ -87,6 +87,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             Engine.Instance.GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
             RenderShape();
         }
+        [OnInitialize]
         internal static void Initialize()
         {
             Shader = new(Engine.Graphics.GraphicsDevice)

@@ -68,11 +68,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             base.Render();
         }
+        [OnLoad]
         public static void Load()
         {
             PlayerColorMod = false;
             On.Celeste.PlayerSprite.Render += RenderHook;
         }
+        [OnUnload]
         public static void Unload()
         {
             PlayerColorMod = false;

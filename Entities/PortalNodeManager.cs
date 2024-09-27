@@ -212,10 +212,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             level.Add(new PortalNodeManager());
         }
+        [OnLoad]
         public static void Load()
         {
             Everest.Events.LevelLoader.OnLoadingThread += LevelLoader_OnLoadingThread;
         }
+        [OnUnload]
         public static void Unload()
         {
             Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;

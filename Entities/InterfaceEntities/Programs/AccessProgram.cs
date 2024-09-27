@@ -17,11 +17,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             Name = "Access";
         }
-
+        [OnLoad]
         public static void Load()
         {
             AccessTeleporting = false;
         }
+        [OnUnload]
         public static void Unload()
         {
             AccessTeleporting = false;

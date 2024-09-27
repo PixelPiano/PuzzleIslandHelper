@@ -50,6 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.MenuElements
                 }
             }
         }
+        [OnLoad]
         public static void Load()
         {
             randoms.Clear();
@@ -124,6 +125,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.MenuElements
             }
             return current.Name;
         }
+        [OnUnload]
         public static void Unload()
         {
             PortraitRenderHook?.Dispose();

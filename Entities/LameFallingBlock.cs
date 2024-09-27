@@ -21,10 +21,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             this(data.Position + offset, data.Attr("flag"), data.Bool("invertFlag"), data.Char("tiletype"), data.Width, data.Height, data.Bool("finalBoss"), data.Bool("behind"), false)
         {
         }
+        [OnLoad]
         public static void Load()
         {
             On.Celeste.FallingBlock.PlayerFallCheck += FallingBlock_PlayerFallCheck;
         }
+        [OnUnload]
         public static void Unload()
         {
             On.Celeste.FallingBlock.PlayerFallCheck -= FallingBlock_PlayerFallCheck;

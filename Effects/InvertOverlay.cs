@@ -161,6 +161,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             }
             EnforceState = false;
         }
+        [OnLoad]
         internal static void Load()
         {
             WaitTime = 1.5f;
@@ -169,6 +170,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             Everest.Events.Level.OnTransitionTo += Transition;
             On.Celeste.Player.Update += PlayerUpdate;
         }
+        [OnUnload]
         internal static void Unload()
         {
             Everest.Events.Level.OnTransitionTo -= Transition;

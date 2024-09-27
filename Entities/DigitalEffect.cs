@@ -318,6 +318,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             background = Color.Lerp(Color.LightGreen, Calc.HexToColor("008801"), currentBackOpacity);
             yOffset = (yOffset + 0.2f) % (Height / 4);
         }
+        [OnUnload]
         public static void Unload()
         {
             EffectActive = false;
@@ -325,6 +326,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             _ObjectRenderTarget?.Dispose();
             On.Celeste.PlayerHair.Render -= PlayerHair_Render;
         }
+        [OnLoad]
         public static void Load()
         {
             On.Celeste.PlayerHair.Render += PlayerHair_Render;

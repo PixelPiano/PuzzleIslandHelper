@@ -109,6 +109,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             Draw.SpriteBatch.Draw(Target, level.Camera.Position, Color.White);
         }
+        [OnUnload]
         public static void Unload()
         {
             Shader?.Dispose();

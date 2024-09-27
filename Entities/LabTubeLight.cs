@@ -90,6 +90,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(light = new VertexLight(new Vector2(Length / 2, flipY ? 0 : 24), digital ? Color.Green : Color.White, Broken ? 0.3f : 0.86f, (int)Width, (int)Width + 16));
             OnDashCollide = DashCollision;
         }
+        [OnLoad]
         internal static void Load()
         {
             IL.Celeste.Player.ReflectBounce += Player_Bounce;
@@ -120,6 +121,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             return ModSpeed ? 1.5f : 1;
         }
+        [OnUnload]
         internal static void Unload()
         {
             IL.Celeste.Player.ReflectBounce -= Player_Bounce;

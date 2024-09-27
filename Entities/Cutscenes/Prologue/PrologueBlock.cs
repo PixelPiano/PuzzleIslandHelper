@@ -188,6 +188,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             base.Removed(scene);
             Target?.Dispose();
         }
+        [OnUnload]
         public static void Unload()
         {
             _Mask?.Dispose();

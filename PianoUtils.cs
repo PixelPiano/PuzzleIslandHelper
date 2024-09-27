@@ -251,8 +251,6 @@ public static class PianoUtils
         }
         return screenpoints;
     }
-
-
     public static Vector2 TopLeft(this Rectangle rect)
     {
         return new Vector2(rect.Left, rect.Top);
@@ -293,6 +291,7 @@ public static class PianoUtils
     {
         return !(check.Left >= rect.Right) && !(check.Right <= rect.Left) && !(check.Top >= rect.Bottom) && !(check.Bottom <= rect.Top);
     }
+
     public static Vector2 Mod(this Vector2 vec, float mod)
     {
         return new Vector2(vec.X - vec.X % mod, vec.Y - vec.Y % mod);
@@ -316,6 +315,22 @@ public static class PianoUtils
     public static void StandardBegin(this SpriteBatch spriteBatch, Matrix matrix)
     {
         Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
+    }
+    public static void StandardBegin(this SpriteBatch spriteBatch, BlendState blend, Matrix matrix)
+    {
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
+    }
+    public static void StandardBegin(this SpriteBatch spriteBatch, BlendState blend, Effect shader)
+    {
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, shader, Matrix.Identity);
+    }
+    public static void StandardBegin(this SpriteBatch spriteBatch, BlendState blend, Effect shader, Matrix matrix)
+    {
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, shader, matrix);
+    }
+    public static void StandardBegin(this SpriteBatch spriteBatch, BlendState blend)
+    {
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
     }
     public static void StandardBegin(this SpriteBatch spriteBatch, Effect effect, Matrix matrix)
     {

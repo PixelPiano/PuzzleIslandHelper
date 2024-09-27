@@ -112,10 +112,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 orig(self);
             }
         }
+        [OnLoad]
         internal static void Load()
         {
             On.Monocle.TileGrid.Render += Render;
         }
+        [OnUnload]
         internal static void Unload()
         {
             On.Monocle.TileGrid.Render -= Render;

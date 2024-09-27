@@ -423,6 +423,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
         }
+        [OnLoad]
         internal static void Load()
         {
             On.Celeste.Glider.OnPickup += MovingGliderPickup;
@@ -430,7 +431,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             On.Celeste.Glider.OnCollideH += MovingGliderOnCollideH;
             On.Celeste.Glider.OnCollideV += MovingGliderOnCollideV;
         }
-
+        [OnUnload]
         internal static void Unload()
         {
             On.Celeste.Glider.OnPickup -= MovingGliderPickup;

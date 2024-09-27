@@ -83,11 +83,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Effect.Parameters["TransformMatrix"]?.SetValue(matrix2 * matrix);
             Effect.Parameters["ViewMatrix"]?.SetValue(UseIdentityMatrix ? Matrix.Identity : level.Camera.Matrix);
         }
+        [OnLoad]
         internal static void Load()
         {
             //Note: don't add onContentUpdate, it messes with things. Just use runCompiler.bat
             On.Celeste.Glitch.Apply += Apply_HOOK;
         }
+        [OnUnload]
         internal static void Unload()
         {
             On.Celeste.Glitch.Apply -= Apply_HOOK;

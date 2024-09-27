@@ -44,6 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                 }
             }
         }
+        [OnUnload]
         public static void Unload()
         {
             Grid = null;

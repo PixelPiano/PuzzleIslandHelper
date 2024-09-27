@@ -1505,7 +1505,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
                         }
                         return false;*/
         }
-
+        [OnLoad]
         internal static void Load()
         {
             On.Celeste.Level.LoadNewPlayer += On_Level_LoadNewPlayer;
@@ -1515,7 +1515,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             On.Celeste.Player.TransitionTo += Player_TransitionTo;
             On.Celeste.Player.Die += Player_Die;
         }
-
+        [OnUnload]
         internal static void Unload()
         {
             On.Celeste.Level.LoadNewPlayer -= On_Level_LoadNewPlayer;

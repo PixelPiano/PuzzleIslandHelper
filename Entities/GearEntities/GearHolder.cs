@@ -36,10 +36,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                 AddTag(Tags.TransitionUpdate);
                 Add(new BeforeRenderHook(BeforeRender));
             }
+            [OnLoad]
             internal static void Load()
             {
                 On.Celeste.LevelLoader.ctor += LevelLoader_ctor;
             }
+            [OnUnload]
             internal static void Unload()
             {
                 On.Celeste.LevelLoader.ctor -= LevelLoader_ctor;

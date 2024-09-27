@@ -23,6 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Tag |= Tags.Global | Tags.TransitionUpdate;
             }
+            [OnLoad]
             public static void Load()
             {
                 fromDeath = false;
@@ -45,7 +46,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 fromDeath = true;
             }
-
+            [OnUnload]
             public static void Unload()
             {
                 Everest.Events.Player.OnDie -= Player_OnDie;

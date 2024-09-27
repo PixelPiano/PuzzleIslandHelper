@@ -17,7 +17,9 @@ voidLight.placements =
         data = {
         width = 16,
         height = 16,
+        startLit = false,
         color = "ffff00",
+        persistent = false,
         radius = 30,
         alpha = 1
         }

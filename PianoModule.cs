@@ -16,6 +16,8 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEnti
 using Celeste.Mod.PuzzleIslandHelper.Helpers;
 using IL.Monocle;
 using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
+using FrostHelper;
+using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -77,120 +79,43 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public override void Load()
         {
-            TilesColorgrade.Load();
-            DigiFolliage.BgFolliageRenderer.Load();
-            PlayerCalidus.Load();
-            BitrailTransporter.Load();
-            FloatyAlterBlock.Load();
-            UserInput.Load();
-            TrapdoorChandelier.GlobalUpdater.Load();
-            InGameLogRenderer.Load();
-            ConstantTimeBurst.Load();
-            LameFallingBlock.Load();
-            RuinsDoor.Load();
-            InputBox.Load();
-            Stool.Load();
-            PuzzleSpotlight.Load();
-            DigitalEffect.Load();
-            MovingJelly.Load();
-            EscapeTimer.Load();
-            LightMachineInfo.Load();
-            LightsIcon.Load();
-            PassThruBooster.Load();
-            InvertOverlay.Load();
-            BgTilesColorgrade.Load();
-            DigitalOverlay.Load();
-            PotionFluid.Load();
-            BlockGlitch.Load();
-            DeadRefill.Load();
-            LabTubeLight.Load();
-            StageData.Load();
-            RenderHelper.Load();
-            InterfaceData.Load();
-            GameshowData.Load();
-            ShaderOverlay.Load();
-            PortraitRuiner.Load();
-            AudioEffectGlobal.Load();
-            AccessProgram.Load();
-            AccessData.Load();
-            GearHolder.GearHolderRenderer.Load();
-            SceneSwitch.Load();
-            ShaderFX.Load();
-            PrologueBooster.Load();
-            PrologueSequence.Load();
-            ShiftAreaRenderer.Load();
-            ProgramLoader.Load();
-            TerminalProgramLoader.Load();
-            MazeData.Load();
-            OuiFileFader.Load();
-            BatteryRespawn.Load();
-            SineHelper.Load();
-            PortalNodeManager.Load();
+            InvokeAllWithAttribute(typeof(OnLoad));
         }
 
 
         public override void Unload()
         {
-            PortalNodeManager.Unload();
-            TilesColorgrade.Unload();
-            SineHelper.Unload();
-            DigiFolliage.BgFolliageRenderer.Unload();
-            PlayerCalidus.Unload();
-            BitrailTransporter.Unload();
-            BitrailHelper.Unload();
-            FloatyAlterBlock.Unload();
-            UserInput.Unload();
-            TrapdoorChandelier.GlobalUpdater.Unload();
-            InGameLogRenderer.Unload();
-            ConstantTimeBurst.Unload();
-            LameFallingBlock.Unload();
-            RuinsDoor.Unload();
-            InputBox.Unload();
-            ShaderFX.Unload();
-            LabTubeLight.Unload();
-            Stool.Unload();
-            PuzzleSpotlight.Unload();
-            MovingJelly.Unload();
-            LightsIcon.Unload();
-            PassThruBooster.Unload();
-            InvertOverlay.Unload();
-            BgTilesColorgrade.Unload();
-            DigitalOverlay.Unload();
-            FluidBottle.Unload();
-            PotionFluid.Unload();
-            BlockGlitch.Unload();
-            DeadRefill.Unload();
-            StageData.Unload();
-            RenderHelper.Unload();
-            LCDArea.Unload();
-            InterfaceData.Unload();
-            GameshowData.Unload();
-            ShaderOverlay.Unload();
-            PortraitRuiner.Unload();
-            AudioEffectGlobal.Unload();
-            AccessProgram.Unload();
-            AccessData.Unload();
-            GearHolder.GearHolderRenderer.Unload();
-            SceneSwitch.Unload();
-            PrologueBooster.Unload();
-            PrologueSequence.Unload();
-            PrologueBlock.Unload();
-            ShiftAreaRenderer.Unload();
-            GrassMazeOverlay.Unload();
-            MazeData.Unload();
-            GSRenderer.Unload();
-            OuiFileFader.Unload();
-            BatteryRespawn.Unload();
-            CubeField.Unload();
-            DigitalField2.Unload();
+            InvokeAllWithAttribute(typeof(OnUnload));
         }
 
         public override void Initialize()
         {
-            PuzzleSpotlight.Initialize();
-            CubeField.Initialize();
-            BackgroundShape.Initialize();
-            DigitalField2.Initialize();
+            InvokeAllWithAttribute(typeof(OnInitialize));
+        }
+
+        public static void InvokeAllWithAttribute(Type attributeType)
+        {
+            Type attributeType2 = attributeType;
+            Type[] typesSafe = typeof(PianoModule).Assembly.GetTypesSafe();
+            for (int i = 0; i < typesSafe.Length; i++)
+            {
+                checkType(typesSafe[i]);
+            }
+            void checkType(Type type)
+            {
+                MethodInfo[] methods = type.GetMethods(BindingFlags.Static | BindingFlags.Public);
+                foreach (MethodInfo method in methods)
+                {
+                    foreach (CustomAttributeData customAttribute in method.CustomAttributes)
+                    {
+                        if (customAttribute.AttributeType == attributeType2)
+                        {
+                            method.Invoke(null, null);
+                            return;
+                        }
+                    }
+                }
+            }
         }
     }
 }

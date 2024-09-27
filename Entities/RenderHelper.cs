@@ -88,10 +88,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             }
             Draw.SpriteBatch.Draw(ComponentRender, level.Camera.Position, Color.White);
         }
+        [OnLoad]
         internal static void Load()
         {
            On.Celeste.LevelLoader.ctor += LevelLoader_ctor;
         }
+        [OnUnload]
         internal static void Unload()
         {
             On.Celeste.LevelLoader.ctor -= LevelLoader_ctor;

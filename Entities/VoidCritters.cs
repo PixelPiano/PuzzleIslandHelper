@@ -13,16 +13,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class VoidCritters : Entity
     {
-        private Player player;
-        private bool SetLife;
         private DynamicData data;
         private Particle[] Particles;
         private ParticleSystem system;
-        private Coroutine Routine;
-        private bool InRoutine;
-
-        private bool UsesFlag;
-        private string flag;
         private bool CutsceneOnDeactivate;
         private bool WhiteOut;
         private float WhiteOutFade;
@@ -44,45 +37,50 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public VoidCritters(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
-            CutsceneOnDeactivate = data.Bool("cutsceneOnDeactivate");
-            UsesFlag = data.Bool("usesFlag");
-            flag = data.Attr("flag");
-
-            Routine = new Coroutine(InDark());
         }
+        public float MaxTime = 2.6f;
+        public float GraceTime = 0.5f;
+        public float Timer;
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            Timer = MaxTime + GraceTime;
+            Collider = new Hitbox(40, 40, -20, -20);
             scene.Add(system = new ParticleSystem(-1, Limit));
-            player = (scene as Level).Tracker.GetEntity<Player>();
         }
-        private void HandlePosition()
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            system?.RemoveSelf();
+        }
+        private void HandlePosition(Player player)
         {
             data = DynamicData.For(system);
             Particles = data.Get<Particle[]>("particles");
+            bool justEnteredLight = !wasInLight && InLight;
             for (int i = 0; i < Particles.Length; i++)
             {
                 if (Particles[i].Life < Critters.LifeMin + (Critters.LifeMax - Critters.LifeMin) / 1.5f)
                 {
                     Vector2 target = new Vector2(Calc.Random.Range(player.Center.X - player.Width, player.Center.X + player.Width), Calc.Random.Range(player.Center.Y - player.Height, player.Center.Y + player.Height));
-                    Vector2 rate = new Vector2(Calc.Random.Range(2, 5), Calc.Random.Range(2, 5));
-                    if (InLight)
+                    if (justEnteredLight)
                     {
-                        Particles[i].Position.X += Particles[i].Speed.X / 2;
-                        Particles[i].Position.Y += Particles[i].Speed.Y / 2;
+                        float length = Calc.Random.Range(6, 20);
+                        Particles[i].Speed = 10 * Calc.AngleToVector(Calc.Random.NextAngle(), length);
                     }
-                    else
+                    else if (!InLight)
                     {
                         Particles[i].Position.X = Calc.Approach(Particles[i].Position.X, target.X, 6);
                         Particles[i].Position.Y = Calc.Approach(Particles[i].Position.Y, target.Y, 6);
                     }
+
                 }
-                if (InLight && !SetLife)
+                if (justEnteredLight)
                 {
-                    Particles[i].Life = Calc.Random.Range(0.1f, 0.5f);
+                    Particles[i].Life = Calc.Random.Range(0.5f, 1f);
                 }
+                //Particles[i].StartColor = Color.Lerp(Color.Black, Color.White, (MaxTime + GraceTime) / (Timer + GraceTime));
             }
-            SetLife = true;
             data.Set("particles", Particles);
         }
         public override void Render()
@@ -103,64 +101,43 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-        private IEnumerator End()
-        {
-
-            InRoutine = true;
-            for (int j = 0; j < 5; j++)
-            {
-                for (int i = 0; i < 12; i++)
+        /*        private IEnumerator InDark()
                 {
-                    for (int k = 0; k <= j; k++)
+                    if (Scene is not Level level || level.GetPlayer() is not Player player) yield break;
+                    InRoutine = true;
+                    system.Clear();
+                    yield return EmitFor(player, 1, 10, Engine.DeltaTime);
+                    yield return EmitFor(player, 2, 12, 0.1f);
+                    yield return EmitFor(player, 3, 8, 0.05f);
+                    yield return EmitFor(player, 5, 28, 0.01f);
+                    if (player is not null && !player.Dead)
                     {
-                        CritterParticles();
+                        player.Die(Vector2.Zero);
                     }
-                    yield return 0.05f;
-                }
-            }
-            WhiteOut = true;
+                    system.RemoveSelf();
+                    RemoveSelf();
 
-            if (player is not null && !player.Dead)
-            {
-                player.Die(Vector2.Zero);
-            }
-            system.RemoveSelf();
-            RemoveSelf();
-
-        }
-        private IEnumerator InDark()
-        {
-            InRoutine = true;
-            system.Clear();
-            yield return EmitFor(1, 10, Engine.DeltaTime);
-            yield return EmitFor(2, 12, 0.05f);
-            yield return EmitFor(3, 8, 0.02f);
-            yield return EmitFor(5, 28, 0.01f);
-            if (player is not null && !player.Dead)
-            {
-                player.Die(Vector2.Zero);
-            }
-            system.RemoveSelf();
-            RemoveSelf();
-
-        }
-        private IEnumerator EmitFor(int amountPerTick, int loops, float interval)
+                }*/
+        private IEnumerator EmitFor(Player player, int amountPerTick, int loops, float interval)
         {
             for (int i = 0; i < loops; i++)
             {
-                CritterParticles(amountPerTick);
+                CritterParticles(player, amountPerTick);
                 yield return interval;
             }
         }
-        private void CritterParticles(int amount = 1)
+        private bool wasInLight;
+
+        private void CritterParticles(Player player, int amount = 1)
         {
             for (int i = 0; i < amount; i++)
             {
                 Critters.LifeMax = Size;
                 Critters.Direction = Calc.Random.NextAngle();
                 Vector2 offset = Calc.AngleToVector(Critters.Direction, Size * 4);
-                system.Emit(Critters, system.Center - offset);
-                if (player is not null)
+
+                system.Emit(Critters, system.Center - offset, Color.Lerp(Color.Black, Color.White, Calc.Random.Range(0, 0.1f)));
+                if (player is not null && !player.Dead)
                 {
                     system.Center = player.Center;
                 }
@@ -169,23 +146,44 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if (player is null)
+            if (Scene is not Level level || level.GetPlayer() is not Player player || player.Dead || player.JustRespawned) return;
+            Position = player.Position;
+            float timeMult = 1;
+/*            if (CollideCheck<VoidLightHelperEntity>())
             {
-                return;
-            }
-            InLight = player.CollideFirst<VoidLightHelperEntity>() is VoidLightHelperEntity entity && entity.State;
-            HandlePosition();
-            if (Routine.Active && InLight)
+                timeMult = 0.65f;
+            }*/
+            InLight = VoidSafeZone.Check(player);
+            HandlePosition(player);
+            if (!InLight)
             {
-                SetLife = false;
-                Routine.Active = false;
-                Remove(Routine);
-                InRoutine = false;
+                if (wasInLight)
+                {
+                    system.Clear();
+                    Timer = MaxTime + GraceTime;
+                }
+                else
+                {
+                    float amount = Calc.Max(0, 1 - Timer / MaxTime);
+                    int emitAmount = (int)Calc.LerpClamp(1, 5, amount);
+                    float interval = Calc.LerpClamp(0.2f, Engine.DeltaTime, amount);
+                    if (Timer <= -GraceTime)
+                    {
+                        player.Die(Vector2.Zero);
+                        RemoveSelf();
+                        return;
+                    }
+                    else
+                    {
+                        Timer -= Engine.DeltaTime * timeMult;
+                        if (Scene.OnInterval(interval))
+                        {
+                            CritterParticles(player, emitAmount);
+                        }
+                    }
+                }
             }
-            if (!InLight && !InRoutine)
-            {
-                Add(Routine = new Coroutine(InDark()));
-            }
+            wasInLight = InLight;
         }
     }
 }

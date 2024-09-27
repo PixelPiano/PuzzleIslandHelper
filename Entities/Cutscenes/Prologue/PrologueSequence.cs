@@ -86,6 +86,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
         }
         private static IDetour hook_Player_set_Ducking;
         private delegate bool orig_Player_set_Ducking(Player self);
+        [OnLoad]
         public static void Load()
         {
             On.Celeste.Input.GetAimVector += Input_GetAimVector;
@@ -104,6 +105,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                 }
             });
         }
+        [OnUnload]
         public static void Unload()
         {
             On.Celeste.Input.GetAimVector -= Input_GetAimVector;

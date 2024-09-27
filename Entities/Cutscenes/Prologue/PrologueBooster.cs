@@ -16,7 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             : base(data.Position + offset, true)
         {
         }
-
+        [OnLoad]
         public static void Load()
         {
             On.Celeste.Input.GetAimVector += Input_GetAimVector;
@@ -25,7 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                typeof(PrologueBooster).GetMethod("Player_get_CanDash", BindingFlags.NonPublic | BindingFlags.Static)
            );
         }
-
+        [OnUnload]
         public static void Unload()
         {
             On.Celeste.Input.GetAimVector -= Input_GetAimVector;

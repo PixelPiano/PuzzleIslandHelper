@@ -60,12 +60,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             orig(self, player, dir);
         }
+        [OnLoad]
         internal static void Load()
         {
             On.Celeste.Booster.PlayerReleased += OnRelease;
             On.Celeste.Booster.OnPlayerDashed += OnDashed;
             On.Celeste.Booster.PlayerBoosted += OnPlayer;
         }
+        [OnUnload]
         internal static void Unload()
         {
             On.Celeste.Booster.PlayerReleased -= OnRelease;

@@ -80,6 +80,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Added(scene);
             SceneCheck(scene);
         }
+        [OnLoad]
         public static void Load()
         {
             remaining = limit;

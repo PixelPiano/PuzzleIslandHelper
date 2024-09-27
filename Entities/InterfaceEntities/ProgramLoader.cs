@@ -32,6 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             return false;
         }
+        [OnLoad]
         public static void Load()
         {
             Assembly assembly = typeof(PianoModule).Assembly;

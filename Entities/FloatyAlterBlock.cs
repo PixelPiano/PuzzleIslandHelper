@@ -79,10 +79,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 position2.Y = offset.Y;
             }
         }
+        [OnLoad]
         public static void Load()
         {
             On.Celeste.FloatySpaceBlock.OnDash += FloatySpaceBlock_OnDash;
         }
+        [OnUnload]
         public static void Unload()
         {
             On.Celeste.FloatySpaceBlock.OnDash -= FloatySpaceBlock_OnDash;

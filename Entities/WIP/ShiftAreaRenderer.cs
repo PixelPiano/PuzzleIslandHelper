@@ -107,6 +107,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             base.SceneEnd(scene);
             Depth = FG ? -10001 : 9999;
         }
+        [OnUnload]
         public static void Unload()
         {
             _FGTarget?.Dispose();
@@ -115,6 +116,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             _BGTarget = null;
             On.Celeste.LevelLoader.ctor -= LevelLoader_ctor;
         }
+        [OnLoad]
         public static void Load()
         {
             On.Celeste.LevelLoader.ctor += LevelLoader_ctor;

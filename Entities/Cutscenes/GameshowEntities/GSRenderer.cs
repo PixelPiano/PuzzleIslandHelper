@@ -30,6 +30,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             AlphaBlendFunction = BlendFunction.ReverseSubtract,
             AlphaDestinationBlend = Blend.One
         };
+        [OnUnload]
         public static void Unload()
         {
             _Mask?.Dispose();

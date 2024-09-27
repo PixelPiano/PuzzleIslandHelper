@@ -355,6 +355,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Visible = platform.Visible = Collidable = platform.Collidable = Hold.Visible = FlagState;
         }
+        [OnLoad]
         public static void Load()
         {
             On.Celeste.Refill.ctor_EntityData_Vector2 += OnRefillCtor;
@@ -385,6 +386,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }));
         }
+        
+        [OnUnload]
         public static void Unload()
         {
             On.Celeste.Refill.ctor_EntityData_Vector2 -= OnRefillCtor;

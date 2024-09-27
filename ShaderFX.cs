@@ -1,6 +1,7 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
 using Celeste.Mod;
+using Celeste.Mod.PuzzleIslandHelper;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
@@ -57,10 +58,12 @@ public class ShaderFX
         InvertOrb?.Dispose();
         BitrailAbsorb?.Dispose();
     }
+    [OnLoad]
     public static void Load()
     {
         Everest.Content.OnUpdate += Content_OnUpdate;
     }
+    [OnUnload]
     public static void Unload()
     {
         DisposeFXs();

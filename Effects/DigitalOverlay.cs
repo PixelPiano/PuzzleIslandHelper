@@ -274,12 +274,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
 
         }
 
-
+        [OnUnload]
         public static void Unload()
         {
             _MaskRenderTarget?.Dispose();
             _ObjectRenderTarget?.Dispose();
         }
+        [OnLoad]
         public static void Load()
         {
             RenderCondition = true;

@@ -19,6 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Tag = Tags.Global;
         }
+        [OnLoad]
         public static void Load()
         {
             if (!HasBeenSeen)
@@ -523,10 +524,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 dict[level.Session.Level].Clear();
             }
         }
+        [OnLoad]
         internal static void Load()
         {
             Everest.Events.Level.OnLoadLevel += LightsIconLoad;
         }
+        [OnUnload]
         internal static void Unload()
         {
             Everest.Events.Level.OnLoadLevel -= LightsIconLoad;

@@ -40,9 +40,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                     for (float j = 0; j < yCubes; j++)
                     {
                         float y = (cubeSize + spacing) * j;
-                        Vector3 pos = new Vector3(x, y + (cubeSize + spacing)/2, -z * (cubeSize + spacing));
-                        float dist = Vector2.Distance(new Vector2(pos.X,pos.Y), new Vector2(160, 90));
-     
+                        Vector3 pos = new Vector3(x, y + (cubeSize + spacing) / 2, -z * (cubeSize + spacing));
+                        float dist = Vector2.Distance(new Vector2(pos.X, pos.Y), new Vector2(160, 90));
+
                         CubeFieldCube cube = new CubeFieldCube(pos, path, cubeSize)
                         {
                             ZLayer = z,
@@ -91,6 +91,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 c.RenderCube();
             }
         }
+        [OnInitialize]
         internal static void Initialize()
         {
             Shader = new(Engine.Graphics.GraphicsDevice)
@@ -102,6 +103,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             };
         }
 
+        [OnUnload]
         internal static void Unload()
         {
             Shader?.Dispose();

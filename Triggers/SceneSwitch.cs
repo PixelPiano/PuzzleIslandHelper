@@ -142,10 +142,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             PianoModule.Session.CurrentBackdropArea = area;
             AreaFlagHelper.SetLighting(level, "In" + area.ToString());
         }
+        [OnLoad]
         internal static void Load()
         {
             On.Celeste.LevelLoader.ctor += LevelLoader_ctor;
         }
+        [OnUnload]
         internal static void Unload()
         {
             On.Celeste.LevelLoader.ctor -= LevelLoader_ctor;
