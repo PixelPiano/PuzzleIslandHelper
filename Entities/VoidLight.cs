@@ -388,6 +388,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 LightSelf();
             }
             SafeZone.IsSafe = Mask.Enabled = State;
+            Mask.GradientBoost = radius / outlineSize * 1.3f;
             wasColliding = collided;
             collided = false;
         }

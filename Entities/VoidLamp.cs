@@ -13,7 +13,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class VoidLamp : Actor
     {
-
+        public CritterLight PlayerLight;
         private float holdTimer = 0;
 
         public Vector2 prevPosition = Vector2.Zero;
@@ -56,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Hold.PickupCollider.Position = new Vector2(-sprite.Width, -sprite.Height) * StoolJustify;
             Collider = new Hitbox(8, sprite.Height);
             Collider h = Hold.PickupCollider;
-            Collider.Position = h.Position + new Vector2(h.Width/2 - 4, 0);
+            Collider.Position = h.Position + new Vector2(h.Width / 2 - 4, 0);
 
             Hold.SpeedSetter = delegate (Vector2 speed)
             {
@@ -105,9 +105,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (scene.GetPlayer() is Player player && player.Holding is Holdable holdable && holdable.Entity is VoidLamp lamp && lamp != this)
+            if (scene.GetPlayer() is Player player)
             {
-                RemoveSelf();
+                if (player.Holding is Holdable holdable && holdable.Entity is VoidLamp lamp && lamp != this)
+                {
+                    RemoveSelf();
+                    return;
+                }
+
+                player.Add(PlayerLight = new CritterLight(SafeZone.Width / 1.5f, player.Light));
             }
         }
         private void OnPickup()
@@ -242,13 +248,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return false;
         }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            if(scene.GetPlayer() is Player player)
+            {
+                player.Remove(PlayerLight);
+            }
+        }
         #endregion
         public override void Update()
         {
             base.Update();
+            PlayerLight.Enabled = Hold.IsHeld;
+            
             Hold.CheckAgainstColliders();
             SafeZone.Position = Hold.PickupCollider.Position + Hold.PickupCollider.HalfSize - Vector2.One * 20;
             if (Scene is not Level level || level.GetPlayer() is not Player player) return;
+
+            Mask.GradientBoost = PlayerLight.GradientBoost = 0.1f;
+            Mask.GradientBoost = PlayerLight.GradientBoost += player.Dashes switch
+            {
+                1 => 0.1f,
+                2 => 0.5f,
+                _ => 0
+            };
             Depth = player.Depth + 1;
             level = Scene as Level;
 

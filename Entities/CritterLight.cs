@@ -18,6 +18,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public VertexLight Light;
         public bool Enabled;
         public MTexture Gradient;
+        public float GradientRadius;
+        public Vector2 GradientScale;
+        public float GradientBoost;
         public CritterLight(float radius, VertexLight light, bool enabled = false) : base(GFX.Game["objects/PuzzleIslandHelper/light"], true)
         {
             Gradient = GFX.Game["objects/PuzzleIslandHelper/lightGradient"];
@@ -42,6 +45,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 OnScreen = false;
                 return;
             }
+            GradientRadius = Radius + (Radius * GradientBoost);
+            Scale = Vector2.One * (Radius * 2) / new Vector2(Texture.Width, Texture.Height);
+            GradientScale = Vector2.One * (GradientRadius * 2) / new Vector2(Gradient.Width, Gradient.Height);
             Vector2 pos = RenderPosition;
             Rectangle c = level.Camera.GetBounds();
             Rectangle r = new Rectangle(c.Left - 8, c.Top - 8, c.Width + 16, c.Height + 16);
@@ -53,7 +59,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void DrawGradient(Color color, Vector2 offset = default)
         {
-            Draw.SpriteBatch.Draw(Gradient.Texture.Texture_Safe, Light.Center - Vector2.One * Radius + offset, null, color, 0, Vector2.Zero, Scale, SpriteEffects.None, 0);
+            Draw.SpriteBatch.Draw(Gradient.Texture.Texture_Safe, Light.Center - Vector2.One * GradientRadius + offset, null, color, 0, Vector2.Zero, GradientScale, SpriteEffects.None, 0);
         }
     }
 }

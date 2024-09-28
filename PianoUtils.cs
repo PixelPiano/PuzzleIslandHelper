@@ -292,6 +292,14 @@ public static class PianoUtils
         return !(check.Left >= rect.Right) && !(check.Right <= rect.Left) && !(check.Top >= rect.Bottom) && !(check.Bottom <= rect.Top);
     }
 
+    public static void DrawSimpleOutline(this VirtualRenderTarget target, Vector2 position, Color color)
+    {
+        Draw.SpriteBatch.Draw(target, position + new Vector2(-1f, 0f), color);
+        Draw.SpriteBatch.Draw(target, position + new Vector2(0f, -1f), color);
+        Draw.SpriteBatch.Draw(target, position + new Vector2(1f, 0f), color);
+        Draw.SpriteBatch.Draw(target, position + new Vector2(0f, 1f), color);
+
+    }
     public static Vector2 Mod(this Vector2 vec, float mod)
     {
         return new Vector2(vec.X - vec.X % mod, vec.Y - vec.Y % mod);

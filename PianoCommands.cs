@@ -187,6 +187,11 @@ public class PianoCommands
     {
         PianoModule.Session.DEBUGBOOL4 = value;
     }
+    [Command("df", "sets a debug bool value")]
+    private static void SetDebugFloat(float value)
+    {
+        PianoModule.Session.DEBUGFLOAT1 = value;
+    }
     [Command("dv", "sets a debug vector value")]
     private static void SetDebugVector(int x, int y)
     {

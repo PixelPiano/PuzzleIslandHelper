@@ -46,8 +46,9 @@ float fuzz(float2 uv, float light, float distToOne, float from)
 }
 float fuzz(float2 uv, float amount)
 {
-	float x = smoothstep(0.5 - amount, 0.5, abs(uv.x - 0.5));
-	float y = smoothstep(0.5 - amount, 0.5, abs(uv.y - 0.5));
+	float r = hashOld22(uv * Time) * 0.1;
+	float x = smoothstep(0.5 - amount + r, 0.5, abs(uv.x - 0.5));
+	float y = smoothstep(0.5 - amount + r, 0.5, abs(uv.y - 0.5));
 	float val = max(x, y);
 	return val;
 }
@@ -61,11 +62,21 @@ DECLARE_TEXTURE(text, 0);
 float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 {   
 	float4 color = tex2D(lights_sampler, uv);
-	
+	float t = Time * 1.2;
+	int xDir = sign(uv.x - 0.5);
+	int yDir = sign(uv.y - 0.5);
+	float wave = ((uv.x + (uv.y * xDir + t) * 10));
+	float wave2 = ((uv.y + (uv.x * -yDir + t) * 10));
+	float s = cos(wave) * 0.002;
+	float s2 = sin(wave2) * 0.002;
+	uv.x += s;
+	uv.y += s2;
 	float r = hashOld22(uv * Time);
 	float val = fuzz(uv, 0.1);
 	float v = randomize(1 - max(val,color.a), uv * Time);
-	return float4(0,0,0,round(v));
+	float v2 = hashOld22(uv * 2.222555* Time) * v;
+	v2 = round(v2) * 0.2;
+	return float4(v2,v2,v2,round(v + v2));
 }
 
 

@@ -22,6 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public bool DEBUGBOOL2 {get; set;}
         public bool DEBUGBOOL3 {get; set;}
         public bool DEBUGBOOL4 {get; set;}
+        public float DEBUGFLOAT1 {get; set;}
         public Vector2 DEBUGVECTOR { get; set; }
         public List<RecordedMemory> Memories = new();
         public int TimesMetWithCalidus;
