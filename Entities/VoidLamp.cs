@@ -1,19 +1,57 @@
-using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions;
 using Microsoft.Xna.Framework;
 using Monocle;
-using MonoMod.Utils;
 using System;
 using System.Collections;
-// PuzzleIslandHelper.ArtifactSlot
+using System.Collections.Generic;
+using System.Linq;
+using VivHelper.Entities;
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+    [Tracked]
+    public class VoidLampJudge : Entity
+    {
+        public VoidLampJudge() : base()
+        {
+            Tag |= Tags.TransitionUpdate;
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            if (scene is Level level && scene.GetPlayer() is Player player)
+            {
+                List<Entity> lamps = scene.Tracker.GetEntities<VoidLamp>();
+                VoidLamp closest = null;
+                Vector2 spawn = level.GetSpawnPoint(player.Position);
+                float dist = int.MaxValue;
+                foreach (VoidLamp lamp in lamps)
+                {
+                    if (lamp.CompeteForPlayerOnSpawn)
+                    {
+                        float lampdist = Vector2.DistanceSquared(spawn, lamp.Position);
+                        if (lampdist < dist)
+                        {
+                            dist = lampdist;
+                            closest = lamp;
+                        }
+                    }
+                }
+                foreach (VoidLamp lamp in lamps)
+                {
+                    if (lamp.CompeteForPlayerOnSpawn && lamp != closest)
+                    {
+                        lamp.RemoveSelf();
+                    }
+                }
+            }
+            RemoveSelf();
+        }
+    }
     [CustomEntity("PuzzleIslandHelper/VoidLamp")]
     [Tracked]
     public class VoidLamp : Actor
     {
-        public CritterLight PlayerLight;
         private float holdTimer = 0;
 
         public Vector2 prevPosition = Vector2.Zero;
@@ -25,7 +63,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float swatTimer;
         private float hardVerticalHitSoundCooldown;
 
-        private static Vector2 StoolJustify = new Vector2(0.5f, 1f);
+        private static Vector2 SpriteJustify = new Vector2(0.5f, 1f);
         public Vector2 Speed;
         private Vector2 prevLiftSpeed;
 
@@ -40,20 +78,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private PulsingCircle BigCircle;
         private PulsingCircle SmallCircle;
         public CritterLight Mask;
+        public bool TransitionCheck;
+        public string Flag;
+        public bool Inverted;
+        private string groupID;
+        private bool GroupIsVisible;
+        private bool isGroupLeader;
+        public bool FlagState;
+        public bool Enabled => FlagState && GroupIsVisible;
+        public Vector2 Scale = Vector2.One;
+        public PlayerCritterLight PlayerLight;
+        private Wiggler wiggler;
+        private bool destroyed;
+        public bool CompeteForPlayerOnSpawn;
         public VoidLamp(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
             this.id = id;
+            Depth = 1;
             Tag |= Tags.TransitionUpdate;
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/voidLamp/"));
             sprite.AddLoop("idle", "wip", 0.1f);
             sprite.Play("idle");
-            sprite.Justify = StoolJustify;
-            sprite.JustifyOrigin(StoolJustify);
+            sprite.Justify = SpriteJustify;
+            sprite.JustifyOrigin(SpriteJustify);
             Add(Hold = new Holdable(0.5f));
-
-
+            Inverted = data.Bool("inverted");
+            Flag = data.Attr("flag");
+            TransitionCheck = data.Bool("transitionCheck");
+            CompeteForPlayerOnSpawn = data.Bool("removeIfNotClosestToSpawn");
+            groupID = data.Attr("groupID");
+            isGroupLeader = data.Bool("isGroupLeader", true);
             Hold.PickupCollider = new Hitbox(sprite.Width, sprite.Height);
-            Hold.PickupCollider.Position = new Vector2(-sprite.Width, -sprite.Height) * StoolJustify;
+            Hold.PickupCollider.Position = new Vector2(-sprite.Width, -sprite.Height) * SpriteJustify;
             Collider = new Hitbox(8, sprite.Height);
             Collider h = Hold.PickupCollider;
             Collider.Position = h.Position + new Vector2(h.Width / 2 - 4, 0);
@@ -86,44 +142,146 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Mask = new CritterLight(SafeZone.Width / 1.5f, Light);
             Add(Mask);
             Mask.Enabled = true;
-            TransitionListener l = new();
-            Add(l);
-            l.OnOut = f =>
+            Add(new Coroutine(SpinRoutine()));
+        }
+        private IEnumerator SpinRoutine()
+        {
+            float scale = 2;
+            float maxSpeed = 1.6f;
+            float fastest = 0;
+            float speed = maxSpeed / 2;
+            while (true)
             {
-                if (Scene.GetPlayer() is Player player && player.Holding is Holdable holdable && holdable.Entity is VoidLamp lamp && lamp != this)
+                if (Mask.InCritterWall)
                 {
-                    Rectangle b = SceneAs<Level>().Camera.GetBounds();
-                    b.X -= 8; b.Y -= 8; b.Width += 16; b.Height += 16;
-                    Collider c = Collider;
-                    if (!Collide.CheckRect(this, b))
-                    {
-                        RemoveSelf();
-                    }
+                    speed = Calc.Approach(speed, maxSpeed, Engine.DeltaTime);
+                    fastest = Calc.Min(speed, maxSpeed);
+                    scale += speed * Engine.DeltaTime;
                 }
-            };
+                else
+                {
+                    scale = Calc.Approach(scale, 2, fastest * Engine.DeltaTime);
+                    speed = maxSpeed / 2;
+                }
+                if (scale > 2)
+                {
+                    scale -= 2;
+                }
+                BigCircle.Scale.X = Ease.SineInOut(scale - 1);
+                yield return null;
+            }
+        }
+        public override void Render()
+        {
+            if (Enabled)
+            {
+                base.Render();
+            }
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            if (CompeteForPlayerOnSpawn && PianoUtils.SeekController<VoidLampJudge>(scene) == null)
+            {
+                scene.Add(new VoidLampJudge());
+            }
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (scene.GetPlayer() is Player player)
+            FlagState = (string.IsNullOrEmpty(Flag) || SceneAs<Level>().Session.GetFlag(Flag)) != Inverted;
+            GroupIsVisible = isGroupLeader || string.IsNullOrEmpty(groupID) || PianoModule.Session.VoidLampGroups.Contains(groupID);
+            PlayerLight = Scene.Tracker.GetEntity<PlayerCritterLight>();
+            if (Scene.GetPlayer() is Player player)
             {
-                if (player.Holding is Holdable holdable && holdable.Entity is VoidLamp lamp && lamp != this)
+                if (TransitionCheck && player.Holding is Holdable holdable && holdable.Entity is VoidLamp lamp && lamp != this && lamp.groupID.Equals(groupID))
                 {
                     RemoveSelf();
                     return;
                 }
+            }
+        }
+        [Tracked]
+        public class PlayerCritterLight : Entity
+        {
+            public CritterLight Light;
+            public Player Player;
+            public PlayerCritterLight() : base()
+            {
+                Tag |= Tags.TransitionUpdate | Tags.Global;
+            }
+            public void Start(float radius)
+            {
+                Light.Radius = radius;
+                Light.Enabled = true;
+            }
+            public void Stop()
+            {
+                if (!SaveData.Instance.Assists.Invincible)
+                {
+                    Light.Radius = 0;
+                    Light.Enabled = false;
+                }
+            }
+            public override void Awake(Scene scene)
+            {
+                base.Awake(scene);
+                if (scene.GetPlayer() is Player player)
+                {
+                    Light = new CritterLight(0, player.Light);
+                    Add(Light);
+                }
+                else RemoveSelf();
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (Scene is not Level level || level.GetPlayer() is not Player player) return;
+                if (SaveData.Instance.Assists.Invincible)
+                {
+                    Light.Radius = 24;
+                    Light.Enabled = true;
+                }
+                Light.Light = player.Light;
+                Position = player.Position;
+                Light.GradientBoost = 0.1f + player.Dashes switch
+                {
+                    1 => 0.1f,
+                    2 => 0.5f,
+                    _ => 0
+                };
+            }
+            [OnLoad]
+            public static void Load()
+            {
+                Everest.Events.LevelLoader.OnLoadingThread += LevelLoader_OnLoadingThread;
+            }
 
-                player.Add(PlayerLight = new CritterLight(SafeZone.Width / 1.5f, player.Light));
+            [OnUnload]
+            public static void Unload()
+            {
+                Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;
+            }
+
+            private static void LevelLoader_OnLoadingThread(Level level)
+            {
+                level.Add(new PlayerCritterLight());
             }
         }
         private void OnPickup()
         {
+            if (!string.IsNullOrEmpty(groupID) && !PianoModule.Session.VoidLampGroups.Contains(groupID))
+            {
+                PianoModule.Session.VoidLampGroups.Add(groupID);
+            }
+            PlayerLight.Start(SafeZone.Width / 1.5f);
             Speed = Vector2.Zero;
             AddTag(Tags.Persistent);
             SceneAs<Level>().Session.DoNotLoad.Add(id);
         }
         public void OnRelease(Vector2 force)
         {
+            PlayerLight.Stop();
             holdTimer = 0.5f;
             RemoveTag(Tags.Persistent);
             if (SceneAs<Level>().Session.DoNotLoad.Contains(id))
@@ -143,25 +301,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         #region On Methods
         private void OnCollideV(CollisionData data)
         {
-
-            if (data.Hit is DashSwitch)
+            if (Enabled)
             {
-                (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitY * Math.Sign(Speed.Y));
-            }
-            if (Speed.Y > 0f)
-            {
-                if (hardVerticalHitSoundCooldown <= 0f)
+                if (data.Hit is DashSwitch)
                 {
-                    Audio.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", Calc.ClampedMap(Speed.Y, 0f, 200f));
-                    hardVerticalHitSoundCooldown = 0.5f;
+                    (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitY * Math.Sign(Speed.Y));
                 }
-                else
+                if (Speed.Y > 0f)
                 {
-                    Audio.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", 0f);
+                    if (hardVerticalHitSoundCooldown <= 0f)
+                    {
+                        Audio.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", Calc.ClampedMap(Speed.Y, 0f, 200f));
+                        hardVerticalHitSoundCooldown = 0.5f;
+                    }
+                    else
+                    {
+                        Audio.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", 0f);
+                    }
                 }
             }
 
-            if (Speed.Y > 140f && !(data.Hit is SwapBlock) && !(data.Hit is DashSwitch))
+
+            if (Speed.Y > 140f && (!Enabled || (!(data.Hit is SwapBlock) && !(data.Hit is DashSwitch))))
             {
                 Speed.Y *= -0.6f;
             }
@@ -172,16 +333,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void OnCollideH(CollisionData data)
         {
-            if (data.Hit is DashSwitch)
+            if (Enabled)
             {
-                (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitX * Math.Sign(Speed.X));
+                if (data.Hit is DashSwitch)
+                {
+                    (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitX * Math.Sign(Speed.X));
+                }
+                Audio.Play("event:/PianoBoy/stool_hit_side", Position);
             }
-            Audio.Play("event:/PianoBoy/stool_hit_side", Position);
             Speed.X *= -0.4f;
         }
         public void Swat(HoldableCollider hc, int dir)
         {
-            if (Hold.IsHeld && hitSeeker == null)
+            if (Hold.IsHeld && hitSeeker == null && Enabled)
             {
                 swatTimer = 0.1f;
                 hitSeeker = hc;
@@ -190,7 +354,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public bool HitSpring(Spring spring)
         {
-            if (!Hold.IsHeld)
+            if (!Hold.IsHeld && Enabled)
             {
                 if (spring.Orientation == Spring.Orientations.Floor && Speed.Y >= 0f)
                 {
@@ -234,14 +398,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void HitSeeker(Seeker seeker)
         {
-            if (!Hold.IsHeld)
+            if (Enabled)
             {
-                Speed = (Center - seeker.Center).SafeNormalize(120f);
+                if (!Hold.IsHeld)
+                {
+                    Speed = (Center - seeker.Center).SafeNormalize(120f);
+                }
+                Audio.Play("event:/PianoBoy/stool_hit_side", Position);
             }
-            Audio.Play("event:/PianoBoy/stool_hit_side", Position);
         }
         public bool Dangerous(HoldableCollider holdableCollider)
         {
+            if (!Enabled) return false;
             if (!Hold.IsHeld && Speed != Vector2.Zero)
             {
                 return hitSeeker != holdableCollider;
@@ -251,138 +419,179 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
-            if(scene.GetPlayer() is Player player)
-            {
-                player.Remove(PlayerLight);
-            }
+        }
+        private IEnumerator DestroyAnimationRoutine()
+        {
+            //todo: Add destroy animation
+            yield return 1;
+            RemoveSelf();
         }
         #endregion
         public override void Update()
         {
             base.Update();
-            PlayerLight.Enabled = Hold.IsHeld;
-            
             Hold.CheckAgainstColliders();
-            SafeZone.Position = Hold.PickupCollider.Position + Hold.PickupCollider.HalfSize - Vector2.One * 20;
-            if (Scene is not Level level || level.GetPlayer() is not Player player) return;
-
-            Mask.GradientBoost = PlayerLight.GradientBoost = 0.1f;
-            Mask.GradientBoost = PlayerLight.GradientBoost += player.Dashes switch
+            SafeZone.IsSafe = Enabled;
+            if (Scene is not Level level || level.GetPlayer() is not Player player)
             {
-                1 => 0.1f,
-                2 => 0.5f,
-                _ => 0
-            };
-            Depth = player.Depth + 1;
-            level = Scene as Level;
-
-            #region Copied
-            if (swatTimer > 0f)
-            {
-                swatTimer -= Engine.DeltaTime;
+                return;
             }
-            hardVerticalHitSoundCooldown -= Engine.DeltaTime;
-            if (Hold.IsHeld)
+            bool onGround = OnGround();
+            if (!destroyed)
             {
-                prevLiftSpeed = Vector2.Zero;
-            }
-            else
-            {
-                if (OnGround())
+                foreach (SeekerBarrier entity in base.Scene.Tracker.GetEntities<SeekerBarrier>())
                 {
-                    float target = !OnGround(Position + Vector2.UnitX * 3f) ? 20f : OnGround(Position - Vector2.UnitX * 3f) ? 0f : -20f;
-                    Speed.X = Calc.Approach(Speed.X, target, 800f * Engine.DeltaTime);
-                    Vector2 liftSpeed = LiftSpeed;
-                    if (liftSpeed == Vector2.Zero && prevLiftSpeed != Vector2.Zero)
+                    entity.Collidable = true;
+                    bool collided = CollideCheck(entity);
+                    entity.Collidable = false;
+                    if (collided)
                     {
-                        Speed = prevLiftSpeed;
-                        prevLiftSpeed = Vector2.Zero;
-                        Speed.Y = Math.Min(Speed.Y * 0.6f, 0f);
-                        if (Speed.X != 0f && Speed.Y == 0f)
+                        destroyed = true;
+                        Collidable = false;
+                        if (Hold.IsHeld)
                         {
-                            Speed.Y = -60f;
+                            Vector2 speed2 = Hold.Holder.Speed;
+                            Hold.Holder.Drop();
+                            Speed = speed2 * 0.333f;
+                            Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
                         }
+
+                        Add(new Coroutine(DestroyAnimationRoutine()));
+                        return;
+                    }
+                }
+                FlagState = (string.IsNullOrEmpty(Flag) || level.Session.GetFlag(Flag)) != Inverted;
+
+                if (!Enabled)
+                {
+                    if (Hold.IsHeld)
+                    {
+                        player.Drop();
+                    }
+                    Hold.cannotHoldTimer = Engine.DeltaTime * 2;
+                }
+                else
+                {
+
+                    Mask.GradientBoost = 0.1f + player.Dashes switch
+                    {
+                        1 => 0.1f,
+                        2 => 0.5f,
+                        _ => 0
+                    };
+                }
+                SafeZone.Position = Hold.PickupCollider.Position + Hold.PickupCollider.HalfSize - Vector2.One * 20;
+                Mask.Enabled = Enabled;
+                #region Copied
+                if (swatTimer > 0f)
+                {
+                    swatTimer -= Engine.DeltaTime;
+                }
+                if (hardVerticalHitSoundCooldown > 0f)
+                {
+                    hardVerticalHitSoundCooldown -= Engine.DeltaTime;
+                }
+                if (Hold.IsHeld)
+                {
+                    prevLiftSpeed = Vector2.Zero;
+                }
+                else if (!level.Transitioning)
+                {
+                    if (onGround)
+                    {
+                        float target = !OnGround(Position + Vector2.UnitX * 3f) ? 20f : OnGround(Position - Vector2.UnitX * 3f) ? 0f : -20f;
+                        Speed.X = Calc.Approach(Speed.X, target, 800f * Engine.DeltaTime);
+                        Vector2 liftSpeed = LiftSpeed;
+                        if (liftSpeed == Vector2.Zero && prevLiftSpeed != Vector2.Zero)
+                        {
+                            Speed = prevLiftSpeed;
+                            prevLiftSpeed = Vector2.Zero;
+                            Speed.Y = Math.Min(Speed.Y * 0.6f, 0f);
+                            if (Speed.X != 0f && Speed.Y == 0f)
+                            {
+                                Speed.Y = -60f;
+                            }
+                            if (Speed.Y < 0f)
+                            {
+                                noGravityTimer = 0.15f;
+                            }
+                        }
+                        else
+                        {
+                            prevLiftSpeed = liftSpeed;
+                            if (liftSpeed.Y < 0f && Speed.Y < 0f)
+                            {
+                                Speed.Y = 0f;
+                            }
+                        }
+                    }
+                    else if (Hold.ShouldHaveGravity)
+                    {
+                        float num = 800f;
+                        if (Math.Abs(Speed.Y) <= 30f)
+                        {
+                            num *= 0.5f;
+                        }
+                        float num2 = 350f;
                         if (Speed.Y < 0f)
                         {
-                            noGravityTimer = 0.15f;
+                            num2 *= 0.5f;
                         }
-                    }
-                    else
-                    {
-                        prevLiftSpeed = liftSpeed;
-                        if (liftSpeed.Y < 0f && Speed.Y < 0f)
+                        Speed.X = Calc.Approach(Speed.X, 0f, num2 * Engine.DeltaTime);
+                        if (noGravityTimer > 0f)
                         {
-                            Speed.Y = 0f;
+                            noGravityTimer -= Engine.DeltaTime;
+                        }
+                        else
+                        {
+                            Speed.Y = Calc.Approach(Speed.Y, 200f, num * Engine.DeltaTime);
                         }
                     }
-                }
-                else if (Hold.ShouldHaveGravity)
-                {
-                    float num = 800f;
-                    if (Math.Abs(Speed.Y) <= 30f)
+                    MoveH(Speed.X * Engine.DeltaTime, onCollideH);
+                    MoveV(Speed.Y * Engine.DeltaTime, onCollideV);
+                    if (Center.X > level.Bounds.Right)
                     {
-                        num *= 0.5f;
+                        MoveH(32f * Engine.DeltaTime);
+                        if (Left - 8f > level.Bounds.Right)
+                        {
+                            RemoveSelf();
+                        }
                     }
-                    float num2 = 350f;
-                    if (Speed.Y < 0f)
+                    else if (Left < level.Bounds.Left)
                     {
-                        num2 *= 0.5f;
+                        Left = level.Bounds.Left;
+                        Speed.X *= -0.4f;
                     }
-                    Speed.X = Calc.Approach(Speed.X, 0f, num2 * Engine.DeltaTime);
-                    if (noGravityTimer > 0f)
+                    else if (Top < level.Bounds.Top - 4)
                     {
-                        noGravityTimer -= Engine.DeltaTime;
+                        Top = level.Bounds.Top + 4;
+                        Speed.Y = 0f;
                     }
-                    else
+                    else if (Bottom > level.Bounds.Bottom && SaveData.Instance.Assists.Invincible)
                     {
-                        Speed.Y = Calc.Approach(Speed.Y, 200f, num * Engine.DeltaTime);
+                        Bottom = level.Bounds.Bottom;
+                        Speed.Y = -300f;
+                        Audio.Play("event:/game/general/assist_screenbottom", Position);
                     }
-                }
-                MoveH(Speed.X * Engine.DeltaTime, onCollideH);
-                MoveV(Speed.Y * Engine.DeltaTime, onCollideV);
-                if (Center.X > level.Bounds.Right)
-                {
-                    MoveH(32f * Engine.DeltaTime);
-                    if (Left - 8f > level.Bounds.Right)
+                    if (X < level.Bounds.Left + 10)
                     {
-                        RemoveSelf();
+                        MoveH(32f * Engine.DeltaTime);
+                    }
+                    Player entity = Scene.Tracker.GetEntity<Player>();
+                    TempleGate templeGate = CollideFirst<TempleGate>();
+                    if (templeGate != null && entity != null)
+                    {
+                        templeGate.Collidable = false;
+                        MoveH(Math.Sign(entity.X - X) * 32 * Engine.DeltaTime);
+                        templeGate.Collidable = true;
                     }
                 }
-                else if (Left < level.Bounds.Left)
+                if (hitSeeker != null && swatTimer <= 0f && !hitSeeker.Check(Hold))
                 {
-                    Left = level.Bounds.Left;
-                    Speed.X *= -0.4f;
+                    hitSeeker = null;
                 }
-                else if (Top < level.Bounds.Top - 4)
-                {
-                    Top = level.Bounds.Top + 4;
-                    Speed.Y = 0f;
-                }
-                else if (Bottom > level.Bounds.Bottom && SaveData.Instance.Assists.Invincible)
-                {
-                    Bottom = level.Bounds.Bottom;
-                    Speed.Y = -300f;
-                    Audio.Play("event:/game/general/assist_screenbottom", Position);
-                }
-                if (X < level.Bounds.Left + 10)
-                {
-                    MoveH(32f * Engine.DeltaTime);
-                }
-                Player entity = Scene.Tracker.GetEntity<Player>();
-                TempleGate templeGate = CollideFirst<TempleGate>();
-                if (templeGate != null && entity != null)
-                {
-                    templeGate.Collidable = false;
-                    MoveH(Math.Sign(entity.X - X) * 32 * Engine.DeltaTime);
-                    templeGate.Collidable = true;
-                }
+                #endregion
             }
-            if (hitSeeker != null && swatTimer <= 0f && !hitSeeker.Check(Hold))
-            {
-                hitSeeker = null;
-            }
-            #endregion
-
         }
     }
 }

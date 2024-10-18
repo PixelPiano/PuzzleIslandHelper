@@ -14,7 +14,8 @@ wipEntity.placements =
             color = "FFFFFF",
             floatValue = 0,
             boolValue = false,
-            stringValue = ""
+            stringValue = "",
+            name = ""
         }
     }
 }

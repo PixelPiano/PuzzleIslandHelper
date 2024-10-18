@@ -16,6 +16,47 @@ using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.Playe
 
 public class PianoCommands
 {
+    [Command("shakeIntensity","sets the level shake intensity")]
+    private static void SetIntensity(float value)
+    {
+        LevelShaker.Intensity = value;
+    }
+    [Command("setwarpid", "im tired ahfkjghsdkghj")]
+    private static void SetWarpID(string id)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        foreach (WarpCapsule a in level.Tracker.GetEntities<WarpCapsule>())
+        {
+            a.SetWarpTarget(id);
+        }
+    }
+    [Command("validatewarpid", "still tired hahahahahaaaaaaaaaaaaa")]
+    public static void ValidateWarpIDConsole(string id)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        bool value = ValidateWarpID(id);
+        if (value)
+        {
+            Engine.Commands.Log("ID \""+id+"\" is valid.");
+        }
+        else
+        {
+            Engine.Commands.Log("ID \""+id+"\" is invalid.");
+        }
+    }
+
+    public static bool ValidateWarpID(string id)
+    {
+        return !string.IsNullOrEmpty(id) && PianoMapDataProcessor.WarpLinks.ContainsKey(id);
+    }
     [Command("portalNodes", "blueh")]
     private static void PortalNodes()
     {

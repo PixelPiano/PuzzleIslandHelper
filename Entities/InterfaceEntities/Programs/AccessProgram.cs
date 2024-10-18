@@ -34,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            ProgramComponents.Add(Box = new InputBox(Window, CheckIfValidPass));
+            ProgramComponents.Add(Box = new InputBox(Window, TryStartWarpRoutine));
         }
         public override void OnOpened(Window window)
         {
@@ -70,54 +70,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public static IEnumerator TransitionRoutine(string pass, bool instant = false, bool buggy = false)
         {
             if (Engine.Scene is not Level level) yield break;
-            Link link = PianoModule.AccessData.GetLink(pass);
-            if (!TransitionValid(level, link)) yield break;
-
-            if (link.Wait > 0 && !instant)
-            {
-                level.Add(new TransitionEndingHelper(link.Room, link.Wait));
-                yield break;
-            }
+            WarpCapsuleData data = PianoMapDataProcessor.WarpLinks[pass];
+            WarpCapsule machine = level.Tracker.GetEntity<WarpCapsule>();
             if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
             {
-                yield return PianoModule.Session.Interface.CloseInterfaceRoutine(instant);
+                yield return PianoModule.Session.Interface.CloseInterfaceRoutine(instant, machine != null);
             }
-            level.Add(new BeamMeUp(link.Room, AccessTeleporting));
+            if (machine != null)
+            {
+                machine.SetWarpTarget(pass);
+                machine.LeftDoor.MoveToBg();
+                machine.RightDoor.MoveToBg();
+                yield return machine.MoveTo(1, 0, 0.7f, null);
+                machine.Enabled = true;
+                level.GetPlayer().StateMachine.State = Player.StNormal;
+            }
         }
-        private static bool TransitionValid(Scene scene, Link link)
+        private static bool TransitionValid(string id)
         {
-            if (link is null)
-            {
-                return false;
-            }
-            if (link.Room is not string destination || string.IsNullOrEmpty(destination))
-            {
-                return false;
-            }
-            destination = destination.Trim();
-            if (PianoModule.Session.Interface is null)
-            {
-                return false;
-            }
-            if (scene is null || scene is not Level level)
-            {
-                return false;
-            }
-            if (level.Session.MapData.Levels.Find(item => item.Name.ToLower().Equals(destination.ToLower())) == null)
-            {
-                return false;
-            }
-            return true;
+            return PianoMapDataProcessor.WarpLinks.ContainsKey(id);
         }
-        public bool CheckIfValidPass(string pass)
+        public bool TryStartWarpRoutine(string pass)
         {
-            if (PianoModule.AccessData is null)
+            if (TransitionValid(pass))
             {
-                return false;
+                Add(new Coroutine(AccessRoutine(pass, true)));
+                return true;
             }
-            bool valid = PianoModule.AccessData.HasID(pass);
-            Add(new Coroutine(AccessRoutine(pass, valid)));
-            return valid;
+            return false;
         }
         public override void Render()
         {

@@ -5,6 +5,7 @@ using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Security.Permissions;
+using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -50,12 +51,26 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public string LeftArmFlag;
         public string RightArmFlag;
     }
-
+    public struct TileLayoutData
+    {
+        public string CopyFrom;
+        public string CopyTo;
+        public Point Offset;
+    }
+    public struct WarpCapsuleData
+    {
+        public string Room;
+        public Vector2 Position;
+        public float Delay;
+    }
     public class PianoMapDataProcessor : EverestMapDataProcessor
     {
         private string levelName;
         public static List<BitrailData> Bitrails = new();
         public static List<PortalNodeData> PortalNodes = new();
+        public static List<TileLayoutData> CopiedTileseedData = new();
+        public static Dictionary<string, WarpCapsuleData> WarpLinks = new();
+        public static WarpCapsuleData PrimaryWarpData;
         public static Dictionary<string, CalidusSpawnerData> CalidusSpawners = new();
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
@@ -107,6 +122,32 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     CalidusSpawners.Add(levelName, cData);
                 }
             };
+            /*            Action<BinaryPacker.Element> tileLayoutControllerHandler = data =>
+                        {
+                            TileLayoutData tData = new()
+                            {
+                                CopyFrom = data.Attr("copyFromRoom"),
+                                CopyTo = levelName,
+
+                            };
+                            CopiedTileseedData.Add(tData);
+                        };*/
+            Action<BinaryPacker.Element> accessWarpHandler = data =>
+            {
+                WarpCapsuleData awData = default;
+                string id = data.Attr("warpID");
+                if (!string.IsNullOrEmpty(levelName) && !string.IsNullOrEmpty(id) && !WarpLinks.ContainsKey(id))
+                {
+                    awData = new()
+                    {
+                        Room = levelName,
+                        Delay = data.AttrFloat("warpDelay"),
+                        //Position = MapData.Get(levelName).Position + new Vector2(data.AttrFloat("x"),data.AttrFloat("y"))
+                    };
+                    WarpLinks.Add(id, awData);
+                }
+
+            };
             return new Dictionary<string, Action<BinaryPacker.Element>> {
                 {
                     "level", level =>
@@ -137,15 +178,29 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         portalNodeHandler(portalNode);
                     }
                 },
+                {
+                    "entity:PuzzleIslandHelper/DigiWarpReceiver", accessWarp =>
+                    {
+                        accessWarpHandler(accessWarp);
+                    }
+                },
+/*                {
+                    "entity:PuzzleIslandHelper/TileLayoutController", layout =>
+                    {
+                        tileLayoutControllerHandler(layout);
+                    }
+                },*/
             };
         }
 
         public override void Reset()
         {
             // reset the dictionary for the current map and mode.
-            PortalNodes = new List<PortalNodeData>();
-            Bitrails = new List<BitrailData>();
+            WarpLinks = new();
+            PortalNodes = new();
+            Bitrails = new();
             CalidusSpawners = new();
+            CopiedTileseedData = new();
         }
 
         public override void End()

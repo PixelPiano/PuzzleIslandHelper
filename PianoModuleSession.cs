@@ -15,14 +15,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public List<string> VoidLampGroups = new();
         public Dictionary<string, Vector2> PortalNodePositions = new();
-       
-        public int DEBUGINT { get; set; }
+        public Dictionary<EntityID, string> PersistentWarpLinks = new();
         public bool DEBUGBOOL1 { get; set; }
-        public bool DEBUGBOOL2 {get; set;}
-        public bool DEBUGBOOL3 {get; set;}
-        public bool DEBUGBOOL4 {get; set;}
-        public float DEBUGFLOAT1 {get; set;}
+        public int DEBUGINT { get; set; }
+        public bool DEBUGBOOL2 { get; set; }
+        public bool DEBUGBOOL3 { get; set; }
+        public bool DEBUGBOOL4 { get; set; }
+        public float DEBUGFLOAT1 { get; set; }
         public Vector2 DEBUGVECTOR { get; set; }
         public List<RecordedMemory> Memories = new();
         public int TimesMetWithCalidus;
@@ -31,7 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public bool ModeratorEscape;
         public bool MonitorActivated;
         public string CurrentAreaFlag;
-        public SceneSwitch.Areas CurrentBackdropArea;
+        public string CurrentBackdropArea;
         public bool FixedElevator;
         public int FurthestElevatorLevel;
         public int OrderPoints { get; set; }

@@ -11,8 +11,13 @@ voidCritterWall.placements = {
     data = {
         width = 8,
         height = 8,
+        flag = "",
+        inverted = false,
+        depth = 0
     }
 }
-voidCritterWall.depth = 0
+function voidCritterWall.depth(room, entity)
+    return entity.depth
+end
 
 return voidCritterWall

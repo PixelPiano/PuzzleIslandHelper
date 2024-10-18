@@ -4,6 +4,7 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.ArtifactSlot;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities
 {
@@ -137,6 +138,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             base.Removed(scene);
             Renderer.RemoveSelf();
             MInput.Disabled = false;
+        }
+        public Color DebugColor = Color.White;
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            Draw.Rect(camera.Position + new Vector2(160, 0), 160, 90, DebugColor);
         }
         public override void Render()
         {

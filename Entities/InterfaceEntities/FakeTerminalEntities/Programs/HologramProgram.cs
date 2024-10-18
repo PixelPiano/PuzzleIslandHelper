@@ -20,151 +20,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             ReadyToLaunch,
             Launched,
         }
-        public bool ProgramFinished;
-        public bool Closed;
+        public bool Launched;
         public States State;
-        public static readonly Dictionary<string, List<string>> CommandStrings = new()
-        {
-            {"on",new(){"turnon","turnon", "on", "start", "activate"} },
-            {"off",new(){"turnoff", "turnoff", "off", "end", "deactivate"} },
-            {"scan",new(){"scan", "scanning", "scanarea", "scanworld", "detect"} },
-            {"launch",new(){"launch","execute"} },
-            {"help",new(){"help","info","assist","skibidi","rizz","gyat","ohio","fanum","rizzler","rizzlord","rizzer","stopit"} },
-            {"exit", new(){"exit","forceclose","letmeout"} },
-            {"clear",new(){"clear","erase"} },
-            {"color",new(){"color"}}
-        };
-        public static readonly List<string> WSMCommands = new()
-        {
-            "off","scan","launch","select"
-        };
-        public Color UserColor = Color.Cyan;
         public int SelectedBox;
         public HologramProgram(FakeTerminal terminal) : base(terminal)
         {
-        }
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            Start();
-        }
-        public override void Start()
-        {
-            Add(new Coroutine(Routine()));
-        }
-        public string GetCommandType(string input)
-        {
-            if (input.ToLower().Contains("select")) return "select";
-            if (input.ToLower().Contains("color")) return "color";
-            foreach (KeyValuePair<string, List<string>> pair in CommandStrings)
-            {
-                foreach (string s in pair.Value)
-                {
-                    if (s.Equals(input, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return pair.Key;
-                    }
-                }
-            }
-            return null;
-        }
-        private IEnumerator menu()
-        {
-            AddText("Welcome. To exit, enter the \"exit\" command.");
-            while (State != States.Launched)
-            {
-                AddText("--Awaiting command--", Color.Yellow);
-                UserInput.RefreshBlockedBindings();
-                UserInput input = AddUserInput(UserColor);
-                yield return input.WaitForSubmit();
-                string output = GetCommandType(input.Text.Replace(" ", ""));
-                //if command is valid
-                if (!string.IsNullOrEmpty(output))
-                {
-                    if (output == "exit")
-                    {
-                        Closed = true;
-                        yield break;
-                    }
-
-                    if (State == States.Off && WSMCommands.Contains(output))
-                    {
-                        yield return Error("ERROR: WSM cannot execute actions until{n}activated by the command prompt.");
-                    }
-                    else
-                    {
-                        switch (output)
-                        {
-                            case "on":
-                                yield return TurnOn();
-                                break;
-                            case "off":
-                                yield return TurnOff();
-                                break;
-                            case "scan":
-                                yield return Scan();
-                                break;
-                            case "launch":
-                                yield return Launch();
-                                break;
-                            case "help":
-                                yield return Help();
-                                break;
-                            case "select":
-                                yield return Select(input.Text);
-                                break;
-                            case "color":
-                                ChangeUserColor(input.Text);
-                                break;
-                            case "clear":
-                                Clear();
-                                break;
-                        }
-                    }
-                }
-                else
-                {
-                    yield return Error("ERROR: Unknown command.");
-                }
-            }
-        }
-        public static Color? GetColor(string input)
-        {
-            PropertyInfo[] names = typeof(Color).GetProperties();
-            foreach (PropertyInfo info in names)
-            {
-                if (info != null)
-                {
-                    var prop = (Color)info.GetValue(null, null);
-                    if (prop != null)
-                    {
-                        string name = info.Name.ToLower();
-                        if (name.Equals(input, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            return prop;
-                        }
-
-                    }
-                }
-            }
-            return null;
-        }
-        private void ChangeUserColor(string input)
-        {
-            string text = input.Replace(" ", "").Replace("color", "");
-            Color? c = GetColor(text);
-            if (c.HasValue)
-            {
-                UserColor = c.Value;
-            }
-            else
-            {
-                UserColor = Calc.HexToColor(text);
-            }
-        }
-        private IEnumerator Error(string message)
-        {
-            yield return AddText(message, Color.Red);
+            AddCommand("on", null, TurnOn, "turnon", "turnon", "start", "activate");
+            AddCommand("off", null, TurnOff, "turnoff", "turnoff", "end", "deactivate");
+            AddCommand("scan", null, Scan, "scanning", "scanning", "scanworld", "detect");
+            AddCommand("launch", null, Launch, "execute");
+            AddCommand("select", null, Select);
         }
         public IEnumerator Select(string input)
         {
@@ -222,19 +87,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 yield return Error(errorMessage);
             }
         }
-        public IEnumerator Routine()
-        {
-            yield return menu();
-            if (!Closed)
-            {
-                AddText("End of program");
-            }
-            yield return Loading("Closing program", null, 3, 0.7f, false);
-            Terminal.Close();
-            ProgramFinished = true;
-            RemoveSelf();
-        }
-        public IEnumerator TurnOn()
+        public IEnumerator TurnOn(string input)
         {
             if (State != States.Off)
             {
@@ -254,7 +107,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             }
             yield return null;
         }
-        public IEnumerator TurnOff()
+        public IEnumerator TurnOff(string input)
         {
             if (State == States.Off)
             {
@@ -274,8 +127,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             }
             yield return null;
         }
-        public IEnumerator Scan()
+        public IEnumerator Scan(string input)
         {
+            if (State == States.Off)
+            {
+                yield return EarlyActionError();
+                yield break;
+            }
             if (State is States.Launched)
             {
                 yield return Error("ERROR: Cooldown in effect. Estimated time remaining: 2m14d");
@@ -289,7 +147,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             State = States.Selecting;
             yield return null;
         }
-        public IEnumerator Help()
+        public override IEnumerator Help(string input)
         {
             yield return TextConfirm("--Welcome to the WSM help menu!--", Color.Orange);
             AddSpace();
@@ -301,17 +159,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                                     "{n}others at a high risk of danger.", Color.Yellow);
             AddSpace();
             yield return TextConfirm("If you would like a demonstration, please" +
-                                    "{n}contact one of the Mandelle brothers.", Color.Yellow);
+                                    "{n}contact the scientist.", Color.Yellow);
             AddSpace();
             yield return TextConfirm("Note: WSM cannot procede until area scan" +
                                     "{n}procedure has been initiated and" +
                                     "{n}completed safely.", Color.Orange);
             yield return null;
         }
-        public bool Launched;
-
-        public IEnumerator Launch()
+        public override void BeforeBegin()
         {
+        }
+        public override bool Continue()
+        {
+            return State != States.Launched;
+        }
+
+        public IEnumerator Launch(string input)
+        {
+            if (State == States.Off)
+            {
+                yield return EarlyActionError();
+                yield break;
+            }
             if (Launched)
             {
                 yield return TextConfirm("ERROR: Cooldown in effect. Estimated time remaining - 2m14d");
@@ -352,9 +221,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             State = States.Launched;
             yield return null;
         }
-        private IEnumerator LaunchRoutine()
+        private IEnumerator EarlyActionError()
         {
-            yield return null;
+            yield return Error("ERROR: WSM cannot execute actions until{n}activated by the command prompt.");
+        }
+        public override void OnClose()
+        {
+
         }
     }
 

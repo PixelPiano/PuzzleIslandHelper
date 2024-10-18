@@ -12,10 +12,8 @@ voidCritters.placements =
     {
         name = "Void Critters",
         data = {
-            time = 2,
-            cutsceneOnDeactivate = false,
-            usesFlag = false,
-            flag = "void_critters"
+            flag = "",
+            inverted = false
         }
     }
 }

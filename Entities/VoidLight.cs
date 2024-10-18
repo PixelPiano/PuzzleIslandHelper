@@ -12,26 +12,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class PulsingCircle : GraphicsComponent
     {
-        public float Alpha;
+        public float Brightness;
         public float Radius;
         public float Thickness;
         public int Resolution;
-        private float alphaAdd, radiusAdd, thicknessAdd;
-        private int resAdd;
+        public float brightnessAdd, radiusAdd, thicknessAdd;
+        public int resAdd;
         public Tween Tween;
         public Action<Tween> OnTweenUpdate;
         public PulsingCircle(Vector2 position, float radius, float alpha, float thickness, int resolution) : base(true)
         {
             Position = position;
             Radius = radius;
-            Alpha = alpha;
+            Brightness = alpha;
             Thickness = thickness;
             Resolution = resolution;
         }
         public override void Render()
         {
             base.Render();
-            DrawCircle(RenderPosition, Radius + radiusAdd, Color * (Alpha + alphaAdd), Thickness + thicknessAdd, Resolution + resAdd, Scale);
+            DrawCircle(RenderPosition, Radius + radiusAdd, Color.Lerp(Color.Black, Color.White, Brightness + brightnessAdd), Thickness + thicknessAdd, Resolution + resAdd, Scale);
         }
         public void Pulse(Ease.Easer ease, float duration, float multiplier)
         {
@@ -41,12 +41,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     Tween.Active = false;
                 }
-                float aFrom = Alpha;
+                float aFrom = Brightness;
                 float rFrom = Radius;
                 Tween tween = Tween.Create(Tween.TweenMode.Oneshot, ease, duration, true);
                 tween.OnUpdate = t =>
                 {
-                    Alpha = Calc.LerpClamp(aFrom * multiplier, aFrom, t.Eased);
+                    Brightness = Calc.LerpClamp(aFrom * multiplier, aFrom, t.Eased);
                     Radius = Calc.LerpClamp(rFrom * multiplier, rFrom, t.Eased);
                 };
                 tween.OnComplete = delegate { Tween.Active = true; };
@@ -62,7 +62,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Tween = Tween.Create(Tween.TweenMode.YoyoLooping, ease, duration, true);
                 Tween.OnUpdate = t =>
                 {
-                    this.alphaAdd = t.Eased * alphaAdd;
+                    this.brightnessAdd = t.Eased * alphaAdd;
                     this.radiusAdd = t.Eased * radiusAdd;
                     this.thicknessAdd = t.Eased * thicknessAdd;
                     resAdd = (int)(t.Eased * resolutionAdd);
@@ -79,10 +79,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 float t = thickness * Math.Abs(scale.X);
                 Vector2 vector3 = Calc.AngleToVector((float)i * ((float)Math.PI / 2f) / (float)resolution, radius);
                 Vector2 vector4 = vector3.Perpendicular();
-                Draw.Line(position + vector * scale, position + vector3, color, t);
-                Draw.Line(position - vector * scale, position - vector3, color, t);
-                Draw.Line(position + vector2, position + vector4 * scale, color, t);
-                Draw.Line(position - vector2, position - vector4 * scale, color, t);
+                Draw.Line(position + vector * scale, position + vector3 * scale, color, t);
+                Draw.Line(position - vector * scale, position - vector3 * scale, color, t);
+                Draw.Line(position + vector2 * scale, position + vector4 * scale, color, t);
+                Draw.Line(position - vector2 * scale, position - vector4 * scale, color, t);
                 vector = vector3;
                 vector2 = vector4;
             }
@@ -173,6 +173,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Tween constantTween;
         private Tween spinTween;
         private Sprite sprite;
+        private Image Wheel;
         private VertexLight light;
         private BloomPoint bloom;
         private ParticleSystem system;
@@ -185,7 +186,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private bool collided;
         private bool startLit;
-        private ParticleType diamond = new ParticleType
+        private ParticleType P_Collide = new ParticleType
         {
             Size = 1f,
             Color = Color.Purple,
@@ -199,6 +200,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             SpeedMax = 30f,
             SpeedMultiplier = 0.5f,
             FadeMode = ParticleType.FadeModes.Late,
+            Friction = 6f
+        };
+        private ParticleType P_Idle = new ParticleType
+        {
+            Size = 1f,
+            Color = Color.LightPink,
+            Color2 = Color.MediumVioletRed,
+            ColorMode = ParticleType.ColorModes.Choose,
+            Direction = -MathHelper.PiOver2,
+            LifeMin = 0.2f,
+            LifeMax = 1,
+            SpeedMin = 20f,
+            SpeedMax = 30f,
+            SpeedMultiplier = 0.5f,
+            Acceleration = Vector2.One,
+            FadeMode = ParticleType.FadeModes.InAndOut,
             Friction = 6f
         };
         public bool Persistent;
@@ -216,8 +233,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Depth = 1;
             radius = data.Int("radius");
             opacity = data.Float("alpha");
-            startFade = radius - Math.Min(8, (int)(radius / 3f));
-            endFade = radius;
+            Persistent = data.Bool("persistent");
+            startFade = radius;
+            endFade = radius + Math.Min(8, (int)(radius / 3f));
             color = data.HexColor("color", Color.White);
             startLit = data.Bool("startLit");
             Add(SafeZone = new VoidSafeZone(Vector2.Zero, data.Width, data.Height, false));
@@ -233,10 +251,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprite.AddLoop("idle", "centerIdle", 0.1f);
             sprite.Add("spin", "centerSpin", 0.12f, "idle");
             sprite.AddLoop("off", "centerOff", 0.1f);
+            Wheel = new Image(GFX.Game["objects/PuzzleIslandHelper/voidLight/centerCircle"]);
+            Wheel.CenterOrigin();
+            Wheel.Position = offset - new Vector2(Wheel.Width / 2, Wheel.Height / 2);
             Add(bloom = new BloomPoint(offset, opacity * 0.5f, radius));
             Add(light = new VertexLight(offset, color, opacity, startFade, endFade));
             sprite.Position += offset - new Vector2(sprite.Width / 2, sprite.Height / 2);
             sprite.Color = Color.Lerp(Color.White, Color.Black, 0.3f);
+            Collider = new Hitbox(sprite.Width, sprite.Height, sprite.Position.X, sprite.Position.Y);
+
             Level level = scene as Level;
             if (startLit)
             {
@@ -256,8 +279,64 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 light.Visible = false;
                 sprite.Play("off");
             }
-            Collider = new Hitbox(sprite.Width, sprite.Height, sprite.Position.X, sprite.Position.Y);
+
             //scene.Add(helper);
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            targetRadius = radius / 1.2f;
+            Mask = new CritterLight(targetRadius, light);
+            Add(Mask);
+
+            constantTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, 2, true);
+            spinTween = Tween.Create(Tween.TweenMode.Persist, Ease.SineIn, 0.05f, false);
+            Tween spinTweenB = Tween.Create(Tween.TweenMode.Persist, Ease.SineIn, 0.7f, false);
+            Tween bigCircleTween = Tween.Create(Tween.TweenMode.Persist, Ease.SineIn, 0.8f, false);
+            outlineTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, 2, true);
+            outlineTween.OnUpdate = (t) =>
+            {
+                float amount = Calc.LerpClamp(0.1f, 0.7f, t.Eased);
+                outlineSize = Calc.LerpClamp(radius / 1.5f, radius, amount);
+                outlineColor = Color.Lerp(Color.White, Color.Black, Calc.LerpClamp(0.1f, 0.65f, 1 - amount));
+            };
+            constantTween.OnUpdate = (t) =>
+            {
+                SetCircleSize(Calc.LerpClamp(0.1f, 0.7f, t.Eased));
+                SetAlpha(Calc.LerpClamp(0.1f, 0.3f, t.Eased));
+            };
+            spinTween.OnUpdate = (t) =>
+            {
+                alphaAdd = Calc.LerpClamp(0.01f, 0.3f, t.Eased);
+                circleSizeAdd = Calc.LerpClamp(0.01f, 7f, t.Eased);
+            };
+            spinTweenB.OnUpdate = (t) =>
+            {
+                alphaAdd = Calc.LerpClamp(0.3f, 0, t.Eased);
+                circleSizeAdd = Calc.LerpClamp(7f, 0, t.Eased);
+            };
+            bigCircleTween.OnUpdate = (t) =>
+            {
+                spinCircleSize = Calc.LerpClamp(10, targetRadius * 1.1f, t.Eased);
+                spinCircleAlpha = Calc.LerpClamp(0, 1f, (t.Eased > 0.5f ? 0.5f - (t.Eased - 0.5f) : t.Eased) / 0.5f);
+            };
+            spinTweenB.OnComplete = delegate
+            {
+                alphaAdd = 0;
+                circleSizeAdd = 0;
+                constantTween.Active = true;
+            };
+            bigCircleTween.OnComplete = delegate
+            {
+                circleScale.X = 1;
+                spinCircleSize = 0;
+                spinCircleAlpha = 0;
+            };
+            spinTween.OnStart = delegate { bigCircleTween.Start(); };
+            spinTween.OnComplete = delegate { spinTweenB.Start(); };
+            Add(outlineTween, constantTween, spinTween, spinTweenB, bigCircleTween, sprite);
+            scene.Add(system = new ParticleSystem(Depth, 20));
+            system.Position += Vector2.One * 6;
         }
         private bool wasColliding;
         private Color outlineColor;
@@ -272,6 +351,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 outlineTween.Active = false;
                 float sizeFrom = outlineSize;
                 float alphaFrom = outlineAlpha;
+                Color colorFrom = outlineColor;
                 Tween tween = Tween.Create(Tween.TweenMode.Oneshot, Ease.BackOut, 1f, start: true);
                 tween.OnUpdate = delegate (Tween t)
                 {
@@ -279,8 +359,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     light.StartRadius = startFade + (1f - t.Eased) * 32f;
                     light.EndRadius = endFade + (1f - t.Eased) * 32f;
                     outlineSize = sizeFrom + (1f - t.Eased) * 16f;
-                    outlineAlpha = alphaFrom + (1 - alphaFrom) * (1f - t.Eased);
+                    outlineColor = Color.Lerp(colorFrom, Color.White, 1f - t.Eased);
                     bloom.Alpha = 0.5f + 0.5f * (1f - t.Eased);
+                    WheelAlpha = (1f - t.Eased);
+                    wheelRotRate = Calc.LerpClamp(2f, 0, t.Eased);
+                    Wheel.Scale = Vector2.One * Calc.LerpClamp(2f, 0.3f, t.Eased);
                 };
                 tween.OnComplete = delegate { outlineTween.Active = true; };
                 Add(tween);
@@ -330,18 +413,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 vector2 = vector4;
             }
         }
+        public float WheelAlpha = 0.7f;
         public override void Render()
         {
+            if (WheelAlpha > 0)
+            {
+                /*                Wheel.Color = Color.White * WheelAlpha;
+                                Wheel.Render();*/
+            }
             if (State)
             {
                 DrawCircles(Color.White);
-                DrawCircle(light.Center, outlineSize, color * outlineAlpha, thickness, 3, Vector2.One);
-                DrawCircle(light.Center, Calc.Max(outlineSize - 4, 1f), color * outlineAlpha * 0.8f, 1, 3, Vector2.One);
+                DrawCircle(light.Center, outlineSize, outlineColor, thickness, 3, Vector2.One);
+                DrawCircle(light.Center, Calc.Max(outlineSize - 4, 1f), Color.Lerp(outlineColor, Color.Black, 0.2f), 1, 3, Vector2.One);
             }
             else
             {
-                DrawCircle(light.Center, outlineSize * 0.7f, color * outlineAlpha * 0.7f, thickness, 1, Vector2.One);
-                DrawCircle(light.Center, Calc.Max((outlineSize * 0.7f) - 4, 1f), color * outlineAlpha * 0.5f, 1, 1, Vector2.One);
+                DrawCircle(light.Center, outlineSize * 0.7f, Color.Lerp(outlineColor, Color.Black, 0.2f), thickness, 1, Vector2.One);
+                DrawCircle(light.Center, Calc.Max((outlineSize * 0.7f) - 4, 1f), Color.Lerp(outlineColor, Color.Black, 0.6f), 1, 1, Vector2.One);
             }
             sprite.DrawSimpleOutline();
             base.Render();
@@ -349,17 +438,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
-            if (!startLit && !Persistent)
+            if (!Persistent)
             {
-                (scene as Level).Session.SetFlag(FlagName, false);
+                (scene as Level).Session.SetFlag(FlagName, startLit);
             }
-            //helper.RemoveSelf();
         }
         private void DiamondParticles()
         {
             for (int i = 0; i < 8; i++)
             {
-                system.Emit(diamond, Position + light.Position + Vector2.One);
+                system.Emit(P_Collide, Position + light.Position + Vector2.One);
+            }
+        }
+        private void IdleParticles()
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                P_Idle.Size = Calc.Random.Choose(1, 2);
+                system.Emit(P_Idle, 1, Position + light.Position + Vector2.One, Collider.HalfSize);
             }
         }
         public void SetAlpha(float amount)
@@ -376,6 +472,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 sizes[i] = Calc.LerpClamp(initialSizes[i], targetRadius, amount);
             }
         }
+        private float wheelRotRate = 1;
         public override void Update()
         {
             base.Update();
@@ -383,9 +480,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 State = level.Session.GetFlag(FlagName);
             }
-            if (!State && CollideCheck<Actor>())
+            Wheel.Rotation += Engine.DeltaTime * wheelRotRate;
+            if (!State)
             {
-                LightSelf();
+                if (Scene.OnInterval(0.3f))
+                {
+                    IdleParticles();
+                }
+                if (CollideCheck<Actor>())
+                {
+                    LightSelf();
+                }
             }
             SafeZone.IsSafe = Mask.Enabled = State;
             Mask.GradientBoost = outlineSize / radius * 1.4f;
@@ -415,71 +520,5 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private bool inRoutine;
         private Tween outlineTween;
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            targetRadius = radius / 1.2f;
-            Mask = new CritterLight(targetRadius, light);
-            Add(Mask);
-            for (int i = 0; i < Shapes; i++)
-            {
-                sizes[i] = i * thickness + i * 10;
-                initialSizes[i] = sizes[i];
-            }
-            constantTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, 2, true);
-            spinTween = Tween.Create(Tween.TweenMode.Persist, Ease.SineIn, 0.05f, false);
-            Tween spinTweenB = Tween.Create(Tween.TweenMode.Persist, Ease.SineIn, 0.7f, false);
-            Tween bigCircleTween = Tween.Create(Tween.TweenMode.Persist, Ease.SineIn, 0.8f, false);
-            outlineTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, 2, true);
-            outlineTween.OnUpdate = (t) =>
-            {
-                float amount = Calc.LerpClamp(0.1f, 0.7f, t.Eased);
-                outlineSize = Calc.LerpClamp(radius / 1.5f, radius, amount);
-                outlineAlpha = Calc.LerpClamp(0.2f, 0.6f, amount);
-            };
-            constantTween.OnUpdate = (t) =>
-            {
-                SetCircleSize(Calc.LerpClamp(0.1f, 0.7f, t.Eased));
-                SetAlpha(Calc.LerpClamp(0.1f, 0.3f, t.Eased));
-            };
-            spinTween.OnUpdate = (t) =>
-            {
-                alphaAdd = Calc.LerpClamp(0.01f, 0.3f, t.Eased);
-                circleSizeAdd = Calc.LerpClamp(0.01f, 7f, t.Eased);
-            };
-            spinTweenB.OnUpdate = (t) =>
-            {
-                alphaAdd = Calc.LerpClamp(0.3f, 0, t.Eased);
-                circleSizeAdd = Calc.LerpClamp(7f, 0, t.Eased);
-            };
-            bigCircleTween.OnUpdate = (t) =>
-            {
-                spinCircleSize = Calc.LerpClamp(10, targetRadius * 1.1f, t.Eased);
-                spinCircleAlpha = Calc.LerpClamp(0, 1f, (t.Eased > 0.5f ? 0.5f - (t.Eased - 0.5f) : t.Eased) / 0.5f);
-            };
-            spinTween.OnComplete = (t) =>
-            {
-                spinTweenB.Start();
-            };
-            spinTweenB.OnComplete = delegate
-            {
-                alphaAdd = 0;
-                circleSizeAdd = 0;
-                constantTween.Active = true;
-            };
-            bigCircleTween.OnComplete = delegate
-            {
-                circleScale.X = 1;
-                spinCircleSize = 0;
-                spinCircleAlpha = 0;
-            };
-            spinTween.OnStart = delegate
-            {
-                bigCircleTween.Start();
-            };
-            Add(outlineTween, constantTween, spinTween, spinTweenB, bigCircleTween, sprite);
-            scene.Add(system = new ParticleSystem(Depth, 20));
-            system.Position += Vector2.One * 6;
-        }
     }
 }

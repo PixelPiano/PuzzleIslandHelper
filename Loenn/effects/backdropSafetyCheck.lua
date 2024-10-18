@@ -2,7 +2,7 @@ local backdropSafetyCheck = {}
 
 backdropSafetyCheck.name = "PuzzleIslandHelper/BackdropSafetyCheck"
 
-local areas = {"Forest","Resort","Backend","Pipes"}
+local areas = {"Forest","Resort","Backend","Pipes","Golden","Void"}
 backdropSafetyCheck.placements =
 {
     {

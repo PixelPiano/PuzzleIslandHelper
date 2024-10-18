@@ -1,21 +1,23 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.Meta;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Monocle;
 using MonoMod.Utils;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
 // PuzzleIslandHelper.VoidCritters
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+
     [CustomEntity("PuzzleIslandHelper/VoidCritters")]
     [Tracked]
     public class VoidCritters : Entity
     {
-        private DynamicData data;
         private Particle[] Particles;
-        private ParticleSystem system;
+        private ParticleSystemExt system;
         private bool CutsceneOnDeactivate;
         private bool WhiteOut;
         private float WhiteOutFade;
@@ -37,51 +39,69 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public VoidCritters(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
+            Flag = data.Attr("flag");
+            Inverted = data.Bool("inverted");
         }
         public float MaxTime = 2.6f;
         public float GraceTime = 0.5f;
         public float Timer;
+        public string Flag;
+        public bool Inverted;
+
+
+        public bool FlagState;
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             Timer = MaxTime + GraceTime;
             Collider = new Hitbox(40, 40, -20, -20);
-            scene.Add(system = new ParticleSystem(-1, Limit));
+            scene.Add(system = new ParticleSystemExt(-1, Limit));
+        }
+        public static bool GetDisperseFlag(Level level, string flag, bool inverted)
+        {
+            if (string.IsNullOrEmpty(flag))
+            {
+                return false;
+            }
+            return level.Session.GetFlag(flag) != inverted;
+        }
+        public static bool GetDisperseFlag(Level level, VoidCritters critters)
+        {
+            return GetDisperseFlag(level, critters.Flag, critters.Inverted);
         }
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
             system?.RemoveSelf();
         }
+
         private void HandlePosition(Player player)
         {
-            data = DynamicData.For(system);
-            Particles = data.Get<Particle[]>("particles");
+            Particles = system.particles;//data.Get<Particle[]>("particles");
             bool justEnteredLight = !wasInLight && InLight;
+            if (justEnteredLight)
+            {
+                system.Flash(Tween.TweenMode.Oneshot, Color.Black, Color.White, 0.5f, 0.5f, Ease.SineInOut);
+            }
             for (int i = 0; i < Particles.Length; i++)
             {
                 if (Particles[i].Life < Critters.LifeMin + (Critters.LifeMax - Critters.LifeMin) / 1.5f)
                 {
                     Vector2 target = new Vector2(Calc.Random.Range(player.Center.X - player.Width, player.Center.X + player.Width), Calc.Random.Range(player.Center.Y - player.Height, player.Center.Y + player.Height));
-                    if (justEnteredLight)
-                    {
-                        float length = Calc.Random.Range(6, 20);
-                        Particles[i].Speed = 10 * Calc.AngleToVector(Calc.Random.NextAngle(), length);
-                    }
-                    else if (!InLight)
+                    if (!InLight)
                     {
                         Particles[i].Position.X = Calc.Approach(Particles[i].Position.X, target.X, 6);
                         Particles[i].Position.Y = Calc.Approach(Particles[i].Position.Y, target.Y, 6);
                     }
-
                 }
                 if (justEnteredLight)
                 {
                     Particles[i].Life = Calc.Random.Range(0.5f, 1f);
+                    float angle = Calc.Angle(Particles[i].Position, player.Center);
+                    Particles[i].Speed = 10 * Calc.AngleToVector(angle + (float)Math.PI, Calc.Random.Range(6, 20));
                 }
-                //Particles[i].StartColor = Color.Lerp(Color.Black, Color.White, (MaxTime + GraceTime) / (Timer + GraceTime));
             }
-            data.Set("particles", Particles);
+            system.particles = Particles;
         }
         public override void Render()
         {
@@ -99,31 +119,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     WhiteOut = false;
                     level.Session.SetFlag("voidCritterEnd");
                 }
-            }
-        }
-        /*        private IEnumerator InDark()
-                {
-                    if (Scene is not Level level || level.GetPlayer() is not Player player) yield break;
-                    InRoutine = true;
-                    system.Clear();
-                    yield return EmitFor(player, 1, 10, Engine.DeltaTime);
-                    yield return EmitFor(player, 2, 12, 0.1f);
-                    yield return EmitFor(player, 3, 8, 0.05f);
-                    yield return EmitFor(player, 5, 28, 0.01f);
-                    if (player is not null && !player.Dead)
-                    {
-                        player.Die(Vector2.Zero);
-                    }
-                    system.RemoveSelf();
-                    RemoveSelf();
-
-                }*/
-        private IEnumerator EmitFor(Player player, int amountPerTick, int loops, float interval)
-        {
-            for (int i = 0; i < loops; i++)
-            {
-                CritterParticles(player, amountPerTick);
-                yield return interval;
             }
         }
         private bool wasInLight;
@@ -146,14 +141,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if (Scene is not Level level || level.GetPlayer() is not Player player || player.Dead || player.JustRespawned) return;
+            if (Scene is not Level level || level.GetPlayer() is not Player player) return;
+            FlagState = GetDisperseFlag(level, this);
+            if (player.Dead || player.JustRespawned) return;
             Position = player.Position;
             float timeMult = 1;
-/*            if (CollideCheck<VoidLightHelperEntity>())
-            {
-                timeMult = 0.65f;
-            }*/
-            InLight = VoidSafeZone.Check(player);
+            /*            if (CollideCheck<VoidLightHelperEntity>())
+                        {
+                            timeMult = 0.65f;
+                        }*/
+            InLight = FlagState || VoidSafeZone.Check(player);
             HandlePosition(player);
             if (!InLight)
             {

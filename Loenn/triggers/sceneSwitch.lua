@@ -2,7 +2,7 @@ local sceneSwitch = {}
 
 sceneSwitch.name = "PuzzleIslandHelper/SceneSwitch"
 
-local areas = {"Forest","Resort","Backend","Pipes"}
+local areas = {"Forest","Resort","Backend","Pipes","Golden","Void","None"}
 local sides = {"Left","Right","Top","Bottom"}
 sceneSwitch.placements =
 {

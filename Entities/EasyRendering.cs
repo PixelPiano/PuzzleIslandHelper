@@ -57,7 +57,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             }
         }
         /// <summary>  
-        /// Returns a render RushTarget with masked content
+        /// Returns a render RenderTarget with masked content
         /// </summary>  
         public static VirtualRenderTarget DrawThenMask(this VirtualRenderTarget obj, object MaskDraw, object Drawing, Matrix matrix, Effect effect = null)
         {
@@ -104,19 +104,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             AlphaDestinationBlend = Blend.SourceAlpha
         };
         /// <summary>  
-        /// Returns a render RushTarget with masked content
+        /// Returns a render RenderTarget with masked content
         /// </summary>  
         public static VirtualRenderTarget DrawThenMask(this VirtualRenderTarget obj, Action MaskDraw, Action Drawing, Matrix matrix, Effect effect = null)
         {
             MaskRenderTarget.SetRenderMask(MaskDraw, matrix);
             obj.DrawToObject(Drawing, matrix, true, effect);
-            obj.MaskToObject(MaskRenderTarget);
-            return obj;
-        }
-        public static VirtualRenderTarget DrawThenMaskWhite(this VirtualRenderTarget obj, Action MaskDraw, Action Drawing, Matrix matrix, Effect effect = null)
-        {
-            MaskRenderTarget.SetRenderMask(MaskDraw, matrix);
-            obj.DrawToObjectWhite(Drawing, matrix, true, effect);
             obj.MaskToObject(MaskRenderTarget);
             return obj;
         }
@@ -138,18 +131,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
                 Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
             }
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect, matrix);
-            drawing.Invoke();
-            Draw.SpriteBatch.End();
-            return obj;
-        }
-        public static VirtualRenderTarget DrawToObjectWhite(this VirtualRenderTarget obj, Action drawing, Matrix matrix, bool clear = false, Effect effect = null)
-        {
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(obj);
-            if (clear)
-            {
-                Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-            }
-            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, AlphaMaskClearBlendState, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect, matrix);
             drawing.Invoke();
             Draw.SpriteBatch.End();
             return obj;
@@ -223,7 +204,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             return obj;
         }
         /// <summary>  
-        /// Draws a VirtualRenderTarget to the GameplayBuffers.Gameplay render RushTarget  
+        /// Draws a VirtualRenderTarget to the GameplayBuffers.Gameplay render RenderTarget  
         /// </summary>  
         public static void DrawToGameplay(VirtualRenderTarget obj, Level l, [Optional] Color color)
         {
@@ -234,7 +215,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             Draw.SpriteBatch.Draw(obj, l.Camera.Position, col);
         }
         /// <summary>  
-        /// Draws a GlassTexture to the specified RushTarget  
+        /// Draws a GlassTexture to the specified RenderTarget  
         /// </summary>  
         public static VirtualRenderTarget SetRenderMask(VirtualRenderTarget RenderTarget, Sprite sprite, Level l)
         {
@@ -278,7 +259,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
         }
 
         /// <summary>  
-        /// Masks over the obj RushTarget with the mask RushTarget's contents 
+        /// Masks over the obj RenderTarget with the mask RenderTarget's contents 
         /// </summary>  
         public static VirtualRenderTarget MaskToObject(VirtualRenderTarget obj, VirtualRenderTarget mask)
         {
@@ -295,7 +276,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             return obj;
         }
         /// <summary>  
-        /// Masks over the obj RushTarget with the mask RushTarget's contents 
+        /// Masks over the obj RenderTarget with the mask RenderTarget's contents 
         /// </summary>  
         public static VirtualRenderTarget MaskToObject(VirtualRenderTarget obj, VirtualRenderTarget mask, Effect effect)
         {
@@ -326,7 +307,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             return obj;
         }
         /// <summary>  
-        /// Draws whatever is in the draw method to the obj RushTarget and then masks over the obj RushTarget with the mask RushTarget's contents 
+        /// Draws whatever is in the draw method to the obj RenderTarget and then masks over the obj RenderTarget with the mask RenderTarget's contents 
         /// </summary>  
         public static VirtualRenderTarget MaskToObject(VirtualRenderTarget obj, VirtualRenderTarget mask, Action drawing)
         {
@@ -340,7 +321,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
             return obj;
         }
         /// <summary>  
-        /// Draws whatever is in the draw method to the obj RushTarget
+        /// Draws whatever is in the draw method to the obj RenderTarget
         /// </summary>  
         public static VirtualRenderTarget DrawToObject(VirtualRenderTarget obj, Action drawing, Level l, bool clear = false, bool useIdentity = false)
         {

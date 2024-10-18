@@ -6,64 +6,86 @@ using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {
+    public enum FlagControl
+    {
+        TurnAllOn,
+        TurnAllOff,
+        Individual
+    }
     public class AreaFlagData
     {
         public bool IncludeBackend;
         public float Lighting;
-        public AreaFlagData(bool includeBackend, float lighting)
+        public string Name;
+        public string Flag => "In" + Name;
+        public FlagControl Control;
+        public AreaFlagData(string name, FlagControl control, bool includeBackend, float lighting)
         {
+            Name = name;
+            Control = control;
             IncludeBackend = includeBackend;
             Lighting = lighting;
         }
     }
-    [Tracked]
-    public class AreaFlagHelper : Entity
+    public static class AreaFlagHelper
     {
-        public static AreaFlagData Backend = new AreaFlagData(false, 0.05f);
-        public static AreaFlagData Forest = new AreaFlagData(false, 0);
-        public static AreaFlagData Pipes = new AreaFlagData(true, -1);
-        public static AreaFlagData Resort = new AreaFlagData(false, -1);
-        public static AreaFlagData Lab = new AreaFlagData(true, -1);
-        public static Dictionary<string, AreaFlagData> FlagData = new()
-        {
-            {"InBackend",Backend },
-            {"InForest", Forest },
-            {"InPipes",Pipes },
-            {"InResort",Resort },
-            {"InLab",Lab }
-        };
-        public string Flag;
-        public AreaFlagHelper() : base()
-        {
-            Tag = Tags.Global | Tags.Persistent;
-        }
-        public override void Update()
-        {
-            base.Update();
-            if (Scene is not Level level) return;
-            SetFlags(level, Flag);
-        }
 
+        public static AreaFlagData Backend = new AreaFlagData("Backend", FlagControl.Individual, false, 0.05f);
+        public static AreaFlagData Forest = new AreaFlagData("Forest", FlagControl.Individual, false, 0);
+        public static AreaFlagData Pipes = new AreaFlagData("Pipes", FlagControl.Individual, true, -1);
+        public static AreaFlagData Resort = new AreaFlagData("Resort", FlagControl.Individual, false, -1);
+        public static AreaFlagData Lab = new AreaFlagData("Lab", FlagControl.Individual, true, -1);
+        public static AreaFlagData Golden = new AreaFlagData("Golden", FlagControl.Individual, false, -1);
+        public static AreaFlagData Void = new AreaFlagData("Void", FlagControl.Individual, false, -1);
+        public static AreaFlagData None = new AreaFlagData("None", FlagControl.TurnAllOff, false, -1);
+        public static List<AreaFlagData> Data = new()
+        {
+            Backend,Forest,Pipes,Resort,Lab,Golden,Void,None
+        };
+        public static AreaFlagData GetArea(string name)
+        {
+            return Data.Find(item => item.Name == name);
+        }
         public static void SetLighting(Level level, string key)
         {
-            if (!FlagData.ContainsKey(key)) return;
-            float prevLight = level.Lighting.Alpha;
-            if (FlagData[key].Lighting > -1)
+            AreaFlagData data = GetArea(key);
+            if (data != null)
             {
-                float num = level.Session.LightingAlphaAdd = prevLight + (FlagData[key].Lighting - prevLight);
-                level.Lighting.Alpha = level.BaseLightingAlpha + num;
-            }
-        }
-        public static void SetFlags(Level level, string flag)
-        {
-            if (!string.IsNullOrEmpty(flag) && FlagData.ContainsKey(flag))
-            {
-                PianoModule.Session.CurrentAreaFlag = flag;
-                foreach (KeyValuePair<string, AreaFlagData> pair in FlagData)
+                float prevLight = level.Lighting.Alpha;
+                if (data.Lighting >= 0)
                 {
-                    level.Session.SetFlag(pair.Key, pair.Key == flag || (pair.Key == "InBackend" && FlagData[flag].IncludeBackend));
+                    float num = level.Session.LightingAlphaAdd = prevLight + (data.Lighting - prevLight);
+                    level.Lighting.Alpha = level.BaseLightingAlpha + num;
                 }
             }
+        }
+        public static void SetFlags(Level level, string area)
+        {
+            AreaFlagData currentArea = GetArea(area);
+            string output;
+            if (currentArea != null)
+            {
+                output = "Configuring area flags for Area: " + area;
+                foreach (AreaFlagData data2 in Data)
+                {
+                    output += '\n';
+                    bool prevState = level.Session.GetFlag(data2.Flag);
+                    bool state = data2.Name == currentArea.Name || (data2.Name == "Backend" && currentArea.IncludeBackend);
+                    state = currentArea.Control switch
+                    {
+                        FlagControl.TurnAllOn => true,
+                        FlagControl.TurnAllOff => false,
+                        FlagControl.Individual => data2.Name == currentArea.Name || (data2.Name == "Backend" && currentArea.IncludeBackend)
+                    };
+                    level.Session.SetFlag(data2.Flag, state);
+                    output += "Area: " + data2.Name + "\t| PrevState: " + prevState + "\t| NewState: " + state;
+                }
+            }
+            else
+            {
+                output = "Area \"" + area + "\" does not exist.";
+            }
+            //Engine.Commands.Log(output);
         }
     }
 
@@ -71,13 +93,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
     [Tracked]
     public class SceneSwitch : Trigger
     {
-        public enum Areas
-        {
-            None,
-            Backend,
-            Forest,
-            Pipes,
-        }
         public enum Sides
         {
             None,
@@ -86,23 +101,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             Left = 5,
             Right = 6
         }
-        public Areas AreaA;
-        public Areas AreaB;
-        public Areas CurrentArea;
+        public string AreaA;
+        public string AreaB;
+        public string CurrentArea;
         public Sides SideA;
         public Sides SideB;
 
         public SceneSwitch(EntityData data, Vector2 offset)
     : base(data, offset)
         {
-            AreaA = data.Enum<Areas>("areaA");
-            AreaB = data.Enum<Areas>("areaB");
+            AreaA = data.Attr("areaA");
+            AreaB = data.Attr("areaB");
             SideA = data.Enum<Sides>("sideA");
             SideB = data.Enum<Sides>("sideB");
         }
         public override void OnLeave(Player player)
         {
             base.OnLeave(player);
+            
             if (ExitingSide(player, SideA))
             {
                 Transition(AreaA);
@@ -112,17 +128,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 Transition(AreaB);
             }
         }
-        public override void Update()
-        {
-            base.Update();
-            if (Scene is not Level level) return;
-            foreach (AreaFlagHelper helper in level.Tracker.GetEntities<AreaFlagHelper>())
-            {
-                if (CurrentArea.ToString() == "None") return;
-                helper.Flag = "In" + CurrentArea.ToString();
-            }
-        }
-        public void Transition(Areas area)
+        public void Transition(string area)
         {
             if (area != CurrentArea)
             {
@@ -134,29 +140,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         {
             return GetPositionLerp(player, (PositionModes)(int)side) == 0;
         }
-        public void ChangeArea(Areas area)
+        public void ChangeArea(string area)
         {
             if (Scene is not Level level) return;
             Audio.Play("event:/PianoBoy/invertGlitch2");
             CurrentArea = area;
-            PianoModule.Session.CurrentBackdropArea = area;
-            AreaFlagHelper.SetLighting(level, "In" + area.ToString());
-        }
-        [OnLoad]
-        internal static void Load()
-        {
-            On.Celeste.LevelLoader.ctor += LevelLoader_ctor;
-        }
-        [OnUnload]
-        internal static void Unload()
-        {
-            On.Celeste.LevelLoader.ctor -= LevelLoader_ctor;
-        }
-
-        private static void LevelLoader_ctor(On.Celeste.LevelLoader.orig_ctor orig, LevelLoader self, Session session, Vector2? startPosition)
-        {
-            orig(self, session, startPosition);
-            self.Level.Add(new AreaFlagHelper());
+            AreaFlagHelper.SetFlags(level, area);
+            AreaFlagHelper.SetLighting(level, area);
         }
     }
 }

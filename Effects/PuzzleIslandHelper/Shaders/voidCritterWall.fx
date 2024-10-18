@@ -11,6 +11,8 @@ uniform float2 Position;
 uniform float4x4 TransformMatrix;
 uniform float4x4 ViewMatrix;
 uniform float Amplitude;
+static float invAr = Dimensions.x/Dimensions.y;
+static float2 pixelSize = 1 / Dimensions;
 texture2D lights_texture;
 sampler2D lights_sampler = sampler_state
 {
@@ -31,24 +33,11 @@ float distToEdge(float p,float plane)
 {
 	return smoothstep(0, plane, abs(p - plane/2));
 }
-float fuzz(float2 uv, float light, float distToOne, float from)
-{
-	float ratio = 1/distToOne;
-	float r = hashOld22(uv * Time);
-	float x =  (distToEdge(uv.x, 1) - from) / 0.5;
-	//smoothstep(0.4, 0.5,abs(uv.x - 0.5));
-	//float y = smoothstep(0.4, 0.5,abs(uv.y - 0.5));
-	float y = (distToEdge(uv.y, 1) - from) / 0.5;
-	float limit = Time % 1;
-	float val = 1 - clamp(max(x, y), 0, ratio) / ratio;
-
-	return val;
-}
-float fuzz(float2 uv, float amount)
+float fuzz(float2 uv, float2 amount)
 {
 	float r = hashOld22(uv * Time) * 0.1;
-	float x = smoothstep(0.5 - amount + r, 0.5, abs(uv.x - 0.5));
-	float y = smoothstep(0.5 - amount + r, 0.5, abs(uv.y - 0.5));
+	float x = smoothstep(0.5 - amount.x + r, 0.5, abs(uv.x - 0.5));
+	float y = smoothstep(0.5 - amount.y + r, 0.5, abs(uv.y - 0.5));
 	float val = max(x, y);
 	return val;
 }
@@ -58,10 +47,12 @@ float randomize(float val, float2 seed)
 	return step(1 - val, r) * val;
 	return smoothstep(0,0., r * val);
 }
-DECLARE_TEXTURE(text, 0);
+DECLARE_TEXTURE(text, 1);
 float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 {   
-	float4 color = tex2D(lights_sampler, uv);
+	float4 color =SAMPLE_TEXTURE(text, uv); //tex2D(lights_sampler, uv);
+	//float f = fuzz(uv, pixelSize * invAr);
+
 	float t = Time * 1.2;
 	int xDir = sign(uv.x - 0.5);
 	int yDir = sign(uv.y - 0.5);
@@ -72,7 +63,7 @@ float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 	uv.x += s;
 	uv.y += s2;
 	float r = hashOld22(uv * Time);
-	float val = fuzz(uv, 0.1);
+	float val = fuzz(uv,0.1);
 	float v = randomize(1 - max(val,color.a), uv * Time);
 	float v2 = hashOld22(uv * 2.222555* Time) * v;
 	v2 = round(v2) * 0.2;

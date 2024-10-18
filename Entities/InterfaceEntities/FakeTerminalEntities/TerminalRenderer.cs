@@ -15,6 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public bool FromTxt;
         public string Text;
         public readonly int LinesAvailable;
+        public Color DebugColor = Color.White;
         public int StartIndex
         {
             get
@@ -31,6 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             get
             {
+                if(Groups is null || Groups.Count < 1) return 0;
                 return Calc.Clamp(lineIndex, StartIndex, Groups.Count - 1);
             }
             set
@@ -41,7 +43,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         private int lineIndex;
         private int startIndex;
         public List<Group> Groups = new();
-
+        public Group SelectedGroup
+        {
+            get
+            {
+                int index = LineIndex;
+                if(Groups is null || Groups.Count == 0 || index < 0 || index >= Groups.Count)
+                {
+                    return null;
+                }
+                return Groups[index];
+                
+            }
+        }
         public TerminalRenderer(FakeTerminal terminal)
         {
             Tag |= TagsExt.SubHUD | Tags.TransitionUpdate;
@@ -51,17 +65,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         }
         public void SetGroupAlphas(float value)
         {
-            foreach(Group g in Groups)
+            foreach (Group g in Groups)
             {
                 g.Alpha = value;
             }
         }
         public IEnumerator FadeGroups(float from, float to, float duration)
         {
-            for(float i = 0; i<1; i += Engine.DeltaTime / duration)
+            for (float i = 0; i < 1; i += Engine.DeltaTime / duration)
             {
                 float alpha = Calc.LerpClamp(from, to, i);
-                foreach(Group g in Groups)
+                foreach (Group g in Groups)
                 {
                     g.Alpha = alpha;
                 }
@@ -83,9 +97,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public override void Update()
         {
             base.Update();
-            if(Groups is null || lineIndex >= Groups.Count) return;
-            UserInput.CurrentlySelected = Groups[LineIndex] is UserInput;
-            if(UserInput.CurrentlySelected != UserInput.PreviouslySelected)
+            LineIndex = Calc.Clamp(lineIndex, StartIndex, Groups.Count - 1);
+            UpdateSelected();
+        }
+        public void UpdateSelected()
+        {
+            UserInput.CurrentlySelected = SelectedGroup is UserInput;
+            if (UserInput.CurrentlySelected != UserInput.PreviouslySelected)
             {
                 UserInput.RefreshBlockedBindings();
             }
@@ -111,7 +129,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             TextLine[] lines = new TextLine[array.Length];
             for (int i = 0; i < array.Length; i++)
             {
-
                 TextLine line = new TextLine(Terminal, array[i], Groups.Count + 1, color);
                 lines[i] = line;
                 addGroup(line);
@@ -128,14 +145,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             Groups.Add(group);
             Scene.Add(group);
-            if (Groups.Count > LinesAvailable)
+            if (Groups.Count > LinesAvailable && (Groups.Count - StartIndex) * Group.LINEHEIGHT > Terminal.Height)
             {
-                if ((Groups.Count - StartIndex) * Group.LINEHEIGHT > Terminal.Height)
-                {
-                    StartIndex++;
-                }
+                StartIndex++;
             }
             LineIndex = Groups.Count;
+            UpdateSelected();
         }
 
         public override void Removed(Scene scene)

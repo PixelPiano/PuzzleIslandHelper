@@ -14,7 +14,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static VirtualRenderTarget Lights => _lights ??= VirtualContent.CreateRenderTarget("voidCritterWallLightBuffer", 320, 180);
         private static VirtualRenderTarget _walls;
         public static VirtualRenderTarget Walls => _walls ??= VirtualContent.CreateRenderTarget("voidCritterWallWallBuffer", 320, 180);
-        public bool PlayerSafe;
         public static readonly BlendState Subtract = new()
         {
             ColorSourceBlend = Blend.SourceAlpha,
@@ -43,39 +42,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            
-            if (Scene is not Level level || level.GetPlayer() is not Player player)
+            if (Scene is not Level level || level.GetPlayer() is not Player player || player.Dead || player.JustRespawned
+                || (player.Holding is Holdable h && h.Entity is VoidLamp))
             {
-                PlayerSafe = true;
                 return;
             }
-            if(player.Dead || player.JustRespawned)
+            VoidCritterWall collided = player.CollideFirst<VoidCritterWall>();
+            if(collided != null && collided.FlagState && !(CollidingWithLight(player, level) || VoidSafeZone.Check(player)))
             {
-                PlayerSafe = true;
-                return;
+                player.Die(Vector2.Zero);
             }
-            if (player.Holding is Holdable h && h.Entity is VoidLamp)
-            {
-                PlayerSafe = true;
-                return;
-            }
-            if (!player.CollideCheck<VoidCritterWall>())
-            {
-                PlayerSafe = true;
-                return;
-            }
-            if(CollidingWithLight(player, level))
-            {
-                PlayerSafe = true;
-                return;
-            }
-            if(VoidSafeZone.Check(player))
-            {
-                PlayerSafe = true;
-                return;
-            }
-            PlayerSafe = false;
-            
         }
         public void BeforeRender()
         {

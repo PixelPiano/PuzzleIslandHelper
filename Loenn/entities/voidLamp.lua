@@ -10,6 +10,12 @@ voidLamp.placements =
     {
         name = "Void Lamp",
         data = {
+            flag = "",
+            inverted = false,
+            transitionCheck = true,
+            groupID = "",
+            isGroupLeader = true,
+            removeIfNotClosestToSpawn = false
         }
     }
 }

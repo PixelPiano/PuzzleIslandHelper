@@ -19,6 +19,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.ArtifactSlot;
 
 public static class PianoUtils
 {
@@ -44,6 +45,48 @@ public static class PianoUtils
                         return;
                     }
                 }
+            }
+        }
+    }
+    public struct TriWall
+    {
+        public float Width;
+        public float Height;
+        public float TriangleWidth;
+        public float TriangleHeight;
+        public int ExtendL;
+        public int ExtendR;
+        public int ExtendU;
+        public int ExtendD;
+        public int Rows;
+        public int Columns;
+        public Vector2[,] Points;
+        public Vector2 this[int x, int y]
+        {
+            get
+            {
+                if (x >= 0 && y >= 0 && x < Columns && y < Rows)
+                {
+                    return Points[x, y];
+                }
+
+                return Vector2.Zero;
+            }
+            set
+            {
+                Points[x, y] = value;
+            }
+        }
+    }
+    [Tracked]
+    public class KeepGrounded : Monocle.Component
+    {
+        public KeepGrounded() : base(true, false) { }
+        public override void Update()
+        {
+            if (Entity is FallingBlock)
+            {
+                (Entity as FallingBlock).FallDelay = 10;
             }
         }
     }
@@ -142,36 +185,6 @@ public static class PianoUtils
         }
         return mesh;
     }
-    public struct TriWall
-    {
-        public float Width;
-        public float Height;
-        public float TriangleWidth;
-        public float TriangleHeight;
-        public int ExtendL;
-        public int ExtendR;
-        public int ExtendU;
-        public int ExtendD;
-        public int Rows;
-        public int Columns;
-        public Vector2[,] Points;
-        public Vector2 this[int x, int y]
-        {
-            get
-            {
-                if (x >= 0 && y >= 0 && x < Columns && y < Rows)
-                {
-                    return Points[x, y];
-                }
-
-                return Vector2.Zero;
-            }
-            set
-            {
-                Points[x, y] = value;
-            }
-        }
-    }
     public static Mesh<VertexPositionColor> CreateTriWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Color color)
     {
         Func<Vector2, Color> func = delegate { return color; };
@@ -251,6 +264,162 @@ public static class PianoUtils
         }
         return screenpoints;
     }
+
+
+    public static void ParseFlagsFromString(string flagList, out string[] flags, out bool[] states)
+    {
+        flags = null;
+        states = null;
+        if (!string.IsNullOrEmpty(flagList))
+        {
+            string[] array = flagList.Replace(" ", "").Split(',');
+            states = new bool[array.Length];
+            flags = new string[array.Length];
+            for (int i = 0; i < array.Length; i++)
+            {
+                if (array[i].Length > 0)
+                {
+                    if (array[i][0] == '!')
+                    {
+                        flags[i] = array[i].Substring(1);
+                        states[i] = false;
+                    }
+                    else
+                    {
+                        flags[i] = array[i];
+                        states[i] = true;
+                    }
+
+                }
+            }
+
+        }
+    }
+    public static void RenderAt(this Image image, Vector2 at)
+    {
+        Vector2 orig = image.RenderPosition;
+        image.RenderPosition = at;
+        image.Render();
+        image.RenderPosition = orig;
+    }
+    public static void RenderOffset(this Image image, Vector2 offset)
+    {
+        image.Position += offset;
+        image.Render();
+        image.Position -= offset;
+    }
+
+    public static void Ground<T>(IEnumerable<T> list) where T : FallingBlock
+    {
+        foreach (FallingBlock block in list.OrderByDescending(item => item.Bottom))
+        {
+            block.Ground();
+        }
+    }
+    public static void Ground(this FallingBlock block)
+    {
+
+        Level level = block.Scene as Level;
+        foreach (Monocle.Component c in block.Components)
+        {
+            if (c is KeepGrounded) return;
+        }
+        Vector2 pos = block.Position;
+        float maxSpeed = (block.finalBoss ? 130f : 160f);
+        float speed = 0f;
+        while (true)
+        {
+            speed = Calc.Approach(speed, maxSpeed, 500f * Engine.DeltaTime);
+            if (block.MoveVCollideSolids(speed * Engine.DeltaTime, thruDashBlocks: true))
+            {
+                IEnumerator makeLame()
+                {
+                    while (true)
+                    {
+                        block.FallDelay = 10;
+                        yield return null;
+                    }
+                };
+                block.Add(new Coroutine(makeLame()));
+                block.Add(new KeepGrounded());
+                break;
+            }
+            if (block.Top > (float)(level.Bounds.Bottom + 16) || (block.Top > (float)(level.Bounds.Bottom - 1) && block.CollideCheck<Solid>(block.Position + new Vector2(0f, 1f))))
+            {
+                block.Collidable = (block.Visible = false);
+                block.RemoveSelf();
+                block.DestroyStaticMovers();
+                break;
+            }
+        }
+    }
+    public static bool OnGround(this Solid solid)
+    {
+        Level level = solid.Scene as Level;
+        return solid.CollideCheck<Solid>(solid.Position + Vector2.UnitY);
+    }
+    public static Vector2 GroundedPosition(this Entity entity)
+    {
+        Level level = entity.Scene as Level;
+        Vector2 pos = entity.Position;
+        Collider c = entity.Collider;
+        entity.Collider ??= new Hitbox(1, 1);
+
+        while (pos.Y < level.Bounds.Bottom && !entity.CollideCheck<Solid>(pos))
+        {
+            pos.Y++;
+        }
+        entity.Collider = c;
+        return pos;
+    }
+
+    public static void Timer(this Scene scene, float time, Action onEnd)
+    {
+        scene.Add(new SceneTimer(time, onEnd));
+    }
+
+    public static Hitbox ColliderCentered(this MTexture texture)
+    {
+        return new Hitbox(texture.Width, texture.Height, -texture.Width / 2, -texture.Height / 2);
+    }
+    public static Hitbox ColliderCentered(this Image texture)
+    {
+        return texture.Texture.ColliderCentered();
+    }
+    public static Hitbox Collider(this MTexture texture)
+    {
+        return new Hitbox(texture.Width, texture.Height);
+    }
+    public static Hitbox Collider(this Image texture)
+    {
+        return texture.Texture.Collider();
+    }
+
+    public static IEnumerator Lerp(this Ease.Easer ease, float time, Action<float> action)
+    {
+        ease ??= Ease.Linear;
+        for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+        {
+            action?.Invoke(ease(i));
+            yield return null;
+        }
+    }
+    public static IEnumerator LerpYoyo(this Ease.Easer ease, float halfTime, Action<float> action)
+    {
+        ease ??= Ease.Linear;
+        yield return ease.Lerp(halfTime, action);
+        yield return Ease.Invert(ease).ReverseLerp(halfTime, action);
+    }
+    public static IEnumerator ReverseLerp(this Ease.Easer ease, float time, Action<float> action)
+    {
+        ease ??= Ease.Linear;
+        for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+        {
+            action?.Invoke(ease(1 - i));
+            yield return null;
+        }
+    }
+
     public static Vector2 TopLeft(this Rectangle rect)
     {
         return new Vector2(rect.Left, rect.Top);
@@ -287,18 +456,32 @@ public static class PianoUtils
     {
         return new Vector2(rect.Right, (int)(rect.Top + rect.Height / 2f));
     }
+
     public static bool Colliding(this Rectangle rect, Rectangle check)
     {
         return !(check.Left >= rect.Right) && !(check.Right <= rect.Left) && !(check.Top >= rect.Bottom) && !(check.Bottom <= rect.Top);
     }
 
-    public static void DrawSimpleOutline(this VirtualRenderTarget target, Vector2 position, Color color)
+    public static Vector2 HalfSize(this MTexture texture)
     {
-        Draw.SpriteBatch.Draw(target, position + new Vector2(-1f, 0f), color);
-        Draw.SpriteBatch.Draw(target, position + new Vector2(0f, -1f), color);
-        Draw.SpriteBatch.Draw(target, position + new Vector2(1f, 0f), color);
-        Draw.SpriteBatch.Draw(target, position + new Vector2(0f, 1f), color);
+        return new Vector2(texture.Width / 2, texture.Height / 2);
+    }
+    public static Vector2 HalfSize(this Image image)
+    {
+        return image.Texture.HalfSize();
+    }
+    public static Vector2 Size(this MTexture texture)
+    {
+        return new Vector2(texture.Width, texture.Height);
+    }
+    public static Vector2 Size(this Image image)
+    {
+        return image.Texture.Size();
+    }
 
+    public static int Modulas(int input, int divisor)
+    {
+        return (input % divisor + divisor) % divisor;
     }
     public static Vector2 Mod(this Vector2 vec, float mod)
     {
@@ -312,44 +495,40 @@ public static class PianoUtils
     {
         return new Vector2(vec.X - vec.X % mod.X, vec.Y - vec.Y % mod.Y);
     }
+
     public static void StandardBegin(this SpriteBatch spriteBatch)
     {
-        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone);
+        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone);
     }
     public static void StandardBegin(this SpriteBatch spriteBatch, Effect effect)
     {
-        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect);
+        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect);
     }
     public static void StandardBegin(this SpriteBatch spriteBatch, Matrix matrix)
     {
-        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
+        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
     }
     public static void StandardBegin(this SpriteBatch spriteBatch, BlendState blend, Matrix matrix)
     {
-        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
+        spriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
     }
     public static void StandardBegin(this SpriteBatch spriteBatch, BlendState blend, Effect shader)
     {
-        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, shader, Matrix.Identity);
+        spriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, shader, Matrix.Identity);
     }
     public static void StandardBegin(this SpriteBatch spriteBatch, BlendState blend, Effect shader, Matrix matrix)
     {
-        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, shader, matrix);
+        spriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, shader, matrix);
     }
     public static void StandardBegin(this SpriteBatch spriteBatch, BlendState blend)
     {
-        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
+        spriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
     }
     public static void StandardBegin(this SpriteBatch spriteBatch, Effect effect, Matrix matrix)
     {
-        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect, matrix);
+        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect, matrix);
     }
-    public static void FNAWakeUpSlap(this SpriteBatch spriteBatch, Effect effect)
-    {
-        Draw.SpriteBatch.StandardBegin(effect);
-        Draw.Rect(0, 0, 1, 1, Color.Transparent);
-        Draw.SpriteBatch.End();
-    }
+
     public static void SetRenderTarget(this VirtualRenderTarget source, Color? clear = null)
     {
         Engine.Graphics.GraphicsDevice.SetRenderTarget(source);
@@ -358,6 +537,7 @@ public static class PianoUtils
             Engine.Graphics.GraphicsDevice.Clear(clear.Value);
         }
     }
+
     public static VirtualRenderTarget Apply(this VirtualRenderTarget source, VirtualRenderTarget bufferSameSizeAsSource, Effect effect, Vector2 position = default)
     {
         bufferSameSizeAsSource.SetRenderTarget(Color.Transparent);
@@ -371,32 +551,79 @@ public static class PianoUtils
         return source;
 
     }
+    public static VirtualRenderTarget PrepareRenderTarget(VirtualRenderTarget target, string name, int width = 320, int height = 180)
+    {
+        if (target == null || target.IsDisposed) target = VirtualContent.CreateRenderTarget(name, width, height, false);
+        return target;
+    }
+    public static VirtualRenderTarget DrawBounds(this VirtualRenderTarget target, Vector2 position, Color color, bool hollow)
+    {
+        if (hollow) Draw.HollowRect(position.X, position.Y, target.Width, target.Height, color);
+        else Draw.Rect(position.X, position.Y, target.Width, target.Height, color);
+
+        return target;
+    }
+
+    public static void DrawSimpleOutlines(this IEnumerable<GraphicsComponent> components)
+    {
+        foreach (GraphicsComponent g in components)
+        {
+            g.DrawSimpleOutline();
+        }
+    }
+    public static void DrawOutlines(this IEnumerable<GraphicsComponent> components, int offset = 1)
+    {
+        foreach (GraphicsComponent g in components)
+        {
+            g.DrawOutline(offset);
+        }
+    }
+    public static void DrawOutlines(this IEnumerable<GraphicsComponent> components, Color color, int offset = 1)
+    {
+        foreach (GraphicsComponent g in components)
+        {
+            g.DrawOutline(color, offset);
+        }
+    }
+    public static void DrawSimpleOutline(this VirtualRenderTarget target, Vector2 position, Color color)
+    {
+        Draw.SpriteBatch.Draw(target, position + new Vector2(-1f, 0f), color);
+        Draw.SpriteBatch.Draw(target, position + new Vector2(0f, -1f), color);
+        Draw.SpriteBatch.Draw(target, position + new Vector2(1f, 0f), color);
+        Draw.SpriteBatch.Draw(target, position + new Vector2(0f, 1f), color);
+    }
+
     public static float ClampRange(float value, float range)
     {
         float min = Calc.Min(range, -range);
         float max = Calc.Max(range, -range);
         return Calc.Clamp(value, min, max);
     }
-    public static Ease.Easer Random()
-    {
-        return Calc.Random.Choose(Ease.BackIn, Ease.BackInOut, Ease.BackOut, Ease.BigBackIn, Ease.BigBackInOut, Ease.BigBackOut,
-            Ease.BounceIn, Ease.BounceOut, Ease.BounceInOut, Ease.CubeIn, Ease.CubeOut, Ease.CubeInOut, Ease.ElasticIn, Ease.ElasticInOut,
-            Ease.ElasticOut, Ease.ExpoIn, Ease.ExpoOut, Ease.ExpoInOut, Ease.Linear, Ease.QuadIn, Ease.QuadOut, Ease.QuadInOut, Ease.QuintIn,
-            Ease.QuintOut, Ease.QuintInOut, Ease.SineIn, Ease.SineOut, Ease.SineInOut);
-    }
     public static Vector2 ClampRange(Vector2 value, Vector2 range)
     {
         return new Vector2(ClampRange(value.X, range.X), ClampRange(value.Y, range.Y));
     }
-    public static void TeleportTo(Scene scene, Player player, string room, Player.IntroTypes introType = Player.IntroTypes.Transition, Vector2? nearestSpawn = null)
+    public static Vector2 Clamp(this Vector2 vector, Rectangle rect)
     {
-        if (scene is Level level)
-        {
-            level.OnEndOfFrame += delegate
-            {
-                level.TeleportTo(player, room, introType, nearestSpawn);
-            };
-        }
+        return new Vector2(Calc.Clamp(vector.X, rect.Left, rect.Right), Calc.Clamp(vector.Y, rect.Top, rect.Bottom));
+    }
+
+    public static Rectangle Create(this Rectangle rect, float x, float y, float width, float height)
+    {
+        rect = new Rectangle((int)x, (int)y, (int)width, (int)height);
+        return rect;
+    }
+    public static Rectangle CreateRectangle(float x, float y, float width, float height)
+    {
+        return new Rectangle((int)x, (int)y, (int)width, (int)height);
+    }
+    public static Rectangle CreateRectangle(Vector2 topLeft, Vector2 bottomRight)
+    {
+        return new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)bottomRight.X - (int)topLeft.X, (int)bottomRight.Y - (int)topLeft.Y);
+    }
+    public static Rectangle CloneRectangle(Rectangle from)
+    {
+        return new Rectangle(from.Left, from.Top, from.Width, from.Height);
     }
 
     public static Vector2[] GetNodes(BinaryPacker.Element element, bool withPosition = false, Vector2 offset = default)
@@ -429,6 +656,7 @@ public static class PianoUtils
 
         return output.ToArray();
     }
+
     public static T[] Initialize<T>(Func<T> setValue, int length)
     {
         T[] array = new T[length];
@@ -449,11 +677,7 @@ public static class PianoUtils
         }
         return array;
     }
-    public static Vector2 RandomFrom(this Vector2 vec, float xMin, float xMax, float yMin, float yMax)
-    {
-        vec = Random(xMin, xMax, yMin, yMax) + vec;
-        return vec;
-    }
+
     public static Vector2 Center(this IEnumerable<VertexPositionColor> list)
     {
         Vector2 center = Vector2.Zero;
@@ -473,28 +697,11 @@ public static class PianoUtils
         }
         return val;
     }
-    public static VertexPositionColor SetPosition(this VertexPositionColor vertex, Vector2 position)
-    {
-        vertex.Position.X = position.X;
-        vertex.Position.Y = position.Y;
-        return vertex;
-    }
-
     public static VertexPositionColor Create(Vector2 position, Color color)
     {
         return new VertexPositionColor(new Vector3(position, 0), color);
     }
-    public static int Modulas(int input, int divisor)
-    {
-        return (input % divisor + divisor) % divisor;
-    }
-    public static VirtualRenderTarget DrawBounds(this VirtualRenderTarget target, Vector2 position, Color color, bool hollow)
-    {
-        if (hollow) Draw.HollowRect(position.X, position.Y, target.Width, target.Height, color);
-        else Draw.Rect(position.X, position.Y, target.Width, target.Height, color);
 
-        return target;
-    }
     public static Collider Boundaries(this IEnumerable<Vector2> positions, Vector2 offset, int mult = 1)
     {
         float left, top, right, bottom;
@@ -509,6 +716,7 @@ public static class PianoUtils
         }
         return new Hitbox((right - left) * mult, (bottom - top) * mult, (left * mult) + offset.X, (top * mult) + offset.Y);
     }
+
     public static FancySolidTiles Create(Vector2 position, float width, float height, string tileData, bool blendEdges)
     {
         EntityData BlockData = new EntityData
@@ -526,6 +734,19 @@ public static class PianoUtils
             };
         return new FancySolidTiles(BlockData, Vector2.Zero, new EntityID());
     }
+
+    public static Vector2 RandomFrom(this Vector2 vec, float xMin, float xMax, float yMin, float yMax)
+    {
+        vec = Random(xMin, xMax, yMin, yMax) + vec;
+        return vec;
+    }
+    public static Ease.Easer Random()
+    {
+        return Calc.Random.Choose(Ease.BackIn, Ease.BackInOut, Ease.BackOut, Ease.BigBackIn, Ease.BigBackInOut, Ease.BigBackOut,
+            Ease.BounceIn, Ease.BounceOut, Ease.BounceInOut, Ease.CubeIn, Ease.CubeOut, Ease.CubeInOut, Ease.ElasticIn, Ease.ElasticInOut,
+            Ease.ElasticOut, Ease.ExpoIn, Ease.ExpoOut, Ease.ExpoInOut, Ease.Linear, Ease.QuadIn, Ease.QuadOut, Ease.QuadInOut, Ease.QuintIn,
+            Ease.QuintOut, Ease.QuintInOut, Ease.SineIn, Ease.SineOut, Ease.SineInOut); //smile :)
+    }
     public static Vector2 Random(float minX, float maxX, float minY, float maxY)
     {
         return new Vector2(Calc.Random.Range(minX, maxX), Calc.Random.Range(minY, maxY));
@@ -533,28 +754,6 @@ public static class PianoUtils
     public static Vector2 Random(Vector2 min, Vector2 max)
     {
         return Random(min.X, max.X, min.Y, max.Y);
-    }
-    public static VirtualRenderTarget PrepareRenderTarget(VirtualRenderTarget target, string name, int width = 320, int height = 180)
-    {
-        if (target == null || target.IsDisposed) target = VirtualContent.CreateRenderTarget(name, width, height, false);
-        return target;
-    }
-    public static Rectangle Create(this Rectangle rect, float x, float y, float width, float height)
-    {
-        rect = new Rectangle((int)x, (int)y, (int)width, (int)height);
-        return rect;
-    }
-    public static Rectangle CreateRectangle(float x, float y, float width, float height)
-    {
-        return new Rectangle((int)x, (int)y, (int)width, (int)height);
-    }
-    public static Rectangle CreateRectangle(Vector2 topLeft, Vector2 bottomRight)
-    {
-        return new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)bottomRight.X - (int)topLeft.X, (int)bottomRight.Y - (int)topLeft.Y);
-    }
-    public static Rectangle CloneRectangle(Rectangle from)
-    {
-        return new Rectangle(from.Left, from.Top, from.Width, from.Height);
     }
     public static Color Random(this Color color, bool r, bool g, bool b, bool a)
     {
@@ -583,6 +782,7 @@ public static class PianoUtils
         }
         return array[Calc.Random.Range(0, limit)];
     }
+
     public static string GetDescription<T>(this T enumerationValue) where T : struct
     {
         Type type = enumerationValue.GetType();
@@ -606,6 +806,17 @@ public static class PianoUtils
         }
         //If we have no description attribute, just return the ToString of the enum
         return enumerationValue.ToString();
+    }
+
+    public static void TeleportTo(Scene scene, Player player, string room, Player.IntroTypes introType = Player.IntroTypes.Transition, Vector2? nearestSpawn = null)
+    {
+        if (scene is Level level)
+        {
+            level.OnEndOfFrame += delegate
+            {
+                level.TeleportTo(player, room, introType, nearestSpawn);
+            };
+        }
     }
     public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, int positionX = 0, int positionY = 0)
     {
@@ -665,35 +876,6 @@ public static class PianoUtils
     {
         InstantTeleport(scene, room, newPosition.X, newPosition.Y);
     }
-    public static List<T> CheckAdd<T>(this List<T> list, T value)
-    {
-        if (!list.Contains(value))
-        {
-            list.Add(value);
-        }
-        return list;
-    }
-    public static void DrawSimpleOutlines(this IEnumerable<GraphicsComponent> components)
-    {
-        foreach (GraphicsComponent g in components)
-        {
-            g.DrawSimpleOutline();
-        }
-    }
-    public static void DrawOutlines(this IEnumerable<GraphicsComponent> components, int offset = 1)
-    {
-        foreach (GraphicsComponent g in components)
-        {
-            g.DrawOutline(offset);
-        }
-    }
-    public static void DrawOutlines(this IEnumerable<GraphicsComponent> components, Color color, int offset = 1)
-    {
-        foreach (GraphicsComponent g in components)
-        {
-            g.DrawOutline(color, offset);
-        }
-    }
     public static void InstantTeleport(Scene scene, string room, float positionX, float positionY)
     {
         Level level = scene as Level;
@@ -742,6 +924,16 @@ public static class PianoUtils
             }
         };
     }
+
+    public static List<T> CheckAdd<T>(this List<T> list, T value)
+    {
+        if (!list.Contains(value))
+        {
+            list.Add(value);
+        }
+        return list;
+    }
+
     public static Entity MakeGlobal(this Entity entity)
     {
         entity.AddTag(Tags.Global);
@@ -754,6 +946,7 @@ public static class PianoUtils
         entity.RemoveTag(Tags.Persistent);
         return entity;
     }
+
     public static Vector2 Marker(this Scene scene, string id, bool screenSpace = false)
     {
         List<Entity> markers = (scene as Level).Tracker.GetEntities<Marker>();
@@ -773,15 +966,16 @@ public static class PianoUtils
     {
         return scene.Marker(id, screenSpace) - new Vector2(160, 90);
     }
+
     public static Facings Flip(this Facings facing)
     {
         return (Facings)(-(int)facing);
     }
+
     public static IEnumerator AutoTraverseRelative(this Player player, float distance)
     {
         yield return player.AutoTraverse(player.X + distance);
     }
-
     public static IEnumerator AutoPlay(this Player player, int xDir, bool walkBackwards = false, float speedMultiplier = 1f)
     {
 
@@ -900,6 +1094,7 @@ public static class PianoUtils
         }
         yield return null;
     }
+
     public static Vector2 RotateAround(this Vector2 pointToRotate, Vector2 centerPoint, double angleInDegrees)
     {
         double angleInRadians = angleInDegrees * (Math.PI / 180);
@@ -917,10 +1112,24 @@ public static class PianoUtils
                 cosTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.Y)
         };
     }
-    public static Vector2 ToInt(this Vector2 vec)
+    public static Vector2 RotatePoint(Vector2 pointToRotate, Vector2 centerPoint, double angleInDegrees)
     {
-        return new Vector2((int)vec.X, (int)vec.Y);
+        double angleInRadians = angleInDegrees * (Math.PI / 180);
+        double cosTheta = Math.Cos(angleInRadians);
+        double sinTheta = Math.Sin(angleInRadians);
+        return new Vector2
+        {
+            X =
+                (int)
+                (cosTheta * (pointToRotate.X - centerPoint.X) -
+                sinTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.X),
+            Y =
+                (int)
+                (sinTheta * (pointToRotate.X - centerPoint.X) +
+                cosTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.Y)
+        };
     }
+
     public static Player GetPlayer(this Level level)
     {
         if (level is null)
@@ -933,9 +1142,9 @@ public static class PianoUtils
     {
         return (scene as Level).GetPlayer();
     }
+
     public static Vector2? DoRaycast(Scene scene, Vector2 start, Vector2 end)
     => DoRaycast(scene.Tracker.GetEntities<Solid>().Select(s => s.Collider), start, end);
-
     public static Vector2? DoRaycast(IEnumerable<Collider> cols, Vector2 start, Vector2 end)
     {
         Vector2? curPoint = null;
@@ -952,7 +1161,6 @@ public static class PianoUtils
         }
         return curPoint;
     }
-
     public static Vector2? DoRaycast(Collider col, Vector2 start, Vector2 end) => col switch
     {
         Hitbox hbox => DoRaycast(hbox, start, end),
@@ -960,7 +1168,6 @@ public static class PianoUtils
         ColliderList colList => DoRaycast(colList.colliders, start, end),
         _ => null //Unknown collider type
     };
-
     public static Vector2? DoRaycast(Hitbox hbox, Vector2 start, Vector2 end)
     {
         start -= hbox.AbsolutePosition;
@@ -986,13 +1193,6 @@ public static class PianoUtils
         else if (start.Y < hbox.Top || start.Y > hbox.Bottom) return null;
 
         return (0 <= tmin && tmin <= tmax && tmin * tmin <= Vector2.DistanceSquared(start, end)) ? hbox.AbsolutePosition + start + tmin * dir : null;
-    }
-    public static bool CheckSolidsGrid(Vector2 at)
-    {
-        if (Engine.Scene is not Level level) return false;
-        Grid grid = level.SolidTiles.Grid;
-        at = (at - grid.AbsolutePosition) / new Vector2(grid.CellWidth, grid.CellHeight);
-        return grid[(int)at.X, (int)at.Y];
     }
     public static Vector2? DoRaycast(Grid grid, Vector2 start, Vector2 end)
     {
@@ -1027,32 +1227,19 @@ public static class PianoUtils
         }
         return null;
     }
+
+    public static bool CheckSolidsGrid(Vector2 at)
+    {
+        if (Engine.Scene is not Level level) return false;
+        Grid grid = level.SolidTiles.Grid;
+        at = (at - grid.AbsolutePosition) / new Vector2(grid.CellWidth, grid.CellHeight);
+        return grid[(int)at.X, (int)at.Y];
+    }
     public static LevelData SwitchedData(this LevelData toSwitch, LevelData switchWith)
     {
         toSwitch.Bg = switchWith.Bg;
         toSwitch.Solids = switchWith.Solids;
         return toSwitch;
-    }
-    public static Vector2 RotatePoint(Vector2 pointToRotate, Vector2 centerPoint, double angleInDegrees)
-    {
-        double angleInRadians = angleInDegrees * (Math.PI / 180);
-        double cosTheta = Math.Cos(angleInRadians);
-        double sinTheta = Math.Sin(angleInRadians);
-        return new Vector2
-        {
-            X =
-                (int)
-                (cosTheta * (pointToRotate.X - centerPoint.X) -
-                sinTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.X),
-            Y =
-                (int)
-                (sinTheta * (pointToRotate.X - centerPoint.X) +
-                cosTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.Y)
-        };
-    }
-    public static Vector2 TopLeft(ref Rectangle rect)
-    {
-        return new Vector2(rect.Left, rect.Top);
     }
 
     public static T SeekController<T>(Scene scene, Func<T> factory = null) where T : Entity
@@ -1080,6 +1267,7 @@ public static class PianoUtils
         scene.Add(controller = factory());
         return controller;
     }
+
     public static string ReadModAsset(string filename)
     {
         return Everest.Content.TryGet(filename, out var asset) ? ReadModAsset(asset) : null;

@@ -1,18 +1,17 @@
 using Celeste.Mod.Backdrops;
 using Monocle;
+using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {
     [CustomBackdrop("PuzzleIslandHelper/BackdropSafetyCheck")]
     public class BackdropSafetyCheck : Backdrop
     {
-        public string Area;
-
-
-        public BackdropSafetyCheck(BinaryPacker.Element data) : this(data.Attr("area")){ }
+        public string Flag;
+        public BackdropSafetyCheck(BinaryPacker.Element data) : this(data.Attr("area")) { }
         public BackdropSafetyCheck(string area) : base()
         {
-            Area = area;
+            Flag = area;
         }
 
         public override void Update(Scene scene)
@@ -20,7 +19,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             base.Update(scene);
             Level level = scene as Level;
             if (IsVisible(level))
-                AreaFlagHelper.SetFlags(level, "In" + Area);
+            {
+                AreaFlagHelper.SetFlags(level,Flag);
+            }
         }
     }
 }

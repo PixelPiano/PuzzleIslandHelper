@@ -13,7 +13,7 @@ using Celeste.Mod.PuzzleIslandHelper.Components;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
 {
     // [CustomEntity("PuzzleIslandHelper/CalidusSpeaker")]
-    [CustomEntity("PuzzleIslandHelper/WipEntity")]
+    //[CustomEntity("PuzzleIslandHelper/WipEntity")]
     [Tracked]
 
     public class CalidusSpeaker : Entity

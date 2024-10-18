@@ -22,6 +22,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             OnSubmit = onSubmit;
         }
+        public string GetTextLower()
+        {
+            return Text.ToLower();
+        }
+        public string[] GetText(params char[] seperators)
+        {
+            return Text.Split(seperators);
+        }
         public static void RefreshBlockedBindings()
         {
             BlockedBindings = new()
@@ -29,11 +37,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 Input.QuickRestart.Binding,
                 Input.Pause.Binding
             };
-        }
-        public override void SceneBegin(Scene scene)
-        {
-            base.SceneBegin(scene);
-            RefreshBlockedBindings();
         }
         [OnLoad]
         public static void Load()
@@ -49,15 +52,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             BlockedBindings.Clear();
             On.Monocle.VirtualButton.Update -= VirtualButton_Update;
         }
+
+
         private static void VirtualButton_Update(On.Monocle.VirtualButton.orig_Update orig, VirtualButton self)
         {
             if (CurrentlySelected && BlockedBindings.Contains(self.Binding))
             {
-                self.ConsumeBuffer();
                 self.ConsumePress();
                 return;
             }
             orig(self);
+        }
+        public override void SceneBegin(Scene scene)
+        {
+            base.SceneBegin(scene);
+            RefreshBlockedBindings();
         }
         public override void Update()
         {
@@ -70,7 +79,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             TextInput.OnInput += OnTextInput;
             CanType = true;
         }
-
         public IEnumerator WaitForSubmit()
         {
             while (!Submitted)
@@ -130,6 +138,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                         break;
                     }
             }
+            Terminal.Renderer.UpdateSelected();
         }
     }
 }

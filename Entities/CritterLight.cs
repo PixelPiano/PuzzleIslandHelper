@@ -14,6 +14,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class CritterLight : Image
     {
         public float Radius;
+        public bool InCritterWall;
+        public VoidCritterWall CollidedWall;
         public bool OnScreen;
         public VertexLight Light;
         public bool Enabled;
@@ -35,12 +37,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void Render()
         {
-
+            
         }
         public override void Update()
         {
             base.Update();
-            if (Scene is not Level level)
+            if (Scene is not Level level || !Enabled)
             {
                 OnScreen = false;
                 return;
@@ -52,6 +54,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Rectangle c = level.Camera.GetBounds();
             Rectangle r = new Rectangle(c.Left - 8, c.Top - 8, c.Width + 16, c.Height + 16);
             OnScreen = new Rectangle((int)pos.X, (int)pos.Y, Texture.Width, Texture.Height).Colliding(r);
+            InCritterWall = CollidedWall != null;
+            CollidedWall = null;
         }
         public void DrawLight(Color color, Vector2 offset = default)
         {

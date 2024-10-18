@@ -125,7 +125,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     node.SwitchToInSolid();
                 }
             }
-            solidChecker.RemoveSelf();
+            solidChecker?.RemoveSelf();
         }
         private float dashTimer = 0;
         public static bool IgnoreLevel;
@@ -863,7 +863,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private static void LevelLoader_OnLoadingThread(Level level)
         {
-            level.Add(new BitrailTransporter());
+            if (PianoMapDataProcessor.Bitrails.Count > 0)
+            {
+                level.Add(new BitrailTransporter());
+            }
         }
         public class BitrailFGRenderer : Entity
         {
