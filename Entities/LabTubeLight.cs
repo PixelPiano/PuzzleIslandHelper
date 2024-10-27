@@ -7,6 +7,7 @@ using MonoMod.Cil;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -91,7 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             OnDashCollide = DashCollision;
         }
         [OnLoad]
-        internal static void Load()
+        public static void Load()
         {
             IL.Celeste.Player.ReflectBounce += Player_Bounce;
             On.Celeste.PlayerHair.Render += RenderHook;
@@ -122,18 +123,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             return ModSpeed ? 1.5f : 1;
         }
         [OnUnload]
-        internal static void Unload()
+        public static void Unload()
         {
             IL.Celeste.Player.ReflectBounce -= Player_Bounce;
             On.Celeste.PlayerHair.Render -= RenderHook;
         }
         private static void RenderHook(On.Celeste.PlayerHair.orig_Render orig, PlayerHair self)
         {
+            Color prev = self.Color;
             if (ShockedHairColor.HasValue)
             {
                 self.Color = ShockedHairColor.Value;
             }
             orig(self);
+            self.Color = prev;
 
         }
         private DashCollisionResults DashCollision(Player player, Vector2 direction)
@@ -143,20 +146,43 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 //play spark sound
                 //emit tiny electricity
                 ModSpeed = true;
+                AddShocks(player);
                 Add(new Coroutine(HairColorFlash()));
                 Add(new Coroutine(FlickerShort()));
                 return DashCollisionResults.Bounce;
             }
             return DashCollisionResults.NormalCollision;
         }
+        public void AddShocks(Player player)
+        {
+            int totalShocks = Calc.Random.Range(2, 5);
+            for (int i = 0; i < totalShocks; i++)
+            {
+                RandomShock shock = new RandomShock(player.TopCenter, 1, Calc.Random.Range(1, 8), Calc.Random.Choose(1, 2) * Engine.DeltaTime, player,
+                   Calc.Random.Choose(Color.AliceBlue, Color.LightBlue, Color.White));
+                Scene.Add(shock);
+            }
+        }
         private IEnumerator HairColorFlash()
         {
+            int frames = 2;
             ShockedHairColor = Color.White;
-            yield return null;
-            ShockedHairColor = Color.Yellow;
-            yield return null;
+            yield return Engine.DeltaTime * frames;
             ShockedHairColor = null;
-            yield return null;
+            yield return Engine.DeltaTime * frames;
+            ShockedHairColor = Color.Yellow;
+            yield return Engine.DeltaTime * frames;
+            ShockedHairColor = null;
+            yield return Engine.DeltaTime * frames;
+            ShockedHairColor = Color.White;
+            yield return Engine.DeltaTime * frames;
+            ShockedHairColor = null;
+            yield return Engine.DeltaTime * frames;
+            ShockedHairColor = Color.Yellow;
+            yield return Engine.DeltaTime * frames;
+            ShockedHairColor = null;
+            yield return Engine.DeltaTime * frames;
+            ShockedHairColor = null;
         }
         public LabTubeLight(EntityData data, Vector2 position)
             : this(data.Position + position, Math.Max(16, data.Width), data.Bool("digital"), data.Bool("broken"), data.Bool("flipY"))

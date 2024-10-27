@@ -59,6 +59,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public string Welcome;
         public Color UserColor = Color.Cyan;
         private bool forcedClosed;
+        private bool removed;
         public List<TerminalCommand> Commands = new();
         public List<TerminalCommand> DefaultCommands = new();
         public void AddCommand(string id, Action<string> action = null, Func<string, IEnumerator> routine = null, params string[] identifiers)
@@ -116,7 +117,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
-            TextInput.OnInput -= TextInput_OnInput;
+            Dispose();
+        }
+        public void Dispose()
+        {
+            if (!removed)
+            {
+                TextInput.OnInput -= TextInput_OnInput;
+                removed = true;
+            }
+        }
+        public override void SceneEnd(Scene scene)
+        {
+            base.SceneEnd(scene);
+            Dispose();
         }
         public void SplitInput(string text, out string first, out string second)
         {

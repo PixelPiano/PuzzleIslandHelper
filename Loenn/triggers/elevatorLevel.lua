@@ -1,11 +1,11 @@
 local elevatorLevel = {}
 
-elevatorLevel.name = "PuzzleIslandHelper/ElevatorLevel"
+elevatorLevel.name = "PuzzleIslandHelper/SetElevatorFloor"
 
 elevatorLevel.placements =
 {
     {
-        name = "ElevLevel",
+        name = "Elevator Floor Trigger",
         data = {
             floorNumber = 1,
             elevatorID = ""

@@ -54,7 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     level.Camera.Position = Vector2.Lerp(from, to, Ease.CubeOut(i));
                     yield return null;
                 }
-                FakeTerminal t = new FakeTerminal(level.Camera.Position, 150, 80);
+                FakeTerminal t = new FakeTerminal(level.Camera.Position + new Vector2(150, 45), 150, 80);
                 Scene.Add(t);
                 while (t.TransitionAmount < 1)
                 {
@@ -104,10 +104,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public WarpCapsule(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
             ID = id;
+            Primary = data.Bool("primary");
             InputMachine = new Machine(this, data.NodesOffset(offset)[0]);
             Tag |= Tags.TransitionUpdate;
             Depth = 3;
-            Primary = data.Bool("primary");
             WarpID = data.Attr("warpID");
             Add(Bg = new Image(GFX.Game[Path + "bg"]));
             Collider = new Hitbox(Bg.Width, Bg.Height);

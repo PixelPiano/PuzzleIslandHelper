@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs
 {
-    [TerminalProgram("Hologlobe")]
+    [CustomProgram("Hologlobe")]
     public class HologramProgram : TerminalProgram
     {
         public enum States

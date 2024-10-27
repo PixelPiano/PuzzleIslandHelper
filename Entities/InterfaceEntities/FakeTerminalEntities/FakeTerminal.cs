@@ -139,6 +139,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             Renderer.RemoveSelf();
             MInput.Disabled = false;
         }
+        public override void SceneEnd(Scene scene)
+        {
+            base.SceneEnd(scene);
+            MInput.Disabled = false;
+        }
         public Color DebugColor = Color.White;
         public override void DebugRender(Camera camera)
         {

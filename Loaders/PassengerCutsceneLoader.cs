@@ -1,28 +1,38 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
+﻿using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Loaders
 {
-    public static class TerminalProgramLoader
+    public static class PassengerCutsceneLoader
     {
-        public delegate TerminalProgram ContentLoader(FakeTerminal terminal);
+        public delegate PassengerCutscene ContentLoader(Passenger passenger, Player player);
         public static readonly Dictionary<string, ContentLoader> ContentLoaders = new Dictionary<string, ContentLoader>();
-        public static bool LoadCustomProgram(string name, FakeTerminal terminal, Level level)
+        public static bool LoadCustomCutscene(string name, Passenger passenger, Player player, Level level)
         {
             if (ContentLoaders.TryGetValue(name, out var value))
             {
-                var program = value(terminal);
-                if (program != null)
+                var cutscene = value(passenger, player);
+                if (cutscene != null)
                 {
-                    program.Name = name;
-                    level.Add(program);
+                    level.Add(cutscene);
                     return true;
                 }
             }
             return false;
+        }
+        public static PassengerCutscene GetCustomCutscene(string name, Passenger passenger, Player player, Level level)
+        {
+            if (ContentLoaders.TryGetValue(name, out var value))
+            {
+                var cutscene = value(passenger, player);
+                return cutscene;
+            }
+            return null;
         }
         [OnLoad]
         public static void Load()
@@ -31,7 +41,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             Type[] types = assembly.GetTypesSafe();
             foreach (Type type in types)
             {
-                foreach (TerminalProgramAttribute customAttribute in type.GetCustomAttributes<TerminalProgramAttribute>())
+                foreach (CustomPassengerCutsceneAttribute customAttribute in type.GetCustomAttributes<CustomPassengerCutsceneAttribute>())
                 {
                     string[] iDs = customAttribute.IDs;
                     foreach (string text in iDs)
@@ -48,7 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                         {
                             if (array.Length != 2)
                             {
-                                Logger.Log(LogLevel.Warn, "core", "Invalid number of custom program ID elements: " + text + " (" + type.FullName + ")");
+                                Logger.Log(LogLevel.Warn, "core", "Invalid number of custom passenger cutscene ID elements: " + text + " (" + type.FullName + ")");
                                 continue;
                             }
                             text2 = array[0];
@@ -57,14 +67,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                         text2 = text2.Trim();
                         text3 = text3.Trim();
                         ContentLoader loader = null;
-                        ConstructorInfo ctor = type.GetConstructor(new Type[] { typeof(FakeTerminal) });
+                        ConstructorInfo ctor = type.GetConstructor(new Type[] { typeof(Passenger), typeof(Player) });
                         if (ctor != null)
                         {
-                            loader = (FakeTerminal terminal) => (TerminalProgram)ctor.Invoke(new object[] { terminal });
+                            loader = (passenger, player) => (PassengerCutscene)ctor.Invoke(new object[] { passenger, player });
                         }
                         if (loader == null)
                         {
-                            Logger.Log(LogLevel.Warn, "PuzzleIslandHelper", "Found custom terminal program without suitable constructor / " + text3 + "(FakeTerminal): " + text2 + " (" + type.FullName + ")");
+                            Logger.Log(LogLevel.Warn, "PuzzleIslandHelper", "Found passenger cutscene without suitable constructor / " + text3 + "(PassengerWIP): " + text2 + " (" + type.FullName + ")");
                         }
                         else
                         {

@@ -91,6 +91,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 c.RenderCube();
             }
         }
+        public override void Render(Scene scene)
+        {
+            base.Render(scene);
+            Draw.SpriteBatch.Draw(Buffer, Vector2.Zero, Color.White);
+        }
         [OnInitialize]
         internal static void Initialize()
         {
@@ -109,10 +114,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             Shader?.Dispose();
             Shader = null;
         }
-        public override void Render(Scene scene)
-        {
-            base.Render(scene);
-            Draw.SpriteBatch.Draw(Buffer, Vector2.Zero, Color.White);
-        }
+
     }
 }

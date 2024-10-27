@@ -1,6 +1,6 @@
 using System;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities
+namespace Celeste.Mod.PuzzleIslandHelper.Attributes
 {
 
     //
@@ -26,7 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public TerminalProgramAttribute(params string[] ids)
         {
             IDs = ids;
-            
+
         }
     }
 }

@@ -13,7 +13,8 @@ statid.placements =
         name = "Statid",
         data = 
         {
-            petals = 4
+            petals = 4,
+            digital = false
 
         }
     }

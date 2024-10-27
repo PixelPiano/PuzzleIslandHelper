@@ -97,6 +97,26 @@ fountainHintC=
 fountainHintD=
 	[Paper left normal]
 	{# 000000}YES. Why can't you just talk to me about it in person, you're hopeless.{#}
+
+capsuleDocumentA=
+	[Paper left normal]
+	{# FF0000}WARP{#}{# 000000} Manual (Simplified){#}
+	{# FF0000}WARP{#}{# 000000} (Wireless-Artificial-Relocation-Probe) is a mechanical object of unknown origin.
+	Each WARP has a unique identifier (id) tied with it.
+	Using the program installed on its neighboring display, the user can enter in any id of an associated WARP.
+	If the id exists and is within range, the WARP will open, and the user may step inside.{#}
+
+capsuleDocumentB=
+	[Paper left normal]
+	{# 000000}I don't like this.
+	This thing just appears out of nowhere without a scratch.
+	It's exactly what we need for digital expeditions, down to the smallest detail.
+	And not one person bats an eye.
+	It's perfect. Too perfect.
+	The scientist didn't build it. None of us built it.
+	So why are there so many of them?
+	Are we being watched?
+	If you ask me, we should stay well away from it.{#}
 codeResearchA=
 	[Paper left normal]
 	{# 000000}We've begun research into a strange phenomena.

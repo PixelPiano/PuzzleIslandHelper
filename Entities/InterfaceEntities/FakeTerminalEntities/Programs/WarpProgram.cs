@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs
 {
-    [TerminalProgram("WarpProgram")]
+    [CustomProgram("WarpProgram")]
     public class WarpProgram : TerminalProgram
     {
         public string SelectedID

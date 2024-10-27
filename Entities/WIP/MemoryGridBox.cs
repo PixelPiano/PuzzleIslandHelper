@@ -10,7 +10,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
-    [CustomEntity("PuzzleIslandHelper/WipEntity")]
+    [CustomEntity("PuzzleIslandHelper/MemoryGridBox")]
     [Tracked]
     public class MemoryGridBox : Entity
     {
@@ -79,8 +79,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Depth = 1;
             Tag |= Tags.TransitionUpdate;
             Collider = new Hitbox(16, 16);
-            EventID = data.Attr("stringValue");
-            HasCutscene = data.Bool("boolValue");
+            HasCutscene = data.Bool("isTouchCutscene");
             WhiteNoise = true;
             Shuffler = new(NoiseTexture, 16, 16, Engine.DeltaTime, true);
             Add(Shuffler);

@@ -19,7 +19,8 @@ labElevator.placements =
             defaultFloor = 0,
             snapToClosestFloorOnSpawn = false,
             reliesOnLabPower = true,
-            event = "Default"
+            event = "Default",
+            elevatorID = ""
         }
     }
 }

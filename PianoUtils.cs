@@ -20,9 +20,103 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.ArtifactSlot;
+using static Celeste.Player;
 
 public static class PianoUtils
 {
+    public static T[] Shift<T>(this T[] array, int shift)
+    {
+        T[] array2 = array;
+        for (int s = 0; s < shift; s++)
+        {
+            array2 = array;
+            for (int i = 0; i < array.Length; i++)
+            {
+                array[i] = array2[(i + 1) % array2.Length];
+            }
+        }
+        return array2;
+    }
+    public static T[] ShiftReverse<T>(this T[] array, int shift)
+    {
+        T[] array2 = array;
+        for (int s = 0; s < shift; s++)
+        {
+            array2 = array;
+            for (int i = 0; i < array.Length; i++)
+            {
+                int index = i - 1;
+                if (index < 0) index = array2.Length;
+                array[i] = array2[index];
+            }
+        }
+        return array2;
+    }
+    public static Tween SetTo(this Tween tween, float amount)
+    {
+        tween.TimeLeft = tween.Duration - tween.Duration * amount;
+        tween.TimeLeft += (tween.UseRawDeltaTime ? Engine.RawDeltaTime : Engine.DeltaTime);
+        return tween;
+    }
+    public static Tween Randomize(this Tween tween)
+    {
+        return tween.SetTo(Calc.Random.Range(0, 1f));
+    }
+    public static VertexPositionColor[] CreateVertices(this Vector2[] points, int[] indices, Vector2 scale, params Color[] colors)
+    {
+        Vector3[] newPoints = new Vector3[points.Length];
+        for (int i = 0; i < points.Length; i++)
+        {
+            newPoints[i] = new Vector3(points[i], 0);
+        }
+        return CreateVertices(newPoints, indices, new Vector3(scale, 0), colors);
+    }
+    public static VertexPositionColor[] CreateVertices(this Vector2[] points, Vector2 scale, out int[] indices, params Color[] colors)
+    {
+        Vector3[] newPoints = new Vector3[points.Length];
+        for (int i = 0; i < points.Length; i++)
+        {
+            newPoints[i] = new Vector3(points[i], 0);
+        }
+        return CreateVertices(newPoints, new Vector3(scale, 0), out indices, colors);
+    }
+    public static VertexPositionColor[] CreateVertices(this Vector3[] points, int[] indices, Vector3 scale, params Color[] colors)
+    {
+        if (indices == null)
+        {
+            indices = new int[points.Length];
+            for (int i = 0; i < points.Length; i++)
+            {
+                indices[i] = i;
+            }
+        }
+        VertexPositionColor[] vertices = new VertexPositionColor[points.Length];
+        Color color = Color.White;
+        for (int i = 0; i < points.Length; i++)
+        {
+            Color c = colors != null && colors.Length > i ? colors[i] : color;
+            vertices[i] = new VertexPositionColor(points[i] * scale, c);
+            color = c;
+        }
+        return vertices;
+    }
+    public static VertexPositionColor[] CreateVertices(this Vector3[] points, Vector3 scale, out int[] indices, params Color[] colors)
+    {
+        indices = new int[points.Length];
+        for (int i = 0; i < points.Length; i++)
+        {
+            indices[i] = i;
+        }
+        VertexPositionColor[] vertices = new VertexPositionColor[points.Length];
+        Color color = Color.White;
+        for (int i = 0; i < points.Length; i++)
+        {
+            Color c = colors != null && colors.Length > i ? colors[i] : color;
+            vertices[i] = new VertexPositionColor(points[i] * scale, c);
+            color = c;
+        }
+        return vertices;
+    }
     internal static void InvokeAllWithAttribute(Type attributeType)
     {
         Type attributeType2 = attributeType;
@@ -370,6 +464,7 @@ public static class PianoUtils
             pos.Y++;
         }
         entity.Collider = c;
+
         return pos;
     }
 
@@ -808,6 +903,57 @@ public static class PianoUtils
         return enumerationValue.ToString();
     }
 
+    public static void SeamlessTeleport(Scene scene, Player player, string nextLevel, bool relative)
+    {
+
+        //Todo: transfer tileseed
+        //Todo: affect backgrounds
+        //Todo: affect particles
+        //Todo: affect dash snapshots
+        Level level = scene as Level;
+        level.OnEndOfFrame += delegate
+        {
+            LevelData nextData = level.Session.MapData.Get(nextLevel);
+            if (nextData == null) return;
+
+            Vector2 levelOffset = level.LevelOffset;
+            Vector2 playerPositionInLevel = player.Position - levelOffset;
+            Vector2 cameraPositionInLevel = level.Camera.Position - levelOffset;
+            Facings facing = player.Facing;
+
+            List<TrailManager.Snapshot> snapshots = new();
+            List<Vector2> shotPositions = new();
+            foreach (TrailManager.Snapshot shot in level.Tracker.GetEntities<TrailManager.Snapshot>())
+            {
+                snapshots.Add(shot);
+                shotPositions.Add(shot.Position - levelOffset);
+            }
+
+            level.Remove(player);
+            level.Displacement.Clear();
+            level.UnloadLevel();
+            level.Session.Level = nextLevel;
+
+            Session session = level.Session;
+            Level level2 = level;
+            session.RespawnPoint = session.MapData.Get(nextLevel) is LevelData data && relative ? data.Position + playerPositionInLevel : level.Bounds.TopLeft();
+
+            level.Session.FirstLevel = false;
+            level.Add(player);
+            level.LoadLevel(IntroTypes.Transition);
+            level.Camera.Position = level.LevelOffset + cameraPositionInLevel;
+            level.Wipe?.Cancel();
+
+            player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
+            player.Position = level.LevelOffset + playerPositionInLevel;
+            player.Facing = facing;
+            /*
+                        for (int i = 0; i < snapshots.Count; i++)
+                        {
+                            snapshots[i].Position = level.LevelOffset + shotPositions[i];
+                        }*/
+        };
+    }
     public static void TeleportTo(Scene scene, Player player, string room, Player.IntroTypes introType = Player.IntroTypes.Transition, Vector2? nearestSpawn = null)
     {
         if (scene is Level level)

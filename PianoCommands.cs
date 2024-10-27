@@ -7,7 +7,10 @@ using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
+using Celeste.Mod.PuzzleIslandHelper.Helpers;
+using Celeste.Mod.PuzzleIslandHelper.Loaders;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections.Generic;
@@ -16,7 +19,22 @@ using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.Playe
 
 public class PianoCommands
 {
-    [Command("shakeIntensity","sets the level shake intensity")]
+    [Command("save_vert", "stores drawn vertices in a struct")]
+    public static void SaveVertices(string name)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        PolygonDrawing.RotatorDisplay drawing = level.Tracker.GetEntity<PolygonDrawing.RotatorDisplay>();
+        if(drawing != null)
+        {
+            VertexStorage.Store(name, drawing.Vertices.ToArray());
+        }
+    }
+    
+    [Command("shakeIntensity", "sets the level shake intensity")]
     private static void SetIntensity(float value)
     {
         LevelShaker.Intensity = value;
@@ -45,11 +63,11 @@ public class PianoCommands
         bool value = ValidateWarpID(id);
         if (value)
         {
-            Engine.Commands.Log("ID \""+id+"\" is valid.");
+            Engine.Commands.Log("ID \"" + id + "\" is valid.");
         }
         else
         {
-            Engine.Commands.Log("ID \""+id+"\" is invalid.");
+            Engine.Commands.Log("ID \"" + id + "\" is invalid.");
         }
     }
 
