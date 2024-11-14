@@ -54,8 +54,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 Calc.PushRandom();
                 float duration = Calc.Random.Range(0.05f, 0.1f);
                 float target = Calc.Random.Range(0f, 0.19f);
-                Ease.Easer ease = PianoUtils.Random();
-                Ease.Easer ease2 = PianoUtils.Random();
+                Ease.Easer ease = PianoUtils.RandomEaser();
+                Ease.Easer ease2 = PianoUtils.RandomEaser();
                 Calc.PopRandom();
                 from = alpha;
                 for (float j = 0; j < 1; j += Engine.DeltaTime / duration)

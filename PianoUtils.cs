@@ -406,7 +406,7 @@ public static class PianoUtils
 
     public static void Face(this Player player, Entity entity)
     {
-        if(entity.CenterX > player.CenterX)
+        if (entity.CenterX > player.CenterX)
         {
             player.Facing = Facings.Right;
         }
@@ -925,12 +925,20 @@ public static class PianoUtils
         return new FancySolidTiles(BlockData, Vector2.Zero, new EntityID());
     }
 
+    public static Color Brighten(this Color color, float amount)
+    {
+        return new Color(color.R + amount, color.G + amount, color.B + amount);
+    }
+    public static Color Darken(this Color color, float amount)
+    {
+        return new Color(color.R - amount, color.G - amount, color.B - amount);
+    }
     public static Vector2 RandomFrom(this Vector2 vec, float xMin, float xMax, float yMin, float yMax)
     {
         vec = Random(xMin, xMax, yMin, yMax) + vec;
         return vec;
     }
-    public static Ease.Easer Random()
+    public static Ease.Easer RandomEaser()
     {
         return Calc.Random.Choose(Ease.BackIn, Ease.BackInOut, Ease.BackOut, Ease.BigBackIn, Ease.BigBackInOut, Ease.BigBackOut,
             Ease.BounceIn, Ease.BounceOut, Ease.BounceInOut, Ease.CubeIn, Ease.CubeOut, Ease.CubeInOut, Ease.ElasticIn, Ease.ElasticInOut,

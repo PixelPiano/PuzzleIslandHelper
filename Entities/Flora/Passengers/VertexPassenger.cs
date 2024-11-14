@@ -114,7 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public void AddQuad(Vector2 a, Vector2 b, Vector2 c, Vector2 d, float mult, Vector2 wiggleMult, ColorShifter shifter = null)
         {
             AddPoints(new Vector2[] { a, b, c }, mult, wiggleMult, shifter);
-            AddPoints(new Vector2[] { b, c, d }, mult, wiggleMult, shifter);
+            AddPoints(new Vector2[] { b, c, d }, mult, wiggleMult, null);
         }
         public void AddPoints(Vector2[] points, float mult, Vector2 wiggleMult, ColorShifter shifter)
         {
@@ -127,13 +127,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             AddQuad(new(x1, y1), new(x2, y2), new(x3, y3), new(x4, y4), mult, wiggleMult, shifter);
         }
-        public void AddTriangle(Vector2 a, Vector2 b, Vector2 c, float multiplier, Vector2 wiggleMult, ColorShifter shifter = null)
+        public void AddTriangle(Vector2 a, Vector2 b, Vector2 c, float multiplier, Vector2 wiggleMult, ColorShifter shifter = null, bool mirrorX = false)
         {
             AddPoints(new Vector2[] { a, b, c }, multiplier, wiggleMult, shifter);
         }
-        public void AddTriangle(float x1, float y1, float x2, float y2, float x3, float y3, float mult, Vector2 wiggleMult, ColorShifter shifter = null)
+        public void AddTriangle(float x1, float y1, float x2, float y2, float x3, float y3, float mult, Vector2 wiggleMult, ColorShifter shifter = null, bool mirrorX = false)
         {
             AddTriangle(new(x1, y1), new(x2, y2), new(x3, y3), mult, wiggleMult, shifter);
+            if (mirrorX)
+            {
+                AddTriangle(new(Width - x1, y1), new(Width - x2, y2), new(Width - x3, y3), mult, wiggleMult, shifter);
+            }
+        }
+
+        public void AddTriangle(int indiceA, int indiceB, int indiceC)
+        {
+            Indices.Add(indiceA);
+            Indices.Add(indiceB);
+            Indices.Add(indiceC);
         }
         public override void Added(Scene scene)
         {
@@ -163,6 +174,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 UpdateVertices();
             }
         }
+
         public void UpdateVertices()
         {
             if (!Baked) return;
@@ -171,9 +183,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             {
                 Vector2 point = Points[i] - Collider.HalfSize;
                 point.X *= -(int)Facing;
-                Vector2 position = Center + point * Scale * ScaleApproach;
-                Vector2 offset = OgOffsets[i] * tweens[i].Eased * WiggleMults[i] + Offsets[i];
-                Vertices[i].Position = new Vector3(position + (offset + BreathOffset) * OffsetMults[i], 0);
+                Vector2 position = Center + (point * Scale * ScaleApproach);
+                Vector2 wiggleOffset = OgOffsets[i] * tweens[i].Eased * WiggleMults[i] * OffsetMults[i];
+                Vector2 breath = BreathOffset;
+                Vertices[i].Position = new Vector3(position + (wiggleOffset + Offsets[i]), 0);
                 if (Shifters[i] != null)
                 {
                     Vertices[i].Color = Color.Lerp(Shifters[i][i % Shifters[i].Colors.Length], Color2, ColorMixLerp) * Alpha;
@@ -184,7 +197,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             if (Points.Contains(p))
             {
-                Indices.Add(Points.IndexOf(p));
+                int index = Points.IndexOf(p);
+
+                OffsetMults[index] = Calc.Max(OffsetMults[index], mult);
+                Indices.Add(index);
             }
             else
             {
@@ -220,7 +236,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             {
                 p[i] = Points[i];
                 Offsets[i] = Vector2.Zero;
-                OgOffsets[i] = Vector2.UnitY * Calc.Random.Range(-1, 1) * Calc.Random.Range(MinWiggleTime, MaxWiggleTime);
+                OgOffsets[i] = Vector2.UnitY;// * Calc.Random.Choose(-1, 1);
+
                 Tween t = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.QuadInOut, Calc.Random.Range(MinWiggleTime, MaxWiggleTime), true);
                 t.Randomize();
                 Add(t);
@@ -314,6 +331,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public IEnumerator PlayerStepBack(Player player)
         {
             yield return new SwapImmediately(PlayerStepBack(player, Facing));
+        }
+        public static string GetPositionString(VertexPassenger p)
+        {
+            string output = "";
+
+            foreach (VertexPositionColor v in p.Vertices.OrderByDescending(item => item.Position.Y))
+            {
+                output += "{" + v.Position.X + "," + v.Position.Y + "} " + '\n';
+            }
+            return output;
         }
     }
 }

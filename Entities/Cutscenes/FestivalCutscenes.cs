@@ -381,9 +381,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 
 
             yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_07", rumble, jaquesCalmDown, ghostAppears, randyPanic, crowdScatter, MaddyRunToJaques, ghostMaterialize, jaquesToFrontOfTrailer, ghostFirstApproach, calidusApproachGhost, calidusGlitch, calidusDizzy, everyoneBackUp, ghostAdvance, allLookAtJaques, moveBehindJaques, lightOnGhost, runToTrailerBack, getInTrailer));
-
+            Trailer.ShutDoor();
+            Dark = new Darkness();
+            Scene.Add(Dark);
+            yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_08"));
             //ghost walks to right, ghost roars, ghost walks to left, ghost roars, ghost leaves
         }
+
+
         public IEnumerator Trapped()
         {
             yield return null;
@@ -409,7 +414,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             if (actor is Player)
             {
                 (actor as Player).Facing = (Facings)dir;
-                yield return (actor as Player).DummyWalkTo(x, walkBackwards);
+                yield return (actor as Player).DummyWalkTo(x, walkBackwards, speedMult);
             }
             else
             {
@@ -607,17 +612,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 new(MoveActorToXAndJump(Jaques,x,Trailer.Width)),
                 new(MoveActorToXAndJump(Player,x + 16, Trailer.Width - 20)),
                 new(MoveActorToXAndJump(Randy, x + 32, Trailer.Width - 32)),
-                new(Calidus.FloatToX(x + 48))
+                new(Calidus.FloatToX(x + 46))
             };
             Add(routines);
             foreach (var r in routines)
             {
                 while (!r.Finished) yield return null;
             }
-            Trailer.ShutDoor();
-            Dark = new Darkness();
-            Scene.Add(Dark);
-            yield return null;
         }
         private IEnumerator wait()
         {

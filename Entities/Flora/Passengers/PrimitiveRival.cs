@@ -48,7 +48,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
 
             //HAT
             AddQuad(new(2, -8), new(2, 0), new(9, -7), new(9, 0), 0.8f, Vector2.One, new(Color.HotPink, Color.DarkRed, Color.Red));
-
             //HAT BRIM
             AddTriangle(new(-1, 1), new(5, -2), new(5, 1), 0.8f, Vector2.One, new(Color.HotPink, Color.LightPink, Color.LightPink));
             AddTriangle(new(5, -3), new(11, 1), new(5, 1), 0.8f, Vector2.One, new(Color.HotPink, Color.LightPink, Color.LightPink));
