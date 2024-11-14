@@ -36,6 +36,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             collide.Collider = new Hitbox(1, 1);
             scene.Add(collide);
         }
+        public override void Update()
+        {
+            base.Update();
+            bool inView = InView();
+            foreach (Statid s in Flowers)
+            {
+                s.Sleeping = !inView;
+            }
+        }
+        public bool InView()
+        {
+            Camera camera = (Scene as Level).Camera;
+            float xPad = Width;
+            float yPad = Height;
+            if (X > camera.X - xPad && Y > camera.Y - yPad && X < camera.X + 320f + xPad)
+            {
+                return Y < camera.Y + 180f + yPad;
+            }
+            return false;
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
@@ -66,16 +86,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                     }
 
                     Statid flower = new Statid(new Vector2(collide.Position.X, y), p, Digital, Vector2.One * 4, 2);
-                    EntityID id = new EntityID(Guid.NewGuid().ToString(),0);
+                    EntityID id = new EntityID(Guid.NewGuid().ToString(), 0);
                     flower.ID = id;
                     level.Add(flower);
-                    flower.Depth = Calc.Random.Choose(-1, 1);
+                    flower.Depth = Calc.Random.Choose(-1, 2, -10000);
+                    flower.Color = Color.Lerp(Color.White, Color.Black, flower.Depth < 0 ? 0 : Calc.Random.Range(0.2f, 0.5f));
+                    if(flower.Depth < -1)
+                    {
+                        flower.GroundOffset = Calc.Random.Range(0, 7) * Vector2.UnitY;
+                    }
                     Flowers.Add(flower);
                 }
                 collide.X += (int)(Calc.Random.Chance(HalfStepChance) ? Spacing / 2f : Spacing);
             }
             level.Remove(collide);
-
         }
         public override void Removed(Scene scene)
         {

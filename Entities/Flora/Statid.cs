@@ -16,11 +16,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
     [Tracked]
     public class Statid : Entity
     {
-        public bool Digital => PianoModule.Session.DEBUGBOOL1;
+        public bool Digital;
 
         public const float BaseAngle = -90;
         public const float MaxAngleDiff = 35;
-
+        public Color Color;
         public class Petal : Component
         {
             public Vector2[] PetalPoints = new Vector2[] { new(-0.15f, 0), new(0.15f, 0), new(-0.25f, -0.5f), new(0.25f, -0.5f), new(0, -1) };
@@ -60,6 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             public override void Added(Entity entity)
             {
                 base.Added(entity);
+
                 //scaleOffset = Vector2.One * Calc.Random.Range(0, 3) * Calc.Random.Choose(-1, 1);
             }
             public override void Update()
@@ -70,6 +71,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 
             public void UpdateVertices()
             {
+                if (Parent.Digital) return;
                 Vector2 p = RenderPosition;
                 for (int i = 0; i < Vertices.Length; i++)
                 {
@@ -93,80 +95,167 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public float Mult;
         public float TargetMult;
 
-        public bool onScreen;
-
+        public bool Sleeping;
+        public bool IsInView;
         public Vector2 Orig;
         public Vector2 Ground;
         public Vector2 StemConnect;
         public Vector2 PetalScale;
-        private Rectangle onScreenRect;
         public EntityID ID;
         public int Thickness = 1;
         private VirtualRenderTarget PetalTarget;
         private Ease.Easer ease;
         public IEnumerable<Entity> CollidingActors;
-
-
+        public Vector2 GroundOffset;
+        public float HeightOffset;
+        private float heightOffsetRate;
+        private float heightOffsetTarget;
+        public float bulbOffset;
+        private float turnRate;
+        private bool playerColliding;
+        private bool playerWasColliding;
         public Statid(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, data.Int("petals"), data.Bool("digital"), Vector2.One * 4, 0)
         {
             ID = id;
         }
         public Statid(Vector2 position, int petals, bool digital, Vector2 petalScale, int scaleRange) : base(position)
         {
+            Digital = digital;
+            Depth = 2;
             ease = Ease.Follow(Ease.SineIn, Ease.BackOut);
             PetalScale = petalScale;
             this.scaleRange = scaleRange;
             Orig = Position;
             PetalCount = petals;
-            Add(new BeforeRenderHook(BeforeRender));
+            //Add(new BeforeRenderHook(BeforeRender));
+            Add(new PlayerCollider(OnPlayer));
+        }
+
+        public void OnPlayer(Player player)
+        {
+            playerColliding = true;
+            if (!playerWasColliding)
+            {
+                float speed = (player.Speed.X) * Engine.DeltaTime * 0.06f;
+                TargetMult = Calc.Min(TargetMult + speed, 1);
+            }
+        }
+        public bool InView()
+        {
+            Camera camera = (Scene as Level).Camera;
+            float xPad = Width;
+            float yPad = Height;
+            if (X > camera.X - xPad && Y > camera.Y - yPad && X < camera.X + 320f + xPad)
+            {
+                return Y < camera.Y + 180f + yPad;
+            }
+            return false;
+        }
+        public void ChanceEmit(Player player, float distance)
+        {
+            if (distance < 8 * 8 && Calc.Random.Chance((int)(player.Speed.Length() / 40) * 0.025f))
+            {
+                Vector2 position = Ground + GroundOffset + Calc.AngleToVector(Angle, Height + HeightOffset + 2);
+                WavyParticle p = new WavyParticle(position)
+                {
+                    MinSpeed = 20f,
+                    MaxSpeed = 50f,
+                    MinOffset = 4f,
+                    MaxOffset = 16f,
+                    MinLife = 1f,
+                    MaxLife = 5f,
+                    Color = player.Hair.Color,
+                    Color2 = Color.White,
+                    DownFirst = Calc.Random.Chance(0.5f),
+                    Dir = -Vector2.UnitY,
+                    Friction = 1f,
+                    Acceleration = player.Speed * 0.005f,
+                    Size = Calc.Random.Choose(1, 2),
+                    OffsetMode = WavyParticle.OffsetModes.ChangeEveryHalfWave,
+                    ColorMode = WavyParticle.ColorModes.FadeFromMiddle,
+                    FadeMode = WavyParticle.FadeModes.Linear,
+
+                };
+                Scene.Add(p);
+            }
+        }
+        public void InactiveUpdate()
+        {
+            bulbOffset = 0;
+            HeightOffset = 0;
         }
         public override void Update()
         {
-            if (Scene is not Level level) return;
-
-            onScreen = level.Camera.GetBounds().Colliding(onScreenRect);
-            if (!onScreen) return;
-            float ease = this.ease(Mult);
-            if (Digital)
+            if (Sleeping)
             {
-                AngleOffset = Mult > 0 ? MaxAngleDiff : 0;
+                InactiveUpdate();
+                return;
             }
-            else
+            IsInView = InView();
+            if (!IsInView)
             {
+                InactiveUpdate();
+                return;
+            }
+            if (Scene.GetPlayer() is Player player)
+            {
+                float dist = Vector2.DistanceSquared(player.Center + player.Speed * 2 * Engine.DeltaTime, Center);
+                if (dist < 40 * 40)
+                {
+                    bulbOffset = Calc.Approach(bulbOffset, 2 * Math.Sign(player.CenterX - CenterX), Engine.DeltaTime * turnRate);
+                    ChanceEmit(player, dist);
+                    HeightOffset = Calc.Approach(HeightOffset, heightOffsetTarget, heightOffsetRate);
+                }
+                else
+                {
+                    bulbOffset = Calc.Approach(bulbOffset, 0, Engine.DeltaTime);
+                    HeightOffset = Calc.Approach(HeightOffset, 0, heightOffsetRate);
+                }
+            }
+            if (!Digital)
+            {
+                float ease = this.ease(Mult);
                 AngleOffset = Calc.Approach(AngleOffset, MaxAngleDiff * ease, (5 + 15 * ease));
             }
 
             Mult = Calc.Approach(Mult, TargetMult, Engine.DeltaTime);
             Angle = (BaseAngle + AngleOffset).ToRad();
             TargetMult = Calc.Approach(TargetMult, 0, Engine.DeltaTime * 1.2f);
-
-            if (!Digital)
-            {
-                foreach (Petal p in Petals)
-                {
-                    p.Rotation = Angle;
-                }
-            }
             StemConnect = Ground + Calc.AngleToVector(Angle, Height);
 
+            playerWasColliding = playerColliding;
+            playerColliding = false;
             base.Update();
-        }
 
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            bulbSize = Calc.Random.Range(1, 4);
+            turnRate = Calc.Random.Range(0.3f, 1.2f);
+            heightOffsetTarget = Calc.Random.Range(0, 1f) * 7;
+            heightOffsetRate = Calc.Random.Range(4, 10) * Engine.DeltaTime;
+            bulbSize = Calc.Random.Chance(0.1f) ? 0 : Calc.Random.Range(2, 4);
             Thickness = Calc.Random.Choose(1, 2);
-            Ground = this.GroundedPosition() + Vector2.UnitY;
+            if (!this.HasGroundBelow(out Ground))
+            {
+                RemoveSelf();
+                return;
+            }
+            Ground.Y++;
+            Collider = new Hitbox(1, 1);
+            if (!CollideCheck<Solid>(Ground + Vector2.One))
+            {
+                Ground.X -= 2;
+                Position.X -= 2;
+            }
+            else if (!CollideCheck<Solid>(Ground + new Vector2(-1, 1)))
+            {
+                Ground.X += 2;
+                Position.X += 2;
+            }
             Collider = new Hitbox(8, Ground.Y - Orig.Y, -4);
-            onScreenRect = Collider.Bounds;
-            int offset = 8;
-            onScreenRect.X -= offset;
-            onScreenRect.Width += offset * 2;
-            onScreenRect.Y -= offset;
-            onScreenRect.Height += offset;
 
-            Petals = new Petal[PetalCount];
+            /*Petals = new Petal[PetalCount];
 
             for (int i = 0; i < PetalCount; i++)
             {
@@ -175,12 +264,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 Petals[i].Visible = false;
             }
             Add(Petals);
-        }
-        private bool drewOnce;
 
-        public void BeforeRender()
-        {
-            if (drewOnce) return;
             float left = int.MaxValue;
             float right = int.MinValue;
             float top = int.MaxValue;
@@ -197,7 +281,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             int width = (int)(right - left);
             int height = (int)(bottom - top);
-            PetalTarget = VirtualContent.CreateRenderTarget("StatidPetalTarget", width, height);
+            PetalTarget = VirtualContent.CreateRenderTarget("StatidPetalTarget", width, height);*/
+        }
+/*        private bool drewOnce;
+
+        public void BeforeRender()
+        {
+            if (drewOnce) return;
             PetalTarget.SetRenderTarget(null);
             foreach (Petal p in Petals)
             {
@@ -205,7 +295,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
 
             drewOnce = true;
-        }
+        }*/
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
@@ -214,37 +304,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public override void Render()
         {
-            if (Scene is not Level level || !onScreen) return;
+            if (Sleeping || !IsInView) return;
             if (Digital)
             {
-                Draw.LineAngle(Ground, Angle, Height - 1, Color.White, Thickness);
-                DrawPoint(Ground + Calc.AngleToVector(Angle, Height + 2), Color.White, bulbSize);
+                Draw.LineAngle(Ground + GroundOffset, Angle, Height + HeightOffset, Color, Thickness);
+                DrawPoint(Ground + GroundOffset + Calc.AngleToVector(Angle, Height + HeightOffset + 2) + Vector2.UnitX * (-bulbSize + bulbOffset), Color, bulbSize);
             }
-            else
+/*            else
             {
-                Draw.LineAngle(Ground, Angle, Height - 1, Color.White, Thickness);
-                Draw.SpriteBatch.Draw(PetalTarget, Position, Color.White);
-            }
+                Draw.LineAngle(Ground + GroundOffset, Angle, Height + HeightOffset, Color, Thickness);
+                //Draw.SpriteBatch.Draw(PetalTarget, Position, Color);
+            }*/
         }
         public void DrawPoint(Vector2 position, Color color, int size)
         {
             Draw.SpriteBatch.Draw(Draw.Pixel.Texture.Texture_Safe, position, Draw.Pixel.ClipRect, color, 0f, Vector2.Zero, size, SpriteEffects.None, 0f);
-        }
-        public void DrawCurve(Vector2 from, Vector2 to, Vector2 control)
-        {
-            from = from.Round();
-            to = to.Round();
-            SimpleCurve curve = new SimpleCurve(from, to, (from + to) / 2f + control);
-            Vector2 vector = curve.Begin;
-            int steps = (int)Vector2.Distance(from, to);
-            for (int j = 1; j <= steps; j++)
-            {
-                float percent = (float)j / steps;
-                float colorAmount = Calc.Clamp(MathHelper.Distance(0.5f, percent), 0.15f, 0.85f) / 0.35f;
-                Vector2 point = curve.GetPoint(percent).Round();
-                Draw.Line(vector, point, Color.Lerp(Color.White, Color.Gray, 1 - colorAmount), 1);
-                vector = point + (vector - point).SafeNormalize();
-            }
         }
     }
 }

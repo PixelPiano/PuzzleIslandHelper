@@ -1157,7 +1157,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             Vector2 padding = Vector2.One * 4;
             AfterImage image = new AfterImage(sprite.SpriteBox.Position - padding, sprite.SpriteBox.Width + padding.X * 2, sprite.SpriteBox.Height + padding.Y * 2, delegate { sprite.RenderAt((Position - sprite.SpriteBox.Position + padding).Floor()); });
             Scene.Add(image);
-
         }
         public void normalBegin()
         {

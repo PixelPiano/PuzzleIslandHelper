@@ -2,6 +2,7 @@ using Celeste.Mod.LuaCutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Structs;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Mono.Cecil.Cil;
@@ -94,106 +95,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 Effect.Parameters["Random"]?.SetValue(Calc.Random.Range(1, 100f));
             }
 
-        }
-
-        [Tracked]
-        public class QuickGlitch : Entity
-        {
-            public float Interval;
-            public int MaxBlocks;
-            public Vector2 Offset;
-            public Vector2 Padding;
-            private float timer;
-            private float duration;
-            public bool Timed;
-            public List<Block> Blocks = new();
-            public Entity Entity;
-            public class Block
-            {
-                public Vector2 Position;
-                public Vector2 origPosition;
-                public float Width;
-                public float Height;
-                private Rectangle Bounds;
-                public Color Color;
-                public Block(Vector2 position, float width, float height, Color color)
-                {
-                    origPosition = Position = position;
-                    Bounds = new Rectangle((int)position.X, (int)position.Y, (int)width, (int)height);
-                    Color = color;
-                }
-                public void Update()
-                {
-                    Bounds.X = (int)Position.X;
-                    Bounds.Y = (int)Position.Y;
-                }
-                public void Render()
-                {
-                    Draw.Rect(Bounds, Color);
-                }
-            }
-            public QuickGlitch(Entity entity, Vector2 padding, float interval, int maxBlocks, float duration) : base(entity.Collider != null ? entity.Collider.AbsolutePosition : entity.Position)
-            {
-                Entity = entity;
-                Collider = new Hitbox(entity.Width, entity.Height);
-                Interval = interval;
-                MaxBlocks = maxBlocks;
-                Padding = padding;
-                Depth = -100000;
-                Timed = true;
-                this.duration = duration;
-                Add(new Coroutine(Sequence()));
-            }
-            public override void Update()
-            {
-                base.Update();
-                if (Entity is Calidus calidus)
-                {
-                    foreach (Block b in Blocks)
-                    {
-                        b.Position = b.origPosition - Vector2.UnitY * calidus.FloatTarget;
-                    }
-                }
-                foreach (Block b in Blocks)
-                {
-                    b.Update();
-                }
-                if (Timed)
-                {
-                    timer += Engine.RawDeltaTime;
-                    if (timer > duration)
-                    {
-                        RemoveSelf();
-                    }
-                }
-            }
-            public override void Render()
-            {
-                base.Render();
-                foreach (Block block in Blocks)
-                {
-                    block.Render();
-                }
-            }
-            private IEnumerator Sequence()
-            {
-                Vector2 pos;
-                float width, height;
-                while (true)
-                {
-                    Blocks.Clear();
-                    for (int i = 0; i < MaxBlocks; i++)
-                    {
-                        Color color = Calc.Random.Choose(Color.Green, Color.Black);
-                        pos = Position - Padding + new Vector2(Calc.Random.Range(0, Width + Padding.X * 2), Calc.Random.Range(0, Height + Padding.Y * 2));
-                        pos += Offset;
-                        width = Calc.Random.Range(Width / 4, Width / 1.5f);
-                        height = Calc.Random.Range(2f, 8);
-                        Blocks.Add(new Block(pos, width, height, color));
-                    }
-                    yield return Interval;
-                }
-            }
         }
         public void SetCutsceneFlag()
         {
@@ -347,7 +248,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 yield return null;
             }
-            Calidus.FloatTo(level.Marker("calidus"), 2, Ease.SineOut);
+            Calidus.FloatToLerp(level.Marker("calidus"), 2, Ease.SineOut);
         }
         private IEnumerator Dialogue3(Player player, Level level)
         {
@@ -356,7 +257,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator AngryApproach()
         {
-            Calidus?.FloatTo(Calidus.Position - Vector2.UnitX * 16, 0.1f);
+            Calidus?.FloatToLerp(Calidus.Position - Vector2.UnitX * 16, 0.1f);
             yield return null;
         }
         private IEnumerator ApproachPlayer()
@@ -364,7 +265,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             if (Level.GetPlayer() is Player player && Calidus != null)
             {
                 Calidus.CanFloat = false;
-                yield return Calidus.FloatToRoutine(player.CenterRight + new Vector2(Calidus.OrbSprite.Width, -Calidus.Height / 2), 1.5f, Ease.CubeOut);
+                yield return Calidus.FloatLerpRoutine(player.CenterRight + new Vector2(Calidus.OrbSprite.Width, -Calidus.Height / 2), 1.5f, Ease.CubeOut);
             }
             yield return null;
         }
@@ -601,7 +502,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return 0.5f;
             //Calidus.LookDir = Calidus.Looking.Right;
             //Calidus.LookAtPlayer = false;
-            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 16, 5);
+            Calidus.FloatToLerp(Calidus.Position + Vector2.UnitX * 16, 5);
             float from = Engine.TimeRate;
             InvertOverlay.HoldState = true;
             //time slows down, as it gets to 0 the bursts Start reversing back to madeline
@@ -634,9 +535,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             player.Visible = false;
             Calidus.Visible = false;
-            QuickGlitch playerGlitch = new QuickGlitch(player, Vector2.One * 4, Engine.DeltaTime, 8, 0.8f);
-            QuickGlitch calidusGlitch = new QuickGlitch(Calidus, Vector2.One * 4, Engine.DeltaTime, 5, 0.8f);
-            Level.Add(playerGlitch, calidusGlitch);
+            //QuickGlitch playerGlitch = new QuickGlitch(player, Vector2.One * 4, Engine.DeltaTime, 8, 0.8f);
+            //QuickGlitch calidusGlitch = new QuickGlitch(Calidus, Vector2.One * 4, Engine.DeltaTime, 5, 0.8f);
+            //Level.Add(playerGlitch, calidusGlitch);
             while (Level.Tracker.GetEntities<QuickGlitch>().Count > 0)
             {
                 yield return null;
@@ -917,8 +818,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         public void AddGlitches(Player player, Calidus calidus)
         {
-            Level.Add(new QuickGlitch(player, Vector2.One * 8, Engine.DeltaTime, 8, 0.4f));
-            Level.Add(new QuickGlitch(calidus, Vector2.Zero, Engine.DeltaTime, 8, 0.4f) { Offset = -Vector2.UnitX * 8 });
+            Level.Add(new QuickGlitch(player, new Range2(2, 5, 2, 5), Vector2.One * 8, Engine.DeltaTime, 8, 0.4f));
+            Level.Add(new QuickGlitch(calidus, new Range2(2, 5, 2, 5), Vector2.Zero, Engine.DeltaTime, 8, 0.4f) { Offset = -Vector2.UnitX * 8 });
         }
         public override void Removed(Scene scene)
         {
@@ -933,7 +834,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator CaliDramaticFloatAway()
         {
-            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 24, 2, Ease.SineInOut);
+            Calidus.FloatToLerp(Calidus.Position + Vector2.UnitX * 24, 2, Ease.SineInOut);
             yield return null;
         }
         private IEnumerator CaliDramatiLookUpRight()
@@ -1069,14 +970,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }*/
         private IEnumerator CaliStopBeingDramatic()
         {
-            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * -24, 1, Ease.SineInOut);
+            Calidus.FloatToLerp(Calidus.Position + Vector2.UnitX * -24, 1, Ease.SineInOut);
             Calidus.LookDir = Calidus.Looking.Left;
             yield return null;
         }
         private IEnumerator CaliTurnRight()
         {
             Calidus.LookDir = Calidus.Looking.Right;
-            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 16, 1, Ease.SineInOut);
+            Calidus.FloatToLerp(Calidus.Position + Vector2.UnitX * 16, 1, Ease.SineInOut);
             yield return null;
         }
         private Vector2 caliMoveBackPosition;
@@ -1084,7 +985,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             if (Level.GetPlayer() is Player player)
             {
-                Calidus.FloatTo(player.Center + (Calidus.Position - player.Center) * 0.7f, 0.5f);
+                Calidus.FloatToLerp(player.Center + (Calidus.Position - player.Center) * 0.7f, 0.5f);
             }
             yield return null;
         }
@@ -1092,7 +993,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             if (caliMoveBackPosition != Vector2.Zero)
             {
-                Calidus.FloatTo(Calidus.OrigPosition, 1, Ease.SineOut);
+                Calidus.FloatToLerp(Calidus.OrigPosition, 1, Ease.SineOut);
             }
             yield return null;
         }
@@ -1211,7 +1112,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             Player player = Level.GetPlayer();
             Level.Displacement.AddBurst(player.Center, 0.3f, 0, 40, 1);
-            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 4, 0.3f);
+            Calidus.FloatToLerp(Calidus.Position + Vector2.UnitX * 4, 0.3f);
             yield return null;
         }
         private IEnumerator WalkLeft()
@@ -1229,7 +1130,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Player player = Level.GetPlayer();
             Add(new Coroutine(player.DummyWalkTo(player.X + 8, false, 2)));
             yield return 0.07f;
-            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 6, 0.3f);
+            Calidus.FloatToLerp(Calidus.Position + Vector2.UnitX * 6, 0.3f);
             yield return null;
         }
         private IEnumerator MoveCamera(Vector2 amount, float time)
@@ -1247,7 +1148,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Player player = Level.GetPlayer();
             yield return player.DummyWalkTo(player.X - 16, true, 1.4f);
             yield return 0.5f;
-            Calidus.FloatTo(Calidus.Position - Vector2.UnitX * 6, 1);
+            Calidus.FloatToLerp(Calidus.Position - Vector2.UnitX * 6, 1);
             yield return 0.2f;
             player.Facing = Facings.Left;
             yield return 1;
@@ -1299,7 +1200,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Player player = Level.GetPlayer();
             Level.Flash(Color.White * 0.5f);
             Level.Displacement.AddBurst(player.Center, 1f, 0, 150, 1);
-            Calidus.FloatTo(Calidus.Position + Vector2.UnitX * 6, 0.3f);
+            Calidus.FloatToLerp(Calidus.Position + Vector2.UnitX * 6, 0.3f);
         }
         private IEnumerator Walk(float x, bool backwards = false, float speedmult = 1, bool intoWalls = false)
         {

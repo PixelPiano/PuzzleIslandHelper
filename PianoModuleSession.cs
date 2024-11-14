@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -18,6 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public List<string> VoidLampGroups = new();
         public Dictionary<string, Vector2> PortalNodePositions = new();
         public Dictionary<EntityID, string> PersistentWarpLinks = new();
+        public Dictionary<string, bool> LoggedCapsules = new();
         public bool DEBUGBOOL1 { get; set; }
         public int DEBUGINT { get; set; }
         public bool DEBUGBOOL2 { get; set; }

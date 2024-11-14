@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
+using static VivHelper.Entities.CollectibleController;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
@@ -103,9 +104,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Add(hover);
             if (HasCutscene)
             {
-                Vector2 grounded = this.GroundedPosition();
-                Collider = new Hitbox(16, (grounded.Y + 16) - Position.Y);
-                Add(new DotX3(Collider, Interact));
+                if (this.HasGroundBelow(out Vector2 ground))
+                {
+                    Collider = new Hitbox(16, (ground.Y + 16) - Position.Y);
+                    Add(new DotX3(Collider, Interact));
+                }
             }
         }
         public override void Update()

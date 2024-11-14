@@ -10,26 +10,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public string Text;
         public string FullText { get; private set; }
         public float LineHeight;
-        private bool squareOn;
+
         public Vector2 Scale = Vector2.One * 0.7f;
         public Color Color = Color.White;
         public static Color DebugColor = Color.White;
         public bool DrawsSquare = true;
+        public static bool HideSquare;
+        public bool ForceSquare;
         public Vector2 RenderPosition { get; private set; }
-        public TextLine(FakeTerminal terminal, string text, int index, Color color) : base(terminal, index)
+        public TextLine(FakeTerminal terminal, string text, Color color) : base(terminal)
         {
             Color = color;
             Text = text;
-            Alarm alarm = Alarm.Create(Alarm.AlarmMode.Looping, delegate { squareOn = !squareOn; }, 1, true);
-            Add(alarm);
+        }
+        public virtual string GetText()
+        {
+            return Text;
         }
         public override void Update()
         {
             base.Update();
             string text = "> ";
-            if (!string.IsNullOrEmpty(Text))
+            string full = GetText();
+            if (!string.IsNullOrEmpty(full))
             {
-                text += Text;
+                text += full;
             }
             FullText = text;
         }
@@ -37,7 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             RenderPosition = level.Camera.CameraToScreen(renderAt).Floor() * 6;
             ActiveFont.Draw(FullText, RenderPosition, Vector2.Zero, Scale, Color * Alpha);
-            if (DrawsSquare && IsCurrentIndex && !Halt)
+            if (ForceSquare || (DrawsSquare && IsCurrentIndex && !Halt && !HideSquare))
             {
                 Vector2 measure = ActiveFont.Measure(FullText) * Scale;
                 float width = ActiveFont.BaseSize * 0.6f * Scale.X;

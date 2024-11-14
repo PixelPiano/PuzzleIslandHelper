@@ -1,3 +1,4 @@
+using Celeste.Mod.Entities;
 using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
@@ -8,12 +9,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
     //     Mark this entity as a Custom Passenger Cutscene
     //     Will add a cutscene to the scene if the passenger is talked to.
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public class CustomPassengerCutsceneAttribute : Attribute
+    public class CustomPassengerCutsceneAttribute : CustomEventAttribute
     {
         //
         // Summary:
         //     A list of unique identifiers for this Cutscene.
-        public string[] IDs;
+        public string[] CustomIDs;
 
         //
         // Summary:
@@ -22,10 +23,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         // Parameters:
         //   ids:
         //     A list of unique identifiers for this Cutscene.
-        public CustomPassengerCutsceneAttribute(params string[] ids)
+        public CustomPassengerCutsceneAttribute(params string[] ids) : base(InsertModName(ids))
         {
-            IDs = ids;
-
+            CustomIDs = ids;
+        }
+        private static string[] InsertModName(string[] ids)
+        {
+            for(int i = 0; i<ids.Length; i++)
+            {
+                ids[i] = "PuzzleIslandHelper/" + ids[i];
+            }
+            return ids;
         }
     }
 }

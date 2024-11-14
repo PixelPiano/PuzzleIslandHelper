@@ -7,10 +7,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.InvertAuth;
+using static Celeste.DreamStars;
 using Looking = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Looking;
 using Mood = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Mood;
-using Part = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Part;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
 {
@@ -44,12 +43,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
 
         public float RollRotation;
         private Player player;
-        private ParticleSystem system;
 
         public Vector2 OrigPosition;
         public Vector2 LookTarget;
         public Vector2 EyeOffset;
-        private float OutlineOpacity;
+        public float OutlineOpacity;
         public float FloatTarget;
         public float FloatAmount;
         public bool Continue;
@@ -57,15 +55,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         public bool LookTargetEnabled;
         public bool CanFloat = true;
         public bool EyeExpressionOverride;
-        private bool RenderStar;
+        public bool RenderStar;
         public bool Broken;
+        public bool EyeLocked;
         public float ColliderWidth => OrbSprite.Width;
         public float ColliderHeight => OrbSprite.Height;
         public Collider SpriteBox;
+        public bool AutoEye = false;
+        public Vector2 EyeScale = Vector2.One;
 
         public List<Part> Parts = new();
-        private MTexture Star;
-        private ParticleType HeeHee = new ParticleType
+        public MTexture Star;
+        public ParticleType HeeHee = new ParticleType
         {
             Source = GFX.Game["objects/PuzzleIslandHelper/particles/heehee00"],
             Size = 1f,
@@ -100,6 +101,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             public float ColorLerp;
             public float FlashAlpha;
             public MTexture FlashTexture;
+            public float FloatAmount;
             public new Vector2 RenderPosition
             {
                 get
@@ -119,6 +121,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             {
                 base.Update();
                 trueColor = Color.Lerp(Color, SecondaryColor, ColorLerp);
+
             }
             public override void Added(Entity entity)
             {
@@ -159,6 +162,96 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             }
             public override void Render()
             {
+            }
+            public void Return()
+            {
+                Entity?.Add(new Coroutine(ReturnRoutine()));
+            }
+            public void Reset()
+            {
+                OnGround = false;
+                Assembled = true;
+                Rotation = 0;
+                Position = OrigPosition;
+            }
+            public void Fall(float distanceToFloor)
+            {
+                Assembled = false;
+                Entity?.Add(new Coroutine(FallRoutine(distanceToFloor)));
+            }
+            public void DrawOutline()
+            {
+                DrawOutline(Color.Black * OutlineOpacity);
+            }
+            public void DrawOutline(Vector2 at)
+            {
+                Vector2 from = Position;
+                Position = at + Offset;
+                DrawOutline();
+                Position = from;
+            }
+            public void RenderAt(Vector2 at)
+            {
+                if (Texture != null)
+                {
+                    Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, at + Offset, null, Color, Rotation, Origin, Scale, Effects, 0);
+                }
+            }
+            private IEnumerator FallRoutine(float distanceToFloor)
+            {
+                distanceToFloor += FallOffset;
+                Assembled = false;
+                OnGround = false;
+                float orig = Y + Height;
+                float ySpeed = FallSpeed;
+                float rot = RotationRate.ToRad();
+                OrigPosition = Position;
+                int sign = 1;
+                int bouncesLeft = 2;
+                while (true)
+                {
+                    Y += ySpeed * Engine.DeltaTime;
+                    float num = (Math.Abs(ySpeed) < 40f ? 0.5f : 1f);
+                    ySpeed = Calc.Approach(ySpeed, 160f, 450f * num * Engine.DeltaTime);
+                    Rotation += rot * num * sign;
+                    if (Y >= orig + distanceToFloor)
+                    {
+                        if (bouncesLeft > 0)
+                        {
+                            ySpeed = -32 * (bouncesLeft / 2f);
+                            bouncesLeft--;
+                        }
+                        else break;
+                    }
+                    yield return null;
+                }
+                Y = orig + distanceToFloor;
+                OnGround = true;
+            }
+            public IEnumerator ReturnRoutine()
+            {
+                OnGround = true;
+                Vector2 p = Position;
+                int increment = 1;
+                for (int i = 0; i < 8; i++)
+                {
+                    Position.X += increment;
+                    increment = -increment;
+                    yield return Engine.DeltaTime * 2;
+                }
+                Position = p;
+                yield return ReturnDelay;
+                Vector2 from = Position;
+                float rotFrom = Rotation;
+                OnGround = false;
+                for (float i = 0; i < 1; i += Engine.DeltaTime)
+                {
+                    Position = Vector2.Lerp(from, OrigPosition, Ease.Follow(Ease.CubeIn, Ease.ElasticOut)(i));
+                    Rotation = Calc.LerpClamp(rotFrom, 0, Ease.CubeIn(i + 0.1f));
+                    yield return null;
+                }
+                Assembled = true;
+                Reset();
             }
         }
 
@@ -254,6 +347,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         public bool Dying;
         public Looking DyingSight;
         public bool DoneDying;
+        private Vector2 StarPos;
+        private float StarRotation;
         public void Die(Vector2 dir)
         {
             EyeSprite.Visible = false;
@@ -280,14 +375,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             base.Render();
             RenderAt(RenderPosition);
         }
-
+        public bool FallenApart;
         public void RenderAt(Vector2 position)
         {
+            Vector2 floatVector = CanFloat ? Vector2.UnitY * -FloatAmount : Vector2.Zero;
             if (Dying)
             {
                 DeadBody.RenderAt(position + DeadBody.Position);
                 return;
             }
+
             if (ZoomieAlpha > 0)
             {
                 MTexture tex = GFX.Game[PartPath + "zoomieIndicator"];
@@ -297,24 +394,84 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             {
                 if (p.Visible)
                 {
-                    p.DrawOutlineAt(position + p.Position);
+                    p.DrawOutlineAt((position + p.Position).Round() + floatVector);
                 }
             }
+            //todo: add Symbols to parts
             foreach (Part p in Parts)
             {
                 if (p.Visible)
                 {
-                    p.RenderAt(position + p.Position);
+                    p.RenderAt((position + p.Position).Round() + floatVector);
                 }
+            }
+            if (RenderStar)
+            {
+                Star.Draw(StarPos, Star.Center, Color.Yellow, Vector2.One, StarRotation);
             }
         }
         public void ThrowArmDown()
         {
 
         }
+        public void UpdateScale(Vector2 scale)
+        {
+            Scale = scale;
+            foreach (Part p in Parts)
+            {
+                p.SpriteScale = scale;
+            }
+        }
+        static Vector2 RotatePoint(Vector2 pointToRotate, Vector2 centerPoint, double angleInDegrees)
+        {
+            double angleInRadians = angleInDegrees * (Math.PI / 180);
+            double cosTheta = Math.Cos(angleInRadians);
+            double sinTheta = Math.Sin(angleInRadians);
+            return new Vector2
+            {
+                X =
+                    (int)
+                    (cosTheta * (pointToRotate.X - centerPoint.X) -
+                    sinTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.X),
+                Y =
+                    (int)
+                    (sinTheta * (pointToRotate.X - centerPoint.X) +
+                    cosTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.Y)
+            };
+        }
+        public Vector2 GetLookOffset()
+        {
+            return LookDir switch
+            {
+                Looking.Left => -Vector2.UnitX * 4,
+                Looking.Right => Vector2.UnitX * 4,
+                Looking.Up => -Vector2.UnitY * 4,
+                Looking.Down => Vector2.UnitY * 4,
+                Looking.UpLeft => Vector2.One * -4,
+                Looking.UpRight => new Vector2(4, -4),
+                Looking.DownLeft => new Vector2(-4, 4),
+                Looking.DownRight => Vector2.One * 4,
+                Looking.Target or Looking.Player => RotatePoint(OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, LookTarget).ToDeg()),
+                Looking.Center => Vector2.Zero,
+                _ => Vector2.Zero
+            };
+        }
+        public void FallApart()
+        {
+            CanFloat = false;
+            foreach (Part p in Parts)
+            {
+                p.Fall(12 + FloatTarget - Height);
+            }
+        }
         public override void Update()
         {
             base.Update();
+            if (Broken) return;
+            if (!EyeLocked)
+            {
+                UpdateEye(GetLookOffset());
+            }
             OrbSprite.Visible = HasHead;
             EyeSprite.Visible = HasEye;
             Arms[0].Visible = Arms[1].Visible = HasArms;
@@ -324,12 +481,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             }
             Arms[0].Offset.X = ArmOffsets[0];
             Arms[1].Offset.X = ArmOffsets[1];
-            LookTargetEnabled = !Dying && HasHead && LookDir == Looking.Target;
-
+            LookTargetEnabled = !Dying && (LookDir == Looking.Player || LookDir == Looking.Target);
+            if (LookDir == Looking.Player)
+            {
+                LookTarget = player.Center;
+            }
+            //StarRotation = RenderStar ? 0 : StarRotation + Engine.DeltaTime * 3;
+            FloatAmount = Calc.Approach(FloatAmount, CanFloat ? FloatTarget : 0, Engine.DeltaTime * 2);
             foreach (Part p in Parts)
             {
                 p.SpriteScale = Scale;
             }
+            EyeSprite.Scale = EyeScale;
+
+
         }
         private IEnumerator BlinkInterval(int times, float interval, bool endState)
         {
@@ -415,6 +580,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             DeadBody.Position = -Vector2.One * 11;
             SpriteBox = new Hitbox(Arms[0].Width * 2 + 3 + OrbSprite.Width, OrbSprite.Height, Arms[0].X - 5);
         }
+        public float SpriteWidth => Arms[0].Width * 2 + 3 + OrbSprite.Width;
+        public float SpriteHeight => OrbSprite.Height;
+        public float SpriteXOffset => Arms[0].X - 5;
         public void AddRoutines(bool addDuckCheck = true)
         {
             Alarm alarm = Alarm.Create(Alarm.AlarmMode.Looping,
@@ -429,36 +597,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         private void PlayerFace(Player player)
         {
             player.Facing = Position.X > player.Position.X ? Facings.Right : Facings.Left;
-        }
-        public IEnumerator Say(string id, string emotion, params Func<IEnumerator>[] events)
-        {
-            if (Broken)
-            {
-                yield break;
-            }
-            Emotion(emotion);
-            if (player is not null)
-            {
-                PlayerFace(player);
-            }
-            yield return Textbox.Say(id, events);
-        }
-        public IEnumerator Say(string id, string emotion, bool useSymbol, params Func<IEnumerator>[] events)
-        {
-            if (Broken)
-            {
-                yield break;
-            }
-            Emotion(emotion);
-            if (player is not null)
-            {
-                PlayerFace(player);
-            }
-            yield return Textbox.Say(id, events);
-        }
-        public IEnumerator Test()
-        {
-            yield return null;
         }
         public void Eugh()
         {
@@ -577,7 +715,52 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             CurrentMood = Mood.Nodders;
             Entity?.Add(new Coroutine(ShakeHeadRoutine(true)));
         }
+        public void Wink()
+        {
+            CurrentMood = Mood.Wink;
+            addRoutine(WinkRoutine());
+        }
+        private void addRoutine(IEnumerator inner)
+        {
+            Entity?.Add(new Coroutine(inner));
+        }
+        public void RollEye()
+        {
+            CurrentMood = Mood.RollEye;
+            addRoutine(RollEyeRoutine());
+        }
+        public void Laugh()
+        {
+            CurrentMood = Mood.Laughing;
+            //addRoutine(LaughRoutine());
+        }
 
+        private IEnumerator WinkRoutine()
+        {
+            EyeSprite.Play("wink");
+
+            RenderStar = true;
+            int x = 10;
+            int y = 8;
+            StarPos = EyeSprite.Position + Position + Vector2.UnitX * 8;
+
+            Vector2 start = StarPos;
+            float speed = 4;
+            for (float i = 0; i < 1; i += Engine.DeltaTime * speed)
+            {
+                StarPos.X = Calc.LerpClamp(start.X, start.X + x / 2, i);
+                StarPos.Y = Calc.LerpClamp(start.Y, start.Y - y / 2, Ease.SineInOut(i));
+                yield return null;
+            }
+            for (float i = 0; i < 1; i += Engine.DeltaTime * speed)
+            {
+                StarPos.X = Calc.LerpClamp(start.X + x / 2, start.X + x, i);
+                StarPos.Y = Calc.LerpClamp(start.Y - y / 2, start.Y + y, Ease.SineInOut(i));
+                yield return null;
+            }
+            RenderStar = false;
+            yield return null;
+        }
         private IEnumerator ShakeHeadRoutine(bool Nod)
         {
             float speed = 7;
@@ -643,18 +826,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             LookTargetEnabled = prevLookState;
             yield return null;
         }
-
-        public void RollEye()
+/*        private IEnumerator LaughRoutine()
         {
-            CurrentMood = Mood.RollEye;
-            Entity?.Add(new Coroutine(RollEyeRoutine()));
-        }
+            EyeSprite.Play("happy");
+            float delay = 0.1f;
+            while (CurrentMood == Mood.Laughing && !EyeExpressionOverride)
+            {
+                HeeHeeParticles();
+                EyeOffset.Y = -2;
+                yield return delay;
+                EyeOffset.Y = 0;
+                yield return delay;
+            }
+            yield return null;
+        }*/
         public IEnumerator RollEyeRoutine()
         {
             EyeExpressionOverride = true;
             for (float i = 0; i < 1; i += Engine.DeltaTime)
             {
-                Vector2 Rotated = PlayerCalidus.RotatePoint(Vector2.Zero, EyeSprite.Center, Ease.SineOut(i) * 90);
+                Vector2 Rotated = RotatePoint(Vector2.Zero, EyeSprite.Center, Ease.SineOut(i) * 90);
                 EyeSprite.Position = Calc.Approach(EyeSprite.Position, Rotated, LookSpeed);
                 yield return null;
             }
@@ -889,7 +1080,44 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
                 yield return null;
             }
         }
-
+        public IEnumerator FallApartRoutine()
+        {
+            FallApart();
+            addRoutine(BlinkInterval(3, Engine.DeltaTime * 2, true));
+            while (!AllPartsFallen())
+            {
+                yield return null;
+            }
+            FallenApart = true;
+            yield return null;
+        }
+        public IEnumerator ReassembleRoutine()
+        {
+            Look(Looking.Center);
+            ReturnParts();
+            while (!AllPartsAssembled())
+            {
+                yield return null;
+            }
+            FallenApart = false;
+            CanFloat = true;
+            EyeExpressionOverride = false;
+            ForceBlink = false;
+        }
+        public IEnumerator WaitForReassemble()
+        {
+            while (FallenApart)
+            {
+                yield return null;
+            }
+        }
+        public IEnumerator WaitForFallenApart()
+        {
+            while (!FallenApart)
+            {
+                yield return null;
+            }
+        }
         public bool AllPartsAssembled()
         {
 
@@ -906,6 +1134,57 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
                 if (!p.OnGround) return false;
             }
             return true;
+        }
+        public void Reassemble()
+        {
+            addRoutine(ReassembleRoutine());
+        }
+        public void ReturnParts()
+        {
+            foreach (Part part in Parts)
+            {
+                part.Return();
+            }
+        }
+        public void FixSequence(bool instant = false)
+        {
+            if (instant)
+            {
+                Fixed();
+                Position += new Vector2(BrokenParts.Width / 2, BrokenParts.Height / 2);
+                Broken = false;
+                LerpOutline(true);
+            }
+            else
+            {
+                BrokenParts.Play("broken");
+                Part Glint = new Part(GFX.Game, "characters/PuzzleIslandHelper/Calidus/");
+                Glint.Add("shine", "brokenShine", 0.05f);
+                Glint.Add("gleam", "brokenGleam", 0.1f, "shine");
+                Entity?.Add(Glint);
+
+                Glint.Play("gleam");
+                Glint.OnLastFrame = (string s) =>
+                {
+                    if (s == "shine")
+                    {
+                        BrokenParts.Play("assemble");
+                        LerpOutline();
+                        BrokenParts.OnLastFrame = (string s) =>
+                        {
+                            if (s == "assemble")
+                            {
+                                Fixed();
+                                Position += new Vector2(BrokenParts.Width / 2, BrokenParts.Height / 2);
+                                Broken = false;
+                            }
+                        };
+                        Glint.Stop();
+                        Entity?.Remove(Glint);
+
+                    }
+                };
+            }
         }
     }
 }

@@ -16,6 +16,7 @@ digiWarpReceiver.placements =
         data = {
             warpID = "",
             warpDelay = 0,
+            password = "",
             isPrimary = false
         }
     }

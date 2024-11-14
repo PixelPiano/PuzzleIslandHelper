@@ -9,7 +9,7 @@ using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 {
-    [CustomEntity("PuzzleIslandHelper/WipEntity")]
+    //[CustomEntity("PuzzleIslandHelper/WipEntity")]
     [Tracked]
     public class Bitter : Actor
     {

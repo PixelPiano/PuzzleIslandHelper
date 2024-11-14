@@ -3,7 +3,7 @@ using Monocle;
 using System;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
 {
     [Tracked]
     public abstract class PassengerCutscene : CutsceneEntity
@@ -15,6 +15,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             Passenger = passenger;
             Player = player;
         }
+        public bool GetFlag(string flag)
+        {
+            return Level.Session.GetFlag(flag);
+        }
+        public void SetFlag(string flag, bool value = true)
+        {
+            Level.Session.SetFlag(flag, value);
+        }
+
     }
 
     [CustomPassengerCutscene("TestCutscene")]
@@ -35,7 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public override void OnEnd(Level level)
         {
-            
+
         }
     }
 }

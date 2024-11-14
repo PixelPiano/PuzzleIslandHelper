@@ -19,6 +19,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.ArtifactSlot;
 using static Celeste.Player;
 
@@ -71,14 +72,14 @@ public static class PianoUtils
         }
         return CreateVertices(newPoints, indices, new Vector3(scale, 0), colors);
     }
-    public static VertexPositionColor[] CreateVertices(this Vector2[] points, Vector2 scale, out int[] indices, params Color[] colors)
+    public static VertexPositionColor[] CreateVertices(this Vector2[] points, Vector2 scale, out int[] basicIndices, params Color[] colors)
     {
         Vector3[] newPoints = new Vector3[points.Length];
         for (int i = 0; i < points.Length; i++)
         {
             newPoints[i] = new Vector3(points[i], 0);
         }
-        return CreateVertices(newPoints, new Vector3(scale, 0), out indices, colors);
+        return CreateVertices(newPoints, new Vector3(scale, 0), out basicIndices, colors);
     }
     public static VertexPositionColor[] CreateVertices(this Vector3[] points, int[] indices, Vector3 scale, params Color[] colors)
     {
@@ -403,11 +404,35 @@ public static class PianoUtils
         image.Position -= offset;
     }
 
+    public static void Face(this Player player, Entity entity)
+    {
+        if(entity.CenterX > player.CenterX)
+        {
+            player.Facing = Facings.Right;
+        }
+        else
+        {
+            player.Facing = Facings.Left;
+        }
+    }
     public static void Ground<T>(IEnumerable<T> list) where T : FallingBlock
     {
         foreach (FallingBlock block in list.OrderByDescending(item => item.Bottom))
         {
             block.Ground();
+        }
+    }
+    public static void Ground(this Entity entity)
+    {
+        if (entity is FallingBlock block)
+        {
+            Ground(block);
+            return;
+        }
+        if (entity.Scene is not Level level) return;
+        while (!entity.CollideCheck<Solid>(entity.Position + Vector2.UnitY) && entity.Y < level.Bounds.Bottom)
+        {
+            entity.Position.Y++;
         }
     }
     public static void Ground(this FallingBlock block)
@@ -451,6 +476,76 @@ public static class PianoUtils
     {
         Level level = solid.Scene as Level;
         return solid.CollideCheck<Solid>(solid.Position + Vector2.UnitY);
+    }
+    public static Vector2 Snapped<T>(this Entity entity, Vector2 dir, float limit = -1, float step = 1, Collider collider = null) where T : Entity
+    {
+        dir = Calc.Sign(dir);
+        if (step <= 0 || (dir.X == 0 && dir.Y == 0) || entity.Scene is not Level level) return entity.Position;
+        if (limit < 0)
+        {
+            if (dir.X < 0) limit = level.Bounds.Left;
+            else if (dir.X > 0) limit = level.Bounds.Right;
+            else if (dir.Y < 0) limit = level.Bounds.Top;
+            else if (dir.Y > 0) limit = level.Bounds.Bottom;
+        }
+        collider ??= entity.Collider ?? new Hitbox(1, 1);
+        Collider prevCollider = entity.Collider;
+        entity.Collider = collider;
+        Vector2 prev = entity.Position;
+        Vector2 pos = entity.Position;
+        float maxDist = MathHelper.Distance(dir.X != 0 ? pos.X : pos.Y, limit);
+        float dist = 0;
+        while (!entity.CollideCheck<T>() && dist < maxDist)
+        {
+            entity.Position += dir * step;
+            dist += step;
+        }
+        Vector2 result = prev + (dir * Math.Min(limit, dist));
+        entity.Position = prev;
+        entity.Collider = prevCollider;
+        return result;
+    }
+    public static Vector2 NearestSnap<T>(this Entity entity, float step = 1, Collider collider = null) where T : Entity
+    {
+        Vector2[] snapped = new Vector2[4]
+        {
+            entity.Snapped<T>(-Vector2.UnitX, -1, step, collider),
+             entity.Snapped<T>(Vector2.UnitX, -1, step, collider),
+            entity.Snapped<T>(-Vector2.UnitY, -1, step, collider),
+             entity.Snapped<T>(Vector2.UnitY, -1, step, collider)
+        };
+        Vector2 max = Vector2.Zero;
+        float maxDist = 0;
+        for (int i = 0; i < snapped.Length; i++)
+        {
+            float dist = Vector2.DistanceSquared(entity.Position, snapped[i]);
+            if (dist > maxDist)
+            {
+                max = snapped[i];
+            }
+        }
+
+        return max;
+
+    }
+    public static bool HasGroundBelow(this Entity entity, out Vector2 groundPosition)
+    {
+        Level level = entity.Scene as Level;
+        Vector2 pos = groundPosition = entity.Position;
+        Collider c = entity.Collider;
+        entity.Collider ??= new Hitbox(1, 1);
+
+        while (!entity.CollideCheck<Solid>(pos))
+        {
+            if (pos.Y > level.Bounds.Bottom)
+            {
+                return false;
+            }
+            pos.Y++;
+        }
+        entity.Collider = c;
+        groundPosition = pos;
+        return true;
     }
     public static Vector2 GroundedPosition(this Entity entity)
     {

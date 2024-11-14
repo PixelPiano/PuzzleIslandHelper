@@ -11,6 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
     {
         public FakeTerminal Terminal;
         public List<TextLine> Lines = new();
+        public UserInput Input;
         public Vector2 TextPosition;
         public bool FromTxt;
         public string Text;
@@ -32,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             get
             {
-                if(Groups is null || Groups.Count < 1) return 0;
+                if (Groups is null || Groups.Count < 1) return 0;
                 return Calc.Clamp(lineIndex, StartIndex, Groups.Count - 1);
             }
             set
@@ -48,20 +49,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             get
             {
                 int index = LineIndex;
-                if(Groups is null || Groups.Count == 0 || index < 0 || index >= Groups.Count)
+                if (Groups is null || Groups.Count == 0 || index < 0 || index >= Groups.Count)
                 {
                     return null;
                 }
                 return Groups[index];
-                
+
             }
         }
+        public bool UserInputSelectedPreviously;
+        private Alarm squareAlarm;
         public TerminalRenderer(FakeTerminal terminal)
         {
             Tag |= TagsExt.SubHUD | Tags.TransitionUpdate;
             Terminal = terminal;
-            LinesAvailable = (int)(terminal.Height / Group.LINEHEIGHT);
+            LinesAvailable = (int)(terminal.Height / Group.LINEHEIGHT) - 1;
             TextPosition = Terminal.TopLeft + new Vector2(3, 0);
+            squareAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { TextLine.HideSquare = false; }, 5 * Engine.DeltaTime, false);
+            Add(squareAlarm);
+
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            Input = new UserInput(Terminal, Color.Cyan);
+            Input.Alpha = 0;
+
+            Scene.Add(Input);
+            Groups.Add(Input);
+        }
+        public void MoveInputToFront()
+        {
+            Groups.Remove(Input);
+            Groups.Add(Input);
         }
         public void SetGroupAlphas(float value)
         {
@@ -69,16 +89,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             {
                 g.Alpha = value;
             }
+            Input.Alpha = value;
         }
         public IEnumerator FadeGroups(float from, float to, float duration)
         {
             for (float i = 0; i < 1; i += Engine.DeltaTime / duration)
             {
-                float alpha = Calc.LerpClamp(from, to, i);
-                foreach (Group g in Groups)
-                {
-                    g.Alpha = alpha;
-                }
+                SetGroupAlphas(Calc.LerpClamp(from, to, i));
                 yield return null;
             }
         }
@@ -90,10 +107,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             for (int i = 0; i < spaces; i++)
             {
-                addGroup(new EmptyLine(Terminal, Groups.Count + 1));
+                addGroup(new EmptyLine(Terminal));
             }
         }
-        public bool UserInputSelectedPreviously;
         public override void Update()
         {
             base.Update();
@@ -102,12 +118,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         }
         public void UpdateSelected()
         {
-            UserInput.CurrentlySelected = SelectedGroup is UserInput;
-            if (UserInput.CurrentlySelected != UserInput.PreviouslySelected)
-            {
-                UserInput.RefreshBlockedBindings();
-            }
-            UserInput.PreviouslySelected = UserInput.CurrentlySelected;
+            UserInput.RefreshBlockedBindings();
         }
         public TextLine[] AddText(string input, params Color[] lineColors)
         {
@@ -117,7 +128,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             {
                 Color c = lineColors.Length > i ? lineColors[i] : Color.White;
                 if (lineColors.Length > i) c = lineColors[i];
-                TextLine line = new TextLine(Terminal, array[i], Groups.Count + 1, c);
+                TextLine line = new TextLine(Terminal, array[i], c);
                 lines[i] = line;
                 addGroup(line);
             }
@@ -129,23 +140,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             TextLine[] lines = new TextLine[array.Length];
             for (int i = 0; i < array.Length; i++)
             {
-                TextLine line = new TextLine(Terminal, array[i], Groups.Count + 1, color);
+                TextLine line = new TextLine(Terminal, array[i], color);
                 lines[i] = line;
                 addGroup(line);
             }
             return lines;
         }
-        public UserInput AddUserInput(Color color, Func<string, bool> onSubmit = null)
-        {
-            UserInput input = new UserInput(Terminal, Groups.Count + 1, color, onSubmit);
-            addGroup(input);
-            return input;
-        }
         private void addGroup(Group group)
         {
+            squareAlarm.Stop();
+            squareAlarm.Start();
+            TextLine.HideSquare = true;
             Groups.Add(group);
             Scene.Add(group);
-            if (Groups.Count > LinesAvailable && (Groups.Count - StartIndex) * Group.LINEHEIGHT > Terminal.Height)
+            MoveInputToFront();
+            int count = Groups.Count + 1;
+            if (count > LinesAvailable && (count - StartIndex) * Group.LINEHEIGHT > Terminal.Height)
             {
                 StartIndex++;
             }
@@ -172,6 +182,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 Groups[i].TerminalRender(level, TextPosition + Vector2.UnitY * offset);
                 offset += Group.LINEHEIGHT;
             }
+            //Input.TerminalRender(level, TextPosition + Vector2.UnitY * (Group.LINEHEIGHT * (LinesAvailable)));
+
         }
         public void Clear()
         {

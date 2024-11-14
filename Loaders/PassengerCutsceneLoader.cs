@@ -1,5 +1,6 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using System;
@@ -14,18 +15,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Loaders
         public static readonly Dictionary<string, ContentLoader> ContentLoaders = new Dictionary<string, ContentLoader>();
         public static bool LoadCustomCutscene(string name, Passenger passenger, Player player, Level level)
         {
-            if (ContentLoaders.TryGetValue(name, out var value))
+            var cutscene = CreateCutscene(name, passenger, player);
+            if(cutscene != null)
             {
-                var cutscene = value(passenger, player);
-                if (cutscene != null)
-                {
-                    level.Add(cutscene);
-                    return true;
-                }
+                level.Add(cutscene);
             }
-            return false;
+            return cutscene != null;
         }
-        public static PassengerCutscene GetCustomCutscene(string name, Passenger passenger, Player player, Level level)
+        public static bool HasCutscene(string name)
+        {
+            return ContentLoaders.ContainsKey(name);
+        }
+        public static PassengerCutscene CreateCutscene(string name, Passenger passenger, Player player)
         {
             if (ContentLoaders.TryGetValue(name, out var value))
             {
@@ -43,7 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Loaders
             {
                 foreach (CustomPassengerCutsceneAttribute customAttribute in type.GetCustomAttributes<CustomPassengerCutsceneAttribute>())
                 {
-                    string[] iDs = customAttribute.IDs;
+                    string[] iDs = customAttribute.CustomIDs;
                     foreach (string text in iDs)
                     {
                         string[] array = text.Split('=');

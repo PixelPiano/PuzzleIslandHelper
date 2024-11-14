@@ -13,12 +13,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
     public class UserInput : TextLine
     {
         public bool Submitted;
-        public bool CanType;
+        public bool CanType = true;
+        public static bool BlockHotkeys;
         public Func<string, bool> OnSubmit;
-        public static bool CurrentlySelected;
-        public static bool PreviouslySelected;
         public static List<Binding> BlockedBindings = new();
-        public UserInput(FakeTerminal terminal, int index, Color color, Func<string, bool> onSubmit = null) : base(terminal, "", index, color)
+        public UserInput(FakeTerminal terminal, Color color, Func<string, bool> onSubmit = null) : base(terminal, "", color)
         {
             OnSubmit = onSubmit;
         }
@@ -41,14 +40,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         [OnLoad]
         public static void Load()
         {
-            CurrentlySelected = PreviouslySelected = false;
             BlockedBindings.Clear();
             On.Monocle.VirtualButton.Update += VirtualButton_Update;
         }
         [OnUnload]
         public static void Unload()
         {
-            CurrentlySelected = PreviouslySelected = false;
+            BlockHotkeys = false;
             BlockedBindings.Clear();
             On.Monocle.VirtualButton.Update -= VirtualButton_Update;
         }
@@ -56,7 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
 
         private static void VirtualButton_Update(On.Monocle.VirtualButton.orig_Update orig, VirtualButton self)
         {
-            if (CurrentlySelected && BlockedBindings.Contains(self.Binding))
+            if (BlockHotkeys && BlockedBindings.Contains(self.Binding))
             {
                 self.ConsumePress();
                 return;
@@ -71,13 +69,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public override void Update()
         {
             base.Update();
-            WasCurrentIndex = IsCurrentIndex;
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            BlockHotkeys = true;
+            RefreshBlockedBindings();
             TextInput.OnInput += OnTextInput;
-            CanType = true;
         }
         public IEnumerator WaitForSubmit()
         {
@@ -86,20 +84,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 yield return null;
             }
         }
+        public void Clear()
+        {
+            Text = "";
+        }
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
+            BlockHotkeys = false;
             TextInput.OnInput -= OnTextInput;
         }
         public void Reset()
         {
-            Text = "";
+            Clear();
             Submitted = false;
             CanType = true;
         }
         public void OnTextInput(char c)
         {
-            if (Scene is not Level level || level.Paused || !CanType)
+            if (!IsCurrentIndex || !CanType || Scene is not Level level || level.Paused)
             {
                 return;
             }
@@ -114,24 +117,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                         }
                         Submitted = true;
                         CanType = false;
+                        Terminal.AddText(Text, Color.SlateBlue);
                     };
                     break;
                 case '\b':
 
-                    if (Text.Length > 0 && IsCurrentIndex)
+                    if (Text.Length > 0)
                     {
                         Text = Text.Substring(0, Text.Length - 1);
                     }
                     break;
                 case ' ':
-                    if (!string.IsNullOrEmpty(Text) && Text.Length > 0 && IsCurrentIndex)
+                    if (!string.IsNullOrEmpty(Text) && Text.Length > 0)
                     {
                         Text += c;
                     }
                     break;
                 default:
                     {
-                        if (IsCurrentIndex && !char.IsControl(c) && ActiveFont.FontSize.Characters.ContainsKey(c))
+                        if (!char.IsControl(c) && ActiveFont.FontSize.Characters.ContainsKey(c))
                         {
                             Text += c;
                         }

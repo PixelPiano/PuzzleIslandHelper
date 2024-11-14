@@ -11,7 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
     [TrackedAs(typeof(TextLine))]
     public class EmptyLine : TextLine
     {
-        public EmptyLine(FakeTerminal terminal, int index) : base(terminal, "", index, Color.Black)
+        public EmptyLine(FakeTerminal terminal) : base(terminal, "", Color.Black)
         {
         }
         public override void TerminalRender(Level level, Vector2 renderAt)

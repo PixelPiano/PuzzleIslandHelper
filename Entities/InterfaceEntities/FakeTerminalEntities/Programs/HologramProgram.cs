@@ -35,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             if (State is not States.Selecting or States.ReadyToLaunch)
             {
-                yield return Error("WSM cannot select a box before" +
+                Error("WSM cannot select a box before" +
                                    "{n}performing a scan of the area.");
                 yield break;
             }
@@ -84,14 +84,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             }
             if (!string.IsNullOrEmpty(errorMessage))
             {
-                yield return Error(errorMessage);
+                Error(errorMessage);
             }
         }
         public IEnumerator TurnOn(string input)
         {
             if (State != States.Off)
             {
-                yield return Error("ERROR: WSM is already active.");
+                Error("ERROR: WSM is already active.");
                 yield break;
             }
             WorldShiftMachine machine = Scene.Tracker.GetEntity<WorldShiftMachine>();
@@ -103,7 +103,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             }
             else
             {
-                yield return Error("Unable to find nearby WSM.");
+                Error("Unable to find nearby WSM.");
             }
             yield return null;
         }
@@ -111,7 +111,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             if (State == States.Off)
             {
-                yield return Error("ERROR: WSM is already inactive.");
+                Error("ERROR: WSM is already inactive.");
                 yield break;
             }
             WorldShiftMachine machine = Scene.Tracker.GetEntity<WorldShiftMachine>();
@@ -123,7 +123,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             }
             else
             {
-                yield return Error("Unable to find nearby WSM.");
+                Error("Unable to find nearby WSM.");
             }
             yield return null;
         }
@@ -131,12 +131,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             if (State == States.Off)
             {
-                yield return EarlyActionError();
+                EarlyActionError();
                 yield break;
             }
             if (State is States.Launched)
             {
-                yield return Error("ERROR: Cooldown in effect. Estimated time remaining: 2m14d");
+                Error("ERROR: Cooldown in effect. Estimated time remaining: 2m14d");
                 yield break;
             }
             yield return Loading("Scanning", null, 0.3f, 0.7f, true);
@@ -178,7 +178,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             if (State == States.Off)
             {
-                yield return EarlyActionError();
+                EarlyActionError();
                 yield break;
             }
             if (Launched)
@@ -188,14 +188,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             }
             else if (State != States.ReadyToLaunch)
             {
-                yield return Error("ERROR: Cannot launch until a valid{n}scanned box has been selected.");
+                Error("ERROR: Cannot launch until a valid{n}scanned box has been selected.");
                 yield break;
             }
             yield return Loading("Validating box data", null, 0.76f, 0.5f, false);
 
             if (SelectedBox != 4)
             {
-                yield return Error("ERROR: Selected box is empty." +
+                Error("ERROR: Selected box is empty." +
                     "{n}Please select another box.");
                 State = States.Selecting;
                 yield break;
@@ -221,9 +221,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             State = States.Launched;
             yield return null;
         }
-        private IEnumerator EarlyActionError()
+        private void EarlyActionError()
         {
-            yield return Error("ERROR: WSM cannot execute actions until{n}activated by the command prompt.");
+            Error("ERROR: WSM cannot execute actions until{n}activated by the command prompt.");
         }
         public override void OnClose()
         {

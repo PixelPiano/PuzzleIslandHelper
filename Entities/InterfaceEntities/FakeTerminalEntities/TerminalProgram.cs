@@ -50,6 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
     public abstract class TerminalProgram : Entity
     {
         public FakeTerminal Terminal;
+        public Group SelectedGroup => Terminal.SelectedGroup;
         public static bool ShowCommandDebug = false;
         public string Name;
         public bool HitEnter;
@@ -58,32 +59,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public bool Closed;
         public string Welcome;
         public Color UserColor = Color.Cyan;
+        public UserInput UserInput => Terminal.Renderer.Input;
         private bool forcedClosed;
         private bool removed;
         public List<TerminalCommand> Commands = new();
         public List<TerminalCommand> DefaultCommands = new();
-        public void AddCommand(string id, Action<string> action = null, Func<string, IEnumerator> routine = null, params string[] identifiers)
-        {
-            Commands.Add(TerminalCommand.Create(id, action, routine, identifiers));
-        }
         public TerminalCommand CreateCommand(string id, Action<string> action = null, Func<string, IEnumerator> routine = null, params string[] identifiers)
         {
             TerminalCommand command;
             command = TerminalCommand.Create(id, action, routine, identifiers);
             return command;
-        }
-        public bool TryGetCommand(List<TerminalCommand> list, string input, out TerminalCommand command)
-        {
-            foreach (TerminalCommand c in list)
-            {
-                if (c.Check(input))
-                {
-                    command = c;
-                    return true;
-                }
-            }
-            command = null;
-            return false;
         }
         public TerminalProgram(FakeTerminal terminal, string welcomeMessage = "") : base()
         {
@@ -97,15 +82,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 CreateCommand("color",ChangeUserColor)
             };
         }
-        public void Clear(string input)
-        {
-            Terminal.Clear();
-        }
         public override void Update()
         {
             base.Update();
             HitEnter = _hitEnter;
-            if (_hitEnter) _hitEnter = false;
+            if (_hitEnter)
+            {
+                if (!Terminal.Waiting)
+                {
+                    Group selected = SelectedGroup;
+                    if (selected != null && !selected.EnterDisabled && !(selected.Entered && selected.OnlyEnterOnce))
+                    {
+                        selected.OnEnter();
+                        selected.Entered = true;
+                    }
+                }
+                _hitEnter = false;
+            }
         }
         public override void Added(Scene scene)
         {
@@ -132,6 +125,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             base.SceneEnd(scene);
             Dispose();
         }
+        public bool TryGetCommand(List<TerminalCommand> list, string input, out TerminalCommand command)
+        {
+            foreach (TerminalCommand c in list)
+            {
+                if (c.Check(input))
+                {
+                    command = c;
+                    return true;
+                }
+            }
+            command = null;
+            return false;
+        }
+        public void AddCommand(string id, Action<string> action = null, Func<string, IEnumerator> routine = null, params string[] identifiers)
+        {
+            Commands.Add(TerminalCommand.Create(id, action, routine, identifiers));
+        }
+        public void Clear(string input)
+        {
+            Terminal.Clear();
+        }
         public void SplitInput(string text, out string first, out string second)
         {
             first = text;
@@ -149,47 +163,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 }
             }
         }
-        public IEnumerator CommandEnter()
-        {
-            while (Continue())
-            {
-                AddText("--Awaiting command--", Color.Yellow);
-                UserInput.RefreshBlockedBindings();
-                UserInput input = AddUserInput(UserColor);
-                yield return input.WaitForSubmit();
-                SplitInput(input.Text, out string first, out string second);
-                first = first.ToLower();
-                if (TryGetCommand(DefaultCommands, first, out TerminalCommand defaultCommand))
-                {
-                    defaultCommand.ActionOnCommand?.Invoke(second);
-                    if (defaultCommand.RoutineOnCommand != null) yield return defaultCommand.RoutineOnCommand.Invoke(second);
-
-                }
-                else if (TryGetCommand(Commands, first, out TerminalCommand customCommand))
-                {
-                    customCommand.ActionOnCommand?.Invoke(second);
-                    if (customCommand.RoutineOnCommand != null) yield return customCommand.RoutineOnCommand.Invoke(second);
-                }
-                else
-                {
-                    yield return Error("ERROR: Unknown command.");
-                    if (ShowCommandDebug)
-                    {
-                        AddText("First: " + first + ", Second: " + second);
-                    }
-                }
-            }
-        }
-        public IEnumerator Routine()
-        {
-            AddText(Welcome);
-            yield return CommandEnter();
-            OnClose();
-            yield return Loading("Closing program", null, 3, 0.7f, false);
-            Terminal.Close();
-            ProgramFinished = true;
-            RemoveSelf();
-        }
         public void CloseMenu(string input)
         {
             Closed = true;
@@ -202,9 +175,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 _hitEnter = true;
             }
         }
-        public IEnumerator Error(string message)
+        public virtual void AfterWelcome()
         {
-            yield return AddText(message, Color.Red);
+
         }
         public void ChangeUserColor(string input)
         {
@@ -219,6 +192,72 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 UserColor = Calc.HexToColor(text);
             }
         }
+        public IEnumerator Routine()
+        {
+            AddText(Welcome);
+            AfterWelcome();
+            yield return CommandEnter();
+            OnClose();
+            yield return Loading("Closing program", null, 3, 0.7f, false);
+            Terminal.Close();
+            ProgramFinished = true;
+            RemoveSelf();
+        }
+        public virtual void OnAwaitCommand()
+        {
+            AddText("--Awaiting command--", Color.Yellow);
+        }
+        public bool IgnoreCommands;
+        public IEnumerator CommandEnter()
+        {
+            bool justStarted = true;
+            while (Continue())
+            {
+                if (!justStarted)
+                {
+                    AddSpace(1);
+                }
+                justStarted = false;
+                OnAwaitCommand();
+                UserInput.RefreshBlockedBindings();
+                UserInput.Reset();
+                yield return UserInput.WaitForSubmit();
+                if (!IgnoreCommands)
+                {
+                    SplitInput(UserInput.Text, out string first, out string second);
+                    first = first.ToLower();
+                    if (TryGetCommand(DefaultCommands, first, out TerminalCommand defaultCommand))
+                    {
+                        defaultCommand.ActionOnCommand?.Invoke(second);
+                        if (defaultCommand.RoutineOnCommand != null)
+                        {
+                            yield return new SwapImmediately(defaultCommand.RoutineOnCommand.Invoke(second));
+                        }
+                    }
+                    else if (TryGetCommand(Commands, first, out TerminalCommand customCommand))
+                    {
+                        customCommand.ActionOnCommand?.Invoke(second);
+                        if (customCommand.RoutineOnCommand != null)
+                        {
+                            yield return new SwapImmediately(customCommand.RoutineOnCommand.Invoke(second));
+                        }
+                    }
+                    else
+                    {
+                        Error("ERROR: Unknown command.");
+                        if (ShowCommandDebug)
+                        {
+                            AddText("First: " + first + ", Second: " + second);
+                        }
+                    }
+                }
+
+            }
+        }
+        public void Error(string message)
+        {
+            AddText(message, Color.Red);
+        }
         public IEnumerator Loading(string fillerString, string completeString, float rate, float interval, bool showProgress)
         {
             fillerString ??= "Loading";
@@ -231,6 +270,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 AddText(fillerString + dots, Color.LightGray);
 
             float endMult;
+            Terminal.Waiting = true;
             while (percentage < 100)
             {
 
@@ -264,6 +304,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             {
                 yield return TextConfirm(completeString);
             }
+            Terminal.Waiting = false;
+        }
+        public IEnumerator AwaitInput(Action<string> onEnd = null, Func<string, IEnumerator> routine = null)
+        {
+            UserInput input = Terminal.UserInput;
+            input.Reset();
+            yield return input.WaitForSubmit();
+            onEnd?.Invoke(input.Text);
+            if (routine != null)
+            {
+                yield return routine(input.Text);
+            }
         }
         public IEnumerator TextConfirm(string text, Color color = default)
         {
@@ -273,6 +325,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 yield return null;
             }
         }
+        public abstract IEnumerator Help(string input);
         public void AddSpace(int spaces = 1)
         {
             Terminal.AddSpace(spaces);
@@ -289,10 +342,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             return Terminal.AddText(text, color);
         }
-        public UserInput AddUserInput(Color color, Func<string, bool> onSubmit = null)
-        {
-            return Terminal.AddUserInput(color, onSubmit);
-        }
 
         public virtual void BeforeBegin() { }
         public void Begin()
@@ -300,7 +349,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             Add(new Coroutine(Routine()));
         }
         public abstract bool Continue();
-        public abstract IEnumerator Help(string input);
         public abstract void OnClose();
         public static Color? GetColor(string input)
         {

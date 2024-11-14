@@ -91,6 +91,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool Primary;
         public bool Enabled = true;
         public string WarpID;
+        public string WarpPassword;
         public Door LeftDoor, RightDoor;
         public Image Bg, Fg, ShineTex;
         public SnapSolid Floor;
@@ -108,7 +109,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             InputMachine = new Machine(this, data.NodesOffset(offset)[0]);
             Tag |= Tags.TransitionUpdate;
             Depth = 3;
-            WarpID = data.Attr("warpID");
+            WarpID = data.Attr("warpID").Replace(" ", "").ToLower();
+            WarpPassword = data.Attr("password").Replace(" ", "").ToLower();
             Add(Bg = new Image(GFX.Game[Path + "bg"]));
             Collider = new Hitbox(Bg.Width, Bg.Height);
             Vector2 texoffset = new Vector2(Bg.Width / 2, Bg.Height);
@@ -134,11 +136,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public bool ValidateID(string id)
         {
-            if (!string.IsNullOrEmpty(id) && id != WarpID && PianoMapDataProcessor.WarpLinks.ContainsKey(id))
+            if (!string.IsNullOrEmpty(id) && id != WarpID && GetCapsuleData(id) != null)
             {
                 return true;
             }
             return false;
+        }
+        public static bool ValidatePassword(string id, string password)
+        {
+            WarpCapsuleData data = GetCapsuleData(id);
+            return data != null && (string.IsNullOrEmpty(data.Password) || data.Password.Equals(password));
+        }
+        public static WarpCapsuleData GetCapsuleData(string id)
+        {
+            if (!PianoMapDataProcessor.WarpLinks.ContainsKey(id))
+            {
+                return null;
+            }
+            return PianoMapDataProcessor.WarpLinks[id];
         }
         public void SetWarpTarget(string id)
         {
@@ -158,7 +173,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             RightDoor = new Door(Center, 1, XOffset);
             scene.Add(Floor, Shine, LeftDoor, RightDoor);
             scene.Add(InputMachine);
-            InstantCloseDoors();
             if (PianoModule.Session.PersistentWarpLinks.ContainsKey(ID))
             {
                 TargetID = PianoModule.Session.PersistentWarpLinks[ID];

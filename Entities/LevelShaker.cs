@@ -30,6 +30,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     level.shakeTimer = Engine.DeltaTime;
                 }
             }
+            public void Reset()
+            {
+                Intensity = 0;
+            }
+            public override void Removed(Scene scene)
+            {
+                base.Removed(scene);
+                Reset();
+            }
+            public override void SceneEnd(Scene scene)
+            {
+                base.SceneEnd(scene);
+                Reset();
+            }
 
         }
         internal static Shaker ShakeHelper;

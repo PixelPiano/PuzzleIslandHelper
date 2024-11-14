@@ -57,9 +57,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public string CopyTo;
         public Point Offset;
     }
-    public struct WarpCapsuleData
+    public class WarpCapsuleData
     {
+        public string Name;
         public string Room;
+        public string Password;
         public Vector2 Position;
         public float Delay;
     }
@@ -74,6 +76,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static Dictionary<string, CalidusSpawnerData> CalidusSpawners = new();
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
+
+            Action<BinaryPacker.Element> passengerDummyHandler = data =>
+            {
+                string type = data.Attr("passengerType", "Civilian");
+                data.Name = "PuzzleIslandHelper/Passengers/" + type;
+            };
             Action<BinaryPacker.Element> bitrailNodeHandler = data =>
             {
                 BitrailData raildata = new BitrailData
@@ -135,20 +143,22 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Action<BinaryPacker.Element> accessWarpHandler = data =>
             {
                 WarpCapsuleData awData = default;
-                string id = data.Attr("warpID");
+                string id = data.Attr("warpID").Replace(" ", "").ToLower();
                 if (!string.IsNullOrEmpty(levelName) && !string.IsNullOrEmpty(id) && !WarpLinks.ContainsKey(id))
                 {
                     awData = new()
                     {
                         Room = levelName,
                         Delay = data.AttrFloat("warpDelay"),
-                        //Position = MapData.Get(levelName).Position + new Vector2(data.AttrFloat("x"),data.AttrFloat("y"))
+                        Password = data.Attr("password").Replace(" ","").ToLower(),
+                        Name = data.Attr("warpID")
                     };
                     WarpLinks.Add(id, awData);
                 }
 
             };
-            return new Dictionary<string, Action<BinaryPacker.Element>> {
+            return new Dictionary<string, Action<BinaryPacker.Element>>
+            {
                 {
                     "level", level =>
                     {
@@ -159,7 +169,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         }
                     }
                 },
-
                 {
                     "entity:PuzzleIslandHelper/BitrailNode", node =>
                     {
@@ -184,12 +193,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         accessWarpHandler(accessWarp);
                     }
                 },
-/*                {
-                    "entity:PuzzleIslandHelper/TileLayoutController", layout =>
+                {
+                    "entity:PuzzleIslandHelper/PassengerMapProcessorDummy", dummyPassenger =>
                     {
-                        tileLayoutControllerHandler(layout);
+                        passengerDummyHandler(dummyPassenger);
                     }
-                },*/
+                },
             };
         }
 

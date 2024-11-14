@@ -11,13 +11,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
     [Tracked]
     public class FakeTerminal : Entity
     {
+        public UserInput UserInput => Renderer.Input;
+        public bool Waiting;
         public const int LINEHEIGHT = 6;
         public Color Color;
         public Color BorderColor;
         public int BorderSize = 1;
         public TerminalRenderer Renderer;
         private float keyBufferTimer;
-        private int index => Renderer is null ? 0 : Renderer.StartIndex;
+        public float TransitionAmount;
+        public Color DebugColor = Color.White;
+        public Group SelectedGroup => Renderer.SelectedGroup;
+        private float hideSquareTimer;
+        public bool HideSquare => hideSquareTimer > 0;
         public FakeTerminal(Vector2 position, float width, float height) : base(position)
         {
             Depth = -100000;
@@ -25,7 +31,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             Color = Color.Black;
             BorderColor = Color.LightGray;
         }
-        public float TransitionAmount;
         public void Open()
         {
             TransitionAmount = 0;
@@ -61,42 +66,73 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         }
         public void Close()
         {
+            UserInput.BlockHotkeys = false;
             TransitionAmount = 1;
             Add(new Coroutine(transitionClose()));
+        }
+        public bool KeyCheck(params Keys[] keys)
+        {
+            KeyboardState state = MInput.Keyboard.CurrentState;
+            foreach (Keys key in keys)
+            {
+                if (state[key] == KeyState.Down)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         public override void Update()
         {
             base.Update();
-
             if (Renderer.Groups.Count == 0) return;
 
+            if (HideSquare)
+            {
+                hideSquareTimer -= Engine.DeltaTime;
+            }
             if (keyBufferTimer <= 0)
             {
+                int lines;
+                if (KeyCheck(Keys.LeftShift, Keys.RightShift))
+                {
+                    lines = 50;
+                }
+                else if (KeyCheck(Keys.LeftControl, Keys.RightControl))
+                {
+                    lines = 10;
+                }
+                else
+                {
+                    lines = 1;
+                }
                 if (MInput.Keyboard.Check(Keys.Down))
                 {
-                    Shift(1);
+                    Shift(lines);
                     keyBufferTimer = Engine.DeltaTime * 5;
                 }
                 else if (MInput.Keyboard.Check(Keys.Up))
                 {
-                    Shift(-1);
+                    Shift(-lines);
                     keyBufferTimer = Engine.DeltaTime * 5;
+                }
+                if (MInput.Keyboard.Check(Keys.Left))
+                {
+                    SelectedGroup?.OnLeft();
+                }
+                if (MInput.Keyboard.Check(Keys.Right))
+                {
+                    SelectedGroup?.OnRight();
                 }
             }
             else
             {
                 keyBufferTimer -= Engine.DeltaTime;
             }
-
-
         }
         public void AddGroup(Group group)
         {
             Renderer.AddGroup(group);
-        }
-        public UserInput AddUserInput(Color color, Func<string, bool> onSubmit = null)
-        {
-            return Renderer.AddUserInput(color, onSubmit);
         }
         public TextLine[] AddText(string text, params Color[] lineColors)
         {
@@ -110,17 +146,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             Renderer.AddSpace(spaces);
         }
-        public void Shift(int direction)
+        public void Shift(int lines)
         {
-            int prev = Renderer.LineIndex;
-            int shift = Math.Sign(direction);
-            Renderer.LineIndex += shift;
-            int newLine = Renderer.LineIndex;
-            int start = Renderer.StartIndex;
-            if (newLine == prev || newLine < start || newLine > start + Renderer.LinesAvailable - 1)
+            int a = Math.Abs(lines);
+            int d = Math.Sign(lines);
+            for (int i = 0; i < a; i++)
             {
-                Renderer.StartIndex += shift;
+                string current = SelectedGroup.ID;
+                int prev = Renderer.LineIndex;
+                Renderer.LineIndex += d;
+                int newLine = Renderer.LineIndex;
+                int start = Renderer.StartIndex;
+                if (newLine == prev || newLine < start || newLine > start + Renderer.LinesAvailable - 1)
+                {
+                    Renderer.StartIndex += d;
+                }
+                if (SelectedGroup is EmptyLine line && line.ID != current)
+                {
+                    Shift(d);
+                }
             }
+
+
         }
         public void Clear()
         {
@@ -144,12 +191,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             base.SceneEnd(scene);
             MInput.Disabled = false;
         }
-        public Color DebugColor = Color.White;
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            Draw.Rect(camera.Position + new Vector2(160, 0), 160, 90, DebugColor);
-        }
+        /*        public override void DebugRender(Camera camera)
+                {
+                    base.DebugRender(camera);
+                    Draw.Rect(camera.Position + new Vector2(160, 0), 160, 90, DebugColor);
+                }*/
         public override void Render()
         {
             base.Render();

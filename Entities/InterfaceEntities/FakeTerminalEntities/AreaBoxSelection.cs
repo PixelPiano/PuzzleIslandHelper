@@ -18,7 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         private Keys lastPressed;
         private float keyBufferTimer;
 
-        public AreaBoxSelection(FakeTerminal terminal, int index, Color color) : base(terminal, "", index, color)
+        public AreaBoxSelection(FakeTerminal terminal, Color color) : base(terminal, "", color)
         {
             string t = "";
             for (int i = 0; i < areaContent.Length; i++)

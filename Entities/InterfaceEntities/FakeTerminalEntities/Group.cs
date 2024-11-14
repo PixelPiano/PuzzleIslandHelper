@@ -1,5 +1,8 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using Monocle;
+using System;
+using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities
 {
@@ -12,11 +15,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public bool Halt;
         public bool IsCurrentIndex;
         public bool WasCurrentIndex;
-        public int Index;
+
         public float Alpha = 1;
-        public Group(FakeTerminal terminal, int index) : base(terminal.Renderer.TextPosition)
+        public bool Entered;
+        public bool OnlyEnterOnce;
+        public bool EnterDisabled;
+        public string ID;
+        public Group(FakeTerminal terminal) : base(terminal.Renderer.TextPosition)
         {
             Terminal = terminal;
+            ID = Guid.NewGuid().ToString();
+        }
+        public virtual void OnEnter()
+        {
+
+        }
+        public virtual void OnLeft()
+        {
+
+        }
+        public virtual void OnRight()
+        {
+
         }
         public virtual void TerminalRender(Level level, Vector2 renderAt)
         {

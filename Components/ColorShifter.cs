@@ -9,7 +9,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
     {
         public Color[] Colors;
         private Color[] OriginalColors;
-
+        public bool HasBeenAdded;
 
         public float TimeLeft;
         public float Duration;
@@ -24,6 +24,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             {
                 return Colors[i];
             }
+        }
+        public ColorShifter(params Color[] colors) : this(1, Ease.Linear, colors)
+        {
         }
         public ColorShifter(float duration, Ease.Easer ease, params Color[] colors) : base(true, true)
         {
@@ -45,17 +48,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         }
         public void AdvanceColors()
         {
-            NextIndex = (NextIndex + 1) % Colors.Length;     
+            NextIndex = (NextIndex + 1) % Colors.Length;
             TimeLeft = 0;
         }
         public void SetColors(float percent)
         {
             int next = NextIndex;
             int start = NextIndex - 1;
-            if(start < 0) start = Colors.Length - 1;
-            for(int i = 0; i<Colors.Length; i++)
+            if (start < 0) start = Colors.Length - 1;
+            for (int i = 0; i < Colors.Length; i++)
             {
-                Colors[i] = Color.Lerp(OriginalColors[start],OriginalColors[next], percent);
+                Colors[i] = Color.Lerp(OriginalColors[start], OriginalColors[next], percent);
                 start = next;
                 next++;
                 next %= Colors.Length;

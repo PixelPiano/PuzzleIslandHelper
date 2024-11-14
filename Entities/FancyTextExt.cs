@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Linq;
 using Celeste.Mod;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -22,6 +23,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         public class Node
         {
+        }
+        public class PassengerName : Node
+        {
+            public string Name;
         }
         public class Char : Node
         {
@@ -171,8 +176,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
 
             public List<Node> Nodes;
-
-
 
             public int Lines;
 
@@ -474,9 +477,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     j++;
                     string text = array2[j++];
+                    string inside = "";
                     List<string> list = new List<string>();
                     for (; j < array2.Length && array2[j] != "}"; j++)
                     {
+                        if (!string.IsNullOrEmpty(array2[j]))
+                        {
+                            inside += array2[j];
+                        }
                         if (!string.IsNullOrWhiteSpace(array2[j]))
                         {
                             list.Add(array2[j]);
@@ -492,7 +500,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         });
                         continue;
                     }
-
+/*                    if (inside.StartsWith("ct"))
+                    {
+                        string name = inside.Substring(2).Trim(' ');
+                        group.Nodes.Add(new PassengerName
+                        {
+                            Name = name
+                        });
+                        continue;
+                    }
+                    else if (inside.StartsWith("/ct"))
+                    {
+                        group.Nodes.Add(new PassengerName
+                        {
+                            Name = ""
+                        });
+                        continue;
+                    }*/
                     if (text[0] == '#')
                     {
                         string text2 = "";
@@ -646,7 +670,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                     item.Animation = item2;
                                 }
                             }
-    
+
                         }
 
                         if (GFX.PortraitsSpriteBank.Has(item.SpriteId))

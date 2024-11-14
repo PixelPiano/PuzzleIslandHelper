@@ -9,8 +9,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
     public class Fader : Entity
     {
         public Color Color;
-        public Color From;
-        public Color To;
+        public readonly Color From;
+        public readonly Color To;
         public float Time;
         public float EndDelay;
         public Ease.Easer Easer;
@@ -44,7 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         {
             for (float i = 0; i < 1; i += Engine.DeltaTime / Time)
             {
-                From = Color.Lerp(from, to, Easer(i));
+                Color = Color.Lerp(from, to, Easer(i));
                 yield return null;
             }
             OnEnd?.Invoke();
@@ -68,15 +68,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             Finished = false;
             routine.Replace(FadeTo(Color, From));
         }
-        public static IEnumerator Fade(Color color, float time, Ease.Easer ease = null, bool removeOnComplete = true, bool persistent = false)
+        public static IEnumerator Fade(Color color, float time, Ease.Easer ease = null, Action onEnd = null, bool removeOnComplete = true, bool persistent = false)
         {
-            yield return Fade(Color.Transparent, color, time, ease, removeOnComplete);
+            yield return Fade(Color.Transparent, color, time, ease, onEnd, removeOnComplete);
         }
-        public static IEnumerator Fade(Color from, Color to, float time, Ease.Easer ease = null, bool removeOnComplete = true)
+        public static IEnumerator Fade(Color from, Color to, float time, Ease.Easer ease = null, Action onEnd = null, bool removeOnComplete = true)
         {
             if (Engine.Scene is Level level)
             {
-                Fader fader = new Fader(from, to, time, ease);
+                Fader fader = new Fader(from, to, time, ease, onEnd);
                 level.Add(fader);
                 while (!fader.Finished)
                 {
@@ -88,18 +88,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
                 }
             }
         }
-        public static IEnumerator FadeInOut(Color from, Color to, float time, float delay, Ease.Easer ease = null, bool persistent = true)
+        public static IEnumerator FadeInOut(Color from, Color to, float time, float delay, Action onWait = null,Action onEnd = null, Ease.Easer ease = null, bool persistent = true)
         {
             if (Engine.Scene is Level level)
             {
-                Fader fader = new Fader(from, to, time, ease, null, persistent);
+                Fader fader = new Fader(from, to, time, ease, onWait, persistent);
                 level.Add(fader);
                 while (!fader.Finished)
                 {
                     yield return null;
                 }
+                onWait?.Invoke();
                 yield return delay;
-                fader.Reverse(true);
+                fader.OnEnd = onEnd;
+                fader.Reverse(false);
                 while (!fader.Finished)
                 {
                     yield return null;
@@ -111,9 +113,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         public override void Render()
         {
             base.Render();
-            if (Scene is Level level)
+            if (Scene is Level level && Color != Color.Transparent)
             {
-                Draw.Rect(level.Camera.Position, 320, 180, From);
+                Draw.Rect(level.Camera.Position, 320, 180, Color);
             }
         }
     }
