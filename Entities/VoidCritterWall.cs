@@ -45,14 +45,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void BeforeRender()
         {
-            Light.SetRenderTarget(Color.Transparent);
+            Light.SetAsTarget(Color.Transparent);
             if (Scene is not Level level || Simple) return;
             Draw.SpriteBatch.StandardBegin();
             {
                 Draw.SpriteBatch.Draw(VoidCritterWallHelper.Lights, level.Camera.Position - Position - Offset, Color.White);
             }
             Draw.SpriteBatch.End();
-            Target.SetRenderTarget(Color.Black);
+            Target.SetAsTarget(Color.Black);
         }
         public bool GetFlag(Level level)
         {
@@ -69,7 +69,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 effect.ApplyCameraParams(level);
                 effect.Parameters["Dimensions"]?.SetValue(Collider.Size);
                 Engine.Graphics.GraphicsDevice.Textures[1] = Light.Target;
-                Draw.SpriteBatch.StandardBegin(effect, level.Camera.Matrix);
+                Draw.SpriteBatch.StandardBegin(level.Camera.Matrix, effect);
                 Draw.SpriteBatch.Draw(Target, Position - Offset, Color.White);
                 Draw.SpriteBatch.End();
                 GameplayRenderer.Begin();
@@ -89,9 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             FlagState = GetFlag(level);
-            Rectangle c = level.Camera.GetBounds();
-            Rectangle r = new Rectangle(c.Left - 8, c.Top - 8, c.Width + 16, c.Height + 16);
-            OnScreen = Collider.Bounds.Colliding(r);
+            OnScreen = Collider.Bounds.Colliding(level.Camera.GetBounds(), new Vector2(-8, 16));
             if (!FlagState) return;
             foreach (CritterLight cl in level.Tracker.GetComponents<CritterLight>())
             {

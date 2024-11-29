@@ -17,7 +17,11 @@ digiWarpReceiver.placements =
             warpID = "",
             warpDelay = 0,
             password = "",
-            isPrimary = false
+            isPrimary = false,
+            disableMachineFlag = "",
+            invertMachineFlag = false,
+            disableFlag = "",
+            invertFlag = false
         }
     }
 }

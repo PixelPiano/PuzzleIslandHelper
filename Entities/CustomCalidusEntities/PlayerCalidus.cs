@@ -213,7 +213,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             StateMachine.SetStateName(11, "Dummy");
             StateMachine.SetStateName(26, "Bitrail");
             StateMachine.SetStateName(14, "IntroRespawn");
-            Everest.Events.Player.RegisterStates(this);
+            //Everest.Events.Player.RegisterStates(this);
         }
         public void EmitGravParticle(Vector2 dir)
         {
@@ -565,7 +565,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             }
             wasOnGround = onGround;
 
-            if (level != null)
+/*            if (level != null)
             {
                 if (level.CanPause && framesAlive < int.MaxValue)
                 {
@@ -576,7 +576,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
                 {
                     diedInGBJ = 0;
                 }
-            }
+            }*/
             if (!Dead && State != RailState)
             {
                 Collider collider = Collider;
@@ -1582,7 +1582,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
 
         private static PlayerDeadBody Player_Die(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats)
         {
-            if (self is PlayerCalidus pC)
+/*            if (self is PlayerCalidus pC)
             {
                 Level level = self.Scene as Level;
                 CalidusDeadBody playerDeadBody = pC.neworig_Die(direction, evenIfInvincible, registerDeathInStats);
@@ -1601,7 +1601,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
                 }
                 return playerDeadBody;
             }
-            else return orig(self, direction, evenIfInvincible, registerDeathInStats);
+            else*/ return orig(self, direction, evenIfInvincible, registerDeathInStats);
         }
 
         private static bool Player_TransitionTo(On.Celeste.Player.orig_TransitionTo orig, Player self, Vector2 target, Vector2 direction)

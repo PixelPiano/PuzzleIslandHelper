@@ -33,11 +33,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             //On.Celeste.LevelLoader.StartLevel += LevelLoader_StartLevel;
         }
 
-        private static void LevelLoader_StartLevel(On.Celeste.LevelLoader.orig_StartLevel orig, LevelLoader self)
+/*        private static void LevelLoader_StartLevel(On.Celeste.LevelLoader.orig_StartLevel orig, LevelLoader self)
         {
             orig(self);
             LevelLoader_OnLoadingThread(self.Level);
-        }
+        }*/
 
         [OnUnload]
         public static void Unload()
@@ -45,7 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             //Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;
             //On.Celeste.LevelLoader.StartLevel -= LevelLoader_StartLevel;
         }
-        private static void LevelLoader_OnLoadingThread(Level level)
+/*        private static void LevelLoader_OnLoadingThread(Level level)
         {
             BackgroundTiles bg = level.BgTiles;
             SolidTiles fg = level.SolidTiles;
@@ -79,7 +79,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         {
                             int fromX = from.Left + j;
                             int toX = to.Left + offset.X + j;
-                            /*  
+                            *//*  
                               if (i == 0 && j == 0)
                               {
                                   Console.Write("search for this line");
@@ -88,7 +88,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                   Console.WriteLine(fg.Tiles.Tiles[fromX - fgX, fromY - fgY] == null);
                                   Console.WriteLine(fg.Tiles.Tiles[toX - fgX, toY - fgY] == null);
                               }
-                            */
+                            *//*
                             //bg.Tiles.Tiles[toX - bgX, toY - bgY] = bg.Tiles.Tiles[fromX - bgX, fromY - bgY];
                             //fg.Tiles.Tiles[toX - fgX, toY - fgY] = fg.Tiles.Tiles[fromX - fgX, fromY - fgY];
                             fromSet += fg.Tiles.Tiles[fromX - fgX, fromY - fgY] == null ? '0' : '1';
@@ -105,7 +105,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Console.WriteLine("0,0: "+fg.Tiles.Tiles[0, 0] == null ? '0' : '1');
                 }
             }
-        }
+        }*/
 
 
     }

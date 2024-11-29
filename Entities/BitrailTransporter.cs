@@ -45,7 +45,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float dist;
         private float distLimit = 7;
         private PlayerCalidus pC;
-        private Entity solidChecker;
         public Rectangle MaskBounds;
         public enum AutoDirModes
         {
@@ -95,10 +94,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(node);
             }
             Add(exitAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { IgnoreNode = null; }, 0.4f, false));
-            Add(dashAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { DashedFrom = null; }, 0.5f, false));
-            solidChecker = new();
-            solidChecker.Collider = new Hitbox(8, 8);
-            Scene.Add(solidChecker);
+            Add(dashAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { DashedFrom = null; }, 0.5f, false));;
 
         }
         private List<Vector2> checkedPositions = new();
@@ -117,15 +113,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 item => item.Node is BitrailNode.Nodes.DeadEnd or BitrailNode.Nodes.Single);
             FGRenderer = new BitrailFGRenderer(this);
             Scene.Add(FGRenderer);
+            Rectangle check = new Rectangle(0, 0, 8, 8);
             foreach (BitrailNode node in Nodes)
             {
-                solidChecker.Position = node.RenderPosition;
-                if (solidChecker.CollideCheck<Solid>())
+                if (Scene.CollideCheck<Solid>(check.SetPos(node.RenderPosition)))
                 {
                     node.SwitchToInSolid();
                 }
             }
-            solidChecker?.RemoveSelf();
         }
         private float dashTimer = 0;
         public static bool IgnoreLevel;

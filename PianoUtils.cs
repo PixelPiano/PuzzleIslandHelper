@@ -360,7 +360,26 @@ public static class PianoUtils
         return screenpoints;
     }
 
-
+    public static Vector2 NaiveMax(this IEnumerable<Vector2> list)
+    {
+        float right = int.MinValue, down = int.MinValue;
+        foreach (Vector2 v in list)
+        {
+            right = Math.Max(right, v.X);
+            down = Math.Max(down, v.Y);
+        }
+        return new Vector2(right, down);
+    }
+    public static Vector2 NaiveMin(this IEnumerable<Vector2> list)
+    {
+        float left = int.MaxValue, up = int.MaxValue;
+        foreach (Vector2 v in list)
+        {
+            left = Math.Min(left, v.X);
+            up = Math.Min(up, v.Y);
+        }
+        return new Vector2(left, up);
+    }
     public static void ParseFlagsFromString(string flagList, out string[] flags, out bool[] states)
     {
         flags = null;
@@ -403,17 +422,67 @@ public static class PianoUtils
         image.Render();
         image.Position -= offset;
     }
-
+    public static List<T> GetFollowerEntities<T>(this Leader leader) where T : Entity
+    {
+        List<T> list = new();
+        if (leader.HasFollower<T>())
+        {
+            foreach (Follower f in leader.Followers)
+            {
+                if (f.Entity is T)
+                {
+                    list.Add(f.Entity as T);
+                }
+            }
+        }
+        return list;
+    }
+    public static List<Follower> GetFollowers<T>(this Leader leader) where T : Entity
+    {
+        List<Follower> list = new();
+        if (leader.HasFollower<T>())
+        {
+            foreach (Follower f in leader.Followers)
+            {
+                if (f.Entity is T)
+                {
+                    list.Add(f);
+                }
+            }
+        }
+        return list;
+    }
     public static void Face(this Player player, Entity entity)
     {
-        if (entity.CenterX > player.CenterX)
+        if (entity != null)
         {
-            player.Facing = Facings.Right;
+            if (entity.CenterX > player.CenterX)
+            {
+                player.Facing = Facings.Right;
+            }
+            else
+            {
+                player.Facing = Facings.Left;
+            }
         }
-        else
-        {
-            player.Facing = Facings.Left;
-        }
+    }
+    public static IEnumerator Boop(this Player player, int dir = 1, float dist = 7)
+    {
+        float from = player.X;
+        player.Facing = (Facings)dir;
+        yield return LerpYoyo(Ease.CubeIn, 0.1f, f => player.X = Calc.LerpClamp(from, from + dist * dir, f));
+    }
+    public static IEnumerator Boop(this Player player, Entity booped, float additionalBoopage = 0)
+    {
+        yield return new SwapImmediately(player.Boop(Math.Sign(booped.X - player.X), MathHelper.Distance(booped.X, player.X) + additionalBoopage));
+    }
+    public static IEnumerator ZoomToWorld(this Level level, Vector2 worldPos, float zoom, float duration)
+    {
+        yield return new SwapImmediately(level.ZoomTo(worldPos - level.Camera.Position, zoom, duration));
+    }
+    public static IEnumerator ZoomAcrossWorld(this Level level, Vector2 worldPos, float zoom, float duration)
+    {
+        yield return new SwapImmediately(level.ZoomAcross(worldPos - level.Camera.Position, zoom, duration));
     }
     public static void Ground<T>(IEnumerable<T> list) where T : FallingBlock
     {
@@ -504,6 +573,14 @@ public static class PianoUtils
         entity.Position = prev;
         entity.Collider = prevCollider;
         return result;
+    }
+    public static Entity PushOutOfSolids(this Entity entity, Vector2 step)
+    {
+        while (entity.CollideCheck<Solid>())
+        {
+            entity.Position += step;
+        }
+        return entity;
     }
     public static Vector2 NearestSnap<T>(this Entity entity, float step = 1, Collider collider = null) where T : Entity
     {
@@ -647,9 +724,53 @@ public static class PianoUtils
         return new Vector2(rect.Right, (int)(rect.Top + rect.Height / 2f));
     }
 
+    public static Rectangle SetPos(this Rectangle rect, Vector2 position)
+    {
+        rect.X = (int)position.X;
+        rect.Y = (int)position.Y;
+        return rect;
+    }
+    public static Rectangle SetPos(this Rectangle rect, float x, float y)
+    {
+        rect.X = (int)x;
+        rect.Y = (int)y;
+        return rect;
+    }
+    public static Rectangle SetSize(this Rectangle rect, float width, float height)
+    {
+        rect.Width = (int)width;
+        rect.Height = (int)height;
+        return rect;
+    }
+    public static Rectangle SetSize(this Rectangle rect, Vector2 size)
+    {
+        return rect.SetSize(size.X, size.Y);
+    }
+    public static Rectangle Set(this Rectangle rect, Vector2 position, float width, float height)
+    {
+        return rect.Set(position.X, position.Y, width, height);
+    }
+    public static Rectangle Set(this Rectangle rect, Vector2 position, Vector2 size)
+    {
+        return rect.Set(position.X, position.Y, size.X, size.Y);
+    }
+    public static Rectangle Set(this Rectangle rect, float x, float y, float width, float height)
+    {
+        rect.SetPos(x, y);
+        rect.SetSize(width, height);
+        return rect;
+    }
     public static bool Colliding(this Rectangle rect, Rectangle check)
     {
-        return !(check.Left >= rect.Right) && !(check.Right <= rect.Left) && !(check.Top >= rect.Bottom) && !(check.Bottom <= rect.Top);
+        return Colliding(rect, check, 0);
+    }
+    public static bool Colliding(this Rectangle rect, Rectangle check, float padding)
+    {
+        return Colliding(rect, check, Vector2.One * padding);
+    }
+    public static bool Colliding(this Rectangle rect, Rectangle check, Vector2 padding)
+    {
+        return !(check.Left + padding.X >= rect.Right) && !(check.Right + padding.X <= rect.Left) && !(check.Top + padding.Y >= rect.Bottom) && !(check.Bottom + padding.Y <= rect.Top);
     }
 
     public static Vector2 HalfSize(this MTexture texture)
@@ -685,7 +806,23 @@ public static class PianoUtils
     {
         return new Vector2(vec.X - vec.X % mod.X, vec.Y - vec.Y % mod.Y);
     }
-
+    public static void DrawOutlineOnly(this MTexture texture, Vector2 position, Vector2 origin, Color color, float scale, float rotation)
+    {
+        float scaleFix = texture.ScaleFix;
+        scale *= scaleFix;
+        Rectangle clipRect = texture.ClipRect;
+        Vector2 origin2 = (origin - texture.DrawOffset) / scaleFix;
+        for (int i = -1; i <= 1; i++)
+        {
+            for (int j = -1; j <= 1; j++)
+            {
+                if (i != 0 || j != 0)
+                {
+                    Draw.SpriteBatch.Draw(texture.Texture.Texture_Safe, position + new Vector2(i, j), clipRect, color, rotation, origin2, scale, SpriteEffects.None, 0f);
+                }
+            }
+        }
+    }
     public static void StandardBegin(this SpriteBatch spriteBatch)
     {
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone);
@@ -698,7 +835,7 @@ public static class PianoUtils
     {
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
     }
-    public static void StandardBegin(this SpriteBatch spriteBatch, BlendState blend, Matrix matrix)
+    public static void StandardBegin(this SpriteBatch spriteBatch, Matrix matrix, BlendState blend)
     {
         spriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, matrix);
     }
@@ -706,7 +843,7 @@ public static class PianoUtils
     {
         spriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, shader, Matrix.Identity);
     }
-    public static void StandardBegin(this SpriteBatch spriteBatch, BlendState blend, Effect shader, Matrix matrix)
+    public static void StandardBegin(this SpriteBatch spriteBatch, Matrix matrix, BlendState blend, Effect shader)
     {
         spriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, shader, matrix);
     }
@@ -714,27 +851,36 @@ public static class PianoUtils
     {
         spriteBatch.Begin(SpriteSortMode.Deferred, blend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
     }
-    public static void StandardBegin(this SpriteBatch spriteBatch, Effect effect, Matrix matrix)
+    public static void StandardBegin(this SpriteBatch spriteBatch, Matrix matrix, Effect effect)
     {
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointWrap, DepthStencilState.None, RasterizerState.CullNone, effect, matrix);
     }
 
-    public static void SetRenderTarget(this VirtualRenderTarget source, Color? clear = null)
+    public static void SetAsTarget(this VirtualRenderTarget source, Color clear)
     {
         Engine.Graphics.GraphicsDevice.SetRenderTarget(source);
-        if (clear.HasValue)
-        {
-            Engine.Graphics.GraphicsDevice.Clear(clear.Value);
-        }
+        Engine.Graphics.GraphicsDevice.Clear(clear);
     }
 
+    public static void SetAsTarget(this VirtualRenderTarget source, bool clear)
+    {
+        Engine.Graphics.GraphicsDevice.SetRenderTarget(source);
+        if (clear)
+        {
+            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+        }
+    }
+    public static void SetAsTarget(this VirtualRenderTarget source)
+    {
+        Engine.Graphics.GraphicsDevice.SetRenderTarget(source);
+    }
     public static VirtualRenderTarget Apply(this VirtualRenderTarget source, VirtualRenderTarget bufferSameSizeAsSource, Effect effect, Vector2 position = default)
     {
-        bufferSameSizeAsSource.SetRenderTarget(Color.Transparent);
+        bufferSameSizeAsSource.SetAsTarget(Color.Transparent);
         Draw.SpriteBatch.StandardBegin(effect);
         Draw.SpriteBatch.Draw((RenderTarget2D)source, position, Color.White);
         Draw.SpriteBatch.End();
-        source.SetRenderTarget(Color.Transparent);
+        source.SetAsTarget(Color.Transparent);
         Draw.SpriteBatch.StandardBegin(effect);
         Draw.SpriteBatch.Draw((RenderTarget2D)bufferSameSizeAsSource, position, Color.White);
         Draw.SpriteBatch.End();
@@ -932,6 +1078,14 @@ public static class PianoUtils
     public static Color Darken(this Color color, float amount)
     {
         return new Color(color.R - amount, color.G - amount, color.B - amount);
+    }
+    public static void DisableMovement(this Player player)
+    {
+        player.StateMachine.State = Player.StDummy;
+    }
+    public static void EnableMovement(this Player player)
+    {
+        player.StateMachine.State = Player.StNormal;
     }
     public static Vector2 RandomFrom(this Vector2 vec, float xMin, float xMax, float yMin, float yMax)
     {
@@ -1174,13 +1328,35 @@ public static class PianoUtils
         };
     }
 
-    public static List<T> CheckAdd<T>(this List<T> list, T value)
+    public static void InsertPoint(this Leader leader)
+    {
+        Vector2 vector = leader.Entity.Position + leader.Position;
+        leader.InsertPoint(vector);
+    }
+    public static void InsertPoint(this Leader leader, Vector2 point)
+    {
+        if (leader.PastPoints.Count != 0)
+        {
+            leader.PastPoints.Insert(0, point);
+            if (leader.PastPoints.Count > 350)
+            {
+                leader.PastPoints.RemoveAt(leader.PastPoints.Count - 1);
+            }
+        }
+        else
+        {
+            leader.PastPoints.Add(point);
+        }
+    }
+
+    public static bool TryAdd<T>(this List<T> list, T value)
     {
         if (!list.Contains(value))
         {
             list.Add(value);
+            return true;
         }
-        return list;
+        return false;
     }
 
     public static Entity MakeGlobal(this Entity entity)
@@ -1195,7 +1371,19 @@ public static class PianoUtils
         entity.RemoveTag(Tags.Persistent);
         return entity;
     }
-
+    public static IEnumerator MultiRoutine(this Entity entity, params IEnumerator[] functionCalls)
+    {
+        Coroutine[] routines = new Coroutine[functionCalls.Length];
+        for (int i = 0; i < functionCalls.Length; i++)
+        {
+            routines[i] = new Coroutine(functionCalls[i]);
+            entity.Add(routines[i]);
+        }
+        foreach (Coroutine routine in routines)
+        {
+            while (!routine.Finished) yield return null;
+        }
+    }
     public static Vector2 Marker(this Scene scene, string id, bool screenSpace = false)
     {
         List<Entity> markers = (scene as Level).Tracker.GetEntities<Marker>();

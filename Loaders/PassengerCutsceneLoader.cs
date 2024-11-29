@@ -30,7 +30,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Loaders
         {
             if (ContentLoaders.TryGetValue(name, out var value))
             {
-                var cutscene = value(passenger, player);
+                PassengerCutscene cutscene = value(passenger, player);
                 return cutscene;
             }
             return null;
@@ -68,10 +68,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Loaders
                         text2 = text2.Trim();
                         text3 = text3.Trim();
                         ContentLoader loader = null;
-                        ConstructorInfo ctor = type.GetConstructor(new Type[] { typeof(Passenger), typeof(Player) });
+                        ConstructorInfo ctor = type.GetConstructor(new Type[] { typeof(Passenger), typeof(Player)});
                         if (ctor != null)
                         {
-                            loader = (passenger, player) => (PassengerCutscene)ctor.Invoke(new object[] { passenger, player });
+                            loader = (passenger, player) => (PassengerCutscene)ctor.Invoke(new object[] { passenger, player});
                         }
                         if (loader == null)
                         {

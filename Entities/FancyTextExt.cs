@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using Celeste.Mod;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 using Microsoft.Xna.Framework;
 using Monocle;
 
@@ -171,7 +172,71 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             public Anchors Position;
         }
+        public class CalidusNode : Node
+        {
+            public static List<string> EntityStrings = new() { "player", "maddy", "madeline", "ghost", "jaques", "randy" };
+            public Calidus GetCalidus()
+            {
+                return Engine.Scene?.Tracker.GetEntity<Calidus>();
+            }
+            public void Run()
+            {
+                if (GetCalidus() is Calidus calidus)
+                {
+                    if (Looking != Calidus.Looking.None)
+                    {
+                        Look(calidus, Looking);
+                    }
+                    if (!string.IsNullOrEmpty(LookEntity))
+                    {
+                        LookAtEntity(calidus, LookEntity);
+                    }
+                    if (Emotion != Calidus.Mood.None)
+                    {
+                        Mood(calidus, Emotion);
+                    }
+                }
+            }
+            public void LookAtEntity(Calidus calidus, string entityName)
+            {
+                if (GetEntity(entityName) is Entity entity)
+                {
+                    calidus.LookAt(entity);
+                }
+            }
+            public void Look(Calidus calidus, Calidus.Looking look)
+            {
+                if (Looking == Calidus.Looking.Target)
+                {
+                    return;
+                    //calidus.LookTarget = LookTarget;
+                }
+                calidus.Look(look);
 
+            }
+            public Entity GetEntity(string from)
+            {
+                return from switch
+                {
+                    "player" or "maddy" or "madeline" => Engine.Scene?.GetPlayer(),
+                    "jaques" => Engine.Scene?.Tracker.GetEntity<FormativeRival>(),
+                    "randy" => Engine.Scene?.Tracker.GetEntity<PrimitiveRival>(),
+                    "ghost" => Engine.Scene?.Tracker.GetEntity<Ghost>(),
+                    _ => null
+                };
+            }
+            public void Mood(Calidus calidus, Calidus.Mood mood)
+            {
+                if (Emotion != Calidus.Mood.None)
+                {
+                    calidus.Emotion(Emotion);
+                }
+            }
+            public Calidus.Looking Looking = Calidus.Looking.None;
+            public Calidus.Mood Emotion = Calidus.Mood.None;
+            public string LookEntity;
+            public Vector2 LookTarget;
+        }
         public class Text
         {
 
@@ -500,23 +565,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         });
                         continue;
                     }
-/*                    if (inside.StartsWith("ct"))
-                    {
-                        string name = inside.Substring(2).Trim(' ');
-                        group.Nodes.Add(new PassengerName
-                        {
-                            Name = name
-                        });
-                        continue;
-                    }
-                    else if (inside.StartsWith("/ct"))
-                    {
-                        group.Nodes.Add(new PassengerName
-                        {
-                            Name = ""
-                        });
-                        continue;
-                    }*/
                     if (text[0] == '#')
                     {
                         string text2 = "";
@@ -574,6 +622,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     switch (text)
                     {
+                        case "calidus":
+                            if (list.Count > 1)
+                            {
+                                CalidusNode node = new();
+                                string text3 = list[0].ToLower();
+                                string text4 = list[1].ToLower();
+                                if (text3 == "look")
+                                {
+                                    if (Enum.TryParse(text4, out Calidus.Looking looking))
+                                    {
+                                        node.Looking = looking;
+                                        group.Nodes.Add(node);
+                                    }
+                                    else if (CalidusNode.EntityStrings.Contains(text4))
+                                    {
+                                        node.LookEntity = text4;
+                                        group.Nodes.Add(node);
+                                    }
+                                }
+                                else if (text3 == "mood")
+                                {
+                                    if (Enum.TryParse(text4, true, out Calidus.Mood mood))
+                                    {
+                                        node.Emotion = mood;
+                                        group.Nodes.Add(node);
+                                    }
+                                }
+                            }
+                            continue;
                         case "break":
                             CalcLineWidth();
                             currentPage++;

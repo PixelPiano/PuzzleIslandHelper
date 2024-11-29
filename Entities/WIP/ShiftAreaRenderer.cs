@@ -15,7 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public static VirtualRenderTarget FGTarget => _FGTarget ??= VirtualContent.CreateRenderTarget("ShiftAreaFGTarget", 320, 180);
         public VirtualRenderTarget Target => FG ? FGTarget : BGTarget;
         public bool FG;
-        private bool doNotRender;
+        public bool doNotRender;
         public List<ShiftArea> Areas = new();
         public Vector2 Scale = Vector2.One;
         public Vector3 Offset;
@@ -23,17 +23,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public Vector3 RotationOrigin;
         public Vector2 ScaleOrigin;
         public float XRotation;
-        public static void ChangeDepth(bool fg, int depth)
-        {
-            if (Engine.Scene is not Level level) return;
-            foreach (ShiftAreaRenderer area in level.Tracker.GetEntities<ShiftAreaRenderer>())
-            {
-                if (area.FG == fg)
-                {
-                    area.Depth = depth;
-                }
-            }
-        }
         public ShiftAreaRenderer(bool fg) : base(Vector2.Zero)
         {
             Scale = Vector2.One;
@@ -63,8 +52,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Position = level.Camera.Position;
             if (doNotRender) return;
             GetAllAreas(level);
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
-            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+            Target.SetAsTarget(true);
             foreach (ShiftArea area in Areas)
             {
                 RenderArea(area);
@@ -74,7 +62,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         {
             Level level = Scene as Level;
             if (!area.Visible || !area.State) return;
-            Vector2 add = area.Position + Offset.XY() - level.Camera.Position + (area.FollowCamera ? level.Camera.Position - level.LevelOffset : Vector2.Zero);
+
+            Vector2 add = area.Position + Offset.XY() - level.Camera.Position;
+            if (area.FollowCamera)
+            {
+                add += level.Camera.Position - level.LevelOffset;
+            }
+
             area.BeforeRender(FG, !FG);
             Matrix matrix = Matrix * Matrix.CreateScale(new Vector3(1, 1, 0));
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
@@ -107,6 +101,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             base.SceneEnd(scene);
             Depth = FG ? -10001 : 9999;
         }
+        [OnLoad]
+        public static void Load()
+        {
+            Everest.Events.LevelLoader.OnLoadingThread += LevelLoader_OnLoadingThread;
+        }
         [OnUnload]
         public static void Unload()
         {
@@ -114,19 +113,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             _BGTarget?.Dispose();
             _FGTarget = null;
             _BGTarget = null;
-            On.Celeste.LevelLoader.ctor -= LevelLoader_ctor;
-        }
-        [OnLoad]
-        public static void Load()
-        {
-            On.Celeste.LevelLoader.ctor += LevelLoader_ctor;
+            Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;
         }
 
-        private static void LevelLoader_ctor(On.Celeste.LevelLoader.orig_ctor orig, LevelLoader self, Session session, Vector2? startPosition)
+        private static void LevelLoader_OnLoadingThread(Level level)
         {
-            orig(self, session, startPosition);
-            self.Level.Add(new ShiftAreaRenderer(true));
-            self.Level.Add(new ShiftAreaRenderer(false));
+            level.Add(new ShiftAreaRenderer(true));
+            level.Add(new ShiftAreaRenderer(false));
         }
+
+        [Command("area_depth", "a")]
+        public static void ChangeDepth(bool fg, int depth)
+        {
+            if (Engine.Scene is not Level level) return;
+            foreach (ShiftAreaRenderer renderer in level.Tracker.GetEntities<ShiftAreaRenderer>())
+            {
+                if (renderer.FG == fg)
+                {
+                    renderer.Depth = depth;
+                }
+            }
+        }
+
     }
 }

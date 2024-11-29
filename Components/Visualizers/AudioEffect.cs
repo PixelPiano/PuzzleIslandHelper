@@ -86,23 +86,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components.Visualizers
                     DataBuffer = new float[bufferLength * 8];
                     BufferLength = bufferLength;
                     ObjHandle = GCHandle.Alloc(this);
-                    if (ObjHandle != null)
-                    {
-                        ReadCallback = CaptureDSPReadCallback;
-                        DSP_DESCRIPTION desc = new DSP_DESCRIPTION()
-                        {
-                            numinputbuffers = 1,
-                            numoutputbuffers = 1,
-                            read = ReadCallback,
-                            userdata = GCHandle.ToIntPtr(ObjHandle)
-                        };
 
-                        if (system.createDSP(ref desc, out Capture) == RESULT.OK)
+                    ReadCallback = CaptureDSPReadCallback;
+                    DSP_DESCRIPTION desc = new DSP_DESCRIPTION()
+                    {
+                        numinputbuffers = 1,
+                        numoutputbuffers = 1,
+                        read = ReadCallback,
+                        userdata = GCHandle.ToIntPtr(ObjHandle)
+                    };
+
+                    if (system.createDSP(ref desc, out Capture) == RESULT.OK)
+                    {
+                        if (group.addDSP(0, Capture) != RESULT.OK)
                         {
-                            if (group.addDSP(0, Capture) != RESULT.OK)
-                            {
-                                Logger.Log("AudioEffect", "Unable to add Capture to the channel group");
-                            }
+                            Logger.Log("AudioEffect", "Unable to add Capture to the channel group");
                         }
                     }
                 }

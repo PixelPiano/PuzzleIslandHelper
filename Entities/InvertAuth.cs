@@ -451,6 +451,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Dir.UpRight => new Rectangle(last, 0, size, size),
                     Dir.DownLeft => new Rectangle(0, last, size, size),
                     Dir.DownRight => new Rectangle(last, last, size, size),
+                    _ => default
                 };
                 offset = new Vector2(r.X, r.Y) - new Vector2(12);
                 Texture = Texture.GetSubtexture(r);

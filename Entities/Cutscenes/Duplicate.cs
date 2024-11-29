@@ -80,7 +80,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 return;
             }
 
-            Everest.Events.Level.LoadLevel(level, playerIntro, isFromLoader);
+            //Everest.Events.Level.LoadLevel(level, playerIntro, isFromLoader);
         }
         public override void Render()
         {

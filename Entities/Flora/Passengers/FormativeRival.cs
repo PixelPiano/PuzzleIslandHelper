@@ -72,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                         AddTriangle(7, 20, 8, 16, 9, 20, 1, Vector2.One);
             */
 
-            TextboxListener = new(OnChar, OnPortrait, OnMood, OnWait);
+            TextboxListener = new("Jaques", OnChar, OnPortrait, OnMood, OnWait);
             Add(TextboxListener);
             Color2 = Color.Red;
         }
@@ -80,7 +80,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             //Flash(Color.Red);
         }
-        private void OnMood(FancyText.Portrait portrait)
+        private void OnMood(FancyText.Portrait portrait, string spriteId)
         {
             //Flash(Color.Yellow);
         }
@@ -91,19 +91,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         private void OnChar(FancyText.Portrait portrait, FancyText.Char character)
         {
-/*            if(!Baked) return;
-            if (character != null && !character.IsPunctuation)
-            {
-                if (Offsets[2] == Vector2.Zero)
-                {
-                    Offsets[2] = -Vector2.UnitY;
-                }
-                Offsets[2] *= -1;
-            }
-            else
-            {
-                Offsets[2] = Vector2.Zero;
-            }*/
+            /*            if(!Baked) return;
+                        if (character != null && !character.IsPunctuation)
+                        {
+                            if (Offsets[2] == Vector2.Zero)
+                            {
+                                Offsets[2] = -Vector2.UnitY;
+                            }
+                            Offsets[2] *= -1;
+                        }
+                        else
+                        {
+                            Offsets[2] = Vector2.Zero;
+                        }*/
         }
         private void OnWait(FancyText.Portrait portrait)
         {

@@ -1,5 +1,6 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
+using Celeste.Mod;
 using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
@@ -10,11 +11,12 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Helpers;
 using Celeste.Mod.PuzzleIslandHelper.Loaders;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using TAS.EverestInterop.InfoHUD;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.PlayerCalidus;
 
 public class PianoCommands
@@ -28,12 +30,12 @@ public class PianoCommands
             return;
         }
         PolygonDrawing.RotatorDisplay drawing = level.Tracker.GetEntity<PolygonDrawing.RotatorDisplay>();
-        if(drawing != null)
+        if (drawing != null)
         {
             VertexStorage.Store(name, drawing.Vertices.ToArray());
         }
     }
-    
+
     [Command("shakeIntensity", "sets the level shake intensity")]
     private static void SetIntensity(float value)
     {

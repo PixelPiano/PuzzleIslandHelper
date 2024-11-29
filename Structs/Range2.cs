@@ -6,6 +6,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Structs
     {
         public Range X;
         public Range Y;
+        public static Range2 Scalar = new Range2(Range.Scalar, Range.Scalar);
+        public static Range2 ScalarX = new Range2(Range.Scalar, default);
+        public static Range2 ScalarY = new Range2(default, Range.Scalar);
         public Range2(Range x, Range y) : this(x.Min, x.Max, y.Min, y.Max) { }
         public Range2(float minX, float maxX, float minY, float maxY)
         {

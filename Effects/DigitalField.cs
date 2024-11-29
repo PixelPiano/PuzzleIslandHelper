@@ -104,7 +104,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public override void BeforeRender(Scene scene)
         {
             base.BeforeRender(scene);
-            Target.SetRenderTarget(Color.White);
+            Target.SetAsTarget(Color.White);
         }
         public override void Render(Scene scene)
         {

@@ -3,7 +3,6 @@ using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
-using System.Windows.Interop;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
 {
@@ -16,6 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public bool DrawCircles;
         public float[] Circles = new float[6];
         public Wiggler Wiggler;
+        public SoundSource Scraping;
         public Ghost(EntityData data, Vector2 offset) : this(data.Position + offset, 16, 16, data.Attr("cutsceneID"), Vector2.One, new(-1, 1), 0.95f)
         {
         }

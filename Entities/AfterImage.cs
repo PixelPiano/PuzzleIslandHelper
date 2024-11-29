@@ -1,4 +1,5 @@
-﻿using Celeste.Mod.Core;
+﻿using Celeste.Mod.CommunalHelper;
+using Celeste.Mod.Core;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Microsoft.Xna.Framework;
@@ -21,6 +22,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Action DrawFunction;
         public float ScaleOutRate;
         public Effect Effect;
+        public Entity Entity;
+        public AfterImage(Entity entity, Action drawZero, float duration = 1, float startAlpha = 0.8f, Effect effect = null) : this(entity.Position, entity.Width, entity.Height, drawZero, duration, startAlpha, effect)
+        {
+        }
+        public void DrawZero()
+        {
+            if (Entity != null)
+            {
+                Vector2 prev = Entity.Position;
+                Entity.Position = Vector2.Zero;
+                Entity.Render();
+                Entity.Position = prev;
+            }
+        }
         public AfterImage(Vector2 position, float width, float height, Action drawAtVector2Zero, float duration = 1, float startAlpha = 0.8f, Effect effect = null) : base(position)
         {
             Alpha = startAlpha;
@@ -30,6 +45,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             DrawFunction = drawAtVector2Zero;
             Tag |= Tags.TransitionUpdate;
             Add(new BeforeRenderHook(BeforeRender));
+            if (duration > 0)
+            {
+                Tween tween = Tween.Create(Tween.TweenMode.Oneshot, Ease.Linear, duration, true);
+                tween.OnUpdate = t =>
+                {
+                    Alpha = Calc.LerpClamp(startAlpha, 0, t.Eased);
+                };
+                tween.OnComplete = delegate { RemoveSelf(); };
+                Add(tween);
+            }
+        }
+        public Action<Vector2, float> AlphaDraw;
+        public AfterImage(Vector2 position, Action<Vector2, float> alphaDraw, float duration = 1, float startAlpha = 0.8f) : base(position)
+        {
+            Alpha = startAlpha;
+            AlphaDraw = alphaDraw;
+            Tag |= Tags.TransitionUpdate;
             if (duration > 0)
             {
                 Tween tween = Tween.Create(Tween.TweenMode.Oneshot, Ease.Linear, duration, true);
@@ -59,9 +91,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void BeforeRender()
         {
-            if (renderedOnce || DrawFunction == null) return;
-            Target.SetRenderTarget(Color.Transparent);
-            Draw.SpriteBatch.StandardBegin(Effect, Matrix.Identity);
+            if (renderedOnce || DrawFunction == null || Target == null) return;
+            Target.SetAsTarget(Color.Transparent);
+            Draw.SpriteBatch.StandardBegin(Matrix.Identity, Effect);
             DrawFunction?.Invoke();
             Draw.SpriteBatch.End();
             renderedOnce = true;
@@ -71,8 +103,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Render();
             if (Alpha > 0)
             {
-                Draw.SpriteBatch.Draw(Target, Position, null, Color.White * Alpha);
+                if (Target != null)
+                {
+                    Draw.SpriteBatch.Draw(Target, Position, null, Color.White * Alpha);
+                }
+                else
+                {
+                    AlphaDraw?.Invoke(Position, Alpha);
+                }
             }
+        }
+        public static AfterImage Create(Vector2 position, Action<Vector2, float> render, float duration = 1, float startAlpha = 0.8f)
+        {
+            AfterImage image = new(position, render, duration, startAlpha);
+            if (Engine.Scene is Level level)
+            {
+                level.Add(image);
+            }
+            return image;
         }
         public static AfterImage Create(Vector2 position, float width, float height, Action drawAtVector2Zero, float duration = 1, float startAlpha = 0.8f, Effect effect = null)
         {
@@ -82,7 +130,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 level.Add(image);
             }
             return image;
-
+        }
+        public static AfterImage Create(Entity entity, Action drawZero, float duration = 1, float startAlpha = 0.8f, Effect effect = null)
+        {
+            AfterImage image = new(entity, drawZero, duration, startAlpha, effect);
+            if (Engine.Scene is Level level)
+            {
+                level.Add(image);
+            }
+            return image;
         }
     }
 }

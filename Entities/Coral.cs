@@ -46,12 +46,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Color b = ColorMode switch
                 {
                     ColorModes.Gradient => Color.Lerp(BaseColor, Color.Lerp(BaseColor, Color.Black, 0.3f), 1 - progress),
-                    ColorModes.SolidStem => Color.Lerp(BaseColor, SecondaryColor, progress)
+                    ColorModes.SolidStem => Color.Lerp(BaseColor, SecondaryColor, progress),
+                    _ => BaseColor
                 };
                 Color s = ColorMode switch
                 {
                     ColorModes.Gradient => Color.Lerp(SecondaryColor, Color.Lerp(SecondaryColor, Color.Black, 0.3f), 1 - progress),
-                    ColorModes.SolidStem => SecondaryColor
+                    ColorModes.SolidStem => SecondaryColor,
+                      _ => SecondaryColor
                 };
                 SegmentList list = new SegmentList(Base, (int)length, b, s, MaxSegments, ColorMode);
                 Limbs.Add(list);

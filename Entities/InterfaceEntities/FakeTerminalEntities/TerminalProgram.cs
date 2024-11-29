@@ -9,6 +9,7 @@ using VivHelper.Triggers;
 using YamlDotNet.Core.Tokens;
 using System.Reflection;
 using System.Linq;
+using System.Security.AccessControl;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities
 {
@@ -357,13 +358,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             {
                 if (info != null)
                 {
-                    var prop = (Color)info.GetValue(null, null);
-                    if (prop != null)
+                    object? value = info.GetValue(null, null);
+                    if (value != null)
                     {
                         string name = info.Name.ToLower();
                         if (name.Equals(input, StringComparison.InvariantCultureIgnoreCase))
                         {
-                            return prop;
+                            return (Color)info.GetValue(null, null);
                         }
 
                     }

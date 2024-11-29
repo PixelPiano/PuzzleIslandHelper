@@ -114,12 +114,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         private float turnRate;
         private bool playerColliding;
         private bool playerWasColliding;
-        public Statid(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, data.Int("petals"), data.Bool("digital"), Vector2.One * 4, 0)
+        public Statid(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, data.Int("petals"), data.Bool("digital"), Vector2.One * 4, 0, id)
         {
-            ID = id;
+
         }
-        public Statid(Vector2 position, int petals, bool digital, Vector2 petalScale, int scaleRange) : base(position)
+        public Statid(Vector2 position, int petals, bool digital, Vector2 petalScale, int scaleRange, EntityID id) : base(position)
         {
+            Tag |= Tags.TransitionUpdate;
+            ID = id;
             Digital = digital;
             Depth = 2;
             ease = Ease.Follow(Ease.SineIn, Ease.BackOut);
@@ -283,19 +285,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             int height = (int)(bottom - top);
             PetalTarget = VirtualContent.CreateRenderTarget("StatidPetalTarget", width, height);*/
         }
-/*        private bool drewOnce;
+        /*        private bool drewOnce;
 
-        public void BeforeRender()
-        {
-            if (drewOnce) return;
-            PetalTarget.SetRenderTarget(null);
-            foreach (Petal p in Petals)
-            {
-                p.DrawPetal(Matrix.Identity);
-            }
+                public void BeforeRender()
+                {
+                    if (drewOnce) return;
+                    PetalTarget.SetRenderTarget(null);
+                    foreach (Petal p in Petals)
+                    {
+                        p.DrawPetal(Matrix.Identity);
+                    }
 
-            drewOnce = true;
-        }*/
+                    drewOnce = true;
+                }*/
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
@@ -310,11 +312,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 Draw.LineAngle(Ground + GroundOffset, Angle, Height + HeightOffset, Color, Thickness);
                 DrawPoint(Ground + GroundOffset + Calc.AngleToVector(Angle, Height + HeightOffset + 2) + Vector2.UnitX * (-bulbSize + bulbOffset), Color, bulbSize);
             }
-/*            else
-            {
-                Draw.LineAngle(Ground + GroundOffset, Angle, Height + HeightOffset, Color, Thickness);
-                //Draw.SpriteBatch.Draw(PetalTarget, Position, Color);
-            }*/
+            /*            else
+                        {
+                            Draw.LineAngle(Ground + GroundOffset, Angle, Height + HeightOffset, Color, Thickness);
+                            //Draw.SpriteBatch.Draw(PetalTarget, Position, Color);
+                        }*/
         }
         public void DrawPoint(Vector2 position, Color color, int size)
         {

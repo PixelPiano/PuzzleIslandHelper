@@ -30,7 +30,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Surprised,
             Wink,
             Eugh,
-            Dizzy
+            Dizzy,
+            None
         }
 
         public enum Looking
@@ -48,6 +49,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Player,
             Target,
         }
+        public enum EyeDepths
+        {
+            Front,
+            Behind
+        }
+        public EyeDepths EyeDepth;
         public Looking LookDir
         {
             get
@@ -95,11 +102,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Vector2 OrigPosition;
         public Vector2 Scale = Vector2.One;
         public Vector2 EyeScale = Vector2.One;
+        public Vector2 ApproachScale = Vector2.One;
         public Vector2 LookTarget;
         public Vector2 EyeOffset;
         private Vector2 StarPos;
         public Vector2 Offset => shakeVector + drunkOffset + Vector2.UnitY * sineY;
         private EntityID ID;
+        private Vector2 shakeVector;
+        private float sineY;
+        private float sineYTarget;
         private float StarRotation;
         private float OutlineOpacity;
         public float FloatTarget;
@@ -111,7 +122,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool RenderStar;
         public bool Broken;
         public bool Talkable;
-        private bool Following;
+        public bool Following;
         public bool ForceBlink;
         public bool Blinking;
         public bool FallenApart;
@@ -128,7 +139,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public TalkComponent Talk;
         private Coroutine burstRoutine;
         public TextboxListener EmotionListener;
-
+        public float Alpha = 1;
         private ParticleType HeeHee = new ParticleType
         {
             Source = GFX.Game["objects/PuzzleIslandHelper/particles/heehee00"],
@@ -167,6 +178,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Position = value - ((base.Entity == null) ? Vector2.Zero : base.Entity.Position + Parent.Offset);
                 }
             }
+            public float Alpha = 1;
             public Part(Atlas atlas, string path) : base(atlas, path)
             {
             }
@@ -180,6 +192,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public override void Render()
             {
                 RenderAt(RenderPosition);
+            }
+            public override void Update()
+            {
+                base.Update();
             }
             public void Return()
             {
@@ -212,7 +228,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (Texture != null)
                 {
-                    Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, at + Offset, null, Color, Rotation, Origin, Scale, Effects, 0);
+                    Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, at + Offset, null, Color * Parent.Alpha, Rotation, Origin, Scale, Effects, 0);
                 }
             }
             private IEnumerator FallRoutine(float distanceToFloor)
@@ -283,20 +299,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Broken = broken;
             OutlineOpacity = broken ? 0 : 1;
             string path = "characters/PuzzleIslandHelper/Calidus/";
+            EyeSprite = new Part(GFX.Game, path) { Visible = !Broken };
+            Symbols = new Sprite(GFX.Game, path) { Visible = !Broken };
             OrbSprite = new Part(GFX.Game, path)
             {
                 FallSpeed = -48,
                 RotationRate = 8,
                 Visible = !Broken,
                 ReturnDelay = 0.3f
-            };
-            EyeSprite = new Part(GFX.Game, path)
-            {
-                Visible = !Broken
-            };
-            Symbols = new Sprite(GFX.Game, path)
-            {
-                Visible = !Broken,
             };
             Arms[0] = new Part(GFX.Game, path)
             {
@@ -348,21 +358,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             CurrentMood = mood;
             Emotion(mood);
 
-            EmotionListener = new(null, null, TextboxEmotion);
-            Add(new InGameLog(GetEmotionString));
+            Add(EmotionListener = new("Calidus", null, null, TextboxEmotion));
         }
-        private string emotionString = "";
-        public string GetEmotionString()
+        public void TextboxEmotion(FancyText.Portrait portrait, string anim)
         {
-            return emotionString;
-        }
-        public void TextboxEmotion(FancyText.Portrait portrait)
-        {
-            Textbox t = EmotionListener.ActiveTextbox;
-            if (t != null)
+            if (Enum.TryParse(anim, true, out Mood mood))
             {
-                emotionString = portrait.Animation;
-                emotionString += portrait.SpriteId;
+                Emotion(mood);
             }
         }
         public override void Added(Scene scene)
@@ -415,9 +417,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Removed(scene);
             Leader?.LoseFollower(Follower);
         }
-        private Vector2 shakeVector;
-        private float sineY;
-        private float sineYTarget;
         public override void Update()
         {
             if (Drunk)
@@ -435,6 +434,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 sineYTarget = Calc.Approach(sineYTarget, 0, Engine.DeltaTime);
                 drunkOffset = Calc.Approach(drunkOffset, Vector2.Zero, Engine.DeltaTime);
+            }
+            if (ApproachScale != Vector2.One)
+            {
+                ApproachScale = Calc.Approach(ApproachScale, Vector2.One, Engine.DeltaTime * 2);
             }
             sineY = Calc.Approach(sineY, sineYTarget, Engine.DeltaTime * 6);
             if (Talk != null)
@@ -458,28 +461,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 shakeVector = Vector2.Zero;
             }
             FloatAmount = Calc.Approach(FloatAmount, CanFloat ? FloatTarget : 0, Engine.DeltaTime * 2);
-            if (CanFloat)
+            foreach (Part part in Parts)
             {
-                foreach (Part part in Parts)
-                {
-                    part.Offset.Y = -FloatAmount;
-                }
-                EyeSprite.Offset.Y = -FloatAmount;
-                Arms[0].Offset.X = ArmOffsets[0];
-                Arms[1].Offset.X = ArmOffsets[1];
+                part.Offset.Y = -FloatAmount;
             }
+            EyeSprite.Offset.Y = -FloatAmount;
+            Arms[0].Offset.X = ArmOffsets[0];
+            Arms[1].Offset.X = ArmOffsets[1];
             BrokenParts.Visible = Broken;
             BrokenParts.OutlineOpacity = OutlineOpacity;
             base.Update();
             if (!Broken)
             {
-                StarRotation = RenderStar ? 0 : StarRotation + Engine.DeltaTime * 3;
+                StarRotation = (RenderStar ? 0 : StarRotation + Engine.DeltaTime * 3) % 360;
                 Arms[0].Scale = Arms[1].Scale = OrbSprite.Scale = Scale;
                 EyeSprite.Scale = EyeScale;
                 Vector2 centerOffset = GetLookOffset();
                 if (!EyeExpressionOverride)
                 {
-                    EyeOffset = EyeInstant ? centerOffset : Calc.Approach(EyeOffset, centerOffset, LookSpeed);
+                    EyeOffset = !EyeInstant ? Calc.Approach(EyeOffset, centerOffset, LookSpeed) : centerOffset;
                 }
                 EyeSprite.Color = Blinking || ForceBlink ? Color.Lerp(Color.White, Color.Black, 0.3f) : Color.White;
                 EyeSprite.RenderPosition = Calc.Approach(EyeSprite.RenderPosition, OrbSprite.RenderPosition + EyeOffset, LookSpeed);
@@ -515,11 +515,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Symbols.DrawSimpleOutline();
             }
+            bool prev = EyeSprite.Visible;
             if (EyeSprite.Visible)
             {
                 EyeSprite.DrawOutline();
             }
+            if (EyeDepth == EyeDepths.Behind)
+            {
+                EyeSprite.Render();
+                EyeSprite.Visible = false;
+            }
             base.Render();
+            EyeSprite.Visible = prev;
             if (RenderStar)
             {
                 Star.Draw(StarPos, Star.Center, Color.Yellow, Vector2.One, StarRotation);
@@ -551,7 +558,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 _ => Vector2.Zero
             };
         }
-        private void Fixed()
+        public void Fixed()
         {
             bool fromBroken = BrokenParts.Visible;
             BrokenParts.Visible = false;
@@ -809,6 +816,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             LookDir = dir;
             LookEntity = null;
         }
+        public void Look(Facings facing)
+        {
+            if (facing == Facings.Left) Look(Looking.Left);
+            else Look(Looking.Right);
+        }
+        public void LookOpposite()
+        {
+            Look(GetOpposite(look));
+        }
+        public static Looking GetOpposite(Looking from)
+        {
+            return from switch
+            {
+                Looking.None => Looking.None,
+                Looking.Left => Looking.Right,
+                Looking.Right => Looking.Left,
+                Looking.Up => Looking.Down,
+                Looking.Down => Looking.Up,
+                Looking.UpRight => Looking.DownLeft,
+                Looking.UpLeft => Looking.DownRight,
+                Looking.DownRight => Looking.UpLeft,
+                Looking.DownLeft => Looking.UpRight,
+                Looking.Center => Looking.Center,
+                Looking.Player => Looking.Player,
+                Looking.Target => Looking.Target,
+                _ => Looking.None
+            };
+        }
         public void Look(string direction)
         {
             foreach (Looking @enum in Enum.GetValues(typeof(Looking)).Cast<Looking>())
@@ -825,6 +860,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             LookEntity = entity;
         }
+        public void LookAt(Vector2 position)
+        {
+            Look(Looking.Target);
+            LookTarget = position;
+        }
         public void StartFollowing(Looking look)
         {
             if (!Following)
@@ -835,6 +875,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 followLook = look;
                 AddTag(Tags.Persistent);
             }
+        }
+        public void StartFollowing()
+        {
+            StartFollowing(Looking.None);
         }
         public void StopFollowing()
         {
@@ -851,11 +895,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Position = position;
         }
-        public void FloatToLerp(Vector2 position, float time, Ease.Easer ease = null)
+        public void FloatLerp(Vector2 position, float time, Ease.Easer ease = null)
         {
             Add(new Coroutine(FloatLerpRoutine(position, time, ease)));
         }
-        public IEnumerator FloatToX(float x, float speedmult = 1)
+        public IEnumerator Float(Vector2 position, float speedmult = 1)
+        {
+            while (Math.Abs(X - position.X) > 2 || Math.Abs(Y - position.Y) > 2)
+            {
+                Position.X = Calc.Approach(Position.X, position.X, 90f * speedmult * Engine.DeltaTime);
+                Position.Y = Calc.Approach(Position.Y, position.Y, 90f * speedmult * Engine.DeltaTime);
+                yield return null;
+            }
+            Position = position;
+        }
+        public IEnumerator Float(float x, float y, float speedmult = 1)
+        {
+            yield return new SwapImmediately(Float(new Vector2(x, y), speedmult));
+        }
+        public IEnumerator FloatX(float x, float speedmult = 1)
         {
             while (Math.Abs(X - x) > 2)
             {
@@ -864,7 +922,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Position.X = x;
         }
-        public IEnumerator FloatToY(float y, float speedmult = 1)
+        public IEnumerator FloatY(float y, float speedmult = 1)
         {
             while (Math.Abs(Y - y) > 2)
             {
@@ -873,14 +931,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Position.Y = y;
         }
-        public IEnumerator FloatToXLerp(float x, float time, Ease.Easer ease)
+        public IEnumerator FloatXNaive(float x, float speedmult = 1)
+        {
+            yield return new SwapImmediately(FloatX(X + x, speedmult));
+        }
+        public IEnumerator FloatYNaive(float y, float speedmult = 1)
+        {
+            yield return new SwapImmediately(FloatY(Y + y, speedmult));
+        }
+        public IEnumerator FloatNaive(Vector2 position, float speedmult = 1)
+        {
+            yield return new SwapImmediately(Float(Position + position, speedmult));
+        }
+        public IEnumerator FloatNaive(float h, float v, float speedmult = 1)
+        {
+            yield return new SwapImmediately(Float(Position + new Vector2(h, v), speedmult));
+        }
+        public IEnumerator FloatLerpX(float x, float time, Ease.Easer ease)
         {
             yield return FloatLerpRoutine(Vector2.UnitX * x, time, ease, true, false);
         }
-        public IEnumerator FloatToYLerp(float y, float time, Ease.Easer ease)
+        public IEnumerator FloatLerpY(float y, float time, Ease.Easer ease)
         {
             yield return FloatLerpRoutine(Vector2.UnitY * y, time, ease, false, true);
         }
+
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
@@ -1370,7 +1445,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (y) Position.Y = position.Y;
 
         }
-        private Vector2 armOffset => new Vector2(ArmOffsets[0],ArmOffsets[1]);
+        private Vector2 armOffset => new Vector2(ArmOffsets[0], ArmOffsets[1]);
         private IEnumerator ArmLoop()
         {
             ArmOffsets[0] = ArmOffsets[1] = 0;
@@ -1462,5 +1537,4 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
     }
-
 }

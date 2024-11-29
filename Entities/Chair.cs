@@ -104,14 +104,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             player.DummyGravity = false;
             player.Collidable = false;
             player.StateMachine.State = Player.StDummy;
-            if (facing != SitFacings.Both)
+            player.Facing = facing switch
             {
-                player.Facing = facing switch
-                {
-                    SitFacings.RightOnly => Facings.Right,
-                    SitFacings.LeftOnly => Facings.Left,
-                };
-            }
+                SitFacings.RightOnly => Facings.Right,
+                SitFacings.LeftOnly => Facings.Left,
+                _ => player.Facing
+            };
+
             Vector2 sit = Image.RenderPosition + SitOffset;
             //todo: add player.Play("sitAnimation");
             yield return 0.2f;

@@ -14,6 +14,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
     [Tracked]
     public class ThreeDeePassenger : VertexPassenger
     {
+        private bool dialgo => HasDialogCutscenes;
+        private int index => DialogIndex;
+        private bool cutscene => HasDataCutscene;
+        private bool watched => CutsceneWatched;
         public ThreeDeePassenger(EntityData data, Vector2 offset) : base(data.Position + offset, 20, 22, data.Attr("cutsceneID"), Vector2.One, new(0.2f, 1), 1f)
         {
             MinWiggleTime = 1;

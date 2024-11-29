@@ -15,10 +15,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         // Summary:
         //     A list of unique identifiers for this Cutscene.
         public string[] CustomIDs;
-
         //
         // Summary:
-        //     Mark this entity as a Custom Passenger Cutscene
+        //     Mark this entity as a Custom Passenger Cutscene.
         //
         // Parameters:
         //   ids:
@@ -29,9 +28,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         private static string[] InsertModName(string[] ids)
         {
+            string modName = "PuzzleIslandHelper/";
             for(int i = 0; i<ids.Length; i++)
             {
-                ids[i] = "PuzzleIslandHelper/" + ids[i];
+                if (!ids[i].StartsWith(modName))
+                {
+                    ids[i] = modName + ids[i];
+                }
             }
             return ids;
         }

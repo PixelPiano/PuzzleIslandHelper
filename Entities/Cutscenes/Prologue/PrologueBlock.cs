@@ -55,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             Cutout.Visible = false;
             Tag |= Tags.TransitionUpdate;
             Add(Listener = new TransitionListener());
-            Add(new PostUpdateHook(PostUpdate));
+            Add(new PostUpdateHook(PostUpdatee));
             Listener.OnOutBegin = () =>
             {
                 ForceUncollidable = true;
@@ -121,7 +121,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             Appeared = true;
             yield return null;
         }
-        public void PostUpdate()
+        public void PostUpdatee()
         {
             ClearedMask = false;
         }

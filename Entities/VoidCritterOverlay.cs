@@ -42,7 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void BeforeRender()
         {
-            Target.SetRenderTarget(Color.Black);
+            Target.SetAsTarget(Color.Black);
         }
         public override void Render()
         {
@@ -54,7 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Draw.SpriteBatch.End();
                 effect.ApplyCameraParams(level);
                 effect.Parameters["Amplitude"]?.SetValue(Ease.CubeOut(Amplitude));
-                Draw.SpriteBatch.StandardBegin(effect, level.Camera.Matrix);
+                Draw.SpriteBatch.StandardBegin(level.Camera.Matrix,effect);
                 Draw.SpriteBatch.Draw(Target, level.Camera.Position, Color.White);
                 Draw.SpriteBatch.End();
                 GameplayRenderer.Begin();

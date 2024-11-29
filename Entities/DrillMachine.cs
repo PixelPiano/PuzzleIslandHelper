@@ -153,8 +153,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 FlashBattery(i, flashLength);
                 yield return flashLength / 1.5f + 0.1f;
             }
-
-            float div = 0.2f;
             StartSpinning();
             for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
             {

@@ -15,6 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
     [CustomProgram("WarpProgram")]
     public class WarpProgram : TerminalProgram
     {
+        public int TimesUsed => PianoModule.Session.TimesUsedCapsuleWarp;
         public string SelectedID
         {
             get

@@ -22,6 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         private Entity collide;
         public StatidPatch(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
+            Tag |= Tags.TransitionUpdate;
             Collider = new Hitbox(data.Width, data.Height);
             HalfStepChance = data.Float("halfStepChance");
             Spacing = data.Float("spacing", 8);
@@ -85,13 +86,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                         p += Calc.Random.Range(-absRange, absRange + 1);
                     }
 
-                    Statid flower = new Statid(new Vector2(collide.Position.X, y), p, Digital, Vector2.One * 4, 2);
                     EntityID id = new EntityID(Guid.NewGuid().ToString(), 0);
-                    flower.ID = id;
+                    Statid flower = new Statid(new Vector2(collide.Position.X, y), p, Digital, Vector2.One * 4, 2, id);
                     level.Add(flower);
                     flower.Depth = Calc.Random.Choose(-1, 2, -10000);
                     flower.Color = Color.Lerp(Color.White, Color.Black, flower.Depth < 0 ? 0 : Calc.Random.Range(0.2f, 0.5f));
-                    if(flower.Depth < -1)
+                    if (flower.Depth < -1)
                     {
                         flower.GroundOffset = Calc.Random.Range(0, 7) * Vector2.UnitY;
                     }

@@ -37,7 +37,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         }
         public void BeforeRender()
         {
-            Buffer.SetRenderTarget(Color.White);
+            Buffer.SetAsTarget(Color.White);
         }
         public override void Render()
         {

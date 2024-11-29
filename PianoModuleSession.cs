@@ -16,6 +16,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public List<EntityID> BathroomStallsOpen = new();
+        public bool BathroomStallOpened {get; set;}
+        public int TimesUsedCapsuleWarp { get; set; }
+        public List<EntityID> CollectedFirfilIDs = new();
         public List<string> VoidLampGroups = new();
         public Dictionary<string, Vector2> PortalNodePositions = new();
         public Dictionary<EntityID, string> PersistentWarpLinks = new();

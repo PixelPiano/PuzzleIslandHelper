@@ -104,7 +104,16 @@ capsuleDocumentA=
 	{# FF0000}WARP{#}{# 000000} (Wireless-Artificial-Relocation-Probe) is a mechanical object of unknown origin.
 	Each WARP has a unique identifier (id) tied with it.
 	Using the program installed on its neighboring display, the user can enter in any id of an associated WARP.
-	If the id exists and is within range, the WARP will open, and the user may step inside.{#}
+	If the id exists and is within range, the WARP will open, and the user may step inside.
+	The capsule has been equipped with a preset id for new users.{#}
+
+capsuleWelcome=
+	[Madeline left sad]
+	"Welcome, please step inside. Your {# FF0000}WARP{#}{#} has been preset with the safest destination id."
+	"To continue, please press the big button in the middle of the screen."
+	[Madeline left normal]
+	{silent_trigger 0 press button}
+	Boop!
 
 capsuleDocumentB=
 	[Paper left normal]

@@ -29,16 +29,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            Collider prev = Collider;
-            Collider = SnapCollider;
-            if (CollideFirst<Player>() is Player player)
+            if (Collidable)
             {
-                if (player.Bottom > Top)
+                Collider prev = Collider;
+                Collider = SnapCollider;
+                if (CollideFirst<Player>() is Player player)
                 {
-                    player.MoveToY(Top);
+                    if (player.Bottom > Top)
+                    {
+                        player.MoveToY(Top);
+                    }
                 }
+                Collider = prev;
             }
-            Collider = prev;
         }
     }
 }

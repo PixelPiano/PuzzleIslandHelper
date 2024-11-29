@@ -8,7 +8,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
 
@@ -64,7 +63,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public float GlitchAmp = 0.4f;
         public float ShineAmount;
 
-        public bool RenderedTiles;
+        public bool TilesCached = false;
         public bool Grows;
         public bool DisableBreathing;
         public bool DrawTiles = true;
@@ -124,6 +123,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public string Flag;
         public bool Inverted;
         public int LineThickness = 1;
+        private float cacheWindow = 1;
         public bool State
         {
             get
@@ -132,9 +132,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 return level.Session.GetFlag(Flag) == !Inverted;
             }
         }
-
-        public ShiftArea(EntityData data, Vector2 offset) : this(data.Position, offset, data.Char("bgFrom", '0'), data.Char("bgTo", '0'), data.Char("fgFrom", '0'), data.Char("fgTo", '0'), data.NodesWithPosition(Vector2.One * 4), GetIndices(data, false), data.Bool("swapBg"), data.Bool("swapFg"), data.Attr("flag"), data.Bool("inverted"))
+        public EntityID ID;
+        public ShiftArea(EntityData data, Vector2 offset, EntityID id) : this(data.Position, offset, data.Char("bgFrom", '0'), data.Char("bgTo", '0'), data.Char("fgFrom", '0'), data.Char("fgTo", '0'), data.NodesWithPosition(Vector2.One * 4), GetIndices(data, false), data.Bool("swapBg"), data.Bool("swapFg"), data.Attr("flag"), data.Bool("inverted"))
         {
+            ID = id;
         }
         public ShiftArea(Vector2 position, Vector2 offset, char bgFrom, char bgTo, char fgFrom, char fgTo, Vector2[] nodes, int[] indices, bool swapBG = true, bool swapFG = true, string flag = "", bool inverted = false) : this(position + offset)
         {
@@ -149,6 +150,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             this.indices = indices;
             CreateArrays(nodes);
             Add(VertexBreathing);
+            Collider = new Hitbox(10, 10);
             Box = PianoUtils.Boundaries(Points, offset);
         }
         public ShiftArea(Vector2 position) : base(position)
@@ -173,7 +175,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Vector2 topLeft = Box.Position - (Vector2.One * extend * 8);
             Vector2 bottomRight = Box.BottomRight + (Vector2.One * extend * 8);
             FurthestBounds = PianoUtils.CreateRectangle(topLeft, bottomRight);
-
             int width = FurthestBounds.Width;
             int height = FurthestBounds.Height;
             try
@@ -206,6 +207,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
+
             Draw.HollowRect(Box, Color.Blue);
             Draw.HollowRect(FurthestBounds, Color.Cyan);
 
@@ -227,6 +229,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         public override void Update()
         {
+            if(cacheWindow > 0)
+            {
+                cacheWindow -= Engine.DeltaTime;
+            }
             UpdateVertices();
             base.Update();
         }
@@ -279,7 +285,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             }
             if (useBg)
             {
-                if (!RenderedTiles) RenderCache(false, matrix);
+                if (!TilesCached) RenderCache(false, matrix);
                 if (DrawTiles)
                 {
                     RenderTilesToTarget(false, matrix);
@@ -288,7 +294,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             }
             if (useFg)
             {
-                if (!RenderedTiles) RenderCache(true, matrix);
+                if (!TilesCached) RenderCache(true, matrix);
                 if (DrawTiles)
                 {
                     RenderTilesToTarget(true, matrix);
@@ -313,7 +319,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 if (ConnectLines) DrawLines(Vector2.Zero);
                 Draw.SpriteBatch.End();
             }
-            RenderedTiles = true;
+            if (cacheWindow <= 0) TilesCached = true;
             GlitchAmount = glitchAmount;
             GlitchAmp = glitchAmp;
         }
@@ -613,7 +619,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 yield return null;
             }
             SetVertexAlpha(0);
-
             if (PolygonScreenIndex >= 0 && Scene is Level level && level.Tracker.GetEntity<PolygonScreen>() is PolygonScreen screen)
             {
                 ExpandLinesOnScreen = true;

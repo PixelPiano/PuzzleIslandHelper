@@ -7,15 +7,17 @@ using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 using Celeste.Mod.PuzzleIslandHelper.Structs;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
+using ExtendedVariants.Variants;
+using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing.Drawing2D;
 using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
@@ -42,31 +44,65 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         public class Darkness : Entity
         {
-            public Vector2 MonsterPosition = new Vector2(0, 148);
-            public Darkness() : base()
+            public Ghost Ghost;
+            public Level Level;
+            public static Effect Shader;
+            public float Amplitude;
+            public float Alpha = 1;
+            public VirtualRenderTarget Buffer;
+            public Darkness(Level level, Ghost ghost) : base()
             {
+                Level = level;
                 Depth = -10000000;
+                Ghost = ghost;
+                Collider = new Hitbox(8, 8, 8);
+                //Add(new BeforeRenderHook(BeforeRender));
             }
             public override void Awake(Scene scene)
             {
                 base.Awake(scene);
+                //Buffer = VirtualContent.CreateRenderTarget("FestivalCutscenes.Darkness Target", 320, 180);
                 Position = (scene as Level).Camera.Position;
             }
             public IEnumerator SlideToX(float x, float time)
             {
-                float from = MonsterPosition.X;
+                float from = Ghost.Position.X;
                 for (float i = 0; i < 1; i += Engine.DeltaTime / time)
                 {
-                    MonsterPosition.X = Calc.LerpClamp(from, x, i);
+                    Ghost.Position.X = Calc.LerpClamp(from, x, i);
                     yield return null;
                 }
-                MonsterPosition.X = x;
+                Ghost.Position.X = x;
+            }
+            public void BeforeRender()
+            {
+                Buffer.SetAsTarget(Color.White);
+            }
+            public IEnumerator FadeOut(bool removeOnComplete = true)
+            {
+                yield return PianoUtils.Lerp(Ease.Linear, 1.2f, f => Alpha = 1 - f);
+                if (removeOnComplete)
+                {
+                    RemoveSelf();
+                }
             }
             public override void Render()
             {
                 base.Render();
-                Draw.Rect(Position, 320, 180, Color.Black);
-                Draw.Rect(Position + MonsterPosition, 16, 16, Color.Red);
+                Draw.Rect(Position, 320, 180, Color.Black * Alpha);
+                /*                Shader = ShaderHelperIntegration.TryGetEffect("PuzzleIslandHelper/Shaders/FestivalTrappedShader");
+                                if (Shader != null && Ghost != null)
+                                {
+                                    Draw.SpriteBatch.End();
+                                    Shader.ApplyCameraParams(Level);
+                                    Shader.Parameters["Amplitude"]?.SetValue(Amplitude);
+                                    Shader.Parameters["MonsterPos"]?.SetValue((Ghost.Center - Level.Camera.Position) / new Vector2(320, 180));
+                                    Draw.SpriteBatch.StandardBegin(Shader, Level.Camera.Matrix);
+                                    Draw.SpriteBatch.Draw(Buffer, Level.Camera.Position, Color.White);
+                                    Draw.SpriteBatch.End();
+                                    GameplayRenderer.Begin();
+
+                                }*/
             }
         }
         public Player Player;
@@ -98,9 +134,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             CutsceneType = type;
             Collider = new Hitbox(8, 8);
-
-            Add(new DebugComponent(Microsoft.Xna.Framework.Input.Keys.H, delegate { Calidus.Drunk = true; }, true));
-            Add(new DebugComponent(Microsoft.Xna.Framework.Input.Keys.Y, delegate { Calidus.Drunk = false; }, true));
         }
         public void GetEntities(Level level)
         {
@@ -222,6 +255,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 case cleanupStates.Competition:
                     break;
                 case cleanupStates.Disaster:
+                    Player.EnableMovement();
+                    Calidus.StartFollowing();
+                    Level.ResetZoom();
                     break;
             }
         }
@@ -315,6 +351,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 
         public IEnumerator Competition()
         {
+            yield return new SwapImmediately(Trapped());
             yield return new SwapImmediately(Fader.FadeInOut(Color.Transparent, Color.Black, 1, 0.6f, PrepareCompetition));
             /* yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_05a", PlayerLookLeft, CalidusShock, CalidusStern, CalidusNormal, JaquesRunToMaddy, JaquesRunBack, JaquesFloatLeft, JaquesFloatCenter, JaquesFloatRight, JaquesFloatReveal, Rave, JaquesStepOnPlatform));
 
@@ -342,58 +379,183 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public IEnumerator Disaster()
         {
             //yield return new FadeInOut(2, OnComplete);
-            yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_06"));
-            yield return new SwapImmediately(ChoicePrompt.Prompt("FESTIVAL_RIVALS_06c1", "FESTIVAL_RIVALS_06c2"));
-            /* Calidus wakes Maddy up NOT DONE
-             * Check on Jaques NOT DONE
-             * Jaques wakes up NOT DONE
-             * Immediately goes to check on Randy NOT DONE
-             * Opens to door NOT DONE
-             * Randy gone NOT DONE
-             * Tries to speak NOT DONE
-             * Finds out he's like Randy now NOT DONE
-             * Kinda fucked up ngl NOT DONE
-             */
-            //rumble, jaques calm, creature appears,
-            //crowd scatters, jaques/randy run, jaques/randy turn
-            //jaques/randy run to trailer, get in trailer
-
-            /*rumble
-             * 0 rumble
-             * 1 jaques calm
-             * 2 creature appears
-             * 3 randy panic
-             * 4 crowd scatter
-             * 5 maddy to jaques
-             * 6 creature materializes
-             * 7 jaques to front of trailer
-             * 8 creature approaches first
-             * 9 calidus approach creature
-             * 10 calidus glitch
-             * 11 everyone back up
-             * 12 creature advances
-             * 13 look at jaques
-             * 14 move behind jaques
-             * 15 light on ghost
-             * 16 run to trailer
-             * 17 jump in trailer
-             */
+            /*            yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_06"));
+                        yield return new SwapImmediately(ChoicePrompt.Prompt("FESTIVAL_RIVALS_06c1", "FESTIVAL_RIVALS_06c2"));
 
 
-            yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_07", rumble, jaquesCalmDown, ghostAppears, randyPanic, crowdScatter, MaddyRunToJaques, ghostMaterialize, jaquesToFrontOfTrailer, ghostFirstApproach, calidusApproachGhost, calidusGlitch, calidusDizzy, everyoneBackUp, ghostAdvance, allLookAtJaques, moveBehindJaques, lightOnGhost, runToTrailerBack, getInTrailer));
-            Trailer.ShutDoor();
-            Dark = new Darkness();
-            Scene.Add(Dark);
-            yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_08"));
+                        yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_07", rumble, jaquesCalmDown, ghostAppears, randyPanic, crowdScatter, MaddyRunToJaques, ghostMaterialize, jaquesToFrontOfTrailer, ghostFirstApproach, calidusApproachGhost, calidusGlitch, calidusDizzy, everyoneBackUp, ghostAdvance, allLookAtJaques, moveBehindJaques, lightOnGhost, runToTrailerBack, getInTrailer));*/
             //ghost walks to right, ghost roars, ghost walks to left, ghost roars, ghost leaves
+            yield return null;
         }
-
-
         public IEnumerator Trapped()
         {
+            SetupDarknessCutscene();
+            Trailer.ShutDoor();
+            Dark = new Darkness(Level, Ghost);
+            Scene.Add(Dark);
+            //yield return 1;
+            yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_08"));
+            //will we really be safe in here?
+            //shhh!
+            //..!
+            yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_09"));
+            yield return new SwapImmediately(SetUpFreedom());
+            yield return new SwapImmediately(Freedom());
+        }
+        public IEnumerator SetUpFreedom()
+        {
+            Trailer.DoorColliderEntity.Collidable = true;
+            Level.Session.DoNotLoad.Add(Randy.ID);
+            Scene.Remove(Randy);
+            Scene.Remove(Ghost);
+            if (Marker.TryFind("freedomCam", out Vector2 pos))
+            {
+                Level.Camera.X = pos.X + 16;
+            }
+            yield return Dark.FadeOut();
+        }
+        public IEnumerator Freedom()
+        {
+            yield return 0.1f;
+            yield return Level.ZoomTo(Trailer.TopRight - Level.Camera.Position, 1.4f, 1);
+            yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_10", calidusStartPeek, peekLoop, stopPeeking, allLeaveTrailer, allLookLeft, maddySearchTrailer, maddyReturn, calidusApproachJaques, calidusLookUpRight, calidusMoveRight, jaquesYell, calidusBackUp, jaquesScared, jaquesFaceCalidus, maddyToCalidus, waitOne, waitTwo, calidusLookJaques, calidusLookAtMaddy, maddyWalkToJaques, jaquesFaceMaddy));
+            Calidus.StartFollowing();
+            yield return new SwapImmediately(Level.ZoomBack(1));
+            EndCutscene(Level);
+        }
+        private IEnumerator maddyWalkToJaques()
+        {
+            yield return Player.DummyWalkTo(Jaques.X - 8);
+        }
+        private IEnumerator jaquesFaceMaddy()
+        {
+            Jaques.Face(Player);
+            yield return null;
+        }
+        private IEnumerator waitOne()
+        {
+            yield return 1;
+        }
+        private IEnumerator waitTwo()
+        {
+            yield return 2;
+        }
+        private IEnumerator calidusStartPeek()
+        {
+            Calidus.Look(Calidus.Looking.Right);
+            yield return Calidus.FloatX(Trailer.Right - Calidus.Width / 2);
+        }
+        private bool peeking;
+        private IEnumerator peekLoop()
+        {
+            peeking = true;
+            IEnumerator loop()
+            {
+                while (peeking)
+                {
+                    Calidus.LookOpposite();
+                    yield return 0.9f;
+                }
+            }
+            Add(new Coroutine(loop()));
+            yield return null;
+        }
+        private IEnumerator stopPeeking()
+        {
+            peeking = false;
+            Calidus.Look(Calidus.Looking.Left);
+            yield return null;
+        }
+        private IEnumerator allLeaveTrailer()
+        {
+            Calidus.CanFloat = true;
+            yield return this.MultiRoutine(Player.DummyWalkTo(Trailer.Right + 8), Jaques.WalkToX(Trailer.Right + 20), Calidus.Float(new Vector2(Trailer.Right + 46, Calidus.Y + 4), 1));
+            yield return null;
+        }
+        private IEnumerator allLookLeft()
+        {
+            Player.Facing = Facings.Left;
+            Jaques.Facing = Facings.Left;
+            Calidus.Look(Facings.Left);
+            yield return 0.85f;
+        }
+        private IEnumerator maddySearchTrailer()
+        {
+            yield return MoveActorToXAndJump(Player, Trailer.Left + 24, 100);
+            yield return null;
+        }
+        private IEnumerator maddyReturn()
+        {
+            yield return Player.DummyWalkTo(Trailer.Right - 4);
+            yield return null;
+        }
+        private IEnumerator calidusLookJaques()
+        {
+            Calidus.LookAt(Jaques);
+            yield return null;
+        }
+        private IEnumerator calidusApproachJaques()
+        {
+            Calidus.LookAt(Jaques);
+            Add(new Coroutine(Calidus.FloatNaive(new Vector2(-8, 4))));
+            yield return null;
+        }
+        private IEnumerator calidusLookUpRight()
+        {
+            Calidus.Look(Calidus.Looking.UpRight);
             yield return null;
         }
 
+        private IEnumerator calidusMoveRight()
+        {
+            Add(new Coroutine(Calidus.FloatNaive(Vector2.UnitX * 16)));
+            yield return null;
+        }
+
+        private IEnumerator jaquesYell()
+        {
+            Calidus.Emotion(Calidus.Mood.Surprised);
+            Calidus.LookAt(Jaques);
+            Add(new Coroutine(Calidus.FloatXNaive(24, 1.4f)));
+            yield return null;
+        }
+        private IEnumerator calidusBackUp()
+        {
+            Add(new Coroutine(Calidus.FloatXNaive(16, 0.8f)));
+            yield return null;
+        }
+        private bool jaquesScaredChecker;
+        private IEnumerator jaquesScared()
+        {
+            jaquesScaredChecker = true;
+            IEnumerator loop()
+            {
+                while (jaquesScaredChecker)
+                {
+                    Jaques.Facing = (Facings)(-(int)Jaques.Facing);
+                    yield return 0.7f;
+                }
+            }
+            Add(new Coroutine(loop()));
+            yield return null;
+        }
+        private IEnumerator jaquesFaceCalidus()
+        {
+            jaquesScaredChecker = false;
+            Jaques.Face(Calidus);
+            yield return null;
+        }
+        private IEnumerator calidusLookAtMaddy()
+        {
+            Calidus.LookAt(Player);
+            yield return null;
+        }
+        private IEnumerator maddyToCalidus()
+        {
+            Calidus.LookAt(Player);
+            Add(new Coroutine(Player.DummyWalkTo(Calidus.Right - 20)));
+            yield return null;
+        }
         private IEnumerator everyoneBackUp()
         {
             Add(new Coroutine(Jaques.WalkToX(Jaques.X + 16, 1, true)));
@@ -401,7 +563,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Add(new Coroutine(Player.DummyWalkTo(Player.X + 16, true)));
             if (Calidus != null)
             {
-                Add(new Coroutine(Calidus.FloatToX(Calidus.X + 16)));
+                Add(new Coroutine(Calidus.FloatX(Calidus.X + 16)));
             }
             yield return null;
         }
@@ -513,7 +675,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             calidusGlitching = false;
             yield return 0.6f;
-            yield return Calidus?.FloatToX(Player.Left - 8, 0.3f);
+            yield return Calidus?.FloatX(Player.Left - 8, 0.3f);
             yield return 0.1f;
             Calidus.Drunk = false;
             Calidus.Stern();
@@ -575,8 +737,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator runToTrailerBack()
         {
-            float x = Level.Camera.X;
-            Add(new Coroutine(PianoUtils.Lerp(Ease.SineInOut, 1.5f, f => Level.Camera.X = Calc.LerpClamp(x, x + 80, f))));
+            if (Marker.TryFind("trailerCam", out Vector2 position))
+            {
+                float x = Level.Camera.X;
+                Add(new Coroutine(PianoUtils.Lerp(Ease.SineInOut, 1.5f, f => Level.Camera.X = Calc.LerpClamp(x, position.X - 160, f))));
+            }
             yield return new SwapImmediately(moveGroup(Trailer.Right + 8, 4, Facings.Left, Jaques, Randy, Player, Calidus));
         }
         private IEnumerator crowdScatter()
@@ -612,12 +777,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 new(MoveActorToXAndJump(Jaques,x,Trailer.Width)),
                 new(MoveActorToXAndJump(Player,x + 16, Trailer.Width - 20)),
                 new(MoveActorToXAndJump(Randy, x + 32, Trailer.Width - 32)),
-                new(Calidus.FloatToX(x + 46))
+                new(Calidus.FloatX(x + 46))
             };
             Add(routines);
             foreach (var r in routines)
             {
                 while (!r.Finished) yield return null;
+            }
+        }
+        public void SetupDarknessCutscene()
+        {
+            Trailer.PrepareForDark();
+            Jaques.BottomLeft = new Vector2(Trailer.Left + 8, Trailer.platform.Top);
+            Player.BottomLeft = new Vector2(Trailer.Left + 20, Trailer.platform.Top);
+            Randy.BottomLeft = new Vector2(Trailer.Left + 32, Trailer.platform.Top);
+            Calidus.Position = new Vector2(Trailer.Left + 16, Trailer.Top + 20);
+            Calidus.CanFloat = false;
+            Player.DisableMovement();
+            Player.ForceCameraUpdate = false;
+            Calidus.StopFollowing();
+            Jaques.Facing = Facings.Right;
+            Randy.Facing = Facings.Right;
+            Player.Facing = Facings.Right;
+            Calidus.Look(Calidus.Looking.Right);
+            if (Marker.TryFind("trailerCam", out Vector2 pos))
+            {
+                Level.Camera.X = pos.X - 160;
+                if (Ghost == null)
+                {
+                    Ghost = new Ghost(Level.Camera.Position);
+                    Level.Add(Ghost);
+                }
             }
         }
         private IEnumerator wait()
@@ -822,7 +1012,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Calidus.LookAt(Ghost);
             yield return 0.1f;
             Calidus.LookSpeed = 1f;
-            yield return Calidus.FloatToXLerp(Calidus.X + 16, 1.4f, Ease.SineInOut);
+            yield return Calidus.FloatLerpX(Calidus.X + 16, 1.4f, Ease.SineInOut);
             yield return null;
 
         }
@@ -838,7 +1028,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator calidusToJaques(Calidus.Looking endLook)
         {
-            yield return Calidus.FloatToX(Jaques.Right + 3, 2);
+            yield return Calidus.FloatX(Jaques.Right + 3, 2);
             Calidus.Look(endLook);
         }
         private IEnumerator getBehindJaques()

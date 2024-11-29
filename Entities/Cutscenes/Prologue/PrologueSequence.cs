@@ -84,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                     break;
             }
         }
-        private static IDetour hook_Player_set_Ducking;
+        private static Hook hook_Player_set_Ducking;
         private delegate bool orig_Player_set_Ducking(Player self);
         [OnLoad]
         public static void Load()

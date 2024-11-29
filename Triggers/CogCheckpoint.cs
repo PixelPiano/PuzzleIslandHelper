@@ -42,7 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             {
                 if (gear.ContinuityID == ContinuityID)
                 {
-                    PianoModule.Session.GearCheckpointIDs.CheckAdd(SubID);
+                    PianoModule.Session.GearCheckpointIDs.TryAdd(SubID);
                 }
             }
         }

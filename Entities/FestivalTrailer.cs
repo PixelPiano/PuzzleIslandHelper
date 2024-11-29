@@ -28,6 +28,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Vector2 NodePosition;
         private Vector2 orig;
         private float shakeTimer;
+
         public enum States
         {
             Closed,
@@ -107,8 +108,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public override void Update()
             {
                 Collider = Trailer.Collider;
-/*                float target = CollideCheck<Player>() ? 0 : 1;
-                SideAlpha = Calc.Approach(SideAlpha, target, Engine.DeltaTime);*/
+                /*                float target = CollideCheck<Player>() ? 0 : 1;
+                                SideAlpha = Calc.Approach(SideAlpha, target, Engine.DeltaTime);*/
                 SideCoverup.Color = Color.White * SideAlpha;
                 Position = Trailer.Position;
                 UpdateImages(Image.Rotation, Image.Position, Image.Scale, Image.Origin);
@@ -130,10 +131,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Image = new Image(ClosedTexture);
             Add(Image);
             Collider = new Hitbox(Image.Width, Image.Height);
-/*            
-            Add(new DebugComponent(Keys.L, Flip, true));
-            Add(new DebugComponent(Keys.K, Reset, true));
-            Add(new DebugComponent(Keys.J, crashDebug, true));*/
+            /*            
+                        Add(new DebugComponent(Keys.L, Flip, true));
+                        Add(new DebugComponent(Keys.K, Reset, true));
+                        Add(new DebugComponent(Keys.J, crashDebug, true));*/
         }
         public void ShakeFor(float time = 0.3f)
         {
@@ -153,9 +154,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Helper = new HelperEntity(this, Image);
             Helper.Active = false;
             scene.Add(Helper);
-            DoorColliderEntity = new Entity(Position + new Vector2(71, 8));
+            DoorColliderEntity = new Entity(Position + new Vector2(67, 8));
 
-            DoorColliderEntity.Collider = new Hitbox(3, 35);
+            DoorColliderEntity.Collider = new Hitbox(7, 35);
             scene.Add(DoorColliderEntity);
             DoorColliderEntity.Collidable = false;
         }
@@ -173,7 +174,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (DoorColliderEntity.Collidable && DoorColliderEntity.CollideCheck<Actor>())
             {
                 ForceBackOpen();
-                DoorColliderEntity.Collidable = false;
             }
             Walls[0].X = X;
             Walls[1].X = Right - Walls[1].Width;
@@ -192,18 +192,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Update();
             Position -= Shake;
         }
-        public void ForceBackOpen()
+        public void ForceBackOpen(bool shake = true)
         {
             Image.Texture = BackOpenTexture;
             State = States.BackOpen;
-            ShakeFor(0.3f);
+            if (shake)
+            {
+                ShakeFor(0.3f);
+            }
+            DoorColliderEntity.Collidable = false;
             //todo: play sound
         }
-        public void ShutDoor()
+        public void ShutDoor(bool shake = true)
         {
             Image.Texture = ClosedTexture;
             State = States.Closed;
-            ShakeFor(0.3f);
+            if (shake)
+            {
+                ShakeFor(0.3f);
+            }
         }
         public void BurstOutFront()
         {
@@ -231,9 +238,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void PrepareForGettingIn()
         {
+            ShutDoor(false);
             ActivatePlatform();
             Helper.SideState(true);
             DoorColliderEntity.Collidable = true;
+        }
+        public void PrepareForDark()
+        {
+            ActivatePlatform();
+            Helper.SideState(true);
+            DoorColliderEntity.Collidable = false;
+            ShutDoor(false);
         }
         public void ActivatePlatform()
         {

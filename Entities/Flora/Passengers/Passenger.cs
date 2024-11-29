@@ -20,13 +20,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             get
             {
-                return HasDataCutscene && SceneAs<Level>().Session.GetFlag("PuzzleIslandHelper/PassengerCutscene/" + DataCutsceneID);
+                return HasDataCutscene && SceneAs<Level>().Session.GetFlag(DataCutsceneID);
             }
             set
             {
                 if (HasDataCutscene)
                 {
-                    SceneAs<Level>().Session.SetFlag("PuzzleIslandHelper/PassengerCutscene/" + DataCutsceneID, value);
+                    SceneAs<Level>().Session.SetFlag(DataCutsceneID, value);
                 }
             }
         }
@@ -38,15 +38,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public float JumpHeight = 150f;
         public bool HasGravity = true;
         public float GravityMult = 1;
-        public string DialogName;
-        public Passenger(Vector2 position, float width, float height, string cutscene) : base(position)
+        public string[] Dialogs;
+        public bool HasDialogCutscenes => Dialogs != null && Dialogs.Length > 0;
+        public enum DialogMethods
         {
+            OnlyOnce,
+            Loop,
+            RepeatLast
+        }
+        public DialogMethods DialogMethod;
+        public int DialogIndex;
+        public bool CanStartDialogCutscene => HasDialogCutscenes && DialogIndex < Dialogs.Length;
+        public Passenger(Vector2 position, float width, float height, string cutscene, string dialog, DialogMethods dialogMethod) : base(position)
+        {
+            if (!string.IsNullOrWhiteSpace(dialog))
+            {
+                Dialogs = dialog.Split(',');
+            }
             Depth = 1;
             Collider = new Hitbox(width, height);
             DataCutsceneID = cutscene;
             Add(dataTalk = new DotX3(Collider, OnDataInteract));
+            Tag |= Tags.TransitionUpdate;
+            DialogMethod = dialogMethod;
         }
-        public Passenger(EntityData data, Vector2 offset) : this(data.Position + offset, 16, 16, data.Attr("cutsceneID"))
+        public Passenger(Vector2 position, float width, float height, string cutscene, string dialog) : this(position, width, height, cutscene, dialog, DialogMethods.OnlyOnce)
+        {
+        }
+        public Passenger(Vector2 position, float width, float height, string cutscene) : this(position, width, height, cutscene, null, DialogMethods.OnlyOnce)
+        {
+        }
+        public Passenger(EntityData data, Vector2 offset) : this(data.Position + offset, 16, 16, data.Attr("cutsceneID"), data.Attr("dialog"), data.Enum<DialogMethods>("dialogMethod"))
         {
 
         }
@@ -116,16 +138,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             }
             Position.X = to;
         }
+        public virtual void OnCutsceneEnd(Level level)
+        {
+            CutsceneWatched = true;
+        }
         public void UpdateDataTalk()
         {
-            if (!HasDataCutscene || CutsceneWatched)
+
+            bool watched = CutsceneWatched;
+            if(!HasDataCutscene || (HasDialogCutscenes && watched && !CanStartDialogCutscene) || (watched && !HasDialogCutscenes))
             {
                 dataTalk.Enabled = false;
             }
         }
         public virtual void OnDataInteract(Player player)
         {
-            PassengerCutsceneLoader.LoadCustomCutscene(DataCutsceneID, this, player, SceneAs<Level>());
+            if (HasDataCutscene && !CutsceneWatched)
+            {
+                PassengerCutsceneLoader.LoadCustomCutscene(DataCutsceneID, this, player, SceneAs<Level>());
+            }
+            else if (CanStartDialogCutscene)
+            {
+                AddDialogCutscene(player, Dialogs[DialogIndex]);
+            }
+        }
+        public void AddDialogCutscene(Player player, string dialog)
+        {
+            SceneAs<Level>().Add(new DialogPassengerCutscene(this, player, dialog));
         }
     }
 }

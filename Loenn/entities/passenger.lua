@@ -4,11 +4,11 @@ passenger.justification = { 0, 0 }
 passenger.name = "PuzzleIslandHelper/PassengerMapProcessorDummy"
 local names ={"Old","Tall","Civilian","Group","Dog","Child","3D","FestivalBoy","FormativeRival","PrimitiveRival"
               ,"Gravedigger","Mourner", "Gardener","GroveDweller","LostGirl","WorriedGirl","OceanGranny","MusicFanatic","RecordReceptionist"
-              ,"ClinicReceptionist","Doctor"}
+              ,"ClinicReceptionist","Doctor","Tutorial"}
 passenger.depth = 1
 
 passenger.texture = "objects/PuzzleIslandHelper/passenger/wip"
-
+local methods = {"OnlyOnce","RepeatLast","Loop"}
 passenger.placements = {}
 for _, type in ipairs(names) do
     local placement = {
@@ -17,17 +17,24 @@ for _, type in ipairs(names) do
             cutsceneID = "",
             passengerType = type,
             groups = 3,
-            groupWidth = 10
+            groupWidth = 10,
+            dialog = "",
+            dialogMethod = "OnlyOnce"
         }
     }
     table.insert(passenger.placements,placement)
 end
-
+passenger.fieldInformation =
+{
+    dialogMethod = {
+        options = methods,
+        editable = false
+    }
+}
 function passenger.ignoredFields(entity)
     local ignored = {
         "_id",
         "_name",
-        "passengerType",
         "groups",
         "groupWidth"
     }

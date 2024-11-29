@@ -48,7 +48,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             VoidCritterWall collided = player.CollideFirst<VoidCritterWall>();
-            if(collided != null && collided.FlagState && !(CollidingWithLight(player, level) || VoidSafeZone.Check(player)))
+            if (collided != null && collided.FlagState && !(CollidingWithLight(player, level) || VoidSafeZone.Check(player)))
             {
                 player.Die(Vector2.Zero);
             }
@@ -74,7 +74,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void ComplexBeforeRender()
         {
-            Lights.SetRenderTarget(Color.Transparent);
+            Lights.SetAsTarget(Color.Transparent);
             if (Scene is not Level level) return;
             if (level.Tracker.GetComponents<CritterLight>() is not List<Component> list2 || list2.Count == 0) return;
 
@@ -95,7 +95,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (Scene is not Level level || level.Tracker.GetEntities<VoidCritterWall>() is not List<Entity> list || list.Count == 0) return;
             if (level.Tracker.GetComponents<CritterLight>() is not List<Component> list2 || list2.Count == 0) return;
 
-            Lights.SetRenderTarget(Color.Transparent);
+            Lights.SetAsTarget(Color.Transparent);
             Draw.SpriteBatch.StandardBegin(level.Camera.Matrix);
             {
                 foreach (CritterLight light in list2)
@@ -108,7 +108,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Draw.SpriteBatch.End();
 
-            Walls.SetRenderTarget(Color.Transparent);
+            Walls.SetAsTarget(Color.Transparent);
             Draw.SpriteBatch.StandardBegin(level.Camera.Matrix);
             foreach (VoidCritterWall wall in list)
             {
@@ -119,7 +119,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Draw.SpriteBatch.End();
 
-            Draw.SpriteBatch.StandardBegin(Subtract, level.Camera.Matrix);
+            Draw.SpriteBatch.StandardBegin(level.Camera.Matrix, Subtract);
             {
                 Draw.SpriteBatch.Draw((RenderTarget2D)Lights, level.Camera.Position, Color.White);
             }
