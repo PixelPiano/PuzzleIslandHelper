@@ -12,6 +12,7 @@ using System.Xml.Serialization;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs
 {
+    //BETA - NOW OBSOLETE
     [CustomProgram("WarpProgram")]
     public class WarpProgram : TerminalProgram
     {

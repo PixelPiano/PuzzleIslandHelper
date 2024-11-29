@@ -50,6 +50,64 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Segments.Add(new(a, b));
                 }
             }
+            public Rune(string id, string pattern) : this(id, Parse(pattern))
+            {
+
+            }
+            public Rune(string id, List<Tuple<int, int>> pattern)
+            {
+                ID = id;
+                Segments = pattern;
+            }
+            public override string ToString()
+            {
+                string output = "{";
+                foreach (Tuple<int, int> pair in Segments)
+                {
+                    output += pair.Item1;
+                    output += pair.Item2;
+                    output += ",";
+                }
+                if (output.Length == 1)
+                {
+                    output += "Empty";
+                }
+                output += "}";
+                return output;
+            }
+            public string ToString(int newLineEveryXPair)
+            {
+                string output = "{\n\t\t\t";
+                int count = 0;
+                foreach (Tuple<int, int> pair in Segments)
+                {
+                    output += pair.Item1;
+                    output += pair.Item2;
+                    output += ",";
+                    count++;
+                    if (count >= newLineEveryXPair)
+                    {
+                        count = 0;
+                        output += "\n\t\t\t";
+                    }
+                }
+                if (output.Length == 1)
+                {
+                    output += "Empty";
+                }
+                output += "\n}";
+                return output;
+            }
+            public static int[] Parse(string pattern)
+            {
+                pattern = pattern.Replace(" ", "");
+                List<int> list = new();
+                foreach (char c in pattern)
+                {
+                    list.Add((int)char.GetNumericValue(c));
+                }
+                return list.ToArray();
+            }
             public bool Match(Rune rune)
             {
                 return Match(rune.Segments);
@@ -121,71 +179,84 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public class Connection
             {
-                public RuneNode NodeA;
-                public RuneNode NodeB;
-                public bool Partial => (NodeA != null && NodeB == null) || (NodeA == null && NodeB != null);
-                public bool Full => NodeA != null && NodeB != null;
+                public RuneNode[] Nodes = new RuneNode[2];
                 public Connection(RuneNode a, RuneNode b)
                 {
-                    NodeA = a;
-                    NodeB = b;
+                    Nodes = [a, b];
                 }
                 public RuneNode GetPartner(RuneNode exclude)
                 {
-                    return NodeA == exclude ? NodeB : NodeA;
+                    return Nodes[0] == exclude ? Nodes[1] : Nodes[0];
                 }
+                public bool TryGetTuple(out Tuple<int, int> tuple)
+                {
+                    if (Incomplete)
+                    {
+                        tuple = null;
+                        return false;
+                    }
+                    tuple = new(Nodes[0].Index, Nodes[1].Index);
+                    return true;
+                }
+                public bool Incomplete => Nodes[0] == null || Nodes[1] == null;
+                public bool Empty => Nodes[0] == null && Nodes[1] == null;
+                public bool Full => !Empty;
                 public RuneNode FirstValid()
                 {
-                    return NodeA != null ? NodeA : NodeB;
+                    return Nodes.First(item => item != null);
                 }
                 public bool Contains(RuneNode node)
                 {
-                    return NodeA == node || NodeB == node;
+                    return node != null && Nodes != null && Nodes.Contains(node);
                 }
-                public bool Contains(RuneNode a, RuneNode b)
+                public bool Match(RuneNode a, RuneNode b)
                 {
                     return a != b && Contains(a) && Contains(b);
                 }
                 public void Fill(RuneNode fill)
                 {
-                    if (NodeA == null)
+                    for (int i = 0; i < 2; i++)
                     {
-                        NodeA = fill;
-                        NodeA.TurnOn();
-                    }
-                    else if (NodeB == null)
-                    {
-                        NodeB = fill;
-                        NodeB.TurnOn();
+                        if (Nodes[i] == null)
+                        {
+                            Nodes[i] = fill;
+                            Nodes[i].TurnOn();
+                            return;
+                        }
                     }
                 }
                 public void Hold(RuneNode clicked)
                 {
-                    if (NodeA == clicked)
+                    if (clicked != null)
                     {
-                        NodeA.TurnOff();
-                        NodeA = null;
-                    }
-                    else if (NodeB == clicked)
-                    {
-                        NodeB.TurnOff();
-                        NodeB = null;
+                        for (int i = 0; i < 2; i++)
+                        {
+                            if (Nodes[i] == clicked)
+                            {
+                                Nodes[i].TurnOff();
+                                Nodes[i] = null;
+                                return;
+                            }
+                        }
                     }
                 }
                 public void RenderNodeLine()
                 {
-                    Draw.Line(NodeA.Head, NodeB.Head, Color.Red, 10);
+                    Draw.Line(Nodes[0].Head, Nodes[1].Head, Color.Red, 10);
                 }
                 public void RenderMouseLine(Vector2 mouse)
                 {
-                    if (NodeA != null)
+                    for (int i = 0; i < Nodes.Length; i++)
                     {
-                        Draw.Line(NodeA.Head, mouse, Color.Yellow, 10);
+                        if (Nodes[i] != null)
+                        {
+                            Draw.Line(Nodes[i].Head, mouse, Color.Yellow, 10);
+                        }
                     }
-                    else if (NodeB != null)
-                    {
-                        Draw.Line(NodeB.Head, mouse, Color.Yellow, 10);
-                    }
+                }
+                public bool Match(Connection other)
+                {
+                    return Match(other.Nodes[0], other.Nodes[1]);
                 }
             }
             public class ConnectionList
@@ -199,35 +270,73 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     RegisterNodes(validNodes);
                 }
-                public void OnLeftClick(RuneNode node)
+
+                public static List<Connection> GetAllUnique(List<Connection> a)
                 {
-                    if (Held.Count > 0 && node != null)
+                    List<Connection> unique = new();
+                    foreach (Connection c in a)
                     {
-                        TransferHeldTo(node);
-                        return;
-                    }
-                    if (node == null)
-                    {
-                        LeftHeld = null;
-                        return;
-                    }
-                    if (LeftHeld != null)
-                    {
-                        if (LeftHeld.FirstValid() is RuneNode node2)
+                        bool duplicate = false;
+                        foreach (Connection c2 in unique)
                         {
-                            if (node != node2 && !HasPair(node, node2))
+                            if (c.Match(c2))
                             {
-                                Connections.Add(new Connection(node, node2));
-                                node.TurnOn();
-                                node2.TurnOn();
+                                duplicate = true;
+                                break;
                             }
-                            LeftHeld = null;
+                        }
+                        if (!duplicate)
+                        {
+                            unique.Add(c);
                         }
                     }
-                    else
+                    return unique;
+                }
+                public void OnLeftClick(RuneNode node)
+                {
+                    if (Held.Count == 0 && node != null && LeftHeld == null)
                     {
                         LeftHeld = new Connection(node, null);
                     }
+                }
+                public void OnLeftRelease(RuneNode node)
+                {
+                    if (node != null && LeftHeld != null && LeftHeld.FirstValid() is RuneNode node2)
+                    {
+                        if (node != node2 && !HasPair(node, node2))
+                        {
+                            Connections.Add(new Connection(node, node2));
+                            node.TurnOn();
+                            node2.TurnOn();
+                        }
+                    }
+                    LeftHeld = null;
+                }
+                public void OnRightClick(RuneNode node)
+                {
+                    if (LeftHeld == null)
+                    {
+                        if (node == null)
+                        {
+                            ClearHeld();
+                        }
+                        else if (Held.Count > 0)
+                        {
+                            TransferHeldTo(node);
+                        }
+                        else
+                        {
+                            HoldAllConnectionsFrom(node);
+                        }
+                    }
+                }
+                public void OnRightRelease(RuneNode node)
+                {
+                    if (node != null && Held.Count > 0)
+                    {
+                        TransferHeldTo(node);
+                    }
+                    ClearHeld();
                 }
                 public void RegisterNodes(List<RuneNode> nodes)
                 {
@@ -240,46 +349,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 public void AddConnection(Connection c)
                 {
                     Connections.Add(c);
-                    if (c.NodeA != null)
+                    foreach (RuneNode node in c.Nodes)
                     {
-                        ConnectCount[c.NodeA]++;
-                    }
-                    if (c.NodeB != null)
-                    {
-                        ConnectCount[c.NodeB]++;
+                        if (node != null)
+                        {
+                            ConnectCount[node]++;
+                        }
                     }
                 }
                 public void RemoveConnection(Connection c)
                 {
                     Connections.Remove(c);
-                    if (c.NodeA != null)
+                    foreach (RuneNode node in c.Nodes)
                     {
-                        ConnectCount[c.NodeA] = (int)Calc.Max(0, ConnectCount[c.NodeA] - 1);
-                    }
-                    if (c.NodeB != null)
-                    {
-                        ConnectCount[c.NodeB] = (int)Calc.Max(0, ConnectCount[c.NodeB] - 1);
-                    }
-                }
-                public void OnRightClick(RuneNode node)
-                {
-                    if (LeftHeld != null)
-                    {
-                        LeftHeld = null;
-                        return;
-                    }
-                    if (node == null)
-                    {
-                        ClearHeld();
-                        return;
-                    }
-                    if (Held.Count > 0)
-                    {
-                        TransferHeldTo(node);
-                    }
-                    else
-                    {
-                        HoldAllConnectionsFrom(node);
+                        if (node != null)
+                        {
+                            ConnectCount[node] = (int)Calc.Max(0, ConnectCount[node] - 1);
+                        }
                     }
                 }
                 public void TransferHeldTo(RuneNode node)
@@ -324,7 +410,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     foreach (Connection c in Connections)
                     {
-                        if (c.Contains(a, b))
+                        if (c.Match(a, b))
                         {
                             return true;
                         }
@@ -381,6 +467,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 public Vector2 Center;
                 public Vector2 Head => Center - Vector2.UnitY * 77;
+                public float Top => Center.Y - Height / 2;
+                public float Bottom => Center.Y + Height / 2;
+                public float Left => Center.X - Width / 2;
+                public float Right => Center.X + Width / 2;
                 public Vector2 RenderPosition => Center - new Vector2(Width, Height) / 2f;
                 public float Width => HeadTex.Width;
                 public float Height => HeadTex.Height;
@@ -479,16 +569,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public void OnLeftClick()
             {
                 Button.ClickedFirstFrame = CollidingWithButton;
-                RuneNode clicked = null;
-                foreach (RuneNode node in Nodes)
-                {
-                    if (node.Check(Mouse.MousePosition))
-                    {
-                        clicked = node;
-                        break;
-                    }
-                }
-                Connections.OnLeftClick(clicked);
+                Connections.OnLeftClick(GetFirstCollided());
             }
             public void OnLeftRelease()
             {
@@ -497,6 +578,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     CheckRune();
                 }
                 Button.ClickedFirstFrame = false;
+                Connections.OnLeftRelease(GetFirstCollided());
             }
             public void OnLeftIdle()
             {
@@ -506,23 +588,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Button.Colliding = Button.ClickedFirstFrame && CollidingWithButton;
             }
-            public void OnRightClick()
+            public RuneNode GetFirstCollided()
             {
                 Vector2 m = Mouse.MousePosition;
-                RuneNode clicked = null;
                 foreach (RuneNode n in Nodes)
                 {
                     if (n.Check(m))
                     {
-                        clicked = n;
-                        break;
+                        return n;
                     }
                 }
-                Connections.OnRightClick(clicked);
+                return null;
+            }
+            public void OnRightClick()
+            {
+                Connections.OnRightClick(GetFirstCollided());
+
             }
             public void OnRightRelease()
             {
-
+                Connections.OnRightRelease(GetFirstCollided());
             }
             public void OnRightHeld()
             {
@@ -537,11 +622,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Button.Colliding = false;
                 Button.ClickedFirstFrame = false;
             }
+
+            public Rune CreateRune()
+            {
+                List<Tuple<int, int>> list = new();
+                List<Connection> unique = Connections.Connections.Distinct().ToList();
+                foreach (Connection c in unique)
+                {
+                    if (c.TryGetTuple(out var tuple))
+                    {
+                        list.Add(tuple);
+                    }
+                }
+                return new Rune(null, list);
+            }
+            public string DebugRuneString;
             public void CheckRune()
             {
                 Button.ClickedFirstFrame = false;
                 Button.Colliding = false;
-                Add(new Coroutine(CheckRuneRoutine()));
+                Rune rune = CreateRune();
+                DebugRuneString = rune.ToString(4);
+                //Add(new Coroutine(CheckRuneRoutine()));
             }
             public IEnumerator CheckRuneRoutine()
             {
@@ -551,11 +653,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public void ClearAll()
             {
-                /*                foreach (RuneNode node in Nodes)
-                                {
-                                    node.CancelAllConnections();
-                                }*/
-
+                Connections.ClearMain();
             }
             public void DrawLine(RuneNode a, RuneNode b, Color color, int thickness)
             {
@@ -577,6 +675,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 foreach (RuneNode node in Nodes)
                 {
                     Draw.HollowRect(node.RenderPosition, node.Width, node.Height, node.Lit ? Color.Yellow : Color.Magenta);
+
+                    ActiveFont.Draw(node.Index.ToString(), new Vector2(node.Center.X, node.Top - 80), Color.White);
+                    string s2 = "C:{";
+                    foreach (Connection c in Connections.Connections)
+                    {
+                        if (c.Contains(node))
+                        {
+                            if (s2.Length > 0)
+                            {
+                                s2 += ", ";
+                            }
+                            s2 += c.GetPartner(node).Index;
+                        }
+                    }
+                    s2 += "}";
+                    ActiveFont.Draw(s2, new Vector2(node.Center.X + 40, node.Top - 80), Color.Red);
                 }
                 Draw.HollowRect(Button.Offset, Button.Texture.Width, Button.Texture.Height, Color.Cyan);
                 Draw.HollowRect(Mouse.MousePosition, 30, 30, Color.Red);
@@ -586,36 +700,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 ActiveFont.Draw("RightClicking: " + Mouse.RightClicked, Vector2.One * 10 + Vector2.UnitY * 120, Color.White);
                 ActiveFont.Draw("JustLeftClicked: " + (Mouse.JustLeftClicked), Vector2.One * 10 + Vector2.UnitY * 160, Color.White);
                 ActiveFont.Draw("JustRightClicked: " + (Mouse.JustRightClicked), Vector2.One * 10 + Vector2.UnitY * 200, Color.White);
-                string text = "Not colliding with node.";
-                RuneNode colliding = null;
-                foreach (RuneNode node in Nodes)
-                {
-                    if (node.Check(Mouse.MousePosition))
-                    {
-                        colliding = node;
-                        break;
-                    }
-                }
-                if (colliding != null)
-                {
-                    text = "Colliding with node " + colliding.Index;
-                    text += "\n\tConnections:";
-                    bool hasConnection = false;
-                    foreach (Connection c in Connections.Connections)
-                    {
-                        if (c.Contains(colliding) && c.GetPartner(colliding) is RuneNode node)
-                        {
-                            text += "\n\t\t" + node.Index;
-                            hasConnection = true;
-                        }
-                    }
-                    if (!hasConnection)
-                    {
-                        text += "\n\t\t None.";
-                    }
-
-                }
-                ActiveFont.Draw(text, Vector2.One * 10 + Vector2.UnitY * 240, Color.White);
+                Vector2 l = ActiveFont.Measure(DebugRuneString);
+                ActiveFont.Draw(DebugRuneString, new Vector2(1920 - l.X, l.Y), Color.White);
 
                 Draw.SpriteBatch.End();
             }
@@ -806,10 +892,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void Interact(Player player)
         {
-            /*            if (ValidateID(TargetID))
-                        {
-                            Scene.Add(new WarpBack(this, player));
-                        }*/
+            if (ValidateID(TargetID))
+            {
+                Scene.Add(new WarpBack(this, player));
+            }
 
         }
         public bool ValidateID(string id)
@@ -820,18 +906,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return false;
         }
-        public static bool ValidatePassword(string id, string password)
-        {
-            WarpCapsuleData data = GetCapsuleData(id);
-            return data != null && (string.IsNullOrEmpty(data.Password) || data.Password.Equals(password));
-        }
+        /*        public static bool ValidatePassword(string id, string password)
+                {
+                    WarpCapsuleData data = GetCapsuleData(id);
+                    return data != null && (string.IsNullOrEmpty(data.Password) || data.Password.Equals(password));
+                }*/
         public static WarpCapsuleData GetCapsuleData(string id)
         {
-            if (!PianoMapDataProcessor.WarpLinks.ContainsKey(id))
+            if (!PianoMapDataProcessor.WarpLinks.TryGetValue(id, out WarpCapsuleData value))
             {
                 return null;
             }
-            return PianoMapDataProcessor.WarpLinks[id];
+            return value;
         }
         public void SetWarpTarget(string id)
         {

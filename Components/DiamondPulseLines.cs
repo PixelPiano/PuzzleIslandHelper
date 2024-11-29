@@ -1,6 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using Monocle;
-
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {
     [Tracked]
@@ -23,14 +22,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public float FadeTime;
         public Vector2 RenderPosition
         {
-            get
-            {
-                return ((Entity == null) ? Vector2.Zero : Entity.Position) + Position;
-            }
-            set
-            {
-                Position = value - ((Entity == null) ? Vector2.Zero : Entity.Position);
-            }
+            get => (Entity?.Position ?? Vector2.Zero) + Position;
+            set => Position = value - (Entity?.Position ?? Vector2.Zero);
         }
         public bool On;
         public DiamondPulseLines(int size, float expand, float time, float fadeTime, bool start = true) : base(true, true)
@@ -84,7 +77,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
 
         public void DrawPulseLines()
         {
-            Vector2 start = Lines[^1];
+            Vector2 start = Lines[^1];//what
             for (int i = 0; i < LineCache.Length; i++)
             {
                 Vector2 end = Lines[i];

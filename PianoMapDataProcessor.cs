@@ -59,6 +59,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
     }
     public class WarpCapsuleData
     {
+        public WarpCapsule.Rune Rune;
         public string Name;
         public string Room;
         public string Password;
@@ -76,7 +77,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static Dictionary<string, CalidusSpawnerData> CalidusSpawners = new();
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
-
             Action<BinaryPacker.Element> passengerDummyHandler = data =>
             {
                 string type = data.Attr("passengerType", "Civilian");
@@ -148,10 +148,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 {
                     awData = new()
                     {
+                        Rune = new WarpCapsule.Rune(id, data.Attr("rune")),
                         Room = levelName,
                         Delay = data.AttrFloat("warpDelay"),
-                        Password = data.Attr("password").Replace(" ","").ToLower(),
-                        Name = data.Attr("warpID")
+                        //Password = data.Attr("password").Replace(" ", "").ToLower(),
+                        //Name = data.Attr("warpID")
                     };
                     WarpLinks.Add(id, awData);
                 }
