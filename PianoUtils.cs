@@ -156,6 +156,7 @@ public static class PianoUtils
         public int Rows;
         public int Columns;
         public Vector2[,] Points;
+        public Vector2[] FlattenedPoints;
         public Vector2 this[int x, int y]
         {
             get
@@ -185,7 +186,47 @@ public static class PianoUtils
             }
         }
     }
-    public static Mesh<VertexPositionColor> CreateTriWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Func<Vector2, Color> getColor)
+    public static Color RandomColorAlpha(bool red = true, bool green = true, bool blue = true, bool alpha = false, int min = 0, int max = 256)
+    {
+        int r = Calc.Random.Range(min, max);
+        int g = Calc.Random.Range(min, max);
+        int b = Calc.Random.Range(min, max);
+        int a = Calc.Random.Range(min, max);
+        if (!red) r *= 0;
+        if (!green) g *= 0;
+        if (!blue) b *= 0;
+        if (!alpha) a *= 0;
+        return new Color(r, g, b, a);
+    }
+    public static Color RandomColor(bool red = true, bool green = true, bool blue = true, int min = 0, int max = 256)
+    {
+        int r = Calc.Random.Range(min, max);
+        int g = Calc.Random.Range(min, max);
+        int b = Calc.Random.Range(min, max);
+        if (!red) r *= 0;
+        if (!green) g *= 0;
+        if (!blue) b *= 0;
+        return new Color(r, g, b);
+    }
+    public static Color RandomColorMix(this Color a, Color b)
+    {
+        return Color.Lerp(a, b, Calc.Random.Range(0f, 1));
+    }
+    public static Color RandomShade(this Color a, float range = 1)
+    {
+        if (range == 0) return a;
+        float abs = Math.Abs(range);
+        float value = Calc.Random.Range(-abs, abs);
+        if (value < 0)
+        {
+            return Color.Lerp(a, Color.Black, Math.Abs(value));
+        }
+        else
+        {
+            return Color.Lerp(a, Color.White, value);
+        }
+    }
+    public static Mesh<VertexPositionColor> CreateTriWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Func<Vector2, Color> getColor, out TriWall wall)
     {
         Mesh<VertexPositionColor> mesh = new Mesh<VertexPositionColor>();
         int exL = extend + 1;
@@ -193,14 +234,14 @@ public static class PianoUtils
         int exT = extend;
         int exB = extend + 1;
 
-        TriWall meshPoints = CreateTriWall(areaWidth, areaHeight, triWidth, triHeight, exL, exR, exT, exB, out int rows, out int cols);
+        wall = CreateTriWall(areaWidth, areaHeight, triWidth, triHeight, exL, exR, exT, exB, out int rows, out int cols);
         int count = rows * cols;
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < cols; c++)
             {
-                Vector2 uv = new Vector2(meshPoints[c, r].X / areaWidth, meshPoints[c, r].Y / areaHeight);
-                VertexPositionColor vertex = new(position + new Vector3(meshPoints[c, r], 0), getColor(uv));
+                Vector2 uv = new Vector2(wall[c, r].X / areaWidth, wall[c, r].Y / areaHeight);
+                VertexPositionColor vertex = new(position + new Vector3(wall[c, r], 0), getColor(uv));
                 mesh.AddVertex(vertex);
             }
         }
@@ -280,10 +321,10 @@ public static class PianoUtils
         }
         return mesh;
     }
-    public static Mesh<VertexPositionColor> CreateTriWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Color color)
+    public static Mesh<VertexPositionColor> CreateTriWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Color color, out TriWall wall)
     {
         Func<Vector2, Color> func = delegate { return color; };
-        return CreateTriWallMesh(position, areaWidth, areaHeight, triWidth, triHeight, extend, func);
+        return CreateTriWallMesh(position, areaWidth, areaHeight, triWidth, triHeight, extend, func, out wall);
     }
     public static TriWall CreateTriWall(float areaWidth, float areaHeight, float triHeight, float triWidth, int leftExtend, int rightExtend, int topExtend, int bottomExtend, out int rows, out int cols)
     {
@@ -296,11 +337,16 @@ public static class PianoUtils
         cols = (int)((right - left) / triWidth);
         float xOffset = triWidth / 2f;
         Vector2[,] grid = new Vector2[cols, rows];
+        Vector2[] flattened = new Vector2[cols * rows];
+        int count = 0;
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < cols; c++)
             {
-                grid[c, r] = new Vector2(left + c * triWidth + (r % 2 != 0 ? xOffset : 0), top + r * triHeight);
+                Vector2 v = new Vector2(left + c * triWidth + (r % 2 != 0 ? xOffset : 0), top + r * triHeight);
+                grid[c, r] = v;
+                flattened[count] = v;
+                count++;
             }
         }
         TriWall wall = new()
@@ -315,7 +361,8 @@ public static class PianoUtils
             Width = areaWidth,
             Height = areaHeight,
             TriangleWidth = triWidth,
-            TriangleHeight = triHeight
+            TriangleHeight = triHeight,
+            FlattenedPoints = flattened
         };
         return wall;
     }
@@ -1107,6 +1154,12 @@ public static class PianoUtils
     {
         return Random(min.X, max.X, min.Y, max.Y);
     }
+    public static T Random<T>(this List<T> array)
+    {
+        int min = 0;
+        int max = array.Count;
+        return array[Calc.Random.Range(min, max)];
+    }
     public static Color Random(this Color color, bool r, bool g, bool b, bool a)
     {
         byte red, green, blue, alpha;
@@ -1116,15 +1169,6 @@ public static class PianoUtils
         alpha = a ? (byte)Calc.Random.Range(0, 256) : color.A;
         color = new Color(red, green, blue, alpha);
         return color;
-    }
-    public static Color RandomColor(bool r, bool g, bool b, bool a)
-    {
-        float red, green, blue, alpha;
-        red = r ? Calc.Random.Range(0, 256) : 0;
-        green = g ? Calc.Random.Range(0, 256) : 0;
-        blue = b ? Calc.Random.Range(0, 256) : 0;
-        alpha = a ? Calc.Random.Range(0, 256) : 256;
-        return new Color(red, green, blue, alpha);
     }
     public static T Random<T>(this T[] array, int limit = -1)
     {

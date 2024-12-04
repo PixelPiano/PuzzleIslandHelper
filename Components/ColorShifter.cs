@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {
@@ -10,14 +11,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public Color[] Colors;
         private Color[] OriginalColors;
         public bool HasBeenAdded;
-
+        public float Rate = 1;
         public float TimeLeft;
         public float Duration;
         public float Percent;
         public float Eased;
         public int NextIndex;
         public Ease.Easer Easer;
-
         public Color this[int i]
         {
             get
@@ -25,6 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 return Colors[i];
             }
         }
+        public Color Value => Colors[0];
         public ColorShifter(params Color[] colors) : this(1, Ease.Linear, colors)
         {
         }
@@ -67,7 +68,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public override void Update()
         {
             base.Update();
-            TimeLeft += Engine.DeltaTime;
+            TimeLeft += Engine.DeltaTime * Rate;
             if (TimeLeft > Duration)
             {
                 AdvanceColors();

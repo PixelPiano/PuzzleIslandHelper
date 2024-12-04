@@ -10,47 +10,47 @@ using System.Collections.Generic;
 using System.Linq;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
+    [Tracked]
+    public class VertexBreath : Component
+    {
+        public float Interval;
+        public float MoveDistance;
+        public float Amount
+        {
+            get
+            {
+                return GetAmountAt(timer / Interval);
+            }
+        }
+        private float timer;
+        public VertexBreath(float interval, float moveDistance) : base(true, false)
+        {
+            Interval = interval;
+            timer = Calc.Random.Range(0, Interval * 0.8f);
+            MoveDistance = moveDistance;
+        }
+        public override void Update()
+        {
+            base.Update();
+            timer = (timer + Engine.DeltaTime) % Interval;
 
+        }
+        public float GetPercentAt(float percent)
+        {
+            float amount = (0.5f - MathHelper.Distance(percent, 0.5f) * 2) * MoveDistance;
+            return amount;
+        }
+        public float GetAmountAt(float percent)
+        {
+            percent = 0.5f - MathHelper.Distance(percent, 0.5f);
+            float amount = Ease.SineInOut(percent * 2) * MoveDistance;
+            return amount;
+        }
+    }
     [CustomEntity("PuzzleIslandHelper/ShiftArea")]
     [Tracked(true)]
     public class ShiftArea : Entity
     {
-        public class VertexBreath : Component
-        {
-            public float Interval;
-            public float MoveDistance;
-            public float Amount
-            {
-                get
-                {
-                    return GetAmountAt(timer / Interval);
-                }
-            }
-            private float timer;
-            public VertexBreath(float interval, float moveDistance) : base(true, false)
-            {
-                Interval = interval;
-                timer = Calc.Random.Range(0, Interval * 0.8f);
-                MoveDistance = moveDistance;
-            }
-            public override void Update()
-            {
-                base.Update();
-                timer = (timer + Engine.DeltaTime) % Interval;
-
-            }
-            public float GetPercentAt(float percent)
-            {
-                float amount = (0.5f - MathHelper.Distance(percent, 0.5f) * 2) * MoveDistance;
-                return amount;
-            }
-            public float GetAmountAt(float percent)
-            {
-                percent = 0.5f - MathHelper.Distance(percent, 0.5f);
-                float amount = Ease.SineInOut(percent * 2) * MoveDistance;
-                return amount;
-            }
-        }
         public bool CullOffScreen = true;
         public int PolygonScreenIndex = -1;
         public int AreaDepth;
@@ -229,7 +229,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         public override void Update()
         {
-            if(cacheWindow > 0)
+            if (cacheWindow > 0)
             {
                 cacheWindow -= Engine.DeltaTime;
             }

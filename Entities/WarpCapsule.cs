@@ -5,59 +5,42 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WIP.PolygonDrawing;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
-    [CustomEntity("PuzzleIslandHelper/DigiWarpReceiver")]
+    [CustomEntity("PuzzleIslandHelper/WarpCapsule")]
     [Tracked]
     public class WarpCapsule : Entity
     {
-        public class RuneSegment
-        {
-            public Tuple<int, int> Pair;
-            public RuneSegment(int a, int b) : this(new(a, b)) { }
-            public RuneSegment(Tuple<int, int> pair)
-            {
-                Pair = pair;
-            }
-            public bool Match(int a, int b)
-            {
-                return a != b && (Pair.Item1 == a || Pair.Item1 == b) && (Pair.Item2 == a || Pair.Item2 == b);
-            }
-            public bool Match(Tuple<int, int> pair)
-            {
-                return Match(pair.Item1, pair.Item2);
-            }
-        }
         public class Rune
         {
             public List<Tuple<int, int>> Segments = new();
-            public string ID;
-            public Rune(string id, params int[] pattern)
-            {
-                ID = id;
-                for (int i = 1; i < pattern.Length; i += 2)
-                {
-                    int a = pattern[i - 1];
-                    int b = pattern[i];
-                    Segments.Add(new(a, b));
-                }
-            }
-            public Rune(string id, string pattern) : this(id, Parse(pattern))
+            public Rune(string pattern) : this(Parse(pattern))
             {
 
             }
-            public Rune(string id, List<Tuple<int, int>> pattern)
+            public Rune(List<Tuple<int, int>> pattern)
             {
-                ID = id;
-                Segments = pattern;
+                Segments = GetSortedPattern(pattern);
+
+            }
+            public static List<Tuple<int, int>> GetSortedPattern(List<Tuple<int, int>> pattern)
+            {
+                List<Tuple<int, int>> insideSorted = new();
+                foreach (var t in pattern)
+                {
+                    int a = t.Item1;
+                    int b = t.Item2;
+                    if (a < b) insideSorted.Add(new(a, b));
+                    else insideSorted.Add(new(b, a));
+                }
+                return insideSorted.OrderBy(item => item.Item1).ToList();
             }
             public override string ToString()
             {
@@ -75,38 +58,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 output += "}";
                 return output;
             }
-            public string ToString(int newLineEveryXPair)
-            {
-                string output = "{\n\t\t\t";
-                int count = 0;
-                foreach (Tuple<int, int> pair in Segments)
-                {
-                    output += pair.Item1;
-                    output += pair.Item2;
-                    output += ",";
-                    count++;
-                    if (count >= newLineEveryXPair)
-                    {
-                        count = 0;
-                        output += "\n\t\t\t";
-                    }
-                }
-                if (output.Length == 1)
-                {
-                    output += "Empty";
-                }
-                output += "\n}";
-                return output;
-            }
-            public static int[] Parse(string pattern)
+            public static List<Tuple<int, int>> Parse(string pattern)
             {
                 pattern = pattern.Replace(" ", "");
-                List<int> list = new();
-                foreach (char c in pattern)
+                List<Tuple<int, int>> tuples = new();
+                for (int i = 1; i < pattern.Length; i += 2)
                 {
-                    list.Add((int)char.GetNumericValue(c));
+                    int a = (int)char.GetNumericValue(pattern[i - 1]);
+                    int b = (int)char.GetNumericValue(pattern[i]);
+                    tuples.Add(new(a, b));
                 }
-                return list.ToArray();
+                return tuples;
             }
             public bool Match(Rune rune)
             {
@@ -188,6 +150,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     return Nodes[0] == exclude ? Nodes[1] : Nodes[0];
                 }
+                public bool CollideLine(Vector2 pos)
+                {
+                    if (Nodes[0] != null && Nodes[1] != null)
+                    {
+                        return Collide.RectToLine(pos.X, pos.Y, 30, 30, Nodes[0].Head, Nodes[1].Head);
+                    }
+                    return false;
+                }
                 public bool TryGetTuple(out Tuple<int, int> tuple)
                 {
                     if (Incomplete)
@@ -240,9 +210,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         }
                     }
                 }
+                public const int LineThickness = 50;
+                public void DrawLine(Vector2 from, Vector2 to, Color color)
+                {
+                    Draw.Line(from, to, color, LineThickness);
+                }
                 public void RenderNodeLine()
                 {
-                    Draw.Line(Nodes[0].Head, Nodes[1].Head, Color.Red, 10);
+                    DrawLine(Nodes[0].Head, Nodes[1].Head, Color.White);
                 }
                 public void RenderMouseLine(Vector2 mouse)
                 {
@@ -250,7 +225,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         if (Nodes[i] != null)
                         {
-                            Draw.Line(Nodes[i].Head, mouse, Color.Yellow, 10);
+                            DrawLine(Nodes[i].Head, mouse, Color.White);
                         }
                     }
                 }
@@ -263,7 +238,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 public List<Connection> Connections = new();
                 public List<Connection> Held = new();
-                public Dictionary<RuneNode, int> ConnectCount = new();
+                public List<int> NodeConnects = new();
                 public Connection LeftHeld;
                 public List<RuneNode> Nodes = new();
                 public ConnectionList(List<RuneNode> validNodes)
@@ -312,12 +287,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     LeftHeld = null;
                 }
+                public void OnLeftHeld(Vector2 mouse, RuneNode node)
+                {
+                    if (LeftHeld == null && Held.Count == 0)
+                    {
+                        List<Connection> toRemove = new();
+
+                        foreach (Connection c in Connections)
+                        {
+                            if (c.CollideLine(mouse))
+                            {
+                                toRemove.Add(c);
+                            }
+                        }
+                        foreach (var c in toRemove)
+                        {
+                            RemoveConnection(c);
+                        }
+                    }
+                }
                 public void OnRightClick(RuneNode node)
                 {
                     if (LeftHeld == null)
                     {
                         if (node == null)
                         {
+
                             ClearHeld();
                         }
                         else if (Held.Count > 0)
@@ -342,31 +337,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     foreach (RuneNode node in nodes)
                     {
-                        ConnectCount.Add(node, 0);
+                        NodeConnects.Add(0);
                     }
                     Nodes = nodes;
                 }
                 public void AddConnection(Connection c)
                 {
                     Connections.Add(c);
-                    foreach (RuneNode node in c.Nodes)
-                    {
-                        if (node != null)
-                        {
-                            ConnectCount[node]++;
-                        }
-                    }
                 }
                 public void RemoveConnection(Connection c)
                 {
                     Connections.Remove(c);
-                    foreach (RuneNode node in c.Nodes)
-                    {
-                        if (node != null)
-                        {
-                            ConnectCount[node] = (int)Calc.Max(0, ConnectCount[node] - 1);
-                        }
-                    }
                 }
                 public void TransferHeldTo(RuneNode node)
                 {
@@ -431,9 +412,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 public void Update()
                 {
+                    foreach (Connection c in Connections)
+                    {
+                        foreach (RuneNode node in c.Nodes)
+                        {
+                            if (node != null)
+                            {
+                                NodeConnects[node.Index] += 1;
+                            }
+                        }
+                    }
                     foreach (RuneNode node in Nodes)
                     {
-                        if (ConnectCount[node] <= 0)
+                        if (NodeConnects[node.Index] <= 0)
                         {
                             node.TurnOff();
                         }
@@ -441,7 +432,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         {
                             node.TurnOn();
                         }
+
                     }
+                    NodeConnects = NodeConnects.Select(item => item = 0).ToList();
                 }
                 public void Render(Vector2 mouse)
                 {
@@ -466,6 +459,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public class RuneNode
             {
                 public Vector2 Center;
+                public Vector2 TopLeft => new Vector2(Left, Top);
                 public Vector2 Head => Center - Vector2.UnitY * 77;
                 public float Top => Center.Y - Height / 2;
                 public float Bottom => Center.Y + Height / 2;
@@ -474,13 +468,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 public Vector2 RenderPosition => Center - new Vector2(Width, Height) / 2f;
                 public float Width => HeadTex.Width;
                 public float Height => HeadTex.Height;
+                public float HeadHeight = 142;
                 public bool Lit;
                 public int Index;
                 public MTexture HeadTex => GFX.Game[Path + "nodeHead"];
                 public MTexture BodyTex => GFX.Game[Path + "nodeBody"];
-                public RuneNode(Vector2 center, float width, float height, int index)
+                public RuneNode(Vector2 center, int index)
                 {
-                    Center = center * 6f;
+                    Center = center;
                     Index = index;
                 }
                 public void DrawTexture()
@@ -504,7 +499,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Vector2 position = RenderPosition;
                     if (pos.X > position.X && pos.Y > position.Y && pos.X < position.X + Width)
                     {
-                        return pos.Y < position.Y + Height;
+                        return pos.Y < position.Y + HeadHeight;
                     }
                     return false;
                 }
@@ -513,19 +508,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     return node != this;
                 }
             }
-            public VirtualRenderTarget Buffer;
+            public VirtualRenderTarget Buffer, Buffer2;
             public List<RuneNode> Nodes = new();
             public ConnectionList Connections;
             public SubmitButton Button;
             public MouseComponent Mouse;
+            public static Rune DefaultRune;
             public float Alpha = 1;
             public bool Standby;
             public bool Finished;
             public bool CollidingWithButton;
+
             public RuneUI() : base()
             {
                 Tag |= TagsExt.SubHUD;
                 Buffer = VirtualContent.CreateRenderTarget("RuneUIBuffer", 1920, 1080);
+                Buffer2 = VirtualContent.CreateRenderTarget("RuneUIBuffer", 1920, 1080);
                 Add(new BeforeRenderHook(BeforeRender));
                 Add(Mouse = new MouseComponent(OnLeftClick, OnRightClick, OnLeftRelease, OnRightRelease, OnLeftIdle, OnRightIdle, OnLeftHeld, OnRightHeld));
                 FadeIn();
@@ -545,18 +543,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public override void Added(Scene scene)
             {
                 base.Added(scene);
-                Vector2 topLeft = new Vector2(100, 50);
-                float spacing = 50;
-
-                Nodes.Add(new RuneNode(topLeft + Vector2.UnitX * spacing / 2, 30, 30, 0));
-                Nodes.Add(new RuneNode(topLeft + Vector2.UnitX * spacing * 1.5f, 30, 30, 1));
-
-                Nodes.Add(new RuneNode(topLeft + new Vector2(0, spacing), 30, 30, 2));
-                Nodes.Add(new RuneNode(topLeft + new Vector2(spacing, spacing), 30, 30, 3));
-                Nodes.Add(new RuneNode(topLeft + new Vector2(spacing * 2, spacing), 30, 30, 4));
-
-                Nodes.Add(new RuneNode(topLeft + new Vector2(spacing / 2, spacing * 2), 30, 30, 5));
-                Nodes.Add(new RuneNode(topLeft + new Vector2(spacing * 1.5f, spacing * 2), 30, 30, 6));
+                Vector2 center = new Vector2(1920, 1080) / 2;
+                float spacing = 300;
+                for (int i = 0; i < 3; i++)
+                {
+                    Nodes.Add(new RuneNode(center + new Vector2(-spacing + spacing * i, -spacing), i));
+                }
+                for (int i = 0; i < 4; i++)
+                {
+                    Nodes.Add(new RuneNode(center + (Vector2.UnitX * (spacing * -1.5f + (i * spacing))), 3 + i));
+                }
+                for (int i = 0; i < 3; i++)
+                {
+                    Nodes.Add(new RuneNode(center + new Vector2(-spacing + spacing * i, spacing), 7 + i));
+                }
                 Connections = new(Nodes);
                 Button = new SubmitButton(new Vector2(1920, 1080) - new Vector2(357, 209));
             }
@@ -564,6 +564,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 base.Update();
                 if (Standby) return;
+                Connections.Update();
                 CollidingWithButton = Button.Check(Mouse.MousePosition);
             }
             public void OnLeftClick()
@@ -587,6 +588,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public void OnLeftHeld()
             {
                 Button.Colliding = Button.ClickedFirstFrame && CollidingWithButton;
+                Connections.OnLeftHeld(Mouse.MousePosition, GetFirstCollided());
             }
             public RuneNode GetFirstCollided()
             {
@@ -634,15 +636,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         list.Add(tuple);
                     }
                 }
-                return new Rune(null, list);
+                return new Rune(list);
             }
-            public string DebugRuneString;
             public void CheckRune()
             {
                 Button.ClickedFirstFrame = false;
                 Button.Colliding = false;
                 Rune rune = CreateRune();
-                DebugRuneString = rune.ToString(4);
+                if (PianoMapDataProcessor.WarpRunes.ContainsKey(rune))
+                {
+                    ClearAll();
+                }
                 //Add(new Coroutine(CheckRuneRoutine()));
             }
             public IEnumerator CheckRuneRoutine()
@@ -661,49 +665,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public void BeforeRender()
             {
-                Buffer.SetAsTarget(Color.Black);
-                Draw.SpriteBatch.StandardBegin(Matrix.Identity);
-
-
-                foreach (RuneNode node in Nodes)
+                if (Alpha > 0)
                 {
-                    node.DrawTexture();
-                }
-                Button.Render();
-                Connections.Render(Mouse.MousePosition);
+                    Buffer2.SetAsTarget(true);
+                    Draw.SpriteBatch.StandardBegin(Matrix.Identity, BlendState.AlphaBlend, null);
+                    Connections.Render(Mouse.MousePosition);
+                    Draw.SpriteBatch.End();
 
-                foreach (RuneNode node in Nodes)
-                {
-                    Draw.HollowRect(node.RenderPosition, node.Width, node.Height, node.Lit ? Color.Yellow : Color.Magenta);
-
-                    ActiveFont.Draw(node.Index.ToString(), new Vector2(node.Center.X, node.Top - 80), Color.White);
-                    string s2 = "C:{";
-                    foreach (Connection c in Connections.Connections)
+                    Buffer.SetAsTarget(Color.Black);
+                    Draw.SpriteBatch.StandardBegin(Matrix.Identity);
+                    foreach (RuneNode node in Nodes)
                     {
-                        if (c.Contains(node))
-                        {
-                            if (s2.Length > 0)
-                            {
-                                s2 += ", ";
-                            }
-                            s2 += c.GetPartner(node).Index;
-                        }
+                        node.DrawTexture();
                     }
-                    s2 += "}";
-                    ActiveFont.Draw(s2, new Vector2(node.Center.X + 40, node.Top - 80), Color.Red);
+                    Button.Render();
+                    Draw.SpriteBatch.Draw(Buffer2, Vector2.Zero, Color.White);
+                    Draw.SpriteBatch.End();
                 }
-                Draw.HollowRect(Button.Offset, Button.Texture.Width, Button.Texture.Height, Color.Cyan);
-                Draw.HollowRect(Mouse.MousePosition, 30, 30, Color.Red);
-
-                ActiveFont.Draw("MousePos: " + Mouse.MousePosition, Vector2.One * 10, Color.White);
-                ActiveFont.Draw("LeftClicking: " + Mouse.LeftClicked, Vector2.One * 10 + Vector2.UnitY * 80, Color.White);
-                ActiveFont.Draw("RightClicking: " + Mouse.RightClicked, Vector2.One * 10 + Vector2.UnitY * 120, Color.White);
-                ActiveFont.Draw("JustLeftClicked: " + (Mouse.JustLeftClicked), Vector2.One * 10 + Vector2.UnitY * 160, Color.White);
-                ActiveFont.Draw("JustRightClicked: " + (Mouse.JustRightClicked), Vector2.One * 10 + Vector2.UnitY * 200, Color.White);
-                Vector2 l = ActiveFont.Measure(DebugRuneString);
-                ActiveFont.Draw(DebugRuneString, new Vector2(1920 - l.X, l.Y), Color.White);
-
-                Draw.SpriteBatch.End();
             }
             public override void Render()
             {
@@ -718,6 +696,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 base.Removed(scene);
                 Buffer?.Dispose();
                 Buffer = null;
+                Buffer2?.Dispose();
+                Buffer2 = null;
             }
         }
         [Tracked]

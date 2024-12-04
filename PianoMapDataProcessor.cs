@@ -59,7 +59,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
     }
     public class WarpCapsuleData
     {
-        public WarpCapsule.Rune Rune;
         public string Name;
         public string Room;
         public string Password;
@@ -73,6 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static List<PortalNodeData> PortalNodes = new();
         public static List<TileLayoutData> CopiedTileseedData = new();
         public static Dictionary<string, WarpCapsuleData> WarpLinks = new();
+        public static Dictionary<WarpCapsule.Rune, WarpCapsuleData> WarpRunes = new();
         public static WarpCapsuleData PrimaryWarpData;
         public static Dictionary<string, CalidusSpawnerData> CalidusSpawners = new();
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
@@ -143,18 +143,20 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Action<BinaryPacker.Element> accessWarpHandler = data =>
             {
                 WarpCapsuleData awData = default;
+
                 string id = data.Attr("warpID").Replace(" ", "").ToLower();
-                if (!string.IsNullOrEmpty(levelName) && !string.IsNullOrEmpty(id) && !WarpLinks.ContainsKey(id))
+                WarpCapsule.Rune rune = new(data.Attr("rune"));
+                if (!string.IsNullOrEmpty(levelName) && rune != null && !WarpRunes.ContainsKey(rune))
                 {
                     awData = new()
                     {
-                        Rune = new WarpCapsule.Rune(id, data.Attr("rune")),
                         Room = levelName,
                         Delay = data.AttrFloat("warpDelay"),
                         //Password = data.Attr("password").Replace(" ", "").ToLower(),
                         //Name = data.Attr("warpID")
                     };
-                    WarpLinks.Add(id, awData);
+                    WarpRunes.Add(new WarpCapsule.Rune(data.Attr("rune")), awData);
+                    //WarpLinks.Add(id, awData);
                 }
 
             };
@@ -189,7 +191,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     }
                 },
                 {
-                    "entity:PuzzleIslandHelper/DigiWarpReceiver", accessWarp =>
+                    "entity:PuzzleIslandHelper/WarpCapsule", accessWarp =>
                     {
                         accessWarpHandler(accessWarp);
                     }
