@@ -6,7 +6,6 @@
 
 float4x4 World;
 uniform float Time;
-float Speed;
 struct VertexShaderInput
 {
     float4 Position : POSITION0;
@@ -22,7 +21,8 @@ VertexShaderOutput _VertexShader(VertexShaderInput input)
 {
     VertexShaderOutput output;
 
-    output.position = mul(input.Position, World) + input.Color;
+    output.position = mul(input.Position, World);
+    output.position.z += sin(Time + input.Position.x);
     output.color = input.Color;
 
     return output;

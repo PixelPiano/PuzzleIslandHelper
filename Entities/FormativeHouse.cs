@@ -25,22 +25,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public VertexPositionColor[] Vertices;
         public Vector2[] Points;
         public int[] indices;
-        private List<VertexBreath> breaths = [];
-        private class triData
-        {
-            public ColorShifter Shifter;
-            public int BrightShift;
-            public float ColorLerp;
-            public float GetAdditionalBrightness(int index)
-            {
-                if (index == BrightShift)
-                {
-                    return 0.3f;
-                }
-                return 0;
-            }
-        }
-        private List<triData> triList = new();
+        private Dictionary<Vector2, VertexBreath> breaths = [];
+        private List<float> triColorLerps = [];
+        private List<ColorShifter> Shifters = [];
+        private List<float> randomBrightness = [];
         public FormativeHouse(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Collider = new Hitbox(data.Width, data.Height);
@@ -51,118 +39,122 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Removed(scene);
             Target.Dispose();
         }
-        public List<Color> Colors = new();
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            for (int i = 0; i < Points.Length; i++)
+            {
+                Vector2 breath = -Vector2.UnitY * breaths[Points[i]].Amount;
+                Vector2 point = Position + Points[i];
+                Draw.Line(point, point + breath, Color.White);
+                Draw.Point(point, Color.Cyan);
+                Draw.Point(point + breath, Color.Red);
+            }
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-
-            Mesh<VertexPositionColor> m = CreateTriWallMesh(Vector3.Zero, Width, Height, 16, 16, 0, Color.Lime, out TriWall wall);
-            m.Bake();
-            Vertices = m.Vertices;
-            this.indices = m.Indices;
-            Points = Vertices.Select(item => item.Position.XY()).ToArray();
-            /*            int xOffset = 8;
-                        for (int y = 0; y < Height; y += 16)
-                        {
-                            for (int x = xOffset; x < Width; x += 16)
-                            {
-                                int count = indices.Count;
-
-                                points.Add(new(x, y));
-                                points.Add(new(x + 16, y));
-                                points.Add(new(x - 8, y + 16));
-                                points.Add(new(x - 8, y + 16));
-                                points.Add(new(x + 16, y));
-                                points.Add(new(x + 8, y + 16));
-                                indices.Add(count++);
-                                indices.Add(count++);
-                                indices.Add(count++);
-                                indices.Add(count++);
-                                indices.Add(count++);
-                                indices.Add(count++);
-                            }
-                            xOffset = xOffset == 0 ? 8 : 0;
-                        }*/
-            int c = 0;
-            List<Color> colors = [Color.Green, Color.Lime, Color.DarkGreen, Color.Turquoise, Color.DarkOliveGreen, Color.Red];
-            for (int i = 0; i < Points.Length; i += 3)
+            List<Vector2> points = new();
+            List<int> indices = new();
+            int xOffset = 8;
+            for (int y = 0; y < Height; y += 16)
             {
-                triData data = new();
-                triList.Add(data);
+                for (int x = xOffset; x < Width; x += 16)
+                {
+                    int count = indices.Count;
+                    points.Add(new(x, y));
+                    points.Add(new(x + 16, y));
+                    points.Add(new(x - 8, y + 16));
+                    points.Add(new(x - 8, y + 16));
+                    points.Add(new(x + 16, y));
+                    points.Add(new(x + 8, y + 16));
+                    indices.Add(count++);
+                    indices.Add(count++);
+                    indices.Add(count++);
+                    indices.Add(count++);
+                    indices.Add(count++);
+                    indices.Add(count++);
+                }
+                xOffset = xOffset == 0 ? 8 : 0;
+            }
+            int c = 0;
+            for (int i = 0; i < points.Count; i += 3)
+            {
+                List<Color> colors = [Color.Green, Color.Lime, Color.DarkGreen, Color.Turquoise, Color.DarkOliveGreen, Color.Red];
+                triColorLerps.Add(0);
                 int index = c;
                 CreateTween(index, true);
-                data.BrightShift = Calc.Random.Range(0, 3);
-                colors.Shuffle();
-                Add(data.Shifter = new ColorShifter([.. colors])
-                {
-                    Rate = Calc.Random.Range(0.3f, 0.7f)
-                });
-                c++;
+                int r = Calc.Random.Range(0, 3);
                 for (int j = 0; j < 3; j++)
                 {
+                    randomBrightness.Add(j == r ? 0.3f : 0);
+                }
+                c++;
+                colors.Shuffle();
+                ColorShifter s = new ColorShifter([.. colors]);
+                Shifters.Add(s);
+                Add(s);
+                s.Rate = Calc.Random.Range(0.3f, 0.7f);
+            }
+            Points = points.ToArray();
+            Vertices = points.Select(item => new VertexPositionColor(new Vector3(item, 0), Color.White)).ToArray();
+            this.indices = indices.ToArray();
+            foreach (var v in Points)
+            {
+                if (!breaths.ContainsKey(v))
+                {
                     VertexBreath breath = new VertexBreath(Calc.Random.Range(4, 8f), Calc.Random.Range(1f, 8));
-                    breaths.Add(breath);
+                    breaths.Add(v, breath);
                     Add(breath);
                 }
             }
-            for (int i = 0; i < Vertices.Length; i++)
-            {
-                Vertices[i].Color = colors.Random();
-            }
-            UpdateVertices();
         }
-        public override void Update()
-        {
-            base.Update();
-            UpdateVertices();
-        }
-        public float mult = 1;
         public void CreateTween(int index, bool randomize = false)
         {
-            float from = triList[index].ColorLerp;
+            float from = triColorLerps[index];
             float target = from < 0.5f ? Calc.Random.Range(0.5f, 1f) : Calc.Random.Range(0, 0.5f);
             Tween tween = Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineInOut,
-                    t => { triList[index].ColorLerp = Calc.LerpClamp(from, target, t.Eased); },
+                    t => { triColorLerps[index] = Calc.LerpClamp(from, target, t.Eased); },
                     t => { CreateTween(index); });
             if (randomize)
             {
                 tween.Randomize();
             }
         }
+        private bool once = false;
         public void UpdateVertices()
         {
-            for (int i = 0; i < Points.Length; i++)
+            if (once)
             {
-                triData data = triList[i / 3];
-                Vertices[i].Position = new Vector3(Points[i] + new Vector2(BufferExtend, BufferExtend + breaths[i].Amount * mult), 0);
-                ColorShifter s = data.Shifter;
-                Vertices[i].Color = Color.Lerp(s[0], s[1], data.ColorLerp + data.GetAdditionalBrightness(i % 3));
-
+                for (int i = 0; i < Points.Length; i++)
+                {
+                }
             }
-        }
-        public void UpdateVerticePosition()
-        {
-            for (int i = 0; i < Points.Length; i++)
+            else
             {
-                Vector2 p = Points[i];
-                Vertices[i].Position = new Vector3(p + new Vector2(BufferExtend, BufferExtend + breaths[i].Amount * mult), 0);
-
+                for (int i = 0; i < Points.Length; i++)
+                {
+                    Vector2 p = Points[i];
+                    ColorShifter s = Shifters[i / 3];
+                    Vertices[i].Position = new Vector3(p + new Vector2(BufferExtend, BufferExtend + breaths[p].Amount), 0);
+                    Vertices[i].Color = Color.Lerp(s[0], s[1], triColorLerps[i / 3] + randomBrightness[i]);
+                }
             }
+            once = true;
         }
-        public void UpdateVerticeColor()
+        public override void Update()
         {
-            /*            for (int i = 0; i < Points.Length; i++)
-                        {
-                            triData data = triList[i / 3];
-                            ColorShifter s = data.Shifter;
-                            Vertices[i].Color = Color.Lerp(s[0], s[1], data.ColorLerp + data.GetAdditionalBrightness(i % 3));
-                        }*/
+            base.Update();
+            UpdateVertices();
         }
         public override void Render()
         {
             base.Render();
             if (Scene is not Level level) return;
             Draw.SpriteBatch.Draw(Target, Position - Vector2.One * 16, Color.White);
+            /*            Draw.SpriteBatch.End();
+                        GFX.DrawIndexedVertices(level.Camera.Matrix, Vertices, Vertices.Length, indices, Vertices.Length / 3);
+                        GameplayRenderer.Begin();*/
         }
     }
     [ConstantEntity("PuzzleIslandHelper/FormativeHouseRenderer")]
@@ -188,11 +180,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 matrix *= Matrix.CreateRotationX((float)Math.PI / 3f);
                 parameters["World"]?.SetValue(matrix);
                 parameters["Time"]?.SetValue(level.TimeActive);
+                /*
+                                Engine.Graphics.GraphicsDevice.BlendState = BlendState.AlphaBlend;
+                                Engine.Instance.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+                                EffectTechnique effectTechnique = effect.Techniques[0];*/
                 foreach (FormativeHouse h in list)
                 {
                     h.Target.SetAsTarget(true);
                     GFX.DrawIndexedVertices(Matrix.Identity, h.Vertices, h.Vertices.Length, h.indices, h.indices.Length / 3, effect);
+                    /*                    foreach (EffectPass pass in effectTechnique.Passes)
+                                        {
+                                            pass.Apply();
+                                            GFX.DrawIndexedVertices(Matrix.Identity, h.Vertices, h.Vertices.Length, h.indices, h.indices.Length / 3);
+                                        }*/
                 }
+                /*                Engine.Graphics.GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
+                                Engine.Graphics.GraphicsDevice.SamplerStates[1] = SamplerState.LinearWrap;*/
                 Draw.SpriteBatch.End();
             }
         }
