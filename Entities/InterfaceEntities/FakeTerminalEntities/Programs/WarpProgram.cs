@@ -1,14 +1,6 @@
 using Microsoft.Xna.Framework;
-using Monocle;
-using Microsoft.Xna.Framework.Input;
 using System.Collections;
 using System.Collections.Generic;
-using System;
-using System.Linq;
-using System.Reflection;
-using System.Configuration;
-using System.Xml.Linq;
-using System.Xml.Serialization;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs
 {
@@ -28,7 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 Parent.TargetID = value;
             }
         }
-        public WarpCapsuleData SelectedCapsule => WarpCapsule.GetCapsuleData(SelectedID);
+        //public WarpCapsuleData SelectedCapsule => WarpCapsule.GetCapsuleData(SelectedID);
         public WarpCapsule Parent;
         public WarpProgram(WarpCapsule parent, FakeTerminal terminal) : base(terminal, "Please enter the destination node ID.")
         {
@@ -130,11 +122,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 Error("Error: Origin of Link ID could not be traced.");
                 yield break;
             }
-            if (name == Parent.WarpID)
+/*            if (name == Parent.WarpID)
             {
                 Error("Error: Link ID cannot be identical {n}to the parent warp chamber's Link ID.");
                 yield break;
-            }
+            }*/
             WarpCapsuleData data = PianoMapDataProcessor.WarpLinks[name];
             if (!string.IsNullOrWhiteSpace(data.Password))
             {
@@ -168,7 +160,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         }
         public static bool ValidateID(string id, WarpCapsule parent)
         {
-            return !string.IsNullOrEmpty(id) && parent.WarpID != id && PianoMapDataProcessor.WarpLinks.ContainsKey(id);
+            return !string.IsNullOrEmpty(id) && /*parent.WarpID != id &&*/ PianoMapDataProcessor.WarpLinks.ContainsKey(id);
         }
         public override void AfterWelcome()
         {

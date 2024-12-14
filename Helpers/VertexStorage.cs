@@ -1,9 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using Celeste.Mod.CommunalHelper.Utils;
 using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Helpers;

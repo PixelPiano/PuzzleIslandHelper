@@ -1,6 +1,4 @@
-﻿using Celeste.Mod.Core;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Effects;
+﻿using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -9,7 +7,6 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.CalidusDeadBody;
 using Looking = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Looking;
 using Mood = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Mood;

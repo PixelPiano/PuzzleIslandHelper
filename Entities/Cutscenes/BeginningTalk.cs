@@ -1,19 +1,11 @@
-﻿using Celeste.Mod.CommunalHelper;
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
+﻿using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
-using FMOD.Studio;
-using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.ArtifactSlot;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
 {
@@ -40,7 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         public CalidusButton(Vector2 position) : base(position)
         {
-            
+
             Collider = new Hitbox(8, 8);
             HasGravity = false;
             Vertices = new VertexPositionColor[Points.Length];
@@ -255,6 +247,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 yield return new SwapImmediately(c.Float(position, 1.4f));
             }
         }
+        public static void AddDefaultRunes()
+        {
+
+        }
+        private IEnumerator calidusBam()
+        {
+            Calidus c = Level.Tracker.GetEntity<Calidus>();
+            WarpCapsule capsule = Level.Tracker.GetEntity<WarpCapsule>();
+            Vector2 pos = capsule.InputMachine.Position;
+            Vector2 from = c.Position;
+            yield return PianoUtils.LerpYoyo(Ease.Linear, 0.3f, f => c.Position = Vector2.Lerp(from, pos, f), delegate {/*todo: play sound of calidus ramming into screen*/});
+        }
+        private IEnumerator screenOn()
+        {
+            WarpCapsule capsule = Level.Tracker.GetEntity<WarpCapsule>();
+            capsule.InputMachine.TurnOn();
+            yield return null;
+        }
         private IEnumerator calidusTo0()
         {
             yield return calidusToMarker(0);
@@ -282,9 +292,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         private IEnumerator cutscene(Player player)
         {
-            yield return Textbox.Say("LookAtCapsule", calidusTo0, calidusTo1, calidusTo2, calidusTo3, lookatplayer);
+            yield return Textbox.Say("LookAtCapsule", calidusTo0, calidusTo1, calidusTo2, calidusTo3, lookatplayer, calidusBam, screenOn);
             EndCutscene(Level);
         }
+
         public override void OnEnd(Level level)
         {
             if (level.GetPlayer() is Player player)
@@ -297,6 +308,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 c.StartFollowing();
                 c.Normal();
             };
+            Level.Tracker.GetEntity<WarpCapsule>()?.InputMachine?.TurnOn();
+            AddDefaultRunes();
         }
     }
 
@@ -395,7 +408,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         public override void OnEnd(Level level)
         {
-            if(VertexPassenger is TutorialPassenger t)
+            if (VertexPassenger is TutorialPassenger t)
             {
                 t.TurnOn();
             }

@@ -1,16 +1,8 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.XaphanHelper.Effects;
-using FMOD.Studio;
-using FrostHelper;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
@@ -44,20 +36,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Cycler.AddLoop("glitchStone", "glitchStone", delay);
             Cycler.Play(Glitchy ? "glitch" : "code", true, true);
             Stone = new Image(GFX.Game[path + "stone"]);
-            Collider = new Hitbox(Stone.Width,Stone.Height);
+            Collider = new Hitbox(Stone.Width, Stone.Height);
             Add(Stone, Cycler);
             Add(new Coroutine(GlitchRoutine()));
             if (!string.IsNullOrEmpty(Dialog))
             {
-                Add(new DotX3(Collider, p => Add(new Coroutine(Cutscene(p)))));
+                Add(new DotX3(Collider, p => Scene.Add(new ReadGravestoneCutscene(Dialog))));
             }
         }
-        private IEnumerator Cutscene(Player player)
-        {
-            player.StateMachine.State = Player.StDummy;
-            yield return Textbox.Say(Dialog);
-            player.StateMachine.State = Player.StNormal;
-        }
+        /*        private IEnumerator Cutscene(Player player)
+                {
+                    player.StateMachine.State = Player.StDummy;
+                    yield return Textbox.Say(Dialog);
+                    player.StateMachine.State = Player.StNormal;
+                }*/
         public IEnumerator GlitchRoutine()
         {
             while (true)

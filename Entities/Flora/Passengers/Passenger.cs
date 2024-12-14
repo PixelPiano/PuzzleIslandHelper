@@ -1,9 +1,6 @@
-using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Loaders;
-using FMOD;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
@@ -30,6 +27,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 }
             }
         }
+        public string ActiveFlag;
+        public bool State
+        {
+            get
+            {
+                return !string.IsNullOrEmpty(ActiveFlag) || SceneAs<Level>().Session.GetFlag(ActiveFlag);
+            }
+        }
+        private bool state;
         public Vector2 Speed;
         public bool onGround;
         public bool wasOnGround;
@@ -49,8 +55,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public DialogMethods DialogMethod;
         public int DialogIndex;
         public bool CanStartDialogCutscene => HasDialogCutscenes && DialogIndex < Dialogs.Length;
-        public Passenger(Vector2 position, float width, float height, string cutscene, string dialog, DialogMethods dialogMethod) : base(position)
+        public Passenger(Vector2 position, float width, float height, string cutscene, string dialog, DialogMethods dialogMethod, string flag = "") : base(position)
         {
+            ActiveFlag = flag;
             if (!string.IsNullOrWhiteSpace(dialog))
             {
                 Dialogs = dialog.Split(',');
@@ -68,9 +75,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public Passenger(Vector2 position, float width, float height, string cutscene) : this(position, width, height, cutscene, null, DialogMethods.OnlyOnce)
         {
         }
-        public Passenger(EntityData data, Vector2 offset) : this(data.Position + offset, 16, 16, data.Attr("cutsceneID"), data.Attr("dialog"), data.Enum<DialogMethods>("dialogMethod"))
+        public Passenger(EntityData data, Vector2 offset) : this(data.Position + offset, 16, 16, data.Attr("cutsceneID"), data.Attr("dialog"), data.Enum<DialogMethods>("dialogMethod"),data.Attr("flag"))
         {
-
         }
         public override void Awake(Scene scene)
         {
@@ -80,6 +86,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public override void Update()
         {
             base.Update();
+            state = State;
+            if(!state) return;
             if (!HasGravity)
             {
                 onGround = false;

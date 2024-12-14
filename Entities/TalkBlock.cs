@@ -1,24 +1,8 @@
-using Celeste.Mod.CommunalHelper;
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs;
-using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
-using Celeste.Mod.PuzzleIslandHelper.Helpers;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using MonoMod.RuntimeDetour;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Threading;
-using System.Xml.Schema;
-using static Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue.PrologueSequence;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.InvertAuth;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

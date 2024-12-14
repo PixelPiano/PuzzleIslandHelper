@@ -1,20 +1,12 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.LuaCutscenes;
-using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
-using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 using Celeste.Mod.PuzzleIslandHelper.Structs;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
-using ExtendedVariants.Variants;
-using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Mono.Cecil.Cil;
 using Monocle;
-using MonoMod.Cil;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -661,7 +653,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 Calidus.AddAfterImage(0.7f, 0.5f);
                 Level.Displacement.AddBurst(Calidus.Center, 0.4f, 0, Calidus.Width, 1);
-                QuickGlitch.Create(Calidus, new Range2(2, 5), Vector2.UnitX, Engine.DeltaTime, 3, 0.2f);
+                QuickGlitch.Create(Calidus, new NumRange2(2, 5), Vector2.UnitX, Engine.DeltaTime, 3, 0.2f);
             }
             Vector2 scale = Calidus.Scale;
             addShiz();

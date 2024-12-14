@@ -1,13 +1,6 @@
-using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Mono.Cecil.Cil;
 using Monocle;
-using MonoMod.Cil;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

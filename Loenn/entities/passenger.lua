@@ -19,7 +19,8 @@ for _, type in ipairs(names) do
             groups = 3,
             groupWidth = 10,
             dialog = "",
-            dialogMethod = "OnlyOnce"
+            dialogMethod = "OnlyOnce",
+            flag = ""
         }
     }
     table.insert(passenger.placements,placement)

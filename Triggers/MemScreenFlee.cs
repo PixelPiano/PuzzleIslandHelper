@@ -1,11 +1,8 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
-using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.PlayerCalidus;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {

@@ -1,13 +1,10 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.FancyTileEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Security.Policy;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

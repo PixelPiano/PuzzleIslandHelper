@@ -1,6 +1,5 @@
 using Celeste.Mod.Backdrops;
 using Monocle;
-using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {

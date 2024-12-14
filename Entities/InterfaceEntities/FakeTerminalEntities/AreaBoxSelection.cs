@@ -3,9 +3,6 @@ using Monocle;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections;
-using MonoMod.Cil;
-using Mono.Cecil.Cil;
-using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities
 {

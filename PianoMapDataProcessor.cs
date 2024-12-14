@@ -4,8 +4,6 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections.Generic;
-using System.Security.Permissions;
-using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -72,7 +70,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static List<PortalNodeData> PortalNodes = new();
         public static List<TileLayoutData> CopiedTileseedData = new();
         public static Dictionary<string, WarpCapsuleData> WarpLinks = new();
-        public static Dictionary<WarpCapsule.Rune, WarpCapsuleData> WarpRunes = new();
+        public static Dictionary<WarpCapsule.Runes.Rune, WarpCapsuleData> WarpRunes = new();
         public static WarpCapsuleData PrimaryWarpData;
         public static Dictionary<string, CalidusSpawnerData> CalidusSpawners = new();
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
@@ -130,33 +128,24 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     CalidusSpawners.Add(levelName, cData);
                 }
             };
-            /*            Action<BinaryPacker.Element> tileLayoutControllerHandler = data =>
-                        {
-                            TileLayoutData tData = new()
-                            {
-                                CopyFrom = data.Attr("copyFromRoom"),
-                                CopyTo = levelName,
-
-                            };
-                            CopiedTileseedData.Add(tData);
-                        };*/
             Action<BinaryPacker.Element> accessWarpHandler = data =>
             {
                 WarpCapsuleData awData = default;
 
-                string id = data.Attr("warpID").Replace(" ", "").ToLower();
-                WarpCapsule.Rune rune = new(data.Attr("rune"));
+                string id = data.Attr("warpID");
+                WarpCapsule.Runes.Rune rune = new(id, data.Attr("rune"));
                 if (!string.IsNullOrEmpty(levelName) && rune != null && !WarpRunes.ContainsKey(rune))
                 {
+                    if (data.AttrBool("isDefaultRune"))
+                    {
+                        WarpCapsule.Runes.Rune.Default = rune;
+                    }
                     awData = new()
                     {
                         Room = levelName,
                         Delay = data.AttrFloat("warpDelay"),
-                        //Password = data.Attr("password").Replace(" ", "").ToLower(),
-                        //Name = data.Attr("warpID")
                     };
-                    WarpRunes.Add(new WarpCapsule.Rune(data.Attr("rune")), awData);
-                    //WarpLinks.Add(id, awData);
+                    WarpRunes.Add(rune, awData);
                 }
 
             };

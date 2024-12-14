@@ -1,16 +1,8 @@
 ﻿using Celeste.Mod.Entities;
-using Celeste.Mod.LuaCutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
-using System.Collections;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using static Celeste.Mod.PuzzleIslandHelper.Components.BitrailNode;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
 {

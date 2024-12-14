@@ -5,9 +5,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Structs;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Mono.Cecil.Cil;
 using Monocle;
-using MonoMod.Cil;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -818,8 +816,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         public void AddGlitches(Player player, Calidus calidus)
         {
-            Level.Add(new QuickGlitch(player, new Range2(2, 5, 2, 5), Vector2.One * 8, Engine.DeltaTime, 8, 0.4f));
-            Level.Add(new QuickGlitch(calidus, new Range2(2, 5, 2, 5), Vector2.Zero, Engine.DeltaTime, 8, 0.4f) { Offset = -Vector2.UnitX * 8 });
+            Level.Add(new QuickGlitch(player, new NumRange2(2, 5, 2, 5), Vector2.One * 8, Engine.DeltaTime, 8, 0.4f));
+            Level.Add(new QuickGlitch(calidus, new NumRange2(2, 5, 2, 5), Vector2.Zero, Engine.DeltaTime, 8, 0.4f) { Offset = -Vector2.UnitX * 8 });
         }
         public override void Removed(Scene scene)
         {

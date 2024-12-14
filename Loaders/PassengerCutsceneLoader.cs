@@ -1,8 +1,5 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using System;
 using System.Collections.Generic;
 using System.Reflection;

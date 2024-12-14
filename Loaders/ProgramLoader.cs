@@ -1,6 +1,5 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Attributes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using System;
 using System.Collections.Generic;
 using System.Reflection;

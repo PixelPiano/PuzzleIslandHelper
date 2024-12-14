@@ -4,18 +4,17 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP.EscapeRoomEntities;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public List<int> RuneNodes = [0, 2, 5];
         public List<EntityID> BathroomStallsOpen = new();
         public bool BathroomStallOpened {get; set;}
         public int TimesUsedCapsuleWarp { get; set; }

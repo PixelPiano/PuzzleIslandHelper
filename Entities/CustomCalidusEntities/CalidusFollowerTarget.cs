@@ -1,12 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using Monocle;
-using Celeste.Mod.Entities;
-using System;
-using System.Collections;
-using System.Linq;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using Microsoft.Xna.Framework.Input;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
 {

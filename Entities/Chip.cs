@@ -1,20 +1,8 @@
-﻿using Celeste.Mod.Core;
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Effects;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Drawing.Drawing2D;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using YamlDotNet.Core;
-using static Celeste.Mod.CommunalHelper.Entities.RedlessBerry;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

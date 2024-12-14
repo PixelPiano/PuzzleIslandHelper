@@ -1,8 +1,5 @@
 
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
-using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
 

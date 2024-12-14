@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using Microsoft.Xna.Framework.Input;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -287,6 +286,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Assembled = true;
                 Reset();
             }
+        }
+        public static Calidus Create()
+        {
+            Calidus c = new Calidus(Vector2.Zero, new EntityID(Guid.NewGuid().ToString(), 0));
+            Engine.Scene.Add(c);
+            return c;
+        }
+        public static Calidus Create(Vector2 position, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal)
+        {
+            Calidus c = new Calidus(position, new EntityID(Guid.NewGuid().ToString(), 0),broken, startFloating, look, mood);
+            Engine.Scene.Add(c);
+            return c;
         }
         public Calidus(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Bool("broken"), data.Bool("startFloating", true), data.Enum("looking", Looking.Center), data.Enum("mood", Mood.Normal))
         {

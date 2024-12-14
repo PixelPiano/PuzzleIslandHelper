@@ -1,7 +1,4 @@
-﻿using Celeste.Mod.CommunalHelper;
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using FMOD.Studio;
+﻿using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -9,7 +6,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
 {
@@ -46,7 +42,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public float Alpha = 1;
         public Color Color2;
         public float ColorMixLerp;
-
 
         public Facings Facing = Facings.Left;
         public VertexPassenger(Vector2 position, float width, float height, string cutscene, Vector2 scale) : base(position, width, height, cutscene)
@@ -165,7 +160,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 ScaleApproach.Y = Calc.Approach(ScaleApproach.Y, 1, Engine.DeltaTime);
             }
             base.Update();
-            if (IsInView)
+            
+            if (State && IsInView)
             {
                 UpdateVertices();
             }
@@ -272,6 +268,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public override void Render()
         {
+            if(!State) return;
             base.Render();
             if (!Baked || Scene is not Level level || !IsInView) return;
             Draw.SpriteBatch.End();

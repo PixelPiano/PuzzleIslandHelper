@@ -1,12 +1,10 @@
 using Celeste.Mod.Backdrops;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
-using FrostHelper;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
-using System.Security.Cryptography;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {

@@ -1,6 +1,5 @@
 ﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
 using Celeste;
-using Celeste.Mod;
 using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
@@ -14,13 +13,56 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using TAS.EverestInterop.InfoHUD;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.PlayerCalidus;
 
 public class PianoCommands
 {
+    [Command("get_counter", "returns the counter value of the specified string")]
+    public static void GetCounter(string value)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        if (string.IsNullOrEmpty(value))
+        {
+            Engine.Commands.Log("Provided string is either null or empty.");
+            return;
+        }
+        Engine.Commands.Log("Counter {" + value + ": " + level.Session.GetCounter(value));
+    }
+    [Command("set_counter", "sets the counter value of the specified string")]
+    public static void SetCounter(string value, int num)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        if (string.IsNullOrEmpty(value))
+        {
+            Engine.Commands.Log("Provided string is either null or empty.");
+            return;
+        }
+        level.Session.SetCounter(value, num);
+    }
+    [Command("increment_counter", "adds one to the counter value of the specified string")]
+    public static void IncCounter(string value)
+    {
+        if (Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is currently not a level.");
+            return;
+        }
+        if (string.IsNullOrEmpty(value))
+        {
+            Engine.Commands.Log("Provided string is either null or empty.");
+            return;
+        }
+        int num = level.Session.GetCounter(value);
+        level.Session.SetCounter(value, num + 1);
+    }
     [Command("save_vert", "stores drawn vertices in a struct")]
     public static void SaveVertices(string name)
     {
@@ -51,7 +93,7 @@ public class PianoCommands
         }
         foreach (WarpCapsule a in level.Tracker.GetEntities<WarpCapsule>())
         {
-            a.SetWarpTarget(id);
+            //a.SetWarpTarget(id);
         }
     }
     [Command("validatewarpid", "still tired hahahahahaaaaaaaaaaaaa")]
@@ -248,7 +290,7 @@ public class PianoCommands
     {
         PianoModule.Session.DEBUGBOOL4 = value;
     }
-    [Command("df", "sets a debug bool value")]
+    [Command("df", "sets a debug float value")]
     private static void SetDebugFloat(float value)
     {
         PianoModule.Session.DEBUGFLOAT1 = value;

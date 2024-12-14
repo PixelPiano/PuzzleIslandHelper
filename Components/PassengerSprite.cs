@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Helpers;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using static Celeste.Mod.PuzzleIslandHelper.Helpers.BitrailHelper;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {

@@ -4,10 +4,7 @@ using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
-using static VivHelper.Entities.CollectibleController;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

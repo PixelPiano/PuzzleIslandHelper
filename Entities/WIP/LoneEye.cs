@@ -2,7 +2,6 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
-using Microsoft.Xna.Framework.Graphics;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
     [CustomEntity("PuzzleIslandHelper/LoneEye")]

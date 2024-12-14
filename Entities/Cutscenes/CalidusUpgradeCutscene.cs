@@ -3,7 +3,6 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.PlayerCalidus;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Calidus;
 using Looking = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Looking;
 using Mood = Celeste.Mod.PuzzleIslandHelper.Entities.Calidus.Mood;
 using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;

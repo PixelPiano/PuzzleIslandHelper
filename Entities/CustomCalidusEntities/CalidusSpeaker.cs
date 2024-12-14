@@ -1,13 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Monocle;
-using Celeste.Mod.Entities;
-using System;
 using System.Collections;
-using System.Linq;
-using System.Collections.Generic;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities

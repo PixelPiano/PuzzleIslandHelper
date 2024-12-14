@@ -3,10 +3,8 @@ using System;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using MonoMod.Cil;
-using Mono.Cecil.Cil;
 using FrostHelper;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
-using Mono.Cecil;
 using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities

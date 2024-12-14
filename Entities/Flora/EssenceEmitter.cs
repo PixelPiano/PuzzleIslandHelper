@@ -25,7 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             if (Timer < 0)
             {
                 Timer = Calc.Random.Range(0.3f, 0.6f);
-                EssenceRenderer.Add(Position, Calc.Random.NextAngle(), 0, Calc.Random.Range(10f, 20f), Vector2.UnitY * Calc.Random.Range(-0.5f, 0.5f), 0, new Range(2f, 4f), new Range(5f, 15f));
+                EssenceRenderer.Add(Position, Calc.Random.NextAngle(), 0, Calc.Random.Range(10f, 20f), Vector2.UnitY * Calc.Random.Range(-0.5f, 0.5f), 0, new NumRange(2f, 4f), new NumRange(5f, 15f));
 
             }
         }

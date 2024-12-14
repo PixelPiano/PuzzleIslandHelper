@@ -18,7 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool Timed;
         public List<Block> Blocks = new();
         public Entity Entity;
-        public Range2 BlockSizeRange;
+        public NumRange2 BlockSizeRange;
         public class Block
         {
             public Vector2 Position;
@@ -43,7 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Draw.Rect(Bounds, Color);
             }
         }
-        public QuickGlitch(Entity entity, Range2 blockSizeRange, Vector2 padding, float interval, int maxBlocks, float duration) : base(entity.Collider != null ? entity.Collider.AbsolutePosition : entity.Position)
+        public QuickGlitch(Entity entity, NumRange2 blockSizeRange, Vector2 padding, float interval, int maxBlocks, float duration) : base(entity.Collider != null ? entity.Collider.AbsolutePosition : entity.Position)
         {
             BlockSizeRange = blockSizeRange;
             Entity = entity;
@@ -56,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             this.duration = duration;
             Add(new Coroutine(Sequence()));
         }
-        public static QuickGlitch Create(Entity entity, Range2 blockSizeRange, Vector2 padding, float interval, int maxBlocks, float duration)
+        public static QuickGlitch Create(Entity entity, NumRange2 blockSizeRange, Vector2 padding, float interval, int maxBlocks, float duration)
         {
             if(entity.Scene is not null)
             {

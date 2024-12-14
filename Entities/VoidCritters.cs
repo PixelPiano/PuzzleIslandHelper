@@ -1,12 +1,7 @@
 using Celeste.Mod.Entities;
-using Celeste.Mod.Meta;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using Monocle;
-using MonoMod.Utils;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 
 // PuzzleIslandHelper.VoidCritters
 namespace Celeste.Mod.PuzzleIslandHelper.Entities

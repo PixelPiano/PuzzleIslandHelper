@@ -1,9 +1,6 @@
 ﻿using Celeste.Mod.Entities;
-using Celeste.Mod.LuaCutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
-using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes

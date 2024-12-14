@@ -1,22 +1,6 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Effects;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
 using System;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
-using Celeste.Mod.PuzzleIslandHelper.Triggers;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
-using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
-using Celeste.Mod.PuzzleIslandHelper.MenuElements;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
-using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities;
-using Celeste.Mod.PuzzleIslandHelper.Helpers;
-using IL.Monocle;
-using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
-using FrostHelper;
 using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper

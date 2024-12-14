@@ -20,7 +20,8 @@ warpCapsule.placements =
             invertMachineFlag = false,
             disableFlag = "",
             invertFlag = false,
-            rune = ""
+            rune = "",
+            isDefaultRune = false
         }
     }
 }

@@ -1,5 +1,3 @@
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 using Monocle;
 using System;
 using System.Collections.Generic;

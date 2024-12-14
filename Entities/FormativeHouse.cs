@@ -1,55 +1,109 @@
-﻿using Celeste.Mod.CommunalHelper.Utils;
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
+﻿using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
-using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WIP.ShiftArea;
-using static MonoMod.InlineRT.MonoModRule;
-using static PianoUtils;
+using System.Runtime.InteropServices;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+    [Serializable]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    internal struct HouseVertex : IVertexType
+    {
+        public Vector3 Position;
+
+        public Color Color;
+
+        public Vector2 Float;
+
+        public static readonly VertexDeclaration VertexDeclaration;
+
+        VertexDeclaration IVertexType.VertexDeclaration => VertexDeclaration;
+
+        static HouseVertex()
+        {
+            VertexDeclaration = new VertexDeclaration(new VertexElement(0, VertexElementFormat.Vector3, VertexElementUsage.Position, 0), new VertexElement(12, VertexElementFormat.Color, VertexElementUsage.Color, 0), new VertexElement(16, VertexElementFormat.Vector2, VertexElementUsage.TextureCoordinate, 0));
+        }
+
+        public HouseVertex(Vector3 position, Color color, Vector2 mult)
+        {
+            Position = position;
+            Color = color;
+            Float = mult;
+        }
+
+        public override int GetHashCode()
+        {
+            return 0;
+        }
+
+        public override string ToString()
+        {
+            return "{{Position:" + Position.ToString() + " Color:" + Color.ToString() + "}}";
+        }
+
+        public static bool operator ==(HouseVertex left, HouseVertex right)
+        {
+            if (left.Color == right.Color)
+            {
+                return left.Position == right.Position;
+            }
+
+            return false;
+        }
+
+        public static bool operator !=(HouseVertex left, HouseVertex right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+            {
+                return false;
+            }
+
+            if (obj.GetType() != GetType())
+            {
+                return false;
+            }
+
+            return this == (HouseVertex)obj;
+        }
+    }
     [CustomEntity("PuzzleIslandHelper/FormativeHouse")]
     [Tracked]
     public class FormativeHouse : Entity
     {
+
         public const int BufferExtend = 16;
+        public Vector2 BufferOffset => new Vector2(BufferExtend);
+        public Rectangle Bounds;
         public VirtualRenderTarget Target;
-        public VertexPositionColor[] Vertices;
+        internal HouseVertex[] Vertices;
         public Vector2[] Points;
         public int[] indices;
-        private Dictionary<Vector2, VertexBreath> breaths = [];
-        private List<float> triColorLerps = [];
-        private List<ColorShifter> Shifters = [];
-        private List<float> randomBrightness = [];
         public FormativeHouse(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Collider = new Hitbox(data.Width, data.Height);
             Target = VirtualContent.CreateRenderTarget("formative-house-target", data.Width + BufferExtend * 2, data.Height + BufferExtend * 2);
+            Bounds = new Rectangle((int)Position.X - BufferExtend, (int)Position.Y - BufferExtend, data.Width + BufferExtend * 2, data.Height * BufferExtend * 2);
         }
+        public bool OnScreen;
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
             Target.Dispose();
         }
-        public override void DebugRender(Camera camera)
+        public override void Update()
         {
-            base.DebugRender(camera);
-            for (int i = 0; i < Points.Length; i++)
-            {
-                Vector2 breath = -Vector2.UnitY * breaths[Points[i]].Amount;
-                Vector2 point = Position + Points[i];
-                Draw.Line(point, point + breath, Color.White);
-                Draw.Point(point, Color.Cyan);
-                Draw.Point(point + breath, Color.Red);
-            }
+            base.Update();
+            OnScreen = Bounds.OnScreen(SceneAs<Level>(), 16);
         }
         public override void Awake(Scene scene)
         {
@@ -77,127 +131,67 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 xOffset = xOffset == 0 ? 8 : 0;
             }
-            int c = 0;
-            for (int i = 0; i < points.Count; i += 3)
+            Points = [.. points];
+            Vertices = new HouseVertex[Points.Length];
+            for (int i = 0; i < Points.Length; i += 3)
             {
-                List<Color> colors = [Color.Green, Color.Lime, Color.DarkGreen, Color.Turquoise, Color.DarkOliveGreen, Color.Red];
-                triColorLerps.Add(0);
-                int index = c;
-                CreateTween(index, true);
                 int r = Calc.Random.Range(0, 3);
+                Color random = Calc.Random.Choose(Color.Green, Color.Lime, Color.DarkGreen, Color.Turquoise, Color.DarkOliveGreen, Color.Red);
                 for (int j = 0; j < 3; j++)
                 {
-                    randomBrightness.Add(j == r ? 0.3f : 0);
+                    Vector2 point = Points[i + j];
+                    float mult = point.Y == Height || point.Y == 0 ? 0 : 1;
+                    Color color = Color.Lerp(random, Color.White, j == r ? 0.3f : 0);
+                    Vertices[i + j] = new HouseVertex(new Vector3(point + BufferOffset, 0), color, Vector2.One * mult);
                 }
-                c++;
-                colors.Shuffle();
-                ColorShifter s = new ColorShifter([.. colors]);
-                Shifters.Add(s);
-                Add(s);
-                s.Rate = Calc.Random.Range(0.3f, 0.7f);
             }
-            Points = points.ToArray();
-            Vertices = points.Select(item => new VertexPositionColor(new Vector3(item, 0), Color.White)).ToArray();
             this.indices = indices.ToArray();
-            foreach (var v in Points)
-            {
-                if (!breaths.ContainsKey(v))
-                {
-                    VertexBreath breath = new VertexBreath(Calc.Random.Range(4, 8f), Calc.Random.Range(1f, 8));
-                    breaths.Add(v, breath);
-                    Add(breath);
-                }
-            }
-        }
-        public void CreateTween(int index, bool randomize = false)
-        {
-            float from = triColorLerps[index];
-            float target = from < 0.5f ? Calc.Random.Range(0.5f, 1f) : Calc.Random.Range(0, 0.5f);
-            Tween tween = Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineInOut,
-                    t => { triColorLerps[index] = Calc.LerpClamp(from, target, t.Eased); },
-                    t => { CreateTween(index); });
-            if (randomize)
-            {
-                tween.Randomize();
-            }
-        }
-        private bool once = false;
-        public void UpdateVertices()
-        {
-            if (once)
-            {
-                for (int i = 0; i < Points.Length; i++)
-                {
-                }
-            }
-            else
-            {
-                for (int i = 0; i < Points.Length; i++)
-                {
-                    Vector2 p = Points[i];
-                    ColorShifter s = Shifters[i / 3];
-                    Vertices[i].Position = new Vector3(p + new Vector2(BufferExtend, BufferExtend + breaths[p].Amount), 0);
-                    Vertices[i].Color = Color.Lerp(s[0], s[1], triColorLerps[i / 3] + randomBrightness[i]);
-                }
-            }
-            once = true;
-        }
-        public override void Update()
-        {
-            base.Update();
-            UpdateVertices();
         }
         public override void Render()
         {
             base.Render();
             if (Scene is not Level level) return;
-            Draw.SpriteBatch.Draw(Target, Position - Vector2.One * 16, Color.White);
-            /*            Draw.SpriteBatch.End();
-                        GFX.DrawIndexedVertices(level.Camera.Matrix, Vertices, Vertices.Length, indices, Vertices.Length / 3);
-                        GameplayRenderer.Begin();*/
+            Draw.SpriteBatch.Draw(Target, Position - BufferOffset, Color.White);
         }
     }
     [ConstantEntity("PuzzleIslandHelper/FormativeHouseRenderer")]
     internal class FormativeHouseRenderHelper : Entity
     {
+        public List<Entity> Entities = new();
+        private bool render;
         public FormativeHouseRenderHelper() : base()
         {
             Tag |= Tags.Global;
             Add(new BeforeRenderHook(BeforeRender));
         }
+        public override void Update()
+        {
+            base.Update();
+            Entities = Scene.Tracker.GetEntities<FormativeHouse>();
+        }
         public void BeforeRender()
         {
             if (Scene is not Level level) return;
-            List<Entity> list = level.Tracker.GetEntities<FormativeHouse>();
-            if (list.Count > 0)
+
+            Draw.SpriteBatch.StandardBegin(Matrix.Identity);
+            Effect effect = ShaderHelperIntegration.GetEffect("PuzzleIslandHelper/Shaders/formativeHouseShader");
+            EffectParameterCollection parameters = effect.Parameters;
+            Vector2 vector = new Vector2(Engine.Graphics.GraphicsDevice.Viewport.Width, Engine.Graphics.GraphicsDevice.Viewport.Height);
+            Matrix matrix = Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
+            matrix *= Matrix.CreateTranslation(-1f, 1f, 0f);
+            matrix *= Matrix.CreateRotationX((float)Math.PI / 3f);
+            parameters["World"]?.SetValue(matrix);
+            parameters["Time"]?.SetValue(level.TimeActive);
+            foreach (FormativeHouse h in Entities)
             {
-                Draw.SpriteBatch.StandardBegin(Matrix.Identity);
-                Effect effect = ShaderHelperIntegration.GetEffect("PuzzleIslandHelper/Shaders/formativeHouseShader");
-                EffectParameterCollection parameters = effect.Parameters;
-                Vector2 vector = new Vector2(Engine.Graphics.GraphicsDevice.Viewport.Width, Engine.Graphics.GraphicsDevice.Viewport.Height);
-                Matrix matrix = Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
-                matrix *= Matrix.CreateTranslation(-1f, 1f, 0f);
-                matrix *= Matrix.CreateRotationX((float)Math.PI / 3f);
-                parameters["World"]?.SetValue(matrix);
-                parameters["Time"]?.SetValue(level.TimeActive);
-                /*
-                                Engine.Graphics.GraphicsDevice.BlendState = BlendState.AlphaBlend;
-                                Engine.Instance.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
-                                EffectTechnique effectTechnique = effect.Techniques[0];*/
-                foreach (FormativeHouse h in list)
+                if (h.OnScreen)
                 {
                     h.Target.SetAsTarget(true);
                     GFX.DrawIndexedVertices(Matrix.Identity, h.Vertices, h.Vertices.Length, h.indices, h.indices.Length / 3, effect);
-                    /*                    foreach (EffectPass pass in effectTechnique.Passes)
-                                        {
-                                            pass.Apply();
-                                            GFX.DrawIndexedVertices(Matrix.Identity, h.Vertices, h.Vertices.Length, h.indices, h.indices.Length / 3);
-                                        }*/
                 }
-                /*                Engine.Graphics.GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
-                                Engine.Graphics.GraphicsDevice.SamplerStates[1] = SamplerState.LinearWrap;*/
-                Draw.SpriteBatch.End();
             }
+            Draw.SpriteBatch.End();
+
         }
 
     }

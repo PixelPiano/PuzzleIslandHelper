@@ -1,13 +1,9 @@
-using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs;
-using FMOD;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
-using FMOD.Studio;
 using System;
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
-using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

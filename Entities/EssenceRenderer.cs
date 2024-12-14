@@ -72,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.End();
             GameplayRenderer.Begin();
         }
-        public static MemoryEssence Add(Vector2 position, float direction, float directionRange, float radius, Vector2 accel, float friction, Range lifeRange, Range speedRange)
+        public static MemoryEssence Add(Vector2 position, float direction, float directionRange, float radius, Vector2 accel, float friction, NumRange lifeRange, NumRange speedRange)
         {
             if (Engine.Scene is Level level)
             {

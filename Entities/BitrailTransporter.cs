@@ -8,7 +8,6 @@ using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 using Celeste.Mod.PuzzleIslandHelper.Helpers;
 using static Celeste.Mod.PuzzleIslandHelper.Components.BitrailNode;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.InvertAuth;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

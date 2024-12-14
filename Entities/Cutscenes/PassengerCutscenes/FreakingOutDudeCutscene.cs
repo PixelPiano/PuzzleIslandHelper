@@ -2,7 +2,6 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 using Monocle;
-using System;
 using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.PassengerCutscenes

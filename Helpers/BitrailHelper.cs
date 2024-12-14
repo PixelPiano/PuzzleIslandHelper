@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
-using VivHelper.Entities;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.BitrailTransporter;
 using Direction = Celeste.Mod.PuzzleIslandHelper.Components.BitrailNode.Direction;
 using DirectionCombos = Celeste.Mod.PuzzleIslandHelper.Components.BitrailNode.DirectionCombos;

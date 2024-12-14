@@ -3,9 +3,6 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using VivHelper;
-using VivHelper.Entities;
 // PuzzleIslandHelper.TSwitch
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

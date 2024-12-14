@@ -48,7 +48,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Matrix halfPixelOffset = Matrix.Identity;
 
             parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
-
             parameters["ViewMatrix"]?.SetValue(matrix);
             if (amplitude.HasValue)
             {

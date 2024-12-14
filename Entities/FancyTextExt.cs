@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
-using System.Xml.Linq;
 using Celeste.Mod;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 using Microsoft.Xna.Framework;

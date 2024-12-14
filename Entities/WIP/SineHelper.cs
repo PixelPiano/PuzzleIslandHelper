@@ -1,10 +1,5 @@
-using Celeste.Mod.Entities;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
-using System.Collections.Generic;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WIP.DigiFolliage;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {

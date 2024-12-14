@@ -5,7 +5,6 @@ using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.CommunalHelper.Utils;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
@@ -19,8 +18,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.ArtifactSlot;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.FountainBlock;
 using static Celeste.Player;
 
 public static class PianoUtils
@@ -142,6 +140,60 @@ public static class PianoUtils
                 }
             }
         }
+    }
+    public static bool Contains(this Rectangle rect, Vector2 point)
+    {
+        return rect.Contains((int)point.X, (int)point.Y);
+    }
+    public static Rectangle Pad(this Rectangle rect, int pad)
+    {
+        return new Rectangle(rect.X - pad, rect.Y - pad, rect.Width + pad * 2, rect.Height + pad * 2);
+    }
+    public static bool Contains(this Rectangle rect, Vector2 point, float pad)
+    {
+        if (rect.X - pad <= point.X && point.X < rect.X + rect.Width + pad && rect.Y - pad <= point.Y)
+        {
+            return point.Y < rect.Y + rect.Height + pad;
+        }
+        return false;
+    }
+    public static bool GetFlag(this string str, bool inverted = false)
+    {
+        return Engine.Scene is Level level && (string.IsNullOrEmpty(str) || level.Session.GetFlag(str)) != inverted;
+    }
+    public static void SetFlag(this string str, bool value = true)
+    {
+        if (Engine.Scene is Level level && !string.IsNullOrEmpty(str))
+        {
+            level.Session.SetFlag(str, value);
+        }
+
+    }
+    public static int GetCounter(this string str)
+    {
+        if (Engine.Scene is Level level && !string.IsNullOrEmpty(str))
+        {
+            return level.Session.GetCounter(str);
+        }
+        return 0;
+    }
+    public static void SetCounter(this string str, int value)
+    {
+        if (Engine.Scene is Level level && !string.IsNullOrEmpty(str))
+        {
+            level.Session.SetCounter(str, value);
+        }
+    }
+    public static int IncrementCounter(this string str, int? mod = null)
+    {
+        if (Engine.Scene is Level level && !string.IsNullOrEmpty(str))
+        {
+            int num = level.Session.GetCounter(str) + 1;
+            if (mod.HasValue) num %= mod.Value;
+            level.Session.SetCounter(str, num);
+            return num;
+        }
+        return 0;
     }
     public struct TriWall
     {
@@ -718,10 +770,11 @@ public static class PianoUtils
             yield return null;
         }
     }
-    public static IEnumerator LerpYoyo(this Ease.Easer ease, float halfTime, Action<float> action)
+    public static IEnumerator LerpYoyo(this Ease.Easer ease, float halfTime, Action<float> action, Action onHalf = null)
     {
         ease ??= Ease.Linear;
         yield return ease.Lerp(halfTime, action);
+        onHalf?.Invoke();
         yield return Ease.Invert(ease).ReverseLerp(halfTime, action);
     }
     public static IEnumerator ReverseLerp(this Ease.Easer ease, float time, Action<float> action)
@@ -807,6 +860,14 @@ public static class PianoUtils
         rect.SetSize(width, height);
         return rect;
     }
+    public static bool OnScreen(this Collider collider, Level level, float pad = 0)
+    {
+        return collider.Bounds.OnScreen(level, pad);
+    }
+    public static bool OnScreen(this Rectangle rect, Level level, float pad = 0)
+    {
+        return rect.Colliding(level.Camera.GetBounds(), pad);
+    }
     public static bool Colliding(this Rectangle rect, Rectangle check)
     {
         return Colliding(rect, check, 0);
@@ -869,6 +930,10 @@ public static class PianoUtils
                 }
             }
         }
+    }
+    public static bool JustJumped(this Player player)
+    {
+        return player.jumpGraceTimer > 0;
     }
     public static void StandardBegin(this SpriteBatch spriteBatch)
     {
@@ -1392,9 +1457,25 @@ public static class PianoUtils
             leader.PastPoints.Add(point);
         }
     }
-
-    public static bool TryAdd<T>(this List<T> list, T value)
+    public static bool TryAddRange<T>(this List<T> list, params T[] values)
     {
+        bool clean = true;
+        foreach (T value in values)
+        {
+            if (!list.Contains(value))
+            {
+                list.Add(value);
+            }
+            else
+            {
+                clean = false;
+            }
+        }
+        return clean;
+    }
+    public static bool TryAdd<T>(this List<T> list, T value, bool allowNull = true)
+    {
+        if (!allowNull && value == null) return false;
         if (!list.Contains(value))
         {
             list.Add(value);

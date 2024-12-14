@@ -1,14 +1,9 @@
-﻿using Celeste.Mod.CommunalHelper;
-using Celeste.Mod.Entities;
+﻿using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.BatterySystem;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 {

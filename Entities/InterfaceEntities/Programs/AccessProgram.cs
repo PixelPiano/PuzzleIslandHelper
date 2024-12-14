@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 
-using static Celeste.Mod.PuzzleIslandHelper.PuzzleData.AccessData;
-
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
     [Tracked]
@@ -78,7 +76,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             }
             if (machine != null)
             {
-                machine.SetWarpTarget(pass);
+                //machine.SetWarpTarget(pass);
                 machine.LeftDoor.MoveToBg();
                 machine.RightDoor.MoveToBg();
                 yield return machine.MoveTo(1, 0, 0.7f, null);

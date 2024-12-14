@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.ArtifactSlot;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities
 {

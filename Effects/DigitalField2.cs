@@ -1,15 +1,11 @@
 using Celeste.Mod.Backdrops;
-using Celeste.Mod.CommunalHelper.Utils;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Monocle;
 using System;
 using System.Collections.Generic;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue.PolygonScreen;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {

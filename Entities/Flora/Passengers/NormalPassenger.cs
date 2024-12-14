@@ -1,6 +1,4 @@
-﻿using Celeste.Mod.CommunalHelper;
-using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
+﻿using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 

@@ -4,7 +4,6 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {

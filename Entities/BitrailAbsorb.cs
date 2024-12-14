@@ -1,6 +1,4 @@
 using Celeste;
-using Celeste.Mod;
-using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;

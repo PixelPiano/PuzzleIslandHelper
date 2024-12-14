@@ -7,7 +7,6 @@ using MonoMod.Cil;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
