@@ -161,7 +161,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             }
 
         }
-        private bool wasHighlighting;
         public override void Update()
         {
             if (UI == null)

@@ -1,6 +1,7 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {
@@ -8,51 +9,45 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
     [TrackedAs(typeof(EventTrigger))]
     public class FlagEventTrigger : EventTrigger
     {
-        private string[] requiredFlags;
-        private bool[] requiredFlagStates;
-        private string flagOnStart;
-        private bool flagOnStartState;
+        private List<(string, bool)> RequiredFlags;
+        private List<(string, bool)> StartFlags;
+        private List<(string, bool)> InvertFlags;
+        private bool oncePerLevel;
+        private bool oncePerSession;
         private EntityID ID;
-
         public FlagEventTrigger(EntityData data, Vector2 offset, EntityID id) : base(data, offset)
         {
             ID = id;
-            PianoUtils.ParseFlagsFromString(data.Attr("requiredFlags"), out requiredFlags, out requiredFlagStates);
-            flagOnStart = data.Attr("flagOnBegin");
-            flagOnStartState = data.Bool("flagOnBeginState");
+            RequiredFlags = PianoUtils.ParseFlagsFromString(data.Attr("requiredFlags"));
+            StartFlags = PianoUtils.ParseFlagsFromString(data.Attr("flagsOnBegin"));
+            InvertFlags = PianoUtils.ParseFlagsFromString(data.Attr("flagsToInvert"));
+            oncePerLevel = data.Bool("oncePerLevel");
+            oncePerSession = data.Bool("oncePerSession");
         }
         public override void OnEnter(Player player)
         {
             if (CheckRequiredFlags())
             {
-                if (!triggered && !string.IsNullOrEmpty(flagOnStart))
+                if (!triggered)
                 {
-                    SceneAs<Level>().Session.SetFlag(flagOnStart, flagOnStartState);
+                    foreach (var item in StartFlags)
+                    {
+                        item.Item1.SetFlag(item.Item2);
+                    }
+                    foreach (var item in InvertFlags)
+                    {
+                        item.Item1.InvertFlag();
+                    }
                 }
                 base.OnEnter(player);
-                SceneAs<Level>().Session.DoNotLoad.Add(ID);
+                if (oncePerSession) SceneAs<Level>().Session.DoNotLoad.Add(ID);
+                if (oncePerLevel) RemoveSelf();
             }
         }
         public bool CheckRequiredFlags()
         {
             Level level = Scene as Level;
-
-            if (arrayValid(requiredFlags) && arrayValid(requiredFlagStates))
-            {
-                for (int i = 0; i < requiredFlags.Length && i < requiredFlagStates.Length; i++)
-                {
-                    if (level.Session.GetFlag(requiredFlags[i]) != requiredFlagStates[i])
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            }
-            return true;
-        }
-        private bool arrayValid<T>(T[] array)
-        {
-            return array != null && array.Length > 0;
+            return RequiredFlags.Exists(item => level.Session.GetFlag(item.Item1) != item.Item2);
         }
     }
 }

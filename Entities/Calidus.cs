@@ -32,7 +32,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Dizzy,
             None
         }
-
         public enum Looking
         {
             None,
@@ -90,6 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float LookSpeed = 1;
 
         public bool Drunk;
+        public bool AddBackToPlayerOnSpawn;
         public Part BrokenParts;
         public Part OrbSprite;
         public Part EyeSprite;
@@ -97,7 +97,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Part[] Arms = new Part[2];
         private Player player;
         private ParticleSystem system;
-
+        public VertexLight Light;
         public Vector2 OrigPosition;
         public Vector2 Scale = Vector2.One;
         public Vector2 EyeScale = Vector2.One;
@@ -127,6 +127,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool FallenApart;
         public bool ForceShake;
         public bool Shaking => ForceShake || shakeTimer > 0;
+        public bool StartFollowingImmediately;
         private float shakeTimer;
         public CalidusSprite Sprite;
         public Follower Follower;
@@ -287,23 +288,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Reset();
             }
         }
-        public static Calidus Create()
+        public static Calidus Create(bool follow = false)
         {
-            Calidus c = new Calidus(Vector2.Zero, new EntityID(Guid.NewGuid().ToString(), 0));
+            return Create(Vector2.Zero, false, true, Looking.Center, Mood.Normal, follow);
+        }
+        public static Calidus Create(Vector2 position, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal, bool follow = false)
+        {
+            Calidus c = new Calidus(position, new EntityID(Guid.NewGuid().ToString(), 0), broken, startFloating, look, mood);
             Engine.Scene.Add(c);
             return c;
         }
-        public static Calidus Create(Vector2 position, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal)
-        {
-            Calidus c = new Calidus(position, new EntityID(Guid.NewGuid().ToString(), 0),broken, startFloating, look, mood);
-            Engine.Scene.Add(c);
-            return c;
-        }
-        public Calidus(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Bool("broken"), data.Bool("startFloating", true), data.Enum("looking", Looking.Center), data.Enum("mood", Mood.Normal))
+        public Calidus(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Bool("broken"), data.Bool("startFloating", true), data.Enum("looking", Looking.Center), data.Enum("mood", Mood.Normal), data.Bool("followPlayer"))
         {
         }
-        public Calidus(Vector2 Position, EntityID id, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal) : base(Position)
+        public Calidus(Vector2 Position, EntityID id, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal, bool startFollowingImmediately = false) : base(Position)
         {
+            Light = new VertexLight(Color.White, 1, 32, 64);
+            Add(Light);
+            if (broken)
+            {
+                Light.Alpha = 0;
+            }
             ID = id;
             LookDir = look;
             CanFloat = startFloating;
@@ -370,6 +375,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Emotion(mood);
 
             Add(EmotionListener = new("Calidus", null, null, TextboxEmotion));
+            StartFollowingImmediately = startFollowingImmediately;
         }
         public void TextboxEmotion(FancyText.Portrait portrait, string anim)
         {
@@ -409,18 +415,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Parts.Add(part);
             }
             Parts.Remove(EyeSprite);
-
-
             CalidusFollowerTarget target = level.Tracker.GetEntity<CalidusFollowerTarget>();
-            if (target is null)
-            {
-                level.Add(target = new CalidusFollowerTarget());
-            }
             FollowTarget = target;
-            Add(Follower = new Follower());
-            Follower.FollowDelay = 0.2f;
-            Follower.MoveTowardsLeader = false;
-            Leader.GainFollower(Follower);
+            CreateFollower();
+        }
+        public void CreateFollower()
+        {
+            if (Follower == null)
+            {
+                Add(Follower = new Follower());
+                Follower.FollowDelay = 0.2f;
+                Follower.MoveTowardsLeader = false;
+                Leader.GainFollower(Follower);
+            }
+        }
+        public void SnapToLeader()
+        {
+            Position = FollowTarget.Position;
         }
         public override void Removed(Scene scene)
         {
@@ -572,6 +583,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public void Fixed()
         {
             bool fromBroken = BrokenParts.Visible;
+            Light.Alpha = 1;
             BrokenParts.Visible = false;
             OrbSprite.Play("idle");
             EyeSprite.Play("neutral");
@@ -810,6 +822,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Emotion((int)mood);
         }
+        public IEnumerator DelayedEmotion(Mood emotion, float delay)
+        {
+            yield return delay;
+            Emotion(emotion);
+        }
         public void Emotion(string mood)
         {
             foreach (Mood @enum in Enum.GetValues(typeof(Mood)).Cast<Mood>())
@@ -878,11 +895,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void StartFollowing(Looking look)
         {
+            StopFollowing();
             if (!Following)
             {
                 Following = true;
                 Follower.MoveTowardsLeader = true;
-                SceneAs<Level>().Session.DoNotLoad.Add(ID);
+                (Engine.Scene as Level).Session.DoNotLoad.Add(ID);
                 followLook = look;
                 AddTag(Tags.Persistent);
             }
@@ -898,7 +916,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Following = false;
                 Follower.MoveTowardsLeader = false;
                 followLook = Looking.None;
-                SceneAs<Level>().Session.DoNotLoad.Remove(ID);
+                (Engine.Scene as Level).Session.DoNotLoad.Remove(ID);
                 RemoveTag(Tags.Persistent);
             }
         }

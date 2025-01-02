@@ -19,10 +19,235 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.FountainBlock;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.WarpCapsule;
 using static Celeste.Player;
 
+/// <summary>A collection of methods + extensions methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static bool CheckAll(this List<(string, bool)> flags, bool inverted = false)
+    {
+        return !flags.Exists(item => !item.Item1.GetFlag(!item.Item2) != inverted);
+    }
+    /// <summary>Returns a texture with expanded edges as a <see cref="VirtualTexture" />.</summary>
+    /// <param name="input">The <see cref="MTexture" /> to expand.</param>
+    /// <param name="xPad">The units to extend the left and right edges by.</param>
+    /// <param name="yPad">The units to extend the top and bottom edges by.</param>
+    /// <param name="color">The color of the newly added units.</param>
+    /// <returns> A <see cref="VirtualTexture" /> including the <paramref name="input"/> with expanded edges.</returns>
+    public static VirtualTexture PadTexture(this MTexture input, int xPad, int yPad, Color color)
+    {
+        int w = input.Width;
+        int h = input.Height;
+        int nw = w + xPad * 2;
+        int nh = h + yPad * 2;
+        Color[] data = new Color[w * h];
+        input.Texture.Texture.GetData(data, 0, w * h);
+        List<Color> newData = [];
+        void add(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                newData.Add(color);
+            }
+        }
+        add(nw * yPad);
+        for (int y = 0; y < h; y++)
+        {
+            add(xPad);
+            for (int x = 0; x < w; x++)
+            {
+                newData.Add(data[x + (y * w)]); //
+            }
+            add(xPad);
+        }
+        add(nw * yPad);
+        var padded = VirtualContent.CreateTexture("paddedtex", nw, nh, color);
+        padded.Texture.SetData([.. newData], 0, newData.Count);
+        return padded;
+
+    }
+
+    /// <summary>Returns an array of randomly shuffled enum values.</summary>
+    /// <typeparam name="T">The type of the enum to use.</typeparam>
+    /// <returns> A <see cref="List{T}"/> of randomly shuffled <typeparamref name="T"/> values.</returns>
+    /// <exception cref="ArgumentException"><typeparam name="T"/> must be of Enum type.</exception>
+    public static List<T> RandomCombo<T>() where T : struct
+    {
+        Type type = typeof(T);
+        if (!type.IsEnum)
+        {
+            throw new ArgumentException(typeof(T).Name + " must be of Enum type", type.ToString());
+        }
+        List<T> array = [];
+        foreach (T value in type.GetEnumValues())
+        {
+            array.Add(value);
+        }
+        array.Shuffle();
+        List<T> output = default;
+        int rand = Calc.Random.Range(0, array.Count);
+        for (int i = 0; i < rand; i++)
+        {
+            output.Add(array[i]);
+        }
+        return output;
+
+    }
+
+    /// <summary>Shortcut function to check if <paramref name="entity"/> is on screen.</summary>
+    /// <param name="entity">The <see cref="Entity" /> to check.</param>
+    /// <param name="pad">The number of units to extend the left, right, top and bottom edges of the camera bounds by.</param>
+    /// <returns> <see langword="true"/> if <paramref name="entity"/>'s Collider exists and is within the currently active level's camera bounds (expanded by <paramref name="pad"/> units). <para/><see langword="false"/> if <paramref name="entity"/>'s Collider does not exists or is outside the currently active level's camera bounds (expanded by <paramref name="pad"/> units).</returns>
+    public static bool OnScreen(this Entity entity, float pad = 0)
+    {
+        return entity.Collider != null && entity.Collider.OnScreen(Engine.Scene as Level, pad);
+    }
+
+    /// <summary>Gets all entities currently on screen.</summary>
+    /// <param name="level">The <see cref="Level" /> to search.</param>
+    /// <param name="pad">The number of units to extend the left, right, top and bottom edges of the camera bounds by.</param>
+    /// <returns> A List of entities that are in the bounds of <paramref name="level"/>'s camera extended by <paramref name="pad"/> units.</returns>
+    public static List<Entity> EntitiesOnScreen(this Level level, float pad = 0)
+    {
+        return [.. level.Entities.Where(item => item.OnScreen(pad))];
+    }
+    /// <summary>Exports the contents of <paramref name="from"/> as a png file.</summary>
+    /// <param name="from">The <see cref="RenderTarget2D"/> to convert.</param>
+    /// <param name="path">The location the resulting png will be saved to, appended to Celeste's root folder.</param>
+    /// <param name="x">The left bound of the area to export.</param>
+    /// <param name="y">The top bound of the area to export.</param>
+    /// <param name="w">The width of the area to export.</param>
+    /// <param name="h">The height of the area to export.</param>
+    /// <param name="scale">The scale factor of the resulting png.</param>
+    public static void SaveTargetAsPng(RenderTarget2D from, string path, int x, int y, int w, int h, int scale = 1)
+    {
+        Rectangle value = new Rectangle(x, y, w, h);
+        Color[] data = new Color[w * h];
+        from.GetData(0, value, data, 0, w * h);
+        using Texture2D texture2D = new Texture2D(Engine.Graphics.GraphicsDevice, w, h);
+        texture2D.SetData(data);
+        using RenderTarget2D renderTarget2D = new RenderTarget2D(Engine.Graphics.GraphicsDevice, w * scale, h * scale);
+        Engine.Instance.GraphicsDevice.SetRenderTarget(renderTarget2D);
+        Engine.Instance.GraphicsDevice.Clear(Color.Transparent);
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone);
+        Draw.SpriteBatch.Draw(texture2D, new Rectangle(0, 0, renderTarget2D.Width, renderTarget2D.Height), Color.White);
+        Draw.SpriteBatch.End();
+        Engine.Instance.GraphicsDevice.SetRenderTarget(null);
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+        using Stream stream = File.OpenWrite(path);
+        renderTarget2D.SaveAsPng(stream, renderTarget2D.Width, renderTarget2D.Height);
+    }
+
+    /// <summary>Splits a string into segments of size <paramref name="count"/>.</summary>
+    /// <param name="str">The <see cref="string"/> to split.</param>
+    /// <param name="count">The maximum size of each segment.</param>
+    /// <param name="includeLeftover">Whether to include the last segment if it's length is less than the maximum segment size.</param>
+    /// <remarks>Aka System.Linq.Chunk but better</remarks>
+    public static List<string> Segment(this string str, int count, bool includeLeftover)
+    {
+        List<string> list = [];
+        string add = "";
+        int c = 0;
+        for (int i = 0; i < str.Length; i++)
+        {
+            add += str[i];
+            c++;
+            if (c >= count)
+            {
+                list.Add(add);
+                add = "";
+                c = 0;
+            }
+        }
+        if (includeLeftover && c > 0)
+        {
+            list.Add(add);
+        }
+        return list;
+    }
+
+    /// <summary>Adds a <see cref="Rune"/> to the provided List if it doesn't already contain a matching <see cref="Rune"/>.</summary>
+    /// <param name="list">The <see cref="List{}"/> to add the rune to.</param>
+    /// <param name="rune">The <see cref="Rune"/> to check.</param>
+    /// <returns> <see langword="true"/> if <paramref name="rune"/> was successfully added to <paramref name="list"/>.<para/> <see langword="false"/> if <paramref name="rune"/> matches another <see cref="Rune"/> in <paramref name="list"/>.</returns>
+    public static bool TryAddRune(this List<Rune> list, Rune rune)
+    {
+        foreach (Rune r in list)
+        {
+            if (r.Match(rune))
+            {
+                return false;
+            }
+        }
+        list.Add(rune);
+        return true;
+    }
+    public static bool TryAddRuneRange(this List<Rune> list, List<Rune> runes)
+    {
+        string current = "CURRENT RUNES IN LIST:\n";
+        string adding = "RUNES TO BE CHECKED:\n";
+        string added = "RUNES ADDED:\n";
+        foreach (Rune r in list)
+        {
+            current += "\t" + r.ToString() + "\n";
+        }
+        foreach (Rune r in runes)
+        {
+            adding += "\t" + r.ToString() + "\n";
+        }
+        bool failed = false;
+        foreach (Rune r in runes)
+        {
+            if (!list.TryAddRune(r))
+            {
+                failed = true;
+            }
+            else
+            {
+                added += "\t" + r.ToString() + "\n";
+            }
+        }
+        Engine.Commands.Log(current);
+        Engine.Commands.Log(adding);
+        Engine.Commands.Log(added);
+        return !failed;
+    }
+    public static void MakePersistent(this Entity entity)
+    {
+        if (!entity.TagCheck(Tags.Persistent))
+        {
+            entity.AddTag(Tags.Persistent);
+        }
+    }
+    public static int Sign(this Random random, bool allowZero = false)
+    {
+        if (allowZero)
+        {
+            return random.Choose(-1, 0, 1);
+        }
+        else
+        {
+            return random.Choose(-1, 1);
+        }
+    }
+    public static Vector2 Random(this Rectangle rectangle)
+    {
+        return new Vector2(Calc.Random.Range(rectangle.Left, rectangle.Right), Calc.Random.Range(rectangle.Top, rectangle.Bottom));
+    }
+    public static Vector2 Random(this Collider collider)
+    {
+        return collider.Bounds.Random();
+    }
+    public static Leader Reset(this Leader leader, Vector2 newPosition)
+    {
+        leader.PastPoints.Clear();
+        for (int i = 0; i < 6; i++)
+        {
+            leader.PastPoints.Add(newPosition);
+        }
+        return leader;
+    }
     public static T[] Shift<T>(this T[] array, int shift)
     {
         T[] array2 = array;
@@ -161,13 +386,32 @@ public static class PianoUtils
     {
         return Engine.Scene is Level level && (string.IsNullOrEmpty(str) || level.Session.GetFlag(str)) != inverted;
     }
+    public static bool TryGetFlag(this string str, out bool result, bool inverted = false)
+    {
+        if (Engine.Scene is Level level && !string.IsNullOrEmpty(str))
+        {
+            result = level.Session.GetFlag(str) != inverted;
+            return true;
+        }
+        else
+        {
+            result = false;
+            return false;
+        }
+    }
     public static void SetFlag(this string str, bool value = true)
     {
         if (Engine.Scene is Level level && !string.IsNullOrEmpty(str))
         {
             level.Session.SetFlag(str, value);
         }
-
+    }
+    public static void InvertFlag(this string str, bool inverted = false)
+    {
+        if (Engine.Scene is Level level && !string.IsNullOrEmpty(str))
+        {
+            level.Session.SetFlag(str, !str.GetFlag(inverted));
+        }
     }
     public static int GetCounter(this string str)
     {
@@ -189,6 +433,17 @@ public static class PianoUtils
         if (Engine.Scene is Level level && !string.IsNullOrEmpty(str))
         {
             int num = level.Session.GetCounter(str) + 1;
+            if (mod.HasValue) num %= mod.Value;
+            level.Session.SetCounter(str, num);
+            return num;
+        }
+        return 0;
+    }
+    public static int DecrementCounter(this string str, int? mod = null)
+    {
+        if (Engine.Scene is Level level && !string.IsNullOrEmpty(str))
+        {
+            int num = level.Session.GetCounter(str) - 1;
             if (mod.HasValue) num %= mod.Value;
             level.Session.SetCounter(str, num);
             return num;
@@ -264,6 +519,14 @@ public static class PianoUtils
     {
         return Color.Lerp(a, b, Calc.Random.Range(0f, 1));
     }
+    public static Color Shade(this Color a, float value, float range)
+    {
+        if (value < 0)
+        {
+            return Color.Lerp(a, Color.Black, Math.Abs(value) / range);
+        }
+        return Color.Lerp(a, Color.White, Math.Abs(value) / range);
+    }
     public static Color RandomShade(this Color a, float range = 1)
     {
         if (range == 0) return a;
@@ -278,22 +541,22 @@ public static class PianoUtils
             return Color.Lerp(a, Color.White, value);
         }
     }
-    public static Mesh<VertexPositionColor> CreateTriWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Func<Vector2, Color> getColor, out TriWall wall)
+    public static Mesh<T> CreateTriWallMesh<T>(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Func<Vector2, Color> getColor, Func<Vector3, Color, T> createVertex, out TriWall wall) where T : struct, IVertexType
     {
-        Mesh<VertexPositionColor> mesh = new Mesh<VertexPositionColor>();
+        Mesh<T> mesh = new Mesh<T>();
         int exL = extend + 1;
         int exR = extend + 2;
         int exT = extend;
         int exB = extend + 1;
 
-        wall = CreateTriWall(areaWidth, areaHeight, triWidth, triHeight, exL, exR, exT, exB, out int rows, out int cols);
+        wall = CreateTriWall(areaWidth, areaHeight, triWidth, triHeight, exL, exR, exT, exB, null, out int rows, out int cols);
         int count = rows * cols;
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < cols; c++)
             {
                 Vector2 uv = new Vector2(wall[c, r].X / areaWidth, wall[c, r].Y / areaHeight);
-                VertexPositionColor vertex = new(position + new Vector3(wall[c, r], 0), getColor(uv));
+                T vertex = createVertex(position + new Vector3(wall[c, r], 0), getColor(uv));
                 mesh.AddVertex(vertex);
             }
         }
@@ -322,23 +585,33 @@ public static class PianoUtils
         }
         return mesh;
     }
-
-    public static LineMesh<VertexPositionColor> CreateTriLineWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Func<Vector2, Color> getColor)
+    public static List<int> CountArray(int count, bool ascending)
     {
-        LineMesh<VertexPositionColor> mesh = new LineMesh<VertexPositionColor>();
+        List<int> output = [];
+        for (int i = 0; i < count; i++)
+        {
+            output.Add(ascending ? i : count - i);
+        }
+        return output;
+    }
+    public static LineMesh<T> CreateTriLineWallMesh<T>(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Func<Vector2, Color> getColor, Func<int, int, Vector2> getOffset, Func<Vector3, Color, T> createVertex, out TriWall triWall) where T : struct, IVertexType
+    {
+        getOffset ??= new Func<int, int, Vector2>(delegate { return Vector2.Zero; });
+        LineMesh<T> mesh = new LineMesh<T>();
         int exL = extend + 1;
         int exR = extend + 2;
         int exT = extend;
         int exB = extend + 1;
 
-        TriWall meshPoints = CreateTriWall(areaWidth, areaHeight, triWidth, triHeight, exL, exR, exT, exB, out int rows, out int cols);
+        triWall = CreateTriWall(areaWidth, areaHeight, triWidth, triHeight, exL, exR, exT, exB, getOffset, out int rows, out int cols);
+
         int count = rows * cols;
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < cols; c++)
             {
-                Vector2 uv = new Vector2(meshPoints[c, r].X / areaWidth, meshPoints[c, r].Y / areaHeight);
-                VertexPositionColor vertex = new(position + new Vector3(meshPoints[c, r], 0), getColor(uv));
+                Vector2 uv = new Vector2(triWall[c, r].X / areaWidth, triWall[c, r].Y / areaHeight);
+                T vertex = createVertex(position + new Vector3(triWall[c, r], 0), getColor(uv));
                 mesh.AddVertex(vertex);
             }
         }
@@ -373,14 +646,15 @@ public static class PianoUtils
         }
         return mesh;
     }
-    public static Mesh<VertexPositionColor> CreateTriWallMesh(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Color color, out TriWall wall)
+    public static Mesh<T> CreateTriWallMesh<T>(Vector3 position, float areaWidth, float areaHeight, float triWidth, float triHeight, int extend, Color color, Func<Vector3, Color, T> createVertex, out TriWall wall) where T : struct, IVertexType
     {
         Func<Vector2, Color> func = delegate { return color; };
-        return CreateTriWallMesh(position, areaWidth, areaHeight, triWidth, triHeight, extend, func, out wall);
+        return CreateTriWallMesh<T>(position, areaWidth, areaHeight, triWidth, triHeight, extend, func, createVertex, out wall);
     }
-    public static TriWall CreateTriWall(float areaWidth, float areaHeight, float triHeight, float triWidth, int leftExtend, int rightExtend, int topExtend, int bottomExtend, out int rows, out int cols)
+    public static TriWall CreateTriWall(float areaWidth, float areaHeight, float triHeight, float triWidth, int leftExtend, int rightExtend, int topExtend, int bottomExtend, Func<int, int, Vector2> getOffset, out int rows, out int cols)
     {
 
+        getOffset ??= new Func<int, int, Vector2>(delegate { return Vector2.Zero; });
         float top = topExtend * -triHeight;
         float left = leftExtend * -triWidth;
         float right = areaWidth + rightExtend * triWidth;
@@ -395,7 +669,7 @@ public static class PianoUtils
         {
             for (int c = 0; c < cols; c++)
             {
-                Vector2 v = new Vector2(left + c * triWidth + (r % 2 != 0 ? xOffset : 0), top + r * triHeight);
+                Vector2 v = new Vector2(left + c * triWidth + (r % 2 != 0 ? xOffset : 0), top + r * triHeight) + getOffset(c, r);
                 grid[c, r] = v;
                 flattened[count] = v;
                 count++;
@@ -479,34 +753,26 @@ public static class PianoUtils
         }
         return new Vector2(left, up);
     }
-    public static void ParseFlagsFromString(string flagList, out string[] flags, out bool[] states)
+    public static List<(string, bool)> ParseFlagsFromString(string flagList)
     {
-        flags = null;
-        states = null;
+        List<(string, bool)> list = [];
         if (!string.IsNullOrEmpty(flagList))
         {
-            string[] array = flagList.Replace(" ", "").Split(',');
-            states = new bool[array.Length];
-            flags = new string[array.Length];
-            for (int i = 0; i < array.Length; i++)
+            string[] array = flagList.Replace(" ", "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var item in array)
             {
-                if (array[i].Length > 0)
+                if (item[0] == '!' && item.Length > 1)
                 {
-                    if (array[i][0] == '!')
-                    {
-                        flags[i] = array[i].Substring(1);
-                        states[i] = false;
-                    }
-                    else
-                    {
-                        flags[i] = array[i];
-                        states[i] = true;
-                    }
-
+                    list.Add((item.Substring(1), false));
+                }
+                else
+                {
+                    list.Add((item, true));
                 }
             }
-
         }
+        return list;
+
     }
     public static void RenderAt(this Image image, Vector2 at)
     {
@@ -1456,6 +1722,56 @@ public static class PianoUtils
         {
             leader.PastPoints.Add(point);
         }
+    }
+    public static List<Vector2> GetGridPoints(float width, float height, float cellWidth, float cellHeight, Func<int, int, Vector2> getCellOffset = null)
+    {
+        getCellOffset ??= new Func<int, int, Vector2>(delegate { return Vector2.Zero; });
+        List<Vector2> points = [];
+        int rows = (int)(height / cellHeight);
+        int cols = (int)(width / cellWidth);
+        for (int y = 0; y < rows; y++)
+        {
+            for (int x = 0; x < cols; x++)
+            {
+                Vector2 offset = getCellOffset(x, y);
+                points.Add(new Vector2(x * cellWidth, y * cellHeight) + offset);
+            }
+        }
+        return points;
+    }
+    public static List<List<Vector2>> GetGridPointsMultiList(float width, float height, float cellWidth, float cellHeight, bool orderByRow, Func<int, int, Vector2> getCellOffset = null)
+    {
+        getCellOffset ??= new Func<int, int, Vector2>(delegate { return Vector2.Zero; });
+        List<List<Vector2>> points = [];
+        int rows = (int)(height / cellHeight);
+        int cols = (int)(width / cellWidth);
+        if (orderByRow)
+        {
+            for (int y = 0; y < rows; y++)
+            {
+                List<Vector2> row = [];
+                for (int x = 0; x < cols; x++)
+                {
+                    Vector2 offset = getCellOffset(x, y);
+                    row.Add(new Vector2(x * cellWidth, y * cellHeight) + offset);
+                }
+                points.Add(row);
+            }
+        }
+        else
+        {
+            for (int x = 0; x < cols; x++)
+            {
+                List<Vector2> col = [];
+                for (int y = 0; y < rows; y++)
+                {
+                    Vector2 offset = getCellOffset(x, y);
+                    col.Add(new Vector2(x * cellWidth, y * cellHeight) + offset);
+                }
+                points.Add(col);
+            }
+        }
+        return points;
     }
     public static bool TryAddRange<T>(this List<T> list, params T[] values)
     {

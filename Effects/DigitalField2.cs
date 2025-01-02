@@ -40,8 +40,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             UseSpritebatch = false;
             Effect = data.Attr("effect");
             Vertices = new VertexPositionColor[points.Length];
-            mesh = PianoUtils.CreateTriLineWallMesh(new(0), 320, 180, 16, 16, 0, GetColor);
+            mesh = PianoUtils.CreateTriLineWallMesh(new(0), 320, 180, 16, 16, 0, GetColor, null, createVertex, out _);
             mesh.Bake();
+        }
+        private VertexPositionColor createVertex(Vector3 position, Color color)
+        {
+            return new VertexPositionColor(position, color);
         }
         private Color GetColor(Vector2 uv)
         {

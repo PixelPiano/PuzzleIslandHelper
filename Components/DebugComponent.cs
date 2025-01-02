@@ -14,13 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         private bool isRoutine;
         private Coroutine routine;
         private Keys key;
-        private const float buffer = 0.8f;
-        private float timer = buffer;
         private bool onlyInRender;
-        private bool waitingForRelease;
-
-        private bool oncePerPress;
-
         private bool ModeState
         {
             get

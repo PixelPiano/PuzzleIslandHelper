@@ -94,7 +94,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             matrix *= Matrix.CreateTranslation(-1f, 1f, 0f);
             Engine.Instance.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
             Engine.Instance.GraphicsDevice.BlendState = blendState2;
-            obj.Parameters["World"].SetValue(matrix);
+            obj.Parameters["World"]?.SetValue(matrix);
             foreach (EffectPass pass in obj.CurrentTechnique.Passes)
             {
                 pass.Apply();
@@ -121,6 +121,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Vertices = null;
             _indices = null;
             Indices = null;
+            GC.SuppressFinalize(this);
         }
     }
 }

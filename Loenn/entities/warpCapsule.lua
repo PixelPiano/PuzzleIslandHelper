@@ -21,7 +21,8 @@ warpCapsule.placements =
             disableFlag = "",
             invertFlag = false,
             rune = "",
-            isDefaultRune = false
+            isDefaultRune = false,
+            isPartOfFirstSet = false
         }
     }
 }

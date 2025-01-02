@@ -26,8 +26,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override void PrepareMapDataProcessors(MapDataFixup context)
         {
             base.PrepareMapDataProcessors(context);
+            //WarpCapsule.Rune.ClearRunes();
             context.Add<PianoMapDataProcessor>();
-
         }
         public static void LoadCustomData()
         {

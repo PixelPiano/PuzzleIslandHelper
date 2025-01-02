@@ -23,7 +23,7 @@ struct VertexShaderInput
 {
     //float Multiplier : TEXCOORD0;
     float4 Position : POSITION0;
-    float4 Multiplier : POSITION1;
+    float4 Multiplier : TEXCOORD0;
     float4 Color : COLOR0;
 };
 

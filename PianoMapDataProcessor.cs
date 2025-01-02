@@ -70,9 +70,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static List<PortalNodeData> PortalNodes = new();
         public static List<TileLayoutData> CopiedTileseedData = new();
         public static Dictionary<string, WarpCapsuleData> WarpLinks = new();
-        public static Dictionary<WarpCapsule.Runes.Rune, WarpCapsuleData> WarpRunes = new();
+        public static Dictionary<WarpCapsule.Rune, WarpCapsuleData> WarpRunes = new();
+        
         public static WarpCapsuleData PrimaryWarpData;
         public static Dictionary<string, CalidusSpawnerData> CalidusSpawners = new();
+        
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
             Action<BinaryPacker.Element> passengerDummyHandler = data =>
@@ -133,15 +135,24 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 WarpCapsuleData awData = default;
 
                 string id = data.Attr("warpID");
-                WarpCapsule.Runes.Rune rune = new(id, data.Attr("rune"));
+
+                if(string.IsNullOrEmpty(id)) return;
+                WarpCapsule.Rune rune = new(id, data.Attr("rune"));
                 if (!string.IsNullOrEmpty(levelName) && rune != null && !WarpRunes.ContainsKey(rune))
                 {
                     if (data.AttrBool("isDefaultRune"))
                     {
-                        WarpCapsule.Runes.Rune.Default = rune;
+                        WarpCapsule.Rune.Default = rune;
                     }
+                    if (data.AttrBool("isPartOfFirstSet"))
+                    {
+                        WarpCapsule.DefaultRunes.TryAddRune(rune);
+                    }
+                    WarpCapsule.AllRunes.TryAddRune(rune);
+                    
                     awData = new()
                     {
+                        Name = id,
                         Room = levelName,
                         Delay = data.AttrFloat("warpDelay"),
                     };

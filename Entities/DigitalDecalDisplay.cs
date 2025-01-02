@@ -30,9 +30,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Image fill;
         private Color color;
 
-        private bool inverted;
-        private bool activated;
-
         private bool shouldScale;
         private bool shouldGlitch;
         private bool inRoutine = false;
@@ -88,7 +85,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         : base(data.Position + offset)
         {
             flag = data.Attr("flag");
-            inverted = data.Bool("invertFlag");
             Depth = data.Int("depth",1);
             float delay = 1f / data.Float("fps");
             sprite = new Sprite(GFX.Game, "decals/");

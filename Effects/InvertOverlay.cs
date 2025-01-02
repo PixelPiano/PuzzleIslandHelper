@@ -24,7 +24,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         private static float baseTimeRate = 1f;
 
         public static float playerTimeRate = 1f;
-        private Player player;
         public static bool ForcedState;
         public static bool EnforceState;
 

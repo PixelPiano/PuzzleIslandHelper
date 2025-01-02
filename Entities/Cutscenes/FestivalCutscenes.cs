@@ -410,10 +410,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             yield return 0.1f;
             yield return Level.ZoomTo(Trailer.TopRight - Level.Camera.Position, 1.4f, 1);
-            yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_10", calidusStartPeek, peekLoop, stopPeeking, allLeaveTrailer, allLookLeft, maddySearchTrailer, maddyReturn, calidusApproachJaques, calidusLookUpRight, calidusMoveRight, jaquesYell, calidusBackUp, jaquesScared, jaquesFaceCalidus, maddyToCalidus, waitOne, waitTwo, calidusLookJaques, calidusLookAtMaddy, maddyWalkToJaques, jaquesFaceMaddy));
+            yield return new SwapImmediately(Textbox.Say("FESTIVAL_RIVALS_10", calidusStartPeek, peekLoop, stopPeeking, allLeaveTrailer, allLookLeft, maddySearchTrailer, maddyReturn, calidusApproachJaques, calidusLookUpRight, calidusMoveRight, jaquesYell, calidusBackUp, jaquesScared, jaquesFaceCalidus, maddyToCalidus, waitOne, waitTwo, calidusLookJaques, calidusLookAtMaddy, maddyWalkToJaques, jaquesFaceMaddy, maddyFaceJaques));
             Calidus.StartFollowing();
             yield return new SwapImmediately(Level.ZoomBack(1));
             EndCutscene(Level);
+        }
+        private IEnumerator maddyFaceJaques()
+        {
+            Player.Face(Jaques);
+            yield return null;
         }
         private IEnumerator maddyWalkToJaques()
         {
@@ -508,8 +513,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             Calidus.Emotion(Calidus.Mood.Surprised);
             Calidus.LookAt(Jaques);
-            Add(new Coroutine(Calidus.FloatXNaive(24, 1.4f)));
+            Add(new Coroutine(Calidus.FloatXNaive(16, 1.4f)));
+            Add(new Coroutine(Calidus.DelayedEmotion(Calidus.Mood.Normal, 0.5f)));
             yield return null;
+
         }
         private IEnumerator calidusBackUp()
         {

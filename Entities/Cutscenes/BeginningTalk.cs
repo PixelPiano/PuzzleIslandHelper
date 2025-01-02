@@ -7,14 +7,13 @@ using Monocle;
 using System;
 using System.Collections;
 
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
 {
-    //[CustomEntity("PuzzleIslandHelper/WipEntity")]
     [Tracked]
     public class CalidusButton : Actor
     {
         public Player Player;
-        public bool HasGravity;
         public Vector2 Speed;
         public VertexPositionColor[] Vertices;
         public Vector2 VertexScale = Vector2.Zero;
@@ -32,9 +31,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         public CalidusButton(Vector2 position) : base(position)
         {
-
-            Collider = new Hitbox(8, 8);
-            HasGravity = false;
             Vertices = new VertexPositionColor[Points.Length];
             for (int i = 0; i < Points.Length; i++)
             {
@@ -59,23 +55,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             {
                 Vertices[i].Position = new Vector3(TopCenter + Points[i] * VertexScale, 0);
                 Vertices[i].Color = colors[i] * VertexAlpha;
-            }
-            MoveV(Speed.Y * Engine.DeltaTime, OnCollideV);
-            Speed.Y = Calc.Approach(Speed.Y, HasGravity ? 240f : 0, 900f * Engine.DeltaTime);
-        }
-        public void OnCollideV(CollisionData hit)
-        {
-            if (HasGravity)
-            {
-                if (Math.Abs(Speed.Y) < 50f)
-                {
-                    Speed.Y = 0;
-                }
-                Speed.Y *= -0.6f;
-            }
-            else
-            {
-                Speed.Y = 0;
             }
         }
         public void Reveal()
@@ -119,9 +98,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         public IEnumerator Sequence()
         {
             bool high = true;
-            for (int i = 1; i < 16; i++)
+            for (int i = 1; i < 25; i++)
             {
-                float wait = i / 15f * Engine.DeltaTime;
+                float wait = i / 10f * Engine.DeltaTime;
                 if (high)
                 {
                     Calidus.Alpha = i / 15f;
@@ -135,9 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             }
             Calidus.Alpha = 1;
             Loading = false;
-
-            //yield return LoadingRoutine();
-            yield return null;
+            yield return 0.1f;
         }
         public void FadeOut()
         {
@@ -195,10 +172,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 VertexScale.Y = Calc.LerpClamp(0, ScaleTarget.Y, Ease.CubeIn(t.Eased * 2));
             }, t => SpawnCalidus());
         }
-        public void Drop()
-        {
-            HasGravity = true;
-        }
         public void ApplyParameters()
         {
             if (Shader != null)
@@ -232,32 +205,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             if (level.GetPlayer() is Player player)
             {
                 player.DisableMovement();
+                player.ForceCameraUpdate = true;
                 Add(new Coroutine(cutscene(player)));
             }
         }
 
-        private IEnumerator calidusToMarker(int i)
+        private IEnumerator calidusToMarker(string s, float speed = 1f)
         {
             Calidus c = SceneAs<Level>().Tracker.GetEntity<Calidus>();
             WarpCapsule capsule = SceneAs<Level>().Tracker.GetEntity<WarpCapsule>();
-            if (c != null && capsule != null && Marker.TryFind("c" + i, out Vector2 position))
+            if (c != null && capsule != null && Marker.TryFind("c" + s, out Vector2 position))
             {
                 c.StopFollowing();
                 c.LookAt(capsule.Center);
-                yield return new SwapImmediately(c.Float(position, 1.4f));
+                yield return new SwapImmediately(c.Float(position, speed));
             }
         }
+        private IEnumerator calidusTo1a()
+        {
+            yield return calidusToMarker("1a", 0.5f);
+        }
+        [Command("add_default_runes", "adds the default set of runes to the rune inventory")]
         public static void AddDefaultRunes()
         {
-
+            WarpCapsule.ObtainedRunes.TryAddRuneRange(WarpCapsule.DefaultRunes);
         }
         private IEnumerator calidusBam()
         {
-            Calidus c = Level.Tracker.GetEntity<Calidus>();
-            WarpCapsule capsule = Level.Tracker.GetEntity<WarpCapsule>();
-            Vector2 pos = capsule.InputMachine.Position;
-            Vector2 from = c.Position;
-            yield return PianoUtils.LerpYoyo(Ease.Linear, 0.3f, f => c.Position = Vector2.Lerp(from, pos, f), delegate {/*todo: play sound of calidus ramming into screen*/});
+            yield return 0.8f;
+            if (Level.Tracker.GetEntity<Calidus>() is not Calidus c || Level.Tracker.GetEntity<WarpCapsule>() is not WarpCapsule w) yield break;
+            Vector2 pos = w.InputMachine.TopLeft + Vector2.One * 8;
+            Vector2 from = c.BottomRight;
+            yield return PianoUtils.LerpYoyo(Ease.Linear, 0.1f, f => c.BottomRight = Vector2.Lerp(from, pos, f), delegate {/*todo: play sound of calidus ramming into screen*/});
         }
         private IEnumerator screenOn()
         {
@@ -265,21 +244,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             capsule.InputMachine.TurnOn();
             yield return null;
         }
-        private IEnumerator calidusTo0()
+        private IEnumerator calidusTo4()
         {
-            yield return calidusToMarker(0);
+            yield return calidusToMarker("4");
         }
         private IEnumerator calidusTo1()
         {
-            yield return calidusToMarker(1);
+            yield return lookAtTerminal();
+            yield return calidusToMarker("1");
         }
         private IEnumerator calidusTo2()
         {
-            yield return calidusToMarker(2);
+            yield return calidusToMarker("2", 0.3f);
+            yield return 0.8f;
+            Calidus c = Level.Tracker.GetEntity<Calidus>();
+            if (c != null)
+            {
+                c.Emotion(Calidus.Mood.Stern);
+            }
+            yield return 1f;
         }
         private IEnumerator calidusTo3()
         {
-            yield return calidusToMarker(3);
+            Calidus c = Level.Tracker.GetEntity<Calidus>();
+            WarpCapsule w = Level.Tracker.GetEntity<WarpCapsule>();
+            if (c != null && w != null)
+            {
+                c.LookAt(w);
+            }
+            yield return calidusToMarker("3");
         }
         private IEnumerator lookatplayer()
         {
@@ -290,14 +283,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             }
             yield return null;
         }
+        private IEnumerator prep(Player player)
+        {
+            if (Marker.TryFind("playerWalkTo2", out var position))
+            {
+                Coroutine walk = new Coroutine(player.DummyWalkTo(position.X));
+                Add(walk);
+                while (!walk.Finished)
+                {
+                    yield return null;
+                }
+                Add(new Coroutine(Level.ZoomTo(new Vector2(160, 90), 1.5f, 1)));
+            }
+        }
         private IEnumerator cutscene(Player player)
         {
-            yield return Textbox.Say("LookAtCapsule", calidusTo0, calidusTo1, calidusTo2, calidusTo3, lookatplayer, calidusBam, screenOn);
+            Add(new Coroutine(prep(player)));
+            Add(new Coroutine(calidusTo1()));
+            yield return Textbox.Say("LookAtCapsule", calidusTo1, calidusTo2, calidusTo3, lookatplayer, lookAtTerminal, calidusBam, screenOn, calidusTo4, calidusTo1a);
+            yield return Level.ZoomBack(1);
             EndCutscene(Level);
         }
-
+        private IEnumerator lookAtTerminal()
+        {
+            if (Level.Tracker.GetEntity<Calidus>() is not Calidus c || Level.Tracker.GetEntity<WarpCapsule.Machine>() is not WarpCapsule.Machine w) yield break;
+            c.LookAt(w);
+        }
         public override void OnEnd(Level level)
         {
+            Level.ResetZoom();
             if (level.GetPlayer() is Player player)
             {
                 player.EnableMovement();
@@ -307,12 +321,43 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             {
                 c.StartFollowing();
                 c.Normal();
+                if (WasSkipped)
+                {
+                    c.SnapToLeader();
+                }
             };
             Level.Tracker.GetEntity<WarpCapsule>()?.InputMachine?.TurnOn();
             AddDefaultRunes();
         }
     }
+    public class HairChip
+    {
+        public static bool Visible = true;
+        public static Color PinColor = Color.Yellow;
+        public static Vector2 Offset;
 
+        [OnLoad]
+        public static void Load()
+        {
+            On.Celeste.PlayerHair.Render += PlayerHair_Render;
+        }
+        [OnUnload]
+        public static void Unload()
+        {
+            On.Celeste.PlayerHair.Render -= PlayerHair_Render;
+        }
+        private static void PlayerHair_Render(On.Celeste.PlayerHair.orig_Render orig, PlayerHair self)
+        {
+            orig(self);
+            if (Visible)
+            {
+                Player player = self.Entity as Player;
+                Facings f = player.Facing;
+                Vector2 offset = new Vector2((int)f * 3, 4);
+                Draw.SpriteBatch.Draw(Draw.Pixel.Texture.Texture_Safe, self.Nodes[0] + offset, Draw.Pixel.ClipRect, PinColor, 0f, Vector2.One * 5, self.GetHairScale(0), SpriteEffects.None, 0f);
+            }
+        }
+    }
 
     [CustomPassengerCutscene("BeginningTalk")]
     [Tracked]
@@ -344,6 +389,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         public IEnumerator Cutscene()
         {
+            Player.ForceCameraUpdate = false;
             if (Marker.TryFind("cam", out Vector2 pos))
             {
                 Add(new Coroutine(Level.ZoomTo(pos - Level.Camera.Position, 1.4f, 1)));
@@ -353,10 +399,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 yield return Player.DummyWalkTo(pos2.X);
                 Player.Facing = Facings.Right;
             }
-            yield return Textbox.Say("warpCapsuleFirst", primitiveTurnOn, playerLookAroundLoop, divide, playerRunUp, lookAtButton, playerLookRight, playerLookLeft, playerWalkUp, funnyZoomIn, pressButton, lookAtPlayer, maddyAngry, avertGaze, lookUpLeft, lookAtPlayerFace, lookAtPrimitive, rollEye, walkToPrimitive, walkToPrimitiveBack, waitThree, floatToPrimitive, awkwardPause, calidusStutter, calidusCloseEye, calidusYouWhat);
+
+            yield return Textbox.Say("WarpCapsuleFirstNew", walkToPrimitive, walkToPrimitiveBack, primitiveTurnOn, playerLookAroundLoop, approachChip, turnOnChip, powerDown, pressButton, lookAtPlayer, maddyAngry, lookUpLeft, playerLookRight, lookAtPrimitive, floatToPrimitive, awkwardPause, calidusStutter, calidusCloseEye, calidusYouWhat, Wait1, stopLookLoop, passengerMoveBack);
             Calidus?.StartFollowing();
             yield return Level.ZoomBack(1);
             EndCutscene(Level);
+            yield return null;
+        }
+        private IEnumerator stopLookLoop()
+        {
+            playerLookingAround = false;
+            yield return null;
+        }
+        private float passengerFrom;
+        private IEnumerator approachChip()
+        {
+            passengerFrom = Passenger.X;
+            yield return Passenger.MoveToX(Player.Right, 0.8f);
+            yield return null;
+        }
+        private IEnumerator passengerMoveBack()
+        {
+            yield return Passenger.MoveToX(passengerFrom, 0.8f);
+            yield return null;
+        }
+        private IEnumerator turnOnChip()
+        {
+            yield return null;
+        }
+        private IEnumerator powerDown()
+        {
+            yield return new SwapImmediately((VertexPassenger as TutorialPassenger).TurnOffRoutine());
             yield return null;
         }
         private IEnumerator calidusCloseEye()
@@ -410,53 +483,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         {
             if (VertexPassenger is TutorialPassenger t)
             {
-                t.TurnOn();
+                t.TurnOff();
+                t.Position.X = t.prevPosition;
             }
             Calidus.Active = Calidus.Visible = true;
             Calidus.StartFollowing(Calidus.Looking.Player);
             Calidus.Normal();
             if (Button is null)
             {
-                Button = new CalidusButton(Player.TopCenter + new Vector2(-16, 4))
-                {
-                    Visible = true,
-                    HasGravity = true
-                };
-                Scene.Add(Button);
-                Button.Ground();
+                /*                Button = new CalidusButton(Player.TopCenter + new Vector2(-16, 4))
+                                {
+                                    Visible = true,
+                                    HasGravity = true
+                                };
+                                Scene.Add(Button);
+                                Button.Ground();*/
                 Calidus.Position = Player.TopLeft - Vector2.UnitX * 16;
             }
             level.ResetZoom();
             Player.EnableMovement();
             level.Session.SetFlag("BeginningTalkCutsceneWatched");
         }
-
-        private IEnumerator rollEye()
-        {
-            Calidus.RollEye();
-            yield return null;
-        }
         private IEnumerator lookAtPrimitive()
         {
             Calidus.LookAt(Passenger);
             yield return null;
         }
-        private IEnumerator lookAtPlayerFace()
-        {
-            Calidus.LookAt(Player);
-            yield return null;
-            yield return null;
-            Player.Face(Calidus);
-            yield return null;
-        }
         private IEnumerator lookUpLeft()
         {
             Calidus.Look(Calidus.Looking.UpLeft);
-            yield return null;
-        }
-        private IEnumerator avertGaze()
-        {
-            yield return lookUpLeft();
             yield return null;
         }
         private IEnumerator maddyAngry()
@@ -474,30 +529,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         private IEnumerator pressButton()
         {
-            if (Marker.TryFind("cam", out Vector2 pos))
-            {
-                Add(new Coroutine(Level.ZoomAcross(pos - Level.Camera.Position, 1.4f, 1)));
-            }
-            yield return Player.DummyWalkTo(Button.Right + 2);
-            yield return 0.1f;
-            yield return Player.Boop(-1);
+            /* if (Marker.TryFind("cam", out Vector2 pos))
+             {
+                 Add(new Coroutine(Level.ZoomAcross(pos - Level.Camera.Position, 1.4f, 1)));
+             }
+             yield return Player.DummyWalkTo(Button.Right + 2);
+             yield return 0.1f;
+             yield return Player.Boop(-1);*/
+            Player.Duck();
             Button.Loading = true;
             Button.Press();
-            Add(new Coroutine(Player.DummyWalkTo(Player.X + 30, true, 1.1f)));
+            //Add(new Coroutine(Player.DummyWalkTo(Player.X + 30, true, 1.1f)));
             while (Button.Loading)
             {
                 yield return null;
             }
             Button.FadeOut();
-            yield return null;
-        }
-        private IEnumerator funnyZoomIn()
-        {
-            yield return Level.ZoomAcrossWorld(Player.TopCenter, 2.5f, 0.5f);
-        }
-        private IEnumerator playerWalkUp()
-        {
-            yield return Player.DummyWalkTo(Passenger.Left - 16);
             yield return null;
         }
         private IEnumerator playerLookLeft()
@@ -510,48 +557,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             Player.Facing = Facings.Right;
             yield return null;
         }
-        private IEnumerator lookAtButton()
-        {
-            Player.Face(Button);
-            yield return null;
-        }
-        private IEnumerator playerRunUp()
-        {
-            Player.Face(Passenger);
-            yield return null;
-        }
         private IEnumerator divide()
         {
+            if (Passenger is TutorialPassenger)
+            {
+                (Passenger as TutorialPassenger).DivideInstruction();
+            }
+            yield return 1;
+
             Vector2 pos = Player.TopCenter + Vector2.UnitY * 4;
             Button = new CalidusButton(pos);
             Scene.Add(Button);
-            float playerfrom = Player.Position.Y;
-            Player.DummyGravity = false;
-            while (Player.Position.Y > playerfrom - 32)
-            {
-                Player.MoveTowardsY(playerfrom - 32, 20 * Engine.DeltaTime);
-                yield return null;
-            }
-            playerLookingAround = false;
-            Player.Facing = Facings.Right;
             yield return 0.5f;
-            Button.Reveal();
-            float from = Button.X;
-            playerfrom = Player.Position.X;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / 1)
+            if (Passenger is TutorialPassenger)
             {
-                Button.Position.X = Calc.LerpClamp(from, from - 16, Ease.SineOut(i));
-                //Player.Position.X = Calc.LerpClamp(playerfrom, playerfrom, Ease.SineOut(i));
-                yield return null;
+                (Passenger as TutorialPassenger).DivideInstructionEnd();
             }
             yield return 0.9f;
-            Player.DummyGravity = true;
-            Button.Drop();
-            while (!Player.OnGround())
-            {
-                yield return null;
-            }
-            yield return null;
             Player.Facing = Facings.Left;
         }
         private bool playerLookingAround;

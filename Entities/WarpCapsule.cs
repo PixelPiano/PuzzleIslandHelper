@@ -11,7 +11,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WarpCapsule.Runes;
+using System.Text.RegularExpressions;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.WarpCapsule.UI;
+
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -19,6 +21,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class WarpCapsule : Entity
     {
+        public static List<Rune> AllRunes = [];
+        public static List<Rune> DefaultRunes = [];
+        public static List<Rune> ObtainedRunes = [];
+        [Tracked]
         public class Machine : Entity
         {
             public static MTexture Texture => GFX.Game[Path + "terminalStand"];
@@ -27,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public Image Screen;
             public WarpCapsule Parent;
             public DotX3 Talk;
-            public Runes.UI UI;
+            public UI UI;
             public bool Blocked;
             public bool On = true;
             public Machine(WarpCapsule parent, Vector2 position) : base(position)
@@ -79,7 +85,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public IEnumerator Sequence(Player player)
             {
                 player.DisableMovement();
-                string dialog = IsFirstTime ? "WontTurnOn" : Inventory.ObtainedRunes.Count < 2 ? "WarpBroken" : null;
+                string dialog = Parent.IsFirstTime ? "WontTurnOn" : WarpCapsule.ObtainedRunes.Count < 2 ? "WarpBroken" : null;
                 if (!string.IsNullOrEmpty(dialog))
                 {
                     yield return Textbox.Say(dialog);
@@ -87,12 +93,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 else
                 {
-                    Scene.Add(UI = new Runes.UI(Parent));
+                    Scene.Add(UI = new UI(Parent));
                     while (!UI.Finished)
                     {
                         yield return null;
                     }
-                    Inventory.ObtainedRunes.TryAdd(Parent.WarpRune, false);
+                    WarpCapsule.ObtainedRunes.TryAdd(Parent.WarpRune, false);
                 }
                 player.EnableMovement();
             }
@@ -136,13 +142,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 player.StateMachine.State = Player.StNormal;
                 yield return null;
             }*/
-            /*            private IEnumerator pressButton()
-                        {
-                            Parent.Enabled = true;
-                            Parent.TargetID = DefaultID;
-                            //play beep sound
-                            yield return null;
-                        }*/
         }
         public class WarpBack : CutsceneEntity
         {
@@ -396,1126 +395,1270 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 LockPlate.Depth = 7;
             }
         }
-        public static class Runes
+
+        public static Dictionary<Rune, WarpCapsuleData> Data => PianoMapDataProcessor.WarpRunes;
+        public static bool RuneExists(Rune input, out Rune orderedRune)
         {
-
-            [CustomEntity("PuzzleIslandHelper/RuneFragment")]
-            [Tracked]
-            public class CollectableFragment : Entity
+            orderedRune = null;
+            foreach (Rune rune in Data.Keys)
             {
-                public string ID;
-                public string Connections;
-                public Image Image;
-                public List<Fragment> Fragments = new();
-                public CollectableFragment(EntityData data, Vector2 offset) : base(data.Position + offset)
+                if (input.Match(rune))
                 {
-                    ID = data.Attr("runeID");
-                    Connections = data.Attr("connections");
-                    Fragments = Fragment.Parse(ID, Connections);
-                    Image = new Image(GFX.Game["PuzzleIslandHelper/collectableRuneFragment"]);
-                    Add(Image);
-                    Collider = Image.Collider();
-                    Add(new DotX3(Collider, Collect));
+                    orderedRune = rune;
+                    return true;
                 }
-                public override void Added(Scene scene)
-                {
-                    base.Added(scene);
-                    if (GetFlag())
-                    {
-                        RemoveSelf();
-                    }
-                }
-                public void SetFlag(bool value)
-                {
-                    SceneAs<Level>().Session.SetFlag(ToString(), value);
-                }
-                public bool GetFlag()
-                {
-                    return SceneAs<Level>().Session.GetFlag(ToString());
-                }
-                public override string ToString()
-                {
-                    string output = "RuneFragment: {ID: " + ID + "}, {Connections: ";
-                    foreach (Fragment fragment in Fragments)
-                    {
-                        output += fragment;
-                    }
-                    return output;
-                }
+            }
+            return false;
+        }
+        public static bool RuneExists(Rune input)
+        {
+            return RuneExists(input, out _);
+        }
 
-                public void Collect(Player player)
+        public static Rune GetRune(string name)
+        {
+            if (!string.IsNullOrEmpty(name))
+            {
+                foreach (var pair in Data)
                 {
-                    SetFlag(true);
-                    Fragment.AddFragments(Fragments);
+                    if (pair.Value.Name == name)
+                    {
+                        return pair.Key;
+                    }
+                }
+            }
+            return null;
+        }
+        public static WarpCapsuleData GetWarpData(string name)
+        {
+            if (!string.IsNullOrEmpty(name))
+            {
+                foreach (var pair in Data)
+                {
+                    if (pair.Value.Name == name)
+                    {
+                        return pair.Value;
+                    }
+                }
+            }
+            return null;
+        }
+        public static WarpCapsuleData GetWarpData(Rune rune)
+        {
+            if (rune == null) return null;
+            Data.TryGetValue(rune, out WarpCapsuleData value);
+            return value;
+        }
+        [CustomEntity("PuzzleIslandHelper/RuneFragment")]
+        [Tracked]
+        public class CollectableFragment : Entity
+        {
+            public string ID;
+            public string Connections;
+            public Image Image;
+            public List<Fragment> Fragments = new();
+            public CollectableFragment(EntityData data, Vector2 offset) : base(data.Position + offset)
+            {
+                ID = data.Attr("runeID");
+                Connections = data.Attr("connections");
+                Fragments = Fragment.Parse(ID, Connections);
+                Image = new Image(GFX.Game["PuzzleIslandHelper/collectableRuneFragment"]);
+                Add(Image);
+                Collider = Image.Collider();
+                Add(new DotX3(Collider, Collect));
+            }
+            public override void Added(Scene scene)
+            {
+                base.Added(scene);
+                if (GetFlag())
+                {
                     RemoveSelf();
                 }
-
             }
-            public class Fragment(string id, Tuple<NodeTypes, NodeTypes> fragment)
+            public void SetFlag(bool value)
             {
-                public Tuple<NodeTypes, NodeTypes> Frag = fragment;
-                public string ID = id;
-                public override string ToString()
+                SceneAs<Level>().Session.SetFlag(ToString(), value);
+            }
+            public bool GetFlag()
+            {
+                return SceneAs<Level>().Session.GetFlag(ToString());
+            }
+            public override string ToString()
+            {
+                string output = "RuneFragment: {ID: " + ID + "}, {Connections: ";
+                foreach (Fragment fragment in Fragments)
                 {
-                    return Frag.ToString();
+                    output += fragment;
                 }
-                public static Dictionary<string, List<Fragment>> Fragments = new();
-                public static List<Fragment> Parse(string id, string value)
+                return output;
+            }
+
+            public void Collect(Player player)
+            {
+                SetFlag(true);
+                Fragment.AddFragments(Fragments);
+                RemoveSelf();
+            }
+
+        }
+        public class Fragment(string id, Tuple<NodeTypes, NodeTypes> fragment)
+        {
+            public Tuple<NodeTypes, NodeTypes> Frag = fragment;
+            public string ID = id;
+            public override string ToString()
+            {
+                return Frag.ToString();
+            }
+            public static Dictionary<string, List<Fragment>> Fragments = new();
+            public static List<Fragment> Parse(string id, string value)
+            {
+                List<Fragment> list = [];
+                string[] groups = value.Split(',');
+                for (int i = 0; i < groups.Length; i++)
                 {
-                    List<Fragment> list = [];
-                    string[] groups = value.Split(',');
-                    for (int i = 0; i < groups.Length; i++)
+                    string[] pair = groups[i].Split(' ');
+                    for (int j = 1; j < pair.Length; j += 2)
                     {
-                        string[] pair = groups[i].Split(' ');
-                        for (int j = 1; j < pair.Length; j += 2)
+                        if (Enum.TryParse(pair[j - 1], out NodeTypes type1) && Enum.TryParse(pair[j], out NodeTypes type2))
                         {
-                            if (Enum.TryParse(pair[j - 1], out NodeTypes type1) && Enum.TryParse(pair[j], out NodeTypes type2))
+                            if (type1 > type2)
+                            {
+                                list.Add(new Fragment(id, new(type2, type1)));
+                            }
+                            else
                             {
                                 list.Add(new Fragment(id, new(type1, type2)));
                             }
                         }
                     }
-                    return list;
                 }
-                public static void AddFragments(List<Fragment> fragments)
+                return list;
+            }
+            public static void AddFragments(List<Fragment> fragments)
+            {
+                foreach (Fragment rf in fragments)
                 {
-                    foreach (Fragment rf in fragments)
-                    {
-                        AddFragment(rf);
-                    }
-                }
-                public static void ParseAndAddFragments(string id, string value)
-                {
-                    AddFragments(Parse(id, value));
-                }
-                public static void AddFragment(string id, Tuple<NodeTypes, NodeTypes> fragment)
-                {
-                    if (!Fragments.TryGetValue(id, out List<Fragment> value))
-                    {
-                        Fragments.Add(id, value = []);
-                    }
-                    value.TryAdd(new Fragment(id, fragment));
-                }
-                public static void AddFragment(Fragment fragment)
-                {
-                    if (!Fragments.TryGetValue(fragment.ID, out List<Fragment> value))
-                    {
-                        Fragments.Add(fragment.ID, value = []);
-                    }
-                    value.TryAdd(fragment);
-                }
-                public static void Clear()
-                {
-                    Fragments.Clear();
-                }
-                [OnLoad]
-                public static void Load()
-                {
-                    Clear();
-                }
-                [OnUnload]
-                public static void Unload()
-                {
-                    Clear();
+                    AddFragment(rf);
                 }
             }
-            public class Rune
+            public static void ParseAndAddFragments(string id, string value)
             {
-                public static Rune Default;
-                public string ID;
-                public List<Tuple<int, int>> Segments = new();
-                public Rune(string id, string pattern) : this(id, Parse(pattern))
+                AddFragments(Parse(id, value));
+            }
+            public static void AddFragment(string id, Tuple<NodeTypes, NodeTypes> fragment)
+            {
+                if (!Fragments.TryGetValue(id, out List<Fragment> value))
                 {
+                    Fragments.Add(id, value = []);
+                }
+                value.TryAdd(new Fragment(id, fragment));
+            }
+            public static void AddFragment(Fragment fragment)
+            {
+                if (!Fragments.TryGetValue(fragment.ID, out List<Fragment> value))
+                {
+                    Fragments.Add(fragment.ID, value = []);
+                }
+                value.TryAdd(fragment);
+            }
+            public static void Clear()
+            {
+                Fragments.Clear();
+            }
+            [OnLoad]
+            public static void Load()
+            {
+                Clear();
+            }
+            [OnUnload]
+            public static void Unload()
+            {
+                Clear();
+            }
+        }
+        public class Rune
+        {
+            public static Dictionary<string, string> ReplaceAssumed = new()
+            {
+                {"02","0112"},
+                {"08","0448"},
+                {"17","1447"},
+                {"19","1559"},
+                {"28","2558"},
+                {"35","3445"},
+                {"46","4556"},
+                {"36","344556"},
+                {"79","7889"},
+            };
+            public static Rune Default;
+            public string ID;
+            public List<(int, int)> Segments = new();
+            public Rune(string id, string pattern) : this(id, GetSortedPattern(pattern))
+            {
+            }
+            [Command("dr", "s")]
+            public static void WriteDefaultRunes()
+            {
+                foreach (Rune r in DefaultRunes)
+                {
+                    Engine.Commands.Log(r.ToString());
+                }
+            }
+            [Command("wr", "s")]
+            public static void WriteAllRunes()
+            {
 
-                }
-                public Rune(string id, List<Tuple<int, int>> pattern)
+                foreach (Rune r in DefaultRunes)
                 {
-                    Segments = GetSortedPattern(pattern);
-                    ID = id;
+                    Engine.Commands.Log(r.ToString());
                 }
-                public static List<Fragment> ToFragments(Rune rune)
+            }
+            public static List<(int, int)> GetSortedPattern(string pattern)
+            {
+                //split the pattern into groups of 2
+                var split = pattern.Replace(" ", "").Segment(2, false);
+
+                //replace connections that overlap additional nodes
+                string newString = "";
+                foreach (string s in split)
                 {
-                    List<Fragment> fragments = [];
-                    foreach (var a in rune.Segments)
+                    ReplaceAssumed.TryGetValue(s, out string value);
+                    newString += !string.IsNullOrEmpty(value) ? value : s;
+                }
+
+                //transform the new pattern into groups of (int, int) tuples
+                var normalized = newString.Segment(2, false).Select(item => (item[0] - '0', item[1] - '0')).ToList();
+
+                //sort each tuple value group from lowest to highest
+                //eg.   10 -> 01   75 -> 57
+                for (int i = 0; i < normalized.Count; i++)
+                {
+                    (int, int) t = normalized[i];
+                    if (t.Item1 > t.Item2)
                     {
-                        fragments.Add(new(rune.ID, new((NodeTypes)a.Item1, (NodeTypes)a.Item2)));
+                        normalized[i] = (t.Item2, t.Item1);
                     }
-                    return fragments;
                 }
-                public static List<Tuple<int, int>> GetSortedPattern(List<Tuple<int, int>> pattern)
+                //order tuple list by Item1, then Item2
+                //eg.   01, 24, 04, 28, 89, 79, 02     ->      01, 02, 04, 24, 28, 79, 89
+                var ordered = normalized.OrderBy(item => item.Item1).ThenBy(item => item.Item2);
+
+                //return the list with any duplicates removed
+                return ordered.Distinct().ToList();
+            }
+            public Rune(string id, List<(int, int)> sequence)
+            {
+                Segments = sequence;
+                ID = id;
+            }
+            public static string GetOrderedNumberString(string str)
+            {
+                var list = str.Where(item => char.IsNumber(item)).OrderBy(item => item - '0');
+                return string.Join("", list);
+            }
+            public static List<Fragment> ToFragments(Rune rune)
+            {
+                List<Fragment> fragments = [];
+                Console.WriteLine("ToFragments rune:" + rune.ToString());
+                foreach (var a in rune.Segments)
                 {
-                    List<Tuple<int, int>> insideSorted = new();
-                    foreach (var t in pattern)
-                    {
-                        int a = t.Item1;
-                        int b = t.Item2;
-                        if (a < b) insideSorted.Add(new(a, b));
-                        else insideSorted.Add(new(b, a));
-                    }
-                    return insideSorted.OrderBy(item => item.Item1).ToList();
+                    fragments.Add(new(rune.ID, new((NodeTypes)a.Item1, (NodeTypes)a.Item2)));
                 }
-                public override string ToString()
-                {
-                    string output = "{";
-                    foreach (Tuple<int, int> pair in Segments)
-                    {
-                        output += pair.Item1;
-                        output += pair.Item2;
-                        output += ",";
-                    }
-                    if (output.Length == 1)
-                    {
-                        output += "Empty";
-                    }
-                    output += "}";
-                    return output;
-                }
-                public static List<Tuple<int, int>> Parse(string pattern)
-                {
-                    pattern = pattern.Replace(" ", "");
-                    List<Tuple<int, int>> tuples = new();
-                    for (int i = 1; i < pattern.Length; i += 2)
-                    {
-                        int a = (int)char.GetNumericValue(pattern[i - 1]);
-                        int b = (int)char.GetNumericValue(pattern[i]);
-                        tuples.Add(new(a, b));
-                    }
-                    return tuples;
-                }
-                public bool Match(Rune rune)
-                {
-                    return Match(rune.Segments);
-                }
-                public bool Match(List<Tuple<int, int>> pairs)
-                {
-                    foreach (Tuple<int, int> pair in pairs)
-                    {
-                        if (!ContainsSegment(pair))
+                return fragments;
+            }
+            public static string GetSortedPattern(ConnectionList list)
+            {
+                return list.ToString();
+            }
+            public override string ToString()
+            {
+                return "{" + string.Join(' ', Segments.Select(item => item.Item1.ToString() + item.Item2.ToString())) + "}";
+            }
+            public bool Match(Rune rune)
+            {
+                return rune.ToString() == ToString();
+            }
+            /*            public bool Match(List<(int, int)> pairs)
                         {
+                            foreach ((int, int) pair in pairs)
+                            {
+                                if (!ContainsSegment(pair))
+                                {
+                                    return false;
+                                }
+                            }
+                            return pairs.Count == Segments.Count;
+                        }*/
+            /*            public bool ContainsSegment((int, int) segment)
+                        {
+                            foreach ((int, int) pair in Segments)
+                            {
+                                if ((segment.Item1 == pair.Item1 || segment.Item1 == pair.Item2) &&
+                                    (segment.Item2 == pair.Item1 || segment.Item2 == pair.Item2))
+                                {
+                                    return true;
+                                }
+                            }
                             return false;
-                        }
-                    }
-                    return pairs.Count == Segments.Count;
-                }
-                public bool ContainsSegment(Tuple<int, int> segment)
-                {
-                    foreach (Tuple<int, int> pair in Segments)
-                    {
-                        if ((segment.Item1 == pair.Item1 || segment.Item1 == pair.Item2) &&
-                            (segment.Item2 == pair.Item1 || segment.Item2 == pair.Item2))
+                        }*/
+            /*            public bool MatchSegment((int, int) input, (int, int) compare)
                         {
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-                public bool MatchSegment(Tuple<int, int> input, Tuple<int, int> compare)
-                {
-                    if (input.Item1 == compare.Item1 || input.Item1 == compare.Item2)
-                    {
-                        return input.Item2 == compare.Item1 || input.Item2 == compare.Item2;
-                    }
-                    return false;
-                }
-                [OnUnload]
-                public static void Unload()
-                {
-                    Default = null;
-                }
-            }
-            public class Inventory
+                            if (input.Item1 == compare.Item1 || input.Item1 == compare.Item2)
+                            {
+                                return input.Item2 == compare.Item1 || input.Item2 == compare.Item2;
+                            }
+                            return false;
+                        }*/
+            [OnUnload]
+            public static void Unload()
             {
-                public static List<Rune> ObtainedRunes = [];
-                public class RuneInventorySlot
+                ClearRunes();
+            }
+            public static void ClearRunes()
+            {
+                Default = null;
+                DefaultRunes.Clear();
+                AllRunes.Clear();
+            }
+        }
+        public class Inventory
+        {
+            public class RuneInventorySlot
+            {
+                public RuneInventorySlot(Inventory parent, Rune rune, float x, float xOffset, float y, float size, float scrollSize)
                 {
-                    public RuneInventorySlot(Inventory parent, List<Fragment> fragments, float x, float xOffset, float y, float size)
+                    Rune = rune;
+                    this.scrollSize = scrollSize;
+                    Inventory = parent;
+                    XOffset = xOffset;
+                    X = x;
+                    Y = y;
+                    Size = size;
+                    Connections = new(parent.Connections.Nodes);
+                    Connections.TransferFromSlot(this);
+                }
+                public bool OnScreen
+                {
+                    get
                     {
-                        Inventory = parent;
-                        Fragments = fragments;
-                        XOffset = xOffset;
-                        X = x;
-                        Y = y;
-                        Size = size;
-                        Connections = new(parent.Connections.Nodes);
-                        Connections.TransferFromSlot(this);
+                        float y = RenderPosition.Y;
+                        return y < 1920 && y + Size > 0;
                     }
-                    public Inventory Inventory;
-                    public List<Fragment> Fragments;
-                    public float XOffset;
-                    public float X;
-                    public float Y;
-                    public float Size;
-                    public Color Color;
-                    public UI.ConnectionList Connections;
+                }
+                public Inventory Inventory;
 
-                    public void Render()
-                    {
-                        Draw.Rect(X + XOffset, Y, Size, Size, Color.Black);
-                        Draw.HollowRect(X + XOffset, Y, Size, Size, Color);
-                        foreach (UI.Connection c in Connections.Connections)
-                        {
-                            c.RenderNodeLine(new Vector2(X + XOffset, Y), new Vector2(Size) / new Vector2(1920, 1080), 2);
-                        }
-                    }
-                    public void Update(bool open, float xOffset, MouseComponent mouse)
-                    {
-                        XOffset = xOffset;
-                        bool colliding = Check(mouse.MousePosition);
-                        Color = colliding && open ? Color.White : Color.Green;
-                        if (colliding && mouse.JustLeftClicked && Inventory.State == States.Open)
-                        {
-                            Inventory.Connections.TransferFromSlot(this);
-                        }
-                    }
-                    public bool Check(Vector2 pos)
-                    {
-                        float x = X + XOffset;
-                        return pos.X >= x && pos.X <= x + Size && pos.Y >= Y && pos.Y <= Y + Size;
-                    }
-                }
-                public enum States
-                {
-                    Closed,
-                    Open,
-                    Closing,
-                    Opening
-                }
-                public States State;
-                public float TabX => origX - TabOffset;
-                public float TabRight => TabX + TabWidth;
-                private float origX;
-                public float TabWidth = 60, TabOffset, MaxOffset = 150;
-                private int slotSize = 120, slotSpace = 15;
-                public List<RuneInventorySlot> Slots = [];
-                public UI.ConnectionList Connections;
-                public Dictionary<string, List<Fragment>> DebugFragments = [];
-                public Inventory(UI.ConnectionList connections, float tabWidth)
-                {
-                    /*                    DebugFragments.Add("hello",
-                                            [new("hello",new(NodeTypes.MLL, NodeTypes.MRR)),
-                                             new("hello",new(NodeTypes.TM, NodeTypes.BL)),
-                                             new("hello",new(NodeTypes.TM, NodeTypes.BR))]);
-                                        DebugFragments.Add("bye",
-                                            [new("bye",new(NodeTypes.TL, NodeTypes.TM)),
-                                             new("bye",new(NodeTypes.TL, NodeTypes.BM)),
-                                             new("bye",new(NodeTypes.BM, NodeTypes.MR)),
-                                             new("bye",new(NodeTypes.MR, NodeTypes.MLL))]);
-                                        DebugFragments.Add("styoud",
-                                            [new("styoud",new(NodeTypes.MLL, NodeTypes.TL)),
-                                             new("styoud",new(NodeTypes.TL, NodeTypes.TR)),
-                                             new("styoud",new(NodeTypes.TR, NodeTypes.MRR)),
-                                             new("styoud",new(NodeTypes.MRR, NodeTypes.BR)),
-                                             new("styoud",new(NodeTypes.BR, NodeTypes.BL)),
-                                             new("styoud",new(NodeTypes.BL, NodeTypes.MLL))]);*/
-                    Connections = connections;
-                    TabWidth = tabWidth;
-                    origX = 1920 - tabWidth;
-                    float y = slotSpace;
-                    foreach (Rune rune in ObtainedRunes)
-                    {
-                        if (y + slotSize >= 1080) break;
-                        Slots.Add(new RuneInventorySlot(this, Rune.ToFragments(rune), slotSpace, TabRight, y, slotSize));
-                        y += slotSize + slotSpace;
-                    }
-                }
+                public float XOffset;
+                public float ScrollOffset;
+                public Vector2 RenderPosition => new Vector2(X + XOffset, Y + ScrollOffset);
+                public float X;
+                public float Y;
+                public float Size;
+                public Color Color;
+                private float scrollSize;
+
+                public Rune Rune;
+                public ConnectionList Connections;
+
                 public void Render()
                 {
-                    Draw.Rect(new Vector2(TabX, 0), TabWidth, 1080, Color.Blue);
-                    if (State != States.Closed)
+                    if (OnScreen)
                     {
-                        Draw.Rect(new Vector2(TabRight, 0), MaxOffset, 1080, Color.Red);
-                        foreach (RuneInventorySlot slot in Slots)
+                        Vector2 p = RenderPosition;
+                        Draw.Rect(p, Size, Size, Color.Black);
+                        Draw.HollowRect(p, Size, Size, Color);
+                        foreach (Connection c in Connections.Connections)
                         {
-                            slot.Render();
+                            c.RenderNodeLine(p, new Vector2(Size) / new Vector2(1920, 1080), 3);
                         }
                     }
                 }
-                public void UpdateSlots(MouseComponent mouse)
+                public void Update(bool open, float xOffset, int scrollOffset, MouseComponent mouse)
                 {
-                    foreach (RuneInventorySlot slot in Slots)
+                    XOffset = xOffset;
+                    ScrollOffset = scrollOffset * scrollSize;
+                    bool colliding = Check(mouse.MousePosition);
+                    if (colliding)
                     {
-                        slot.Update(State == States.Open, TabRight, mouse);
+                        Inventory.DebugText = Connections.ToString();
                     }
-                }
-                public void Update(MouseComponent mouse)
-                {
-                    switch (State)
+                    Color = colliding && open ? Color.White : Color.Green;
+                    if (colliding && mouse.JustLeftClicked && Inventory.State == States.Open)
                     {
-                        case States.Opening:
-                            TabOffset = Calc.Approach(TabOffset, MaxOffset, 10);
-                            if (TabOffset == MaxOffset) State = States.Open;
-                            break;
-                        case States.Closing:
-                            TabOffset = Calc.Approach(TabOffset, 0, 10);
-                            if (TabOffset == 0) State = States.Closed;
-                            break;
-                        case States.Open:
-                            if (ClickedTab(mouse))
-                            {
-                                State = States.Closing;
-                            }
-                            break;
-                        case States.Closed:
-                            if (ClickedTab(mouse))
-                            {
-                                State = States.Opening;
-                            }
-                            break;
+                        Inventory.Connections.TransferFromSlot(this);
                     }
-                    UpdateSlots(mouse);
-                }
-                public bool ClickedTab(MouseComponent component)
-                {
-                    float mouseX = component.MousePosition.X;
-                    return component.JustLeftClicked && mouseX > TabX && mouseX < TabRight;
-                }
-                [OnLoad]
-                public static void Load()
-                {
-                    ObtainedRunes.Clear();
-                }
-                [OnUnload]
-                public static void Unload()
-                {
-                    ObtainedRunes.Clear();
-                }
-            }
-            public class Node
-            {
-                public NodeTypes Type;
-                public Vector2 Center;
-                public Vector2 TopLeft => new Vector2(Left, Top);
-                public Vector2 Head => Center - Vector2.UnitY * 77;
-                public float Top => Center.Y - Height / 2;
-                public float Bottom => Center.Y + Height / 2;
-                public float Left => Center.X - Width / 2;
-                public float Right => Center.X + Width / 2;
-                public Vector2 RenderPosition => Center - new Vector2(Width, Height) / 2f;
-                public float Width => HeadTex.Width;
-                public float Height => HeadTex.Height;
-                public float HeadHeight = 142;
-                public bool Lit;
-                public int Index;
-                public MTexture HeadTex => GFX.Game[Path + "nodeHead"];
-                public MTexture BodyTex => GFX.Game[Path + "nodeBody"];
-                public bool Obtained = true;//PianoModule.Session.RuneNodes.Contains(Index);
-                public Dictionary<NodeTypes, List<NodeTypes>> ImpliedConnections = [];
-                public Node(Vector2 center, NodeTypes node)
-                {
-                    Center = center;
-                    Type = node;
-                    Index = (int)node;
-                    switch (node)
-                    {
-                        case NodeTypes.TL:
-                            ImpliedConnections.Add(NodeTypes.TR, [NodeTypes.TM]);
-                            ImpliedConnections.Add(NodeTypes.BM, [NodeTypes.ML]);
-                            break;
-                        case NodeTypes.TM:
-                            ImpliedConnections.Add(NodeTypes.BL, [NodeTypes.ML]);
-                            ImpliedConnections.Add(NodeTypes.BR, [NodeTypes.MR]);
-                            break;
-                        case NodeTypes.TR:
-                            ImpliedConnections.Add(NodeTypes.TL, [NodeTypes.TM]);
-                            ImpliedConnections.Add(NodeTypes.BM, [NodeTypes.MR]);
-                            break;
-                        case NodeTypes.MLL:
-                            ImpliedConnections.Add(NodeTypes.MR, [NodeTypes.ML]);
-                            ImpliedConnections.Add(NodeTypes.MRR, [NodeTypes.ML, NodeTypes.MR]);
-                            break;
-                        case NodeTypes.ML:
-                            ImpliedConnections.Add(NodeTypes.MRR, [NodeTypes.MR]);
-                            break;
-                        case NodeTypes.MR:
-                            ImpliedConnections.Add(NodeTypes.MLL, [NodeTypes.ML]);
-                            break;
-                        case NodeTypes.MRR:
-                            ImpliedConnections.Add(NodeTypes.ML, [NodeTypes.MR]);
-                            ImpliedConnections.Add(NodeTypes.MLL, [NodeTypes.MR, NodeTypes.ML]);
-                            break;
-                        case NodeTypes.BL:
-                            ImpliedConnections.Add(NodeTypes.TM, [NodeTypes.ML]);
-                            ImpliedConnections.Add(NodeTypes.BR, [NodeTypes.BM]);
-                            break;
-                        case NodeTypes.BM:
-                            ImpliedConnections.Add(NodeTypes.TL, [NodeTypes.ML]);
-                            ImpliedConnections.Add(NodeTypes.TR, [NodeTypes.MR]);
-                            break;
-                        case NodeTypes.BR:
-                            ImpliedConnections.Add(NodeTypes.BL, [NodeTypes.BM]);
-                            ImpliedConnections.Add(NodeTypes.TM, [NodeTypes.MR]);
-                            break;
-                    }
-
-                    foreach (KeyValuePair<NodeTypes, List<NodeTypes>> pair in ImpliedConnections)
-                    {
-                        ImpliedConnections[pair.Key].Add(pair.Key);
-                    }
-                }
-                public void DrawTexture()
-                {
-                    if (Obtained)
-                    {
-                        Vector2 pos = RenderPosition;
-                        BodyTex.DrawOutline(pos);
-                        HeadTex.DrawOutline(pos);
-                        BodyTex.Draw(pos);
-                        HeadTex.Draw(pos, Vector2.Zero, Lit ? Color.Orange : Color.Red);
-                    }
-                }
-                public void TurnOn()
-                {
-                    Lit = true;
-                }
-                public void TurnOff()
-                {
-                    Lit = false;
                 }
                 public bool Check(Vector2 pos)
                 {
-                    if (!Obtained) return false;
-                    Vector2 position = RenderPosition;
-                    float pad = 0;
-                    if (pos.X > position.X + pad && pos.Y > position.Y + pad && pos.X < position.X + Width - pad)
+                    Vector2 p = RenderPosition;
+                    return pos.X >= p.X && pos.X <= p.X + Size && pos.Y >= p.Y && pos.Y <= p.Y + Size;
+                }
+            }
+            public enum States
+            {
+                Closed,
+                Open,
+                Closing,
+                Opening
+            }
+            public States State;
+            public float TabX => origX - TabOffset;
+            public float TabRight => TabX + TabWidth;
+            private float origX;
+            public float TabWidth = 60, TabOffset, MaxOffset = 150;
+            private int slotSize = 120, slotSpace = 15;
+            public string DebugText;
+            private int scroll;
+            private int lastScroll;
+            private int currentScroll;
+            public List<RuneInventorySlot> Slots = [];
+            public UI.ConnectionList Connections;
+            public Dictionary<string, List<Fragment>> DebugFragments = [];
+            public Inventory(UI.ConnectionList connections, float tabWidth)
+            {
+                /*                    DebugFragments.Add("hello",
+                                        [new("hello",new(NodeTypes.MLL, NodeTypes.MRR)),
+                                         new("hello",new(NodeTypes.TM, NodeTypes.BL)),
+                                         new("hello",new(NodeTypes.TM, NodeTypes.BR))]);
+                                    DebugFragments.Add("bye",
+                                        [new("bye",new(NodeTypes.TL, NodeTypes.TM)),
+                                         new("bye",new(NodeTypes.TL, NodeTypes.BM)),
+                                         new("bye",new(NodeTypes.BM, NodeTypes.MR)),
+                                         new("bye",new(NodeTypes.MR, NodeTypes.MLL))]);
+                                    DebugFragments.Add("styoud",
+                                        [new("styoud",new(NodeTypes.MLL, NodeTypes.TL)),
+                                         new("styoud",new(NodeTypes.TL, NodeTypes.TR)),
+                                         new("styoud",new(NodeTypes.TR, NodeTypes.MRR)),
+                                         new("styoud",new(NodeTypes.MRR, NodeTypes.BR)),
+                                         new("styoud",new(NodeTypes.BR, NodeTypes.BL)),
+                                         new("styoud",new(NodeTypes.BL, NodeTypes.MLL))]);*/
+                Connections = connections;
+                TabWidth = tabWidth;
+                origX = 1920 - tabWidth;
+                float y = slotSpace;
+                foreach (Rune rune in AllRunes)
+                {
+                    Slots.Add(new RuneInventorySlot(this, rune, slotSpace, TabRight, y, slotSize, slotSize + slotSpace));
+                    y += slotSize + slotSpace;
+                }
+            }
+            public void Render()
+            {
+                Draw.Rect(new Vector2(TabX, 0), TabWidth, 1080, Color.Blue);
+                if (State != States.Closed)
+                {
+                    Draw.Rect(new Vector2(TabRight, 0), MaxOffset, 1080, Color.Red);
+                    foreach (RuneInventorySlot slot in Slots)
                     {
-                        return pos.Y < position.Y + HeadHeight - pad;
+                        slot.Render();
+                    }
+                }
+                ActiveFont.Draw(scroll.ToString(), Vector2.Zero, Color.White);
+            }
+            public void UpdateSlots(MouseComponent mouse)
+            {
+                lastScroll = currentScroll;
+                currentScroll = mouse.State.ScrollWheelValue;
+                scroll = Calc.Clamp(scroll + (currentScroll - lastScroll) / 120, Math.Max(-8, -Slots.Count), 0);
+                foreach (RuneInventorySlot slot in Slots)
+                {
+                    slot.Update(State == States.Open, TabRight, scroll, mouse);
+                }
+            }
+            public void Update(MouseComponent mouse)
+            {
+                switch (State)
+                {
+                    case States.Opening:
+                        TabOffset = Calc.Approach(TabOffset, MaxOffset, 10);
+                        if (TabOffset == MaxOffset) State = States.Open;
+                        break;
+                    case States.Closing:
+                        TabOffset = Calc.Approach(TabOffset, 0, 10);
+                        if (TabOffset == 0) State = States.Closed;
+                        break;
+                    case States.Open:
+                        if (ClickedTab(mouse))
+                        {
+                            State = States.Closing;
+                        }
+                        break;
+                    case States.Closed:
+                        if (ClickedTab(mouse))
+                        {
+                            Slots = Slots.OrderBy(item => item.Rune.ID).ThenBy(item => item.Rune.Segments.Count).ToList();
+                            State = States.Opening;
+                        }
+                        break;
+                }
+                UpdateSlots(mouse);
+            }
+            public bool ClickedTab(MouseComponent component)
+            {
+                float mouseX = component.MousePosition.X;
+                return component.JustLeftClicked && mouseX > TabX && mouseX < TabRight;
+            }
+            [OnLoad]
+            public static void Load()
+            {
+                ObtainedRunes.Clear();
+            }
+            [OnUnload]
+            public static void Unload()
+            {
+                ObtainedRunes.Clear();
+            }
+        }
+        public class Node
+        {
+            public NodeTypes Type;
+            public Vector2 Center;
+            public Vector2 TopLeft => new Vector2(Left, Top);
+            public Vector2 Head => Center - Vector2.UnitY * 77;
+            public float Top => Center.Y - Height / 2;
+            public float Bottom => Center.Y + Height / 2;
+            public float Left => Center.X - Width / 2;
+            public float Right => Center.X + Width / 2;
+            public Vector2 RenderPosition => Center - new Vector2(Width, Height) / 2f;
+            public float Width => HeadTex.Width;
+            public float Height => HeadTex.Height;
+            public float HeadHeight = 142;
+            public bool Lit;
+            public int Index;
+            public MTexture HeadTex => GFX.Game[UI.Path + "nodeHead"];
+            public MTexture BodyTex => GFX.Game[UI.Path + "nodeBody"];
+            public bool Obtained = true;//PianoModule.Session.RuneNodes.Contains(Index);
+            public Dictionary<NodeTypes, List<NodeTypes>> ImpliedConnections = [];
+            public Node(Vector2 center, NodeTypes node)
+            {
+                Center = center;
+                Type = node;
+                Index = (int)node;
+                switch (node)
+                {
+                    case NodeTypes.TL:
+                        ImpliedConnections.Add(NodeTypes.TR, [NodeTypes.TM]);
+                        ImpliedConnections.Add(NodeTypes.BM, [NodeTypes.ML]);
+                        break;
+                    case NodeTypes.TM:
+                        ImpliedConnections.Add(NodeTypes.BL, [NodeTypes.ML]);
+                        ImpliedConnections.Add(NodeTypes.BR, [NodeTypes.MR]);
+                        break;
+                    case NodeTypes.TR:
+                        ImpliedConnections.Add(NodeTypes.TL, [NodeTypes.TM]);
+                        ImpliedConnections.Add(NodeTypes.BM, [NodeTypes.MR]);
+                        break;
+                    case NodeTypes.MLL:
+                        ImpliedConnections.Add(NodeTypes.MR, [NodeTypes.ML]);
+                        ImpliedConnections.Add(NodeTypes.MRR, [NodeTypes.ML, NodeTypes.MR]);
+                        break;
+                    case NodeTypes.ML:
+                        ImpliedConnections.Add(NodeTypes.MRR, [NodeTypes.MR]);
+                        break;
+                    case NodeTypes.MR:
+                        ImpliedConnections.Add(NodeTypes.MLL, [NodeTypes.ML]);
+                        break;
+                    case NodeTypes.MRR:
+                        ImpliedConnections.Add(NodeTypes.ML, [NodeTypes.MR]);
+                        ImpliedConnections.Add(NodeTypes.MLL, [NodeTypes.MR, NodeTypes.ML]);
+                        break;
+                    case NodeTypes.BL:
+                        ImpliedConnections.Add(NodeTypes.TM, [NodeTypes.ML]);
+                        ImpliedConnections.Add(NodeTypes.BR, [NodeTypes.BM]);
+                        break;
+                    case NodeTypes.BM:
+                        ImpliedConnections.Add(NodeTypes.TL, [NodeTypes.ML]);
+                        ImpliedConnections.Add(NodeTypes.TR, [NodeTypes.MR]);
+                        break;
+                    case NodeTypes.BR:
+                        ImpliedConnections.Add(NodeTypes.BL, [NodeTypes.BM]);
+                        ImpliedConnections.Add(NodeTypes.TM, [NodeTypes.MR]);
+                        break;
+                }
+
+                foreach (KeyValuePair<NodeTypes, List<NodeTypes>> pair in ImpliedConnections)
+                {
+                    ImpliedConnections[pair.Key].Add(pair.Key);
+                }
+            }
+            public void DrawTexture()
+            {
+                if (Obtained)
+                {
+                    Vector2 pos = RenderPosition;
+                    BodyTex.DrawOutline(pos);
+                    HeadTex.DrawOutline(pos);
+                    BodyTex.Draw(pos);
+                    HeadTex.Draw(pos, Vector2.Zero, Lit ? Color.Orange : Color.Red);
+                }
+            }
+            public void TurnOn()
+            {
+                Lit = true;
+            }
+            public void TurnOff()
+            {
+                Lit = false;
+            }
+            public bool Check(Vector2 pos)
+            {
+                if (!Obtained) return false;
+                Vector2 position = RenderPosition;
+                float pad = 0;
+                if (pos.X > position.X + pad && pos.Y > position.Y + pad && pos.X < position.X + Width - pad)
+                {
+                    return pos.Y < position.Y + HeadHeight - pad;
+                }
+                return false;
+            }
+            public bool CanConnectTo(Node node)
+            {
+                return Obtained && node != this;
+            }
+        }
+        public class UI : Entity
+        {
+            public const string Path = "objects/PuzzleIslandHelper/runeUI/";
+            public class Connection
+            {
+                public override string ToString()
+                {
+                    string output = "";
+                    if (Full)
+                    {
+                        foreach (Node n in Nodes.OrderBy(item => item.Index))
+                        {
+                            output += n.Index;
+                        }
+                    }
+                    return output;
+                }
+
+                public Node[] Nodes = new Node[2];
+                public Connection(Node a, Node b)
+                {
+                    Nodes = [a, b];
+                }
+                public Node GetPartner(Node exclude)
+                {
+                    return Nodes[0] == exclude ? Nodes[1] : Nodes[0];
+                }
+                public bool IsForbidden()
+                {
+                    return Nodes[0] != null && Nodes[1] != null && Nodes[0].ImpliedConnections.ContainsKey(Nodes[1].Type);
+                }
+                public bool CollideHead(Vector2 pos)
+                {
+                    bool a = false, b = false;
+                    if (Nodes[0] != null)
+                    {
+                        a = Nodes[0].Check(pos);
+                    }
+                    if (Nodes[1] != null)
+                    {
+                        b = Nodes[1].Check(pos);
+                    }
+                    return a || b;
+
+                }
+                public bool CollideLine(Vector2 pos)
+                {
+                    if (Nodes[0] != null && Nodes[1] != null)
+                    {
+                        return Collide.RectToLine(pos.X, pos.Y, 30, 30, Nodes[0].Head, Nodes[1].Head);
                     }
                     return false;
                 }
-                public bool CanConnectTo(Node node)
+                public bool TryGetTuple(out (int, int) tuple)
                 {
-                    return Obtained && node != this;
-                }
-            }
-            public class UI : Entity
-            {
-                public const string Path = "objects/PuzzleIslandHelper/runeUI/";
-                public class Connection
-                {
-                    public Runes.Node[] Nodes = new Runes.Node[2];
-                    public Connection(Runes.Node a, Runes.Node b)
+                    tuple = (0, 0);
+                    if (Incomplete)
                     {
-                        Nodes = [a, b];
-                    }
-                    public Runes.Node GetPartner(Runes.Node exclude)
-                    {
-                        return Nodes[0] == exclude ? Nodes[1] : Nodes[0];
-                    }
-                    public bool IsForbidden()
-                    {
-                        return Nodes[0] != null && Nodes[1] != null && Nodes[0].ImpliedConnections.ContainsKey(Nodes[1].Type);
-                    }
-                    public bool CollideHead(Vector2 pos)
-                    {
-                        bool a = false, b = false;
-                        if (Nodes[0] != null)
-                        {
-                            a = Nodes[0].Check(pos);
-                        }
-                        if (Nodes[1] != null)
-                        {
-                            b = Nodes[1].Check(pos);
-                        }
-                        return a || b;
-
-                    }
-                    public bool CollideLine(Vector2 pos)
-                    {
-                        if (Nodes[0] != null && Nodes[1] != null)
-                        {
-                            return Collide.RectToLine(pos.X, pos.Y, 30, 30, Nodes[0].Head, Nodes[1].Head);
-                        }
                         return false;
                     }
-                    public bool TryGetTuple(out Tuple<int, int> tuple)
-                    {
-                        if (Incomplete)
-                        {
-                            tuple = null;
-                            return false;
-                        }
-                        tuple = new(Nodes[0].Index, Nodes[1].Index);
-                        return true;
-                    }
-                    public bool Incomplete => Nodes[0] == null || Nodes[1] == null;
-                    public bool Empty => Nodes[0] == null && Nodes[1] == null;
-                    public bool Full => !Empty;
-                    public Node FirstValid()
-                    {
-                        return Nodes.First(item => item != null);
-                    }
-                    public bool Contains(Node node)
-                    {
-                        return node != null && Nodes != null && Nodes.Contains(node);
-                    }
-                    public bool Match(Node a, Node b)
-                    {
-                        return a != b && Contains(a) && Contains(b);
-                    }
-                    public void Fill(Node fill)
-                    {
-                        for (int i = 0; i < 2; i++)
-                        {
-                            if (Nodes[i] == null)
-                            {
-                                Nodes[i] = fill;
-                                Nodes[i].TurnOn();
-                                return;
-                            }
-                        }
-                    }
-                    public void Hold(Node clicked)
-                    {
-                        if (clicked != null)
-                        {
-                            for (int i = 0; i < 2; i++)
-                            {
-                                if (Nodes[i] == clicked)
-                                {
-                                    Nodes[i].TurnOff();
-                                    Nodes[i] = null;
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                    public const int LineThickness = 50;
-                    public void DrawLine(Vector2 from, Vector2 to, Color color)
-                    {
-                        Draw.Line(from, to, color, LineThickness);
-                    }
-                    public void RenderNodeLine()
-                    {
-                        DrawLine(Nodes[0].Head, Nodes[1].Head, Color.White);
-                    }
-                    public void RenderNodeLine(Vector2 position, Vector2 scale, int thickness)
-                    {
-                        Draw.Line(position + Nodes[0].Head * scale, position + Nodes[1].Head * scale, Color.White, thickness);
-                    }
-                    public void RenderMouseLine(Vector2 mouse)
-                    {
-                        for (int i = 0; i < Nodes.Length; i++)
-                        {
-                            if (Nodes[i] != null)
-                            {
-                                DrawLine(Nodes[i].Head, mouse, Color.White);
-                            }
-                        }
-                    }
-                    public bool Match(Connection other)
-                    {
-                        return Match(other.Nodes[0], other.Nodes[1]);
-                    }
+                    tuple = (Nodes[0].Index, Nodes[1].Index);
+                    return true;
                 }
-                public class ConnectionList
+                public bool Incomplete => Nodes[0] == null || Nodes[1] == null;
+                public bool Empty => Nodes[0] == null && Nodes[1] == null;
+                public bool Full => !Empty;
+                public Node FirstValid()
                 {
-                    public List<Connection> Connections = new();
-                    public List<Connection> Held = new();
-                    public List<int> NodeConnects = new();
-                    public Connection LeftHeld;
-                    public List<Node> Nodes = new();
-                    public ConnectionList(List<Node> validNodes)
-                    {
-                        RegisterNodes(validNodes);
-                    }
-                    public void TransferFromSlot(Inventory.RuneInventorySlot slot)
-                    {
-                        ClearHeld();
-                        ClearMain();
-                        List<Tuple<Node, Node>> list = [];
-
-                        foreach (var rf in slot.Fragments)
-                        {
-                            int item1 = (int)rf.Frag.Item1;
-                            int item2 = (int)rf.Frag.Item2;
-                            list.Add(new Tuple<Node, Node>(Nodes[item1], Nodes[item2]));
-                        }
-                        foreach (var pair in list)
-                        {
-                            AddValidConnections(pair.Item1, pair.Item2);
-                        }
-                    }
-                    public static List<Connection> GetAllUnique(List<Connection> a)
-                    {
-                        List<Connection> unique = new();
-                        foreach (Connection c in a)
-                        {
-                            bool duplicate = false;
-                            foreach (Connection c2 in unique)
-                            {
-                                if (c.Match(c2))
-                                {
-                                    duplicate = true;
-                                    break;
-                                }
-                            }
-                            if (!duplicate)
-                            {
-                                unique.Add(c);
-                            }
-                        }
-                        return unique;
-                    }
-                    public void OnLeftClick(Node node)
-                    {
-                        if (Held.Count == 0 && node != null && LeftHeld == null)
-                        {
-                            LeftHeld = new Connection(node, null);
-                        }
-                    }
-                    public bool TryAddConnection(Node from, Node to)
-                    {
-                        if (!HasPair(from, to))
-                        {
-                            AddConnection(from, to);
-                            return true;
-                        }
-                        return false;
-                    }
-                    public void AddValidConnections(Node from, Node to)
-                    {
-                        if (from != to)
-                        {
-                            if (from.ImpliedConnections.TryGetValue(to.Type, out List<NodeTypes> list))
-                            {
-                                NodeTypes start = from.Type;
-                                foreach (NodeTypes node in list)
-                                {
-                                    Node fromNode = Nodes[(int)start];
-                                    Node connect = Nodes[(int)node];
-                                    TryAddConnection(fromNode, connect);
-                                    start = node;
-                                }
-                            }
-                            else TryAddConnection(from, to);
-                        }
-
-                    }
-
-                    public void OnLeftRelease(Node node)
-                    {
-                        if (node != null && LeftHeld != null && LeftHeld.FirstValid() is Node node2)
-                        {
-                            AddValidConnections(node, node2);
-                        }
-                        LeftHeld = null;
-                    }
-
-                    public void OnLeftHeld(Vector2 mouse, Node node)
-                    {
-                        if (LeftHeld == null && Held.Count == 0)
-                        {
-                            List<Connection> toRemove = new();
-
-                            foreach (Connection c in Connections)
-                            {
-                                if (c.IsForbidden() || (c.CollideLine(mouse) && !c.CollideHead(mouse)))
-                                {
-                                    toRemove.Add(c);
-                                }
-                            }
-                            foreach (var c in toRemove)
-                            {
-                                RemoveConnection(c);
-                            }
-                        }
-                    }
-                    public void OnRightClick(Node node)
-                    {
-                        if (LeftHeld == null)
-                        {
-                            if (node == null)
-                            {
-
-                                ClearHeld();
-                            }
-                            else if (Held.Count > 0)
-                            {
-                                TransferHeldTo(node);
-                            }
-                            else
-                            {
-                                HoldAllConnectionsFrom(node);
-                            }
-                        }
-                    }
-                    public void OnRightRelease(Node node)
-                    {
-                        if (node != null && Held.Count > 0)
-                        {
-                            TransferHeldTo(node);
-                        }
-                        ClearHeld();
-                    }
-                    public void RegisterNodes(List<Node> nodes)
-                    {
-                        foreach (Node node in nodes)
-                        {
-                            NodeConnects.Add(0);
-                        }
-                        Nodes = nodes;
-                    }
-                    public void AddConnection(NodeTypes a, NodeTypes b)
-                    {
-                        AddConnection(Nodes[(int)a], Nodes[(int)b]);
-                    }
-                    public void AddConnection(Connection c)
-                    {
-                        Connections.Add(c);
-                    }
-                    public void AddConnection(Node a, Node b)
-                    {
-                        Connections.Add(new Connection(a, b));
-                    }
-                    public void RemoveConnection(Connection c)
-                    {
-                        Connections.Remove(c);
-                    }
-                    public void TransferHeldTo(Node node)
-                    {
-                        foreach (Connection c in Held)
-                        {
-                            if (!c.Contains(node))
-                            {
-                                Node check = c.FirstValid();
-                                if (!HasPair(node, check))
-                                {
-                                    c.Fill(node);
-                                }
-                                AddValidConnections(node, check);
-                            }
-                        }
-                        ClearHeld();
-                    }
-                    public void HoldAllConnectionsFrom(Node node)
-                    {
-                        List<Connection> connections = GetConnectionsFrom(node);
-                        foreach (Connection c in connections)
-                        {
-                            RemoveConnection(c);
-                            c.Hold(node);
-                            Held.Add(c);
-                        }
-                    }
-                    public List<Connection> GetConnectionsFrom(Node node)
-                    {
-                        List<Connection> output = new();
-                        foreach (Connection c in Connections)
-                        {
-                            if (c.Contains(node))
-                            {
-                                output.Add(c);
-                            }
-                        }
-                        return output;
-                    }
-                    public bool HasPair(Node a, Node b)
-                    {
-                        foreach (Connection c in Connections)
-                        {
-                            if (c.Match(a, b))
-                            {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
-                    public bool HasPair(NodeTypes a, NodeTypes b)
-                    {
-                        return HasPair(Nodes[(int)a], Nodes[(int)b]);
-                    }
-                    public void ClearMain()
-                    {
-                        List<Connection> toRemove = [.. Connections];
-                        foreach (Connection c in toRemove)
-                        {
-                            RemoveConnection(c);
-                        }
-                    }
-                    public void ClearHeld()
-                    {
-                        Held.Clear();
-                    }
-                    public void Update()
-                    {
-                        foreach (Connection c in Connections)
-                        {
-                            foreach (Node node in c.Nodes)
-                            {
-                                if (node != null)
-                                {
-                                    NodeConnects[node.Index] += 1;
-                                }
-                            }
-                        }
-                        foreach (Node node in Nodes)
-                        {
-                            if (NodeConnects[node.Index] <= 0)
-                            {
-                                node.TurnOff();
-                            }
-                            else
-                            {
-                                node.TurnOn();
-                            }
-
-                        }
-                        NodeConnects = NodeConnects.Select(item => item = 0).ToList();
-                    }
-                    public void Render(Vector2 mouse)
-                    {
-                        foreach (Connection c in Connections)
-                        {
-                            c.RenderNodeLine();
-                        }
-                        if (LeftHeld != null)
-                        {
-                            LeftHeld.RenderMouseLine(mouse);
-                        }
-                        else
-                        {
-                            foreach (Connection c in Held)
-                            {
-                                c.RenderMouseLine(mouse);
-                            }
-                        }
-                    }
+                    return Nodes.First(item => item != null);
                 }
-                public class SubmitButton
+                public bool Contains(Node node)
                 {
-                    public Vector2 Offset;
-                    public bool ClickedFirstFrame;
-                    public bool Colliding;
-                    public MTexture IdleTex => GFX.Game[Path + "button"];
-                    public MTexture PressedTex => GFX.Game[Path + "buttonPressed"];
-
-                    public MTexture Texture => ClickedFirstFrame && Colliding ? PressedTex : IdleTex;
-                    public SubmitButton(Vector2 offset)
+                    return node != null && Nodes != null && Nodes.Contains(node);
+                }
+                public bool Match(Node a, Node b)
+                {
+                    return a != b && Contains(a) && Contains(b);
+                }
+                public void Fill(Node fill)
+                {
+                    for (int i = 0; i < 2; i++)
                     {
-                        Offset = offset;
-                    }
-                    public void Render()
-                    {
-                        Texture.Draw(Offset);
-                    }
-                    public bool Check(Vector2 pos)
-                    {
-                        Vector2 check = Offset;
-                        float width = Texture.Width;
-                        float height = Texture.Height;
-                        if (pos.X > check.X && pos.Y > check.Y && pos.X < check.X + width)
+                        if (Nodes[i] == null)
                         {
-                            return pos.Y < check.Y + height;
-                        }
-                        return false;
-                    }
-                }
-                public VirtualRenderTarget Buffer, Buffer2;
-                public List<Runes.Node> Nodes = new();
-                public ConnectionList Connections;
-                public SubmitButton Button;
-                public MouseComponent Mouse;
-                public Inventory Inventory;
-                public float Alpha = 1;
-                public bool Standby;
-                public bool Finished;
-                public bool CollidingWithButton;
-                public WarpCapsule Parent;
-
-
-                public UI(WarpCapsule parent) : base()
-                {
-                    Parent = parent;
-                    Tag |= TagsExt.SubHUD;
-                    Buffer = VirtualContent.CreateRenderTarget("RuneUIBuffer", 1920, 1080);
-                    Buffer2 = VirtualContent.CreateRenderTarget("RuneUIBuffer", 1920, 1080);
-                    Add(new BeforeRenderHook(BeforeRender));
-                    Add(Mouse = new MouseComponent(OnLeftClick, OnRightClick, OnLeftRelease, OnRightRelease, OnLeftIdle, OnRightIdle, OnLeftHeld, OnRightHeld));
-                    FadeIn();
-                }
-                public void FadeIn()
-                {
-                    Standby = true;
-                    Alpha = 0;
-                    Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineOut, t => Alpha = t.Eased, t => { Standby = false; Alpha = 1; });
-                }
-                public void FadeOut(bool removeSelf = false)
-                {
-                    Standby = true;
-                    Alpha = 1;
-                    Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineOut, t => Alpha = 1 - t.Eased, t => { Standby = false; Alpha = 0; Finished = true; if (removeSelf) RemoveSelf(); });
-                }
-                public override void Added(Scene scene)
-                {
-                    base.Added(scene);
-
-                    Vector2 center = new Vector2(1920, 1080) / 2;
-                    float spacing = 300;
-                    for (int i = 0; i < 3; i++)
-                    {
-                        Nodes.Add(new Node(center + new Vector2(-spacing + spacing * i, -spacing), (NodeTypes)i));
-                    }
-                    for (int i = 0; i < 4; i++)
-                    {
-                        Nodes.Add(new Node(center + (Vector2.UnitX * (spacing * -1.5f + (i * spacing))), (NodeTypes)(3 + i)));
-                    }
-                    for (int i = 0; i < 3; i++)
-                    {
-                        Nodes.Add(new Node(center + new Vector2(-spacing + spacing * i, spacing), (NodeTypes)(7 + i)));
-                    }
-                    Connections = new(Nodes);
-                    Button = new SubmitButton(new Vector2(50, 1080 - 209));
-                    Inventory = new(Connections, 60);
-                }
-                public override void Update()
-                {
-                    base.Update();
-                    if (Standby) return;
-                    if (Input.DashPressed)
-                    {
-                        FadeOut(true);
-                    }
-                    Vector2 pos = Mouse.MousePosition;
-                    Connections.Update();
-                    CollidingWithButton = Button.Check(pos);
-                    Inventory.Update(Mouse);
-                }
-                public void OnLeftClick()
-                {
-                    Button.ClickedFirstFrame = CollidingWithButton;
-                    Connections.OnLeftClick(GetFirstCollided());
-                }
-                public void OnLeftRelease()
-                {
-                    if (Button.ClickedFirstFrame && CollidingWithButton)
-                    {
-                        CheckRune();
-                    }
-                    Button.ClickedFirstFrame = false;
-                    Connections.OnLeftRelease(GetFirstCollided());
-                }
-                public void OnLeftIdle()
-                {
-                    ResetButton();
-                }
-                public void OnLeftHeld()
-                {
-                    Button.Colliding = Button.ClickedFirstFrame && CollidingWithButton;
-                    Connections.OnLeftHeld(Mouse.MousePosition, GetFirstCollided());
-                }
-                public Node GetFirstCollided()
-                {
-                    Vector2 m = Mouse.MousePosition;
-                    foreach (Node n in Nodes)
-                    {
-                        if (n.Check(m))
-                        {
-                            return n;
-                        }
-                    }
-                    return null;
-                }
-                public void OnRightClick()
-                {
-                    Connections.OnRightClick(GetFirstCollided());
-
-                }
-                public void OnRightRelease()
-                {
-                    Connections.OnRightRelease(GetFirstCollided());
-                }
-                public void OnRightHeld()
-                {
-
-                }
-                public void OnRightIdle()
-                {
-
-                }
-                public void ResetButton()
-                {
-                    Button.Colliding = false;
-                    Button.ClickedFirstFrame = false;
-                }
-                public Rune CreateRune()
-                {
-                    List<Tuple<int, int>> list = new();
-                    List<Connection> unique = Connections.Connections.Distinct().ToList();
-                    foreach (Connection c in unique)
-                    {
-                        if (c.TryGetTuple(out var tuple))
-                        {
-                            list.Add(tuple);
-                        }
-                    }
-                    return new Rune("", list);
-                }
-                public void CheckRune()
-                {
-                    Button.ClickedFirstFrame = false;
-                    Button.Colliding = false;
-                    Rune rune = CreateRune();
-                    foreach (Rune r in PianoMapDataProcessor.WarpRunes.Keys)
-                    {
-                        if (r.Match(rune))
-                        {
-                            Inventory.ObtainedRunes.TryAdd(r);
-                            ClearAll();
-                            FadeOut(true);
-                            Parent.WarpRune = r;
+                            Nodes[i] = fill;
+                            Nodes[i].TurnOn();
                             return;
                         }
                     }
                 }
-                public void ClearAll()
+                public void Hold(Node clicked)
                 {
-                    Connections.ClearMain();
-                }
-                public void DrawLine(Node a, Node b, Color color, int thickness)
-                {
-                    Draw.Line(a.Center, b.Center, color, thickness);
-                }
-                public void BeforeRender()
-                {
-                    if (Alpha > 0)
+                    if (clicked != null)
                     {
-                        Buffer2.SetAsTarget(true);
-                        Draw.SpriteBatch.StandardBegin(Matrix.Identity, BlendState.AlphaBlend, null);
-                        Connections.Render(Mouse.MousePosition);
-                        Draw.SpriteBatch.End();
-
-                        Buffer.SetAsTarget(Color.Black);
-                        Draw.SpriteBatch.StandardBegin(Matrix.Identity);
-                        foreach (Node node in Nodes)
+                        for (int i = 0; i < 2; i++)
                         {
-                            node.DrawTexture();
+                            if (Nodes[i] == clicked)
+                            {
+                                Nodes[i].TurnOff();
+                                Nodes[i] = null;
+                                return;
+                            }
                         }
-                        Button.Render();
-                        Draw.SpriteBatch.Draw(Buffer2, Vector2.Zero, Color.White);
-                        Inventory.Render();
-                        Draw.SpriteBatch.End();
                     }
                 }
-                public override void Render()
+                public const int LineThickness = 50;
+                public void DrawLine(Vector2 from, Vector2 to, Color color)
                 {
-                    base.Render();
-                    if (Alpha > 0)
+                    Draw.Line(from, to, color, LineThickness);
+                }
+                public void RenderNodeLine()
+                {
+                    DrawLine(Nodes[0].Head, Nodes[1].Head, Color.White);
+                }
+                public void RenderNodeLine(Vector2 position, Vector2 scale, int thickness)
+                {
+                    Draw.Line(position + Nodes[0].Head * scale, position + Nodes[1].Head * scale, Color.White, thickness);
+                }
+                public void RenderMouseLine(Vector2 mouse)
+                {
+                    for (int i = 0; i < Nodes.Length; i++)
                     {
-                        Draw.SpriteBatch.Draw(Buffer, Vector2.Zero, Color.White * Alpha);
+                        if (Nodes[i] != null)
+                        {
+                            DrawLine(Nodes[i].Head, mouse, Color.White);
+                        }
                     }
                 }
-                public override void Removed(Scene scene)
+                public bool Match(Connection other)
                 {
-                    base.Removed(scene);
-                    Buffer?.Dispose();
-                    Buffer = null;
-                    Buffer2?.Dispose();
-                    Buffer2 = null;
+                    return Match(other.Nodes[0], other.Nodes[1]);
                 }
             }
-        }
+            public class ConnectionList
+            {
+                public List<Connection> Connections = new();
+                public List<Connection> Held = new();
+                public List<int> NodeConnects = new();
+                public Connection LeftHeld;
+                public List<Node> Nodes = new();
+                public ConnectionList(List<Node> validNodes)
+                {
+                    RegisterNodes(validNodes);
+                }
+                public void TransferFromSlot(Inventory.RuneInventorySlot slot)
+                {
+                    ClearHeld();
+                    ClearMain();
+                    List<(Node, Node)> list = [];
 
-        public static bool IsFirstTime => PianoModule.Session.TimesUsedCapsuleWarp < 1 && Marker.TryFind("isStartingWarpRoom", out _);
+                    foreach (var rf in Rune.ToFragments(slot.Rune))
+                    {
+                        int item1 = (int)rf.Frag.Item1;
+                        int item2 = (int)rf.Frag.Item2;
+                        list.Add((Nodes[item1], Nodes[item2]));
+                    }
+                    foreach (var pair in list)
+                    {
+                        AddValidConnections(pair.Item1, pair.Item2);
+                    }
+                }
+                public static List<Connection> GetAllUnique(List<Connection> a)
+                {
+                    List<Connection> unique = new();
+                    foreach (Connection c in a)
+                    {
+                        bool duplicate = false;
+                        foreach (Connection c2 in unique)
+                        {
+                            if (c.Match(c2))
+                            {
+                                duplicate = true;
+                                break;
+                            }
+                        }
+                        if (!duplicate)
+                        {
+                            unique.Add(c);
+                        }
+                    }
+                    return unique;
+                }
+                public override string ToString()
+                {
+                    string o = "";
+                    foreach (Connection c in Connections)
+                    {
+                        o += c.ToString();
+                    }
+                    return o;
+                }
+                public void OnLeftClick(Node node)
+                {
+                    if (Held.Count == 0 && node != null && LeftHeld == null)
+                    {
+                        LeftHeld = new Connection(node, null);
+                    }
+                }
+                public bool TryAddConnection(Node from, Node to)
+                {
+                    if (!HasPair(from, to))
+                    {
+                        AddConnection(from, to);
+                        return true;
+                    }
+                    return false;
+                }
+                public void AddValidConnections(Node from, Node to)
+                {
+                    if (from != to)
+                    {
+                        if (from.ImpliedConnections.TryGetValue(to.Type, out List<NodeTypes> list))
+                        {
+                            NodeTypes start = from.Type;
+                            foreach (NodeTypes node in list)
+                            {
+                                Node fromNode = Nodes[(int)start];
+                                Node connect = Nodes[(int)node];
+                                TryAddConnection(fromNode, connect);
+                                start = node;
+                            }
+                        }
+                        else TryAddConnection(from, to);
+                    }
+
+                }
+
+                public void OnLeftRelease(Node node)
+                {
+                    if (node != null && LeftHeld != null && LeftHeld.FirstValid() is Node node2)
+                    {
+                        AddValidConnections(node, node2);
+                    }
+                    LeftHeld = null;
+                }
+
+                public void OnLeftHeld(Vector2 mouse, Node node)
+                {
+                    if (LeftHeld == null && Held.Count == 0)
+                    {
+                        List<Connection> toRemove = new();
+
+                        foreach (Connection c in Connections)
+                        {
+                            if (c.IsForbidden() || (c.CollideLine(mouse) && !c.CollideHead(mouse)))
+                            {
+                                toRemove.Add(c);
+                            }
+                        }
+                        foreach (var c in toRemove)
+                        {
+                            RemoveConnection(c);
+                        }
+                    }
+                }
+                public void OnRightClick(Node node)
+                {
+                    if (LeftHeld == null)
+                    {
+                        if (node == null)
+                        {
+
+                            ClearHeld();
+                        }
+                        else if (Held.Count > 0)
+                        {
+                            TransferHeldTo(node);
+                        }
+                        else
+                        {
+                            HoldAllConnectionsFrom(node);
+                        }
+                    }
+                }
+                public void OnRightRelease(Node node)
+                {
+                    if (node != null && Held.Count > 0)
+                    {
+                        TransferHeldTo(node);
+                    }
+                    ClearHeld();
+                }
+                public void RegisterNodes(List<Node> nodes)
+                {
+                    foreach (Node node in nodes)
+                    {
+                        NodeConnects.Add(0);
+                    }
+                    Nodes = nodes;
+                }
+                public void AddConnection(NodeTypes a, NodeTypes b)
+                {
+                    AddConnection(Nodes[(int)a], Nodes[(int)b]);
+                }
+                public void AddConnection(Connection c)
+                {
+                    Connections.Add(c);
+                }
+                public void AddConnection(Node a, Node b)
+                {
+                    Connections.Add(new Connection(a, b));
+                }
+                public void RemoveConnection(Connection c)
+                {
+                    Connections.Remove(c);
+                }
+                public void TransferHeldTo(Node node)
+                {
+                    foreach (Connection c in Held)
+                    {
+                        if (!c.Contains(node))
+                        {
+                            Node check = c.FirstValid();
+                            if (!HasPair(node, check))
+                            {
+                                c.Fill(node);
+                            }
+                            AddValidConnections(node, check);
+                        }
+                    }
+                    ClearHeld();
+                }
+                public void HoldAllConnectionsFrom(Node node)
+                {
+                    List<Connection> connections = GetConnectionsFrom(node);
+                    foreach (Connection c in connections)
+                    {
+                        RemoveConnection(c);
+                        c.Hold(node);
+                        Held.Add(c);
+                    }
+                }
+                public List<Connection> GetConnectionsFrom(Node node)
+                {
+                    List<Connection> output = new();
+                    foreach (Connection c in Connections)
+                    {
+                        if (c.Contains(node))
+                        {
+                            output.Add(c);
+                        }
+                    }
+                    return output;
+                }
+                public bool HasPair(Node a, Node b)
+                {
+                    foreach (Connection c in Connections)
+                    {
+                        if (c.Match(a, b))
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                public bool HasPair(NodeTypes a, NodeTypes b)
+                {
+                    return HasPair(Nodes[(int)a], Nodes[(int)b]);
+                }
+                public void ClearMain()
+                {
+                    List<Connection> toRemove = [.. Connections];
+                    foreach (Connection c in toRemove)
+                    {
+                        RemoveConnection(c);
+                    }
+                }
+                public void ClearHeld()
+                {
+                    Held.Clear();
+                }
+                public void Update()
+                {
+                    foreach (Connection c in Connections)
+                    {
+                        foreach (Node node in c.Nodes)
+                        {
+                            if (node != null)
+                            {
+                                NodeConnects[node.Index] += 1;
+                            }
+                        }
+                    }
+                    foreach (Node node in Nodes)
+                    {
+                        if (NodeConnects[node.Index] <= 0)
+                        {
+                            node.TurnOff();
+                        }
+                        else
+                        {
+                            node.TurnOn();
+                        }
+
+                    }
+                    NodeConnects = NodeConnects.Select(item => item = 0).ToList();
+                }
+                public void Render(Vector2 mouse)
+                {
+                    foreach (Connection c in Connections)
+                    {
+                        c.RenderNodeLine();
+                    }
+                    if (LeftHeld != null)
+                    {
+                        LeftHeld.RenderMouseLine(mouse);
+                    }
+                    else
+                    {
+                        foreach (Connection c in Held)
+                        {
+                            c.RenderMouseLine(mouse);
+                        }
+                    }
+                }
+            }
+            public class SubmitButton
+            {
+                public Vector2 Offset;
+                public bool ClickedFirstFrame;
+                public bool Colliding;
+                public MTexture IdleTex => GFX.Game[Path + "button"];
+                public MTexture PressedTex => GFX.Game[Path + "buttonPressed"];
+
+                public MTexture Texture => ClickedFirstFrame && Colliding ? PressedTex : IdleTex;
+                public SubmitButton(Vector2 offset)
+                {
+                    Offset = offset;
+                }
+                public void Render()
+                {
+                    Texture.Draw(Offset);
+                }
+                public bool Check(Vector2 pos)
+                {
+                    Vector2 check = Offset;
+                    float width = Texture.Width;
+                    float height = Texture.Height;
+                    if (pos.X > check.X && pos.Y > check.Y && pos.X < check.X + width)
+                    {
+                        return pos.Y < check.Y + height;
+                    }
+                    return false;
+                }
+            }
+            public VirtualRenderTarget Buffer, Buffer2;
+            public List<Node> Nodes = new();
+            public ConnectionList Connections;
+            public SubmitButton Button;
+            public MouseComponent Mouse;
+            public Inventory Inventory;
+            public float Alpha = 1;
+            public bool Standby;
+            public bool Finished;
+            public bool CollidingWithButton;
+            public WarpCapsule Parent;
+
+
+            public UI(WarpCapsule parent) : base()
+            {
+                Parent = parent;
+                Tag |= TagsExt.SubHUD;
+                Buffer = VirtualContent.CreateRenderTarget("RuneUIBuffer", 1920, 1080);
+                Buffer2 = VirtualContent.CreateRenderTarget("RuneUIBuffer", 1920, 1080);
+                Add(new BeforeRenderHook(BeforeRender));
+                Add(Mouse = new MouseComponent(OnLeftClick, OnRightClick, OnLeftRelease, OnRightRelease, OnLeftIdle, OnRightIdle, OnLeftHeld, OnRightHeld));
+                FadeIn();
+            }
+            public void FadeIn()
+            {
+                Standby = true;
+                Alpha = 0;
+                Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineOut, t => Alpha = t.Eased, t => { Standby = false; Alpha = 1; });
+            }
+            public void FadeOut(bool removeSelf = false)
+            {
+                Standby = true;
+                Alpha = 1;
+                Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineOut, t => Alpha = 1 - t.Eased, t => { Standby = false; Alpha = 0; Finished = true; if (removeSelf) RemoveSelf(); });
+            }
+            public override void Added(Scene scene)
+            {
+                base.Added(scene);
+
+                Vector2 center = new Vector2(1920, 1080) / 2;
+                float spacing = 300;
+                for (int i = 0; i < 3; i++)
+                {
+                    Nodes.Add(new Node(center + new Vector2(-spacing + spacing * i, -spacing), (NodeTypes)i));
+                }
+                for (int i = 0; i < 4; i++)
+                {
+                    Nodes.Add(new Node(center + (Vector2.UnitX * (spacing * -1.5f + (i * spacing))), (NodeTypes)(3 + i)));
+                }
+                for (int i = 0; i < 3; i++)
+                {
+                    Nodes.Add(new Node(center + new Vector2(-spacing + spacing * i, spacing), (NodeTypes)(7 + i)));
+                }
+                Connections = new(Nodes);
+                Button = new SubmitButton(new Vector2(50, 1080 - 209));
+                Inventory = new(Connections, 60);
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (Standby) return;
+                if (Input.DashPressed)
+                {
+                    FadeOut(true);
+                }
+                Vector2 pos = Mouse.MousePosition;
+                Connections.Update();
+                CollidingWithButton = Button.Check(pos);
+                Inventory.Update(Mouse);
+            }
+            public void OnLeftClick()
+            {
+                Button.ClickedFirstFrame = CollidingWithButton;
+                Connections.OnLeftClick(GetFirstCollided());
+            }
+            public void OnLeftRelease()
+            {
+                if (Button.ClickedFirstFrame && CollidingWithButton)
+                {
+                    CheckRune();
+                }
+                Button.ClickedFirstFrame = false;
+                Connections.OnLeftRelease(GetFirstCollided());
+            }
+            public void OnLeftIdle()
+            {
+                ResetButton();
+            }
+            public void OnLeftHeld()
+            {
+                Button.Colliding = Button.ClickedFirstFrame && CollidingWithButton;
+                Connections.OnLeftHeld(Mouse.MousePosition, GetFirstCollided());
+            }
+            public Node GetFirstCollided()
+            {
+                Vector2 m = Mouse.MousePosition;
+                foreach (Node n in Nodes)
+                {
+                    if (n.Check(m))
+                    {
+                        return n;
+                    }
+                }
+                return null;
+            }
+            public void OnRightClick()
+            {
+                Connections.OnRightClick(GetFirstCollided());
+
+            }
+            public void OnRightRelease()
+            {
+                Connections.OnRightRelease(GetFirstCollided());
+            }
+            public void OnRightHeld()
+            {
+
+            }
+            public void OnRightIdle()
+            {
+
+            }
+            public void ResetButton()
+            {
+                Button.Colliding = false;
+                Button.ClickedFirstFrame = false;
+            }
+            public Rune CreateRune()
+            {
+                List<(int, int)> list = new();
+                List<Connection> unique = Connections.Connections.Distinct().ToList();
+                foreach (Connection c in unique)
+                {
+                    if (c.TryGetTuple(out var tuple))
+                    {
+                        list.Add(tuple);
+                    }
+                }
+                return new Rune("", list);
+            }
+            public void CheckRune()
+            {
+                Button.ClickedFirstFrame = false;
+                Button.Colliding = false;
+                if (RuneExists(CreateRune(), out Rune orderedRune))
+                {
+                    WarpCapsule.ObtainedRunes.TryAdd(orderedRune);
+                    ClearAll();
+                    FadeOut(true);
+                    Parent.WarpRune = orderedRune;
+                }
+            }
+            public void ClearAll()
+            {
+                Connections.ClearMain();
+            }
+            public void DrawLine(Node a, Node b, Color color, int thickness)
+            {
+                Draw.Line(a.Center, b.Center, color, thickness);
+            }
+            public void BeforeRender()
+            {
+                if (Alpha > 0)
+                {
+                    Buffer2.SetAsTarget(true);
+                    Draw.SpriteBatch.StandardBegin(Matrix.Identity, BlendState.AlphaBlend, null);
+                    Connections.Render(Mouse.MousePosition);
+                    Draw.SpriteBatch.End();
+
+                    Buffer.SetAsTarget(Color.Black);
+                    Draw.SpriteBatch.StandardBegin(Matrix.Identity);
+                    foreach (Node node in Nodes)
+                    {
+                        node.DrawTexture();
+                    }
+                    Button.Render();
+                    Draw.SpriteBatch.Draw(Buffer2, Vector2.Zero, Color.White);
+                    Inventory.Render();
+                    Draw.SpriteBatch.End();
+                }
+            }
+            public override void Render()
+            {
+                base.Render();
+                if (Alpha > 0)
+                {
+                    Draw.SpriteBatch.Draw(Buffer, Vector2.Zero, Color.White * Alpha);
+                }
+            }
+            public override void Removed(Scene scene)
+            {
+                base.Removed(scene);
+                Buffer?.Dispose();
+                Buffer = null;
+                Buffer2?.Dispose();
+                Buffer2 = null;
+            }
+        }
+        public bool IsFirstTime => WarpCapsule.ObtainedRunes.Count < 1 && PianoModule.Session.TimesUsedCapsuleWarp < 1 && Marker.TryFind("isStartingWarpRoom", out _);
         public const int XOffset = 10;
         public const string Path = "objects/PuzzleIslandHelper/digiWarpReceiver/";
         public static MTexture LonnTexture => GFX.Game[Path + "lonn"];
@@ -1538,16 +1681,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Door LeftDoor, RightDoor;
         public WarpBeam Beam;
         public Rune WarpRune;
-        public WarpCapsuleData RuneData
+        public WarpCapsuleData RuneData => GetWarpData(WarpRune);
+        public string RuneString
         {
             get
             {
-                if (WarpRune != null && PianoMapDataProcessor.WarpRunes.TryGetValue(WarpRune, out WarpCapsuleData value))
-                {
-                    return value;
-                }
-                return null;
-
+                if (WarpRune == null) return "Rune is null";
+                string tostring = WarpRune.ToString();
+                if (string.IsNullOrEmpty(tostring)) return "Rune is null";
+                else return tostring;
             }
         }
         public WarpCapsule(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
@@ -1569,9 +1711,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(Talk = new DotX3(Collider, Interact));
             Add(new BathroomStallComponent(null, Block, Unblock));
         }
-        public override void Added(Scene scene)
+        public override void Awake(Scene scene)
         {
-            base.Added(scene);
+            base.Awake(scene);
             Floor = new SnapSolid(Position + Vector2.UnitY * Height, Width, 2, true) { Fg };
             Shine = new Entity(Position) { ShineTex };
             Shine.Depth = Floor.Depth - 1;
@@ -1579,7 +1721,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             RightDoor = new Door(Center, 1, XOffset);
             scene.Add(Floor, Shine, LeftDoor, RightDoor);
             scene.Add(InputMachine);
-            if (IsFirstTime || Inventory.ObtainedRunes.Count < 2)
+            if (IsFirstTime || WarpCapsule.ObtainedRunes.Count < 2)
             {
                 InputMachine.TurnOff();
             }
@@ -1598,7 +1740,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (IsFirstTime)
             {
                 WarpRune = Rune.Default;
+                Enabled = true;
+                InstantOpenDoors();
             }
+            else
             if (WarpIsValid())
             {
                 InstantOpenDoors();
@@ -1623,14 +1768,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             ShineTex.Color = Color.White * ShineAmount;
             if (!InCutscene)
             {
-                bool valid = WarpIsValid();
-                Enabled = valid;
-                if (DoorStallTimer <= 0)
+                if (!IsFirstTime)
                 {
-                    MoveAlongTowards(valid);
+                    bool valid = WarpIsValid();
+                    Enabled = valid;
+                    if (DoorStallTimer <= 0)
+                    {
+                        MoveAlongTowards(valid);
+                    }
                 }
             }
-
         }
         public override void Render()
         {
@@ -1753,15 +1900,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             LeftDoor.MoveToBg();
             RightDoor.MoveToBg();
             DoorStallTimer = 0.5f;
-            /*            if (Primary)
-                        {
-                            yield return MoveTo(0, 1, 0.8f, null);
-                            Enabled = false;
-                        }
-                        else
-                        {
-                            Enabled = true;
-                        }*/
+            Enabled = true;
             player.StateMachine.State = Player.StNormal;
         }
         public IEnumerator OutroRoutine(Player player)
@@ -1795,7 +1934,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Scale = Vector2.One;
         }
-
+        [Command("reset_runes", "clears all collected runes from inventory")]
+        public static void EraseRunes()
+        {
+            ObtainedRunes.Clear();
+        }
         [OnLoad]
         public static void Load()
         {
@@ -1805,6 +1948,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static void Unload()
         {
             On.Celeste.Player.Render -= Player_Render;
+
         }
 
         private static void Player_Render(On.Celeste.Player.orig_Render orig, Player self)

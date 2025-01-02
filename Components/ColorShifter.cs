@@ -11,6 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         private Color[] OriginalColors;
         public bool HasBeenAdded;
         public float Rate = 1;
+        public float OriginalRate = 1;
         public float TimeLeft;
         public float Duration;
         public float Percent;
@@ -45,6 +46,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             }
             TimeLeft = Duration = duration;
 
+        }
+        public override void Added(Entity entity)
+        {
+            base.Added(entity);
+            OriginalRate = Rate;
         }
         public void AdvanceColors()
         {

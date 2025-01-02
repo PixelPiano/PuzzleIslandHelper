@@ -28,13 +28,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             }
         }
         public string ActiveFlag;
-        public bool State
-        {
-            get
-            {
-                return !string.IsNullOrEmpty(ActiveFlag) || SceneAs<Level>().Session.GetFlag(ActiveFlag);
-            }
-        }
+        public bool FlagState => string.IsNullOrEmpty(ActiveFlag) || SceneAs<Level>().Session.GetFlag(ActiveFlag);
         private bool state;
         public Vector2 Speed;
         public bool onGround;
@@ -86,7 +80,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public override void Update()
         {
             base.Update();
-            state = State;
+            state = FlagState;
             if(!state) return;
             if (!HasGravity)
             {

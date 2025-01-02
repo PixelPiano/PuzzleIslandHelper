@@ -49,6 +49,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
             parameters["ViewMatrix"]?.SetValue(matrix);
+
+            //for compatibility with base game shaders/shaders based on base game shaders
+            Vector2 vector = new Vector2(Engine.Graphics.GraphicsDevice.Viewport.Width, Engine.Graphics.GraphicsDevice.Viewport.Height);
+            matrix *= Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
+            matrix *= Matrix.CreateTranslation(-1f, 1f, 0f);
+            parameters["World"]?.SetValue(matrix);
+
+            //additional value for control
             if (amplitude.HasValue)
             {
                 parameters["Amplitude"]?.SetValue(amplitude.Value);

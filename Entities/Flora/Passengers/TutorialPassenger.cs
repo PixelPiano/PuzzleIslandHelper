@@ -15,19 +15,48 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         private string id => DataCutsceneID;
 
         public float NormalBreath;
+        public float SavedBreath;
         public float[] Dimming = new float[3];
         public float[] DimmingTimers = new float[3];
         private float min, max;
         private int lastDimmed = -1;
+        private Coroutine multRoutine;
+        public float prevPosition;
         public TutorialPassenger(EntityData data, Vector2 offset) : base(data, offset)
         {
+            prevPosition = Position.X;
+            Outline = true;
             NormalBreath = BreathDuration;
             Breathes = false;
             MainWiggleMult = 0;
-            Dimming = new float[3] { 0.7f, 0.7f, 0.7f };
+            Dimming = [0.5f, 0.5f, 0.5f];
             min = 0.1f;
             max = 0.6f;
             Add(new TextboxListener("Tutorial", OnChar));
+            Add(multRoutine = new Coroutine(false));
+        }
+        private IEnumerator multRatesTo(float time, float from, float to, float breathFrom, float breathTo)
+        {
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                BreathDuration = SavedBreath * Calc.LerpClamp(breathFrom, breathTo, i);
+                float mult = Calc.LerpClamp(from, to, i);
+                foreach (ColorShifter cs in Shifters)
+                {
+                    cs.Rate = cs.OriginalRate * mult;
+                }
+                yield return null;
+            }
+            BreathDuration = SavedBreath * breathTo;
+        }
+        public void DivideInstruction()
+        {
+            SavedBreath = BreathDuration;
+            multRoutine.Replace(multRatesTo(0.8f, 1, 6, 1, 0.1f));
+        }
+        public void DivideInstructionEnd()
+        {
+            multRoutine.Replace(multRatesTo(1.6f, 6, 1, 0.1f, 1));
         }
         public void OnChar(FancyText.Portrait portrait, FancyText.Char c)
         {
@@ -52,9 +81,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if ((scene as Level).Session.GetFlag("BeginningTalkCutsceneWatched"))
+            /*            if ((scene as Level).Session.GetFlag("BeginningTalkCutsceneWatched"))
+                        {
+                            TurnOn();
+                        }
+                        else
+                        {
+                            foreach (ColorShifter shifter in Shifters)
+                            {
+                                shifter.Active = false;
+                            }
+                        }*/
+            foreach (ColorShifter shifter in Shifters)
             {
-                TurnOn();
+                shifter.Active = false;
             }
             for (int i = 0; i < 3; i++)
             {
@@ -90,9 +130,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public bool TurningOn;
         public void TurnOn()
         {
+            foreach (ColorShifter shifter in Shifters)
+            {
+                shifter.Active = true;
+            }
             TurnedOn = true;
             TurningOn = false;
-            for(int i = 0; i<3; i++)
+            for (int i = 0; i < 3; i++)
             {
                 DimmingTimers[i] = 0;
                 Dimming[i] = 0;
@@ -100,11 +144,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             BreathDuration = NormalBreath;
             Breathes = true;
             MainWiggleMult = 1;
+
+        }
+        public void TurnOff()
+        {
+            foreach (ColorShifter shifter in Shifters)
+            {
+                shifter.Active = false;
+            }
+            TurnedOn = false;
+            TurningOn = false;
+            for (int i = 0; i < 3; i++)
+            {
+                DimmingTimers[i] = 0;
+                Dimming[i] = 0.7f;
+            }
+            Breathes = false;
+            MainWiggleMult = 1;
+
         }
         public IEnumerator TurnOnRoutine()
         {
             Breathes = true;
             TurningOn = true;
+            foreach (ColorShifter shifter in Shifters)
+            {
+                shifter.Active = true;
+            }
             for (float i = 0; i < 1; i += Engine.DeltaTime / 1.6f)
             {
                 min = Calc.LerpClamp(0.1f, Engine.DeltaTime, i);
@@ -124,6 +190,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 BreathDuration = Calc.LerpClamp(NormalBreath * 0.8f, NormalBreath, Ease.SineInOut(i));
                 yield return null;
             }
+        }
+        public IEnumerator TurnOffRoutine()
+        {
+            Breathes = true;
+            TurnedOn = false;
+            TurningOn = true;
+            foreach (ColorShifter shifter in Shifters)
+            {
+                shifter.Active = true;
+            }
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 1.6f)
+            {
+                min = Calc.LerpClamp(0.1f, Engine.DeltaTime, 1 - i);
+                max = Calc.LerpClamp(0.6f, Engine.DeltaTime * 2, 1 - i);
+                BreathDuration = Calc.LerpClamp(10, NormalBreath * 0.8f, Ease.SineInOut(1 - i));
+                MainWiggleMult = Calc.LerpClamp(0, 1f, Ease.SineInOut(1 - i));
+                yield return null;
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                Dimming[i] = 0.7f;
+            }
+            TurnedOn = false;
+            TurningOn = false;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 0.6f)
+            {
+                BreathDuration = Calc.LerpClamp(NormalBreath * 0.8f, NormalBreath, Ease.SineInOut(1 - i));
+                yield return null;
+            }
+            foreach (ColorShifter shifter in Shifters)
+            {
+                shifter.Active = false;
+            }
+            Breathes = false;
         }
     }
 

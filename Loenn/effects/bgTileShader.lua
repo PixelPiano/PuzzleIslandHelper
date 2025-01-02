@@ -1,10 +1,18 @@
-local bgTilesShader = {}
+local tilesShader = {}
 
-bgTilesShader.name = "PuzzleIslandHelper/TilesShader"
+tilesShader.name = "PuzzleIslandHelper/TilesShader"
 
-bgTilesShader.defaultData = 
+local op = {"Foreground","Background"}
+tilesShader.defaultData = 
 {
-   shader = ""
+   effect = "",
+   tiles = "Foreground"
 }
-
-return bgTilesShader
+tilesShader.fieldInformation = 
+{
+	tiles = {
+		options = op,
+		editable = false
+	}
+}
+return tilesShader

@@ -982,11 +982,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     return;
                 }
                 //Run a DFS (depth first search)
-                Stack<Tuple<int, int>> dfsStack = new Stack<Tuple<int, int>>();
-                dfsStack.Push(new Tuple<int, int>(0, 0));
+                Stack<(int, int)> dfsStack = new Stack<(int, int)>();
+                dfsStack.Push((0, 0));
                 while (dfsStack.Count > 0)
                 {
-                    Tuple<int, int> nodeCoords = dfsStack.Pop();
+                    (int, int) nodeCoords = dfsStack.Pop();
                     int x = nodeCoords.Item1, y = nodeCoords.Item2;
 
                     //Check if this node has already been visited
@@ -1002,7 +1002,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         {
                             hitDanger = true;
                         }
-                        dfsStack.Push(new Tuple<int, int>(x - 1, y));
+                        dfsStack.Push((x - 1, y));
                     }
                     if (x < Columns - 1 && Nodes[x, y].Sides.Contains(Side.Right) && Nodes[x + 1, y].Sides.Contains(Side.Left))
                     {
@@ -1011,7 +1011,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         {
                             hitDanger = true;
                         }
-                        dfsStack.Push(new Tuple<int, int>(x + 1, y));
+                        dfsStack.Push((x + 1, y));
                     }
                     if (y > 0 && Nodes[x, y].Sides.Contains(Side.Up) && Nodes[x, y - 1].Sides.Contains(Side.Down))
                     {
@@ -1020,7 +1020,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         {
                             hitDanger = true;
                         }
-                        dfsStack.Push(new Tuple<int, int>(x, y - 1));
+                        dfsStack.Push((x, y - 1));
                     }
                     if (y < Rows - 1 && Nodes[x, y].Sides.Contains(Side.Down) && Nodes[x, y + 1].Sides.Contains(Side.Up))
                     {
@@ -1029,7 +1029,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         {
                             hitDanger = true;
                         }
-                        dfsStack.Push(new Tuple<int, int>(x, y + 1));
+                        dfsStack.Push((x, y + 1));
                     }
                     InDanger = hitDanger;
                 }

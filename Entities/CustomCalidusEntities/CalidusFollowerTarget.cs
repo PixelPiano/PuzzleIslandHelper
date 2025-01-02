@@ -1,24 +1,88 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
 {
-
+    [ConstantEntity("PuzzleIslandHelper/CalidusFollowerTarget")]
     [Tracked]
     public class CalidusFollowerTarget : Entity
     {
+        public class CustomLeader : Leader
+        {
+            public float SnapTimer;
+            public void Snap(float duration)
+            {
+                Vector2 position = Entity.Position + Position;
+                for (int i = 0; i < PastPoints.Count; i++)
+                {
+                    PastPoints[i] = position;
+                }
+                SnapTimer = duration;
+
+            }
+            public override void Update()
+            {
+                base.Update();
+                Vector2 vector = Entity.Position + Position;
+                if (SnapTimer > 0 || (Scene.OnInterval(0.02f) && (PastPoints.Count == 0 || (vector - PastPoints[0]).Length() >= 3f)))
+                {
+                    PastPoints.Insert(0, vector);
+                    if (PastPoints.Count > 350)
+                    {
+                        PastPoints.RemoveAt(PastPoints.Count - 1);
+                    }
+                }
+
+                int num = 5;
+                foreach (Follower follower in Followers)
+                {
+                    if (num >= PastPoints.Count)
+                    {
+                        break;
+                    }
+
+                    Vector2 vector2 = PastPoints[num];
+                    if (follower.DelayTimer <= 0f && follower.MoveTowardsLeader)
+                    {
+                        if (SnapTimer > 0)
+                        {
+                            follower.Entity.Position = vector;
+                        }
+                        else
+                        {
+                            follower.Entity.Position = follower.Entity.Position + (vector2 - follower.Entity.Position) * (1f - (float)Math.Pow(0.0099999997764825821, Engine.DeltaTime));
+                        }
+                    }
+
+                    num += 5;
+                }
+                if (SnapTimer > 0)
+                {
+                    SnapTimer -= Engine.DeltaTime;
+                }
+            }
+        }
         public float XOffset;
         public Vector2 Offset;
         public Vector2 AdditionalOffset;
-        public Leader Leader;
+        public CustomLeader Leader;
         public Entity Follow;
         public Calidus Calidus;
-        public CalidusFollowerTarget(Entity follow = null) : base()
+        public CalidusFollowerTarget() : base()
         {
             Tag |= Tags.TransitionUpdate | Tags.Global;
-            Leader = new Leader();
+            Leader = new CustomLeader();
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
             Add(Leader);
-            Follow = follow;
+            Player player = scene.GetPlayer();
+            Follow = player;
+            Offset.X = -(int)player.Facing * 10;
+            Offset.Y = -20f;
         }
         public static void SetOffset(Vector2 offset)
         {
@@ -46,7 +110,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         {
             Active = true;
         }
-        public void Stop()
+        public void Pause()
         {
             Active = false;
         }
@@ -65,31 +129,60 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             Calidus = Scene.Tracker.GetEntity<Calidus>();
             if (Scene.GetPlayer() is Player player)
             {
-                Offset.X = Calc.Approach(Offset.X, -(int)player.Facing * 10, Engine.DeltaTime * 25f);
-                Offset.Y = Calc.Approach(Offset.Y, -20, Engine.DeltaTime * 25f);
+                if (Math.Abs(player.Speed.X) > 0)
+                {
+                    Offset.X = Calc.Approach(Offset.X, -(int)player.Facing * 10, Engine.DeltaTime * 70f);
+                }
                 Follow = player;
             }
-            
             Position = new Vector2(Follow.CenterX, Follow.Top) + Offset + AdditionalOffset;
         }
-        /*        [OnLoad]
-                public static void Load()
-                {
-                    Everest.Events.Player.OnSpawn += Player_OnSpawn;
-                }
+        [OnLoad]
+        public static void Load()
+        {
+            Everest.Events.Player.OnDie += Player_OnDie;
+            Everest.Events.Player.OnSpawn += Player_OnSpawn;
+        }
 
-                [OnUnload]
-                public static void Unload()
-                {
-                    Everest.Events.Player.OnSpawn -= Player_OnSpawn;
-                }
-                private static void Player_OnSpawn(Player obj)
-                {
-                    var f = obj.Scene.Tracker.GetEntity<CalidusFollowerTarget>();
-                    if (f != null)
-                    {
-                        f.Position = obj.Position;
-                    }
-                }*/
+        private static bool spawnCalidusOnPlayerSpawn;
+        private static void Player_OnSpawn(Player obj)
+        {
+            if (spawnCalidusOnPlayerSpawn)
+            {
+                AddCalidusFollower();
+                spawnCalidusOnPlayerSpawn = false;
+            }
+        }
+
+        private static void Player_OnDie(Player obj)
+        {
+            Calidus calidus = obj.Scene.Tracker.GetEntity<Calidus>();
+            if (calidus != null && calidus.Following && calidus.FollowTarget.Follow == obj)
+            {
+                spawnCalidusOnPlayerSpawn = true;
+            }
+        }
+
+        [OnUnload]
+        public static void Unload()
+        {
+            Everest.Events.Player.OnDie -= Player_OnDie;
+            Everest.Events.Player.OnSpawn -= Player_OnSpawn;
+        }
+        [Command("add_calidus_follower", "adds a good boy to follow you and look at you")]
+        public static void AddCalidusFollower()
+        {
+            if (Engine.Scene is not Level level || level.Tracker.GetEntity<CalidusFollowerTarget>() is not CalidusFollowerTarget target) return;
+            AddCalidusFollower(target);
+        }
+        public static void AddCalidusFollower(CalidusFollowerTarget target)
+        {
+            Calidus c = Calidus.Create();
+            c.FollowTarget = target;
+            c.CreateFollower();
+            c.Position = target.Position;
+            c.StartFollowing(Calidus.Looking.Player);
+            target.Leader.Snap(0.5f);
+        }
     }
 }
