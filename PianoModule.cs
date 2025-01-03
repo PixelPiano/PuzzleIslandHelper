@@ -2,6 +2,7 @@
 using System;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using System.Reflection;
+using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -19,6 +20,21 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static GameshowData GameshowData { get; set; }
         public static AccessData AccessData { get; set; }
         public static MazeData MazeData { get; set; }
+        public static string MapName
+        {
+            get
+            {
+                string o = "";
+                if (Engine.Scene is Level level)
+                {
+                    o = level.Session.MapData.Data.Name;
+                }
+                return o;
+            }
+        }
+        public static bool IsPuzzleIsland => MapName.StartsWith("Piano_Boy/Puzzle_Island");
+        public static bool IsMap1 => MapName == "Piano_Boy/Puzzle_Island/map1";
+        public static bool IsMap2 => MapName == "Piano_Boy/Puzzle_Island/map2";
         public PianoModule()
         {
             Instance = this;

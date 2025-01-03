@@ -5,6 +5,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSaveData : EverestModuleSaveData
     {
+        public bool PlayerFixedWarpDisplay { get; set; }
+        public bool PlayerHasWarpDisplayPart { get; set; }
         public PlayerCalidus.CalidusInventory CalidusInventory { get; set; }
         public Dictionary<string, bool> Achievements = new();
         public void GiveAchievement(string name)

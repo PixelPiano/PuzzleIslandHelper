@@ -27,35 +27,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         [Tracked]
         public class Machine : Entity
         {
-            public static MTexture Texture => GFX.Game[Path + "terminalStand"];
-            public static MTexture ScreenTex => GFX.Game[Path + "screen"];
+            public static MTexture Texture => GFX.Game[Path + "control"];
+            public static MTexture EmptyTex => GFX.Game[Path + "controlEmpty"];
+            public static MTexture FilledTex => GFX.Game[Path + "controlFilled"];
             public Image Image;
             public Image Screen;
             public WarpCapsule Parent;
             public DotX3 Talk;
             public UI UI;
             public bool Blocked;
-            public bool On = true;
+            public bool Filled => PianoModule.SaveData.PlayerFixedWarpDisplay;
+            public bool PlayerHasItem => PianoModule.SaveData.PlayerHasWarpDisplayPart;
             public Machine(WarpCapsule parent, Vector2 position) : base(position)
             {
                 Depth = 10;
                 Parent = parent;
                 Collider = new Hitbox(Texture.Width, Texture.Height);
-                Add(Screen = new Image(ScreenTex, true));
+                Add(Screen = new Image(EmptyTex, true));
                 Add(Image = new Image(Texture, true));
                 Talk = new DotX3(Collider, Interact);
                 Add(Talk);
                 Add(new BathroomStallComponent(null, Block, Unblock));
-                TurnOn();
             }
-
             public override void Update()
             {
                 base.Update();
-                Talk.Enabled = Parent.Accessible && !Blocked;
+                Talk.Enabled = Parent.Accessible && !Blocked && (Filled || PlayerHasItem);
             }
             public override void Render()
             {
+                Screen.Texture = Filled ? FilledTex : EmptyTex;
                 Image.DrawSimpleOutline();
                 base.Render();
             }
@@ -71,40 +72,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Alarm.Set(this, 0.3f, delegate { Blocked = false; });
             }
-            public void TurnOn()
+            public static void Fill()
             {
-                On = true;
-                Screen.Color = Color.Blue;
-                //Add(new Coroutine(TurnOnRoutine()));
-            }
-            public void TurnOff()
-            {
-                On = false;
-                Screen.Color = Color.Black;
+                //todo:add placing sound
+                PianoModule.SaveData.PlayerHasWarpDisplayPart = true;
+                PianoModule.SaveData.PlayerFixedWarpDisplay = true;
             }
             public IEnumerator Sequence(Player player)
             {
                 player.DisableMovement();
-                string dialog = Parent.IsFirstTime ? "WontTurnOn" : WarpCapsule.ObtainedRunes.Count < 2 ? "WarpBroken" : null;
-                if (!string.IsNullOrEmpty(dialog))
+                if (!Filled)
                 {
-                    yield return Textbox.Say(dialog);
-                    player.EnableMovement();
-                }
-                else
-                {
-                    Scene.Add(UI = new UI(Parent));
-                    while (!UI.Finished)
+                    if (PlayerHasItem)
                     {
-                        yield return null;
+                        IEnumerator placePart()
+                        {
+                            Fill();
+                            yield return null;
+                        }
+                        yield return Textbox.Say("PlaceMachinePart", placePart);
                     }
-                    WarpCapsule.ObtainedRunes.TryAdd(Parent.WarpRune, false);
+                    else
+                    {
+                        yield return Textbox.Say("MachineEmpty");
+                        player.EnableMovement();
+                        yield break;
+                    }
                 }
+                Scene.Add(UI = new UI(Parent));
+                while (!UI.Finished)
+                {
+                    yield return null;
+                }
+                ObtainedRunes.TryAdd(Parent.WarpRune, false);
                 player.EnableMovement();
-            }
-            public IEnumerator TurnOnRoutine()
-            {
-                yield return null;
             }
             /*public IEnumerator origCutscene(Player player)
             {
@@ -1620,13 +1621,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Draw.Line(a.Center, b.Center, color, thickness);
             }
+            public MTexture Cursor => GFX.Game["objects/PuzzleIslandHelper/runeUI/cursor"];
             public void BeforeRender()
             {
                 if (Alpha > 0)
                 {
+                    Vector2 p = Mouse.MousePosition;
                     Buffer2.SetAsTarget(true);
                     Draw.SpriteBatch.StandardBegin(Matrix.Identity, BlendState.AlphaBlend, null);
-                    Connections.Render(Mouse.MousePosition);
+                    Connections.Render(p);
                     Draw.SpriteBatch.End();
 
                     Buffer.SetAsTarget(Color.Black);
@@ -1638,6 +1641,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Button.Render();
                     Draw.SpriteBatch.Draw(Buffer2, Vector2.Zero, Color.White);
                     Inventory.Render();
+                    Cursor.DrawCentered(p);
+
                     Draw.SpriteBatch.End();
                 }
             }
@@ -1721,14 +1726,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             RightDoor = new Door(Center, 1, XOffset);
             scene.Add(Floor, Shine, LeftDoor, RightDoor);
             scene.Add(InputMachine);
-            if (IsFirstTime || WarpCapsule.ObtainedRunes.Count < 2)
-            {
-                InputMachine.TurnOff();
-            }
-            else
-            {
-                InputMachine.TurnOn();
-            }
             if (PianoModule.Session.PersistentWarpLinks.TryGetValue(ID, out string value))
             {
                 TargetID = value;

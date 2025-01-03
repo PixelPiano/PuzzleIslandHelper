@@ -9,11 +9,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
     [TrackedAs(typeof(EventTrigger))]
     public class FlagEventTrigger : EventTrigger
     {
-        private List<(string, bool)> RequiredFlags;
-        private List<(string, bool)> StartFlags;
-        private List<(string, bool)> InvertFlags;
-        private bool oncePerLevel;
-        private bool oncePerSession;
+        private readonly List<(string, bool)> RequiredFlags;
+        private readonly List<(string, bool)> StartFlags;
+        private readonly List<(string, bool)> InvertFlags;
+        private readonly bool oncePerLevel;
+        private readonly bool oncePerSession;
         private EntityID ID;
         public FlagEventTrigger(EntityData data, Vector2 offset, EntityID id) : base(data, offset)
         {
@@ -26,7 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         }
         public override void OnEnter(Player player)
         {
-            if (CheckRequiredFlags())
+            if (RequiredFlags.CheckAll())
             {
                 if (!triggered)
                 {
@@ -43,11 +43,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 if (oncePerSession) SceneAs<Level>().Session.DoNotLoad.Add(ID);
                 if (oncePerLevel) RemoveSelf();
             }
-        }
-        public bool CheckRequiredFlags()
-        {
-            Level level = Scene as Level;
-            return RequiredFlags.Exists(item => level.Session.GetFlag(item.Item1) != item.Item2);
         }
     }
 }

@@ -2,6 +2,7 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
+using System.Collections;
 // PuzzleIslandHelper.ArtifactSlot
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -24,12 +25,55 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             position = Vector2.Zero;
             Marker marker = Find(name);
-            if(marker != null)
+            if (marker != null)
             {
                 position = marker.Position;
                 return true;
             }
             return false;
+        }
+        public static IEnumerator ZoomTo(string name, float zoom, float duration)
+        {
+            if (Engine.Scene is Level level)
+            {
+                if (TryFind(name, out Vector2 pos))
+                {
+                    yield return level.ZoomTo(pos - level.Camera.Position, zoom, duration);
+                }
+            }
+        }
+        public static IEnumerator CameraTo(string name, Ease.Easer ease, float duration, bool x, bool y)
+        {
+            if (Engine.Scene is Level level)
+            {
+                if (TryFind(name, out Vector2 pos))
+                {
+                    Vector2 from = level.Camera.Position;
+                    if (x && y)
+                    {
+                        yield return PianoUtils.Lerp(ease, duration, f => level.Camera.Position = Vector2.Lerp(from, pos, f));
+                    }
+                    else if (x)
+                    {
+                        yield return PianoUtils.Lerp(ease, duration, f => level.Camera.Position = Vector2.Lerp(from, new Vector2(pos.X, from.Y), f));
+                    }
+                    else if (y)
+                    {
+                        yield return PianoUtils.Lerp(ease, duration, f => level.Camera.Position = Vector2.Lerp(from, new Vector2(from.X, pos.Y), f));
+                    }
+                }
+            }
+        }
+        public static IEnumerator WalkTo(string name, Facings? endFacing = null, bool walkBackwards = false, float speedMult = 1, bool keepWalkingIntoWalls = false)
+        {
+            if (Engine.Scene is Level level && level.GetPlayer() is Player player && TryFind(name, out Vector2 pos))
+            {
+                yield return player.DummyWalkTo(pos.X, walkBackwards, speedMult, keepWalkingIntoWalls);
+                if (endFacing.HasValue)
+                {
+                    player.Facing = endFacing.Value;
+                }
+            }
         }
         public static Marker Find(string name)
         {
