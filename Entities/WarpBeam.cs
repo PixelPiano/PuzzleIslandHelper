@@ -32,9 +32,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool ReadyForScale;
         public bool Finished;
         public float scaleTargetMult = 1;
+        public bool Returning;
         public List<PulseRing> Rings = new();
-        public WarpBeam(WarpCapsule parent)
+        public WarpBeam(WarpCapsule parent, bool isReturnTrip)
         {
+            Returning = isReturnTrip;
             Depth = -100000;
             Parent = parent;
             Glow = new Image(GFX.Game["objects/PuzzleIslandHelper/digiWarpReceiver/glow"], true);
@@ -45,7 +47,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            Add(new Coroutine(ScaleRoutine()));
+            if (!Returning)
+            {
+                Add(new Coroutine(ScaleRoutine()));
+            }
             Position = Parent.TopCenter;
         }
         public void AddPulses()

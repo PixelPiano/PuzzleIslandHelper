@@ -1,5 +1,10 @@
 local wipEntity = {}
-
+local drawableSprite = require("structs.drawable_sprite")
+local utils = require("utils")
+local drawableFunction = require("structs.drawable_function")
+local drawing = require("utils.drawing")
+local drawableLine = require("structs.drawable_line")
+local logging = require("logging")
 wipEntity.justification = { 0, 0 }
 
 wipEntity.name = "PuzzleIslandHelper/WipEntity"
@@ -15,7 +20,8 @@ wipEntity.placements =
             floatValue = 0,
             boolValue = false,
             stringValue = "",
-            name = ""
+            name = "",
+            indices = "02 23"
         }
     }
 }
@@ -27,4 +33,5 @@ wipEntity.fieldInformation =
         allowXNAColors = true,
     }
 }
+
 return wipEntity

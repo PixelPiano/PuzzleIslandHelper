@@ -35,14 +35,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             foreach (KeyValuePair<string, WarpCapsuleData> pair in PianoMapDataProcessor.WarpLinks)
             {
                 string text = pair.Key;
-                if (!string.IsNullOrEmpty(pair.Value.Password))
+/*                if (!string.IsNullOrEmpty(pair.Value.Password))
                 {
                     text += ", " + pair.Value.Password;
                 }
                 else
                 {
                     text += " {NO PASSWORD PROVIDED}";
-                }
+                }*/
                 AddText(text, Color.Gray);
                 added = true;
             }
@@ -128,7 +128,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 yield break;
             }*/
             WarpCapsuleData data = PianoMapDataProcessor.WarpLinks[name];
-            if (!string.IsNullOrWhiteSpace(data.Password))
+/*            if (!string.IsNullOrWhiteSpace(data.Password))
             {
                 string dataPass = data.Password.Replace(" ", "").ToLower();
                 string password = "";
@@ -149,7 +149,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                     }
                     yield break;
                 }
-            }
+            }*/
             SetTarget(name, data.Name);
             yield return 0.7f;
             AddText("To exit the console, use the \"exit\" command.");

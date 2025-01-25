@@ -34,24 +34,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         {
             public delegate Entity ContentLoader();
             public static readonly Dictionary<string, ContentLoader> ContentLoaders = new Dictionary<string, ContentLoader>();
-            public static bool AddConstantEntity(string name, Level level)
-            {
-                var entity = Create(name);
-                if (entity != null)
-                {
-                    level.Add(entity);
-                }
-                return entity != null;
-            }
-            public static Entity Create(string name)
-            {
-                if (ContentLoaders.TryGetValue(name, out var value))
-                {
-                    var cutscene = value();
-                    return cutscene;
-                }
-                return null;
-            }
             [OnLoad]
             public static void Load()
             {
@@ -115,13 +97,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             {
                 Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;
             }
-
+            [Command("isPuzzleIsland","as")]
+            public static void IsPuzzleIsland()
+            {
+                Engine.Commands.Log(PianoModule.IsPuzzleIsland);
+                Engine.Commands.Log(PianoModule.MapName);
+            }
             private static void LevelLoader_OnLoadingThread(Level level)
             {
-                foreach (var a in ContentLoaders)
+                if (PianoModule.IsFromPuzzleIsland(level))
                 {
-                    ContentLoaders.TryGetValue(a.Key, out var value);
-                    level.Add(value());
+                    foreach (var a in ContentLoaders)
+                    {
+                        ContentLoaders.TryGetValue(a.Key, out var value);
+                        level.Add(value());
+                    }
                 }
             }
         }

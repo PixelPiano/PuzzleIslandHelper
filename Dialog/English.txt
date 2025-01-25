@@ -89,14 +89,14 @@ fountainHintA=
 fountainHintB=
 	[Paper left normal]
 	{# 000000}No, why would it be written down? That's just asking for someone to break in.
-	I've hidden it in a riddle, scattered across multiple notes around the lab. I know how forgetful you are.{#}
+	I've hidden it in fragments across the lab. I know how forgetful you are, but it can't be convenient.{#}
 fountainHintC=
 	[Paper left normal]
-	{# 000000}Oh, you mean the one about the tsblwe
-	(the last word has been scratched out){#}
+	{# 000000}Oh, are you talking about the ------?{#}
+	{# 222222}(the last word has been scratched out){#}
 fountainHintD=
 	[Paper left normal]
-	{# 000000}YES. Why can't you just talk to me about it in person, you're hopeless.{#}
+	{# 000000}YES. You're hopeless, just talk to me about it in person...{#}
 
 capsuleDocumentA=
 	[Paper left normal]
@@ -118,11 +118,11 @@ capsuleWelcome=
 capsuleDocumentB=
 	[Paper left normal]
 	{# 000000}I don't like this.
-	This thing just appears out of nowhere without a scratch.
+	This thing just appears. Out of nowhere, not a scratch in sight.
 	It's exactly what we need for digital expeditions, down to the smallest detail.
 	And not one person bats an eye.
-	It's perfect. Too perfect.
-	The scientist didn't build it. None of us built it.
+	It's way too perfect.
+	He didn't build it. None of us built it.
 	So why are there so many of them?
 	Are we being watched?
 	If you ask me, we should stay well away from it.{#}
@@ -156,42 +156,42 @@ codeResearchC=
 codeResearchD=
 	[Paper left normal]
 	{# 000000}FOAs react to physical contact.
-	If touched, they release a small shockwave, pushing anything near away from itself.
-	We learned the hard way that the strength of the shockwave scales.{#}
+	The reaction varies dramatically given the substance it contacts.{#}
 codeResearchE=
 	[Paper left normal]
-	{# 000000}We tested various substances on FOAs.
-	Water flowed around it, like the FOA had a negative gravitational field. No other substances acted this way.
-	Small rocks would bounce off at blinding speeds. Very dangerous.
+	{# 000000}Recently we've been testing various substances on FOAs.
+	Water flows around it, like the FOA has a negative gravitational field. So far, no other substances act this way.
+	Small rocks bounce off at blinding speeds. Very dangerous.
+	Human flesh and clothing create a shockwave that propels anyone near it a decent distance.
 	We've yet to find a way to transport FOAs to another location.{#}
 codeResearchF=
 	[Paper left normal]
 	{# 000000}Since we can't move an FOA with force, one of our members suggested the bold idea of creating one ourselves.
-	A bit risky, but nothing else has worked, so why not? The bosses don't care what we do as long as we're figuring stuff out.{#}
+	A bit risky, but nothing else has worked, so why not? Don't think the boss cares what we do as long as we're figuring stuff out.{#}
 
 codeResearchG=
 	[Paper left normal]
 	{# 000000}FOA creation attempt 1: Failure.
 	We set up a board with arrows in a sequence: 
 	Up, Left, Right, Down.
-	Using a custom made controller, we inputed the code, but nothing happened.
+	We tried pointing in the directions, interpretive dance, even made a handheld controller with directional inputs, but nothing happened.
 	Was it too simple? Was it because it wasn't themed? Was it too on the nose?{#}
 
 codeResearchH=
 	[Paper left normal]
 	{# 000000}FOA creation attempt 2: Failure.
 	We tried arranging arrows using leaves, but that didn't work either.
-	Maybe only the code needs to be present near the FOA? 
+	Maybe... Only a representation of the code needs to be present for the FOA to appear?
 	The information required to solve one might not have the same area limitations...{#}
 codeResearchI=
 	[Paper left normal]
 	{# 000000}FOA creation attempt 3: Success!
 	We've set up a sort of scavenger hunt for this one.
-	The code is 6 digits long, and the key is sticky notes! 
 	We've realized that these codes only work if kept in secrecy.
-	If they feel they're being revealed too directly, they won't work.
-	So if you're reading this, boss... uhhhhhh good luck?{#}
-
+	The first subject was told everything. Once they found the correct sequence... nothing happened.
+	The second subject was only told to find a secret directional sequence. Still, nothing happened.
+	It seems if they feel they're being revealed too directly, they won't work.
+	So if you're reading this, boss, uhhhhhh... good luck! It's quite the sticky situation!{#}
 faceComplaint=
 	[Paper left normal]
 	{# 0000FF}Does ANYBODY know what's up with these... face things?!{#}
@@ -205,8 +205,7 @@ refillNotesA=
 	{# 000000}We've received reports sightings of floating objects seperate from the FOA we've been monitoring recently.
 	These objects are diamond-shaped, have a soft, green glow, and gently float up and down.
 	It ignores any physical contact, phasing through solid matter.
-	If it does break, we have yet to find a trigger.{#}
-
+	We should investigate. It could be a new material!{#}
 refillNotesB=
 	[Paper left normal]
 	{# 000000}Like FOAs, it is impossible to alter the location of these objects.
@@ -247,7 +246,7 @@ The third try always works, but fate never liked consistency.
 
 #attempts 4, 5, and 6
 washerIsReallyStillOff=
-You should do it again, I've got a good feeling about the next one.
+You should do it again, you've got a good feeling about the next one.
 
 #attempt 7
 washerButtonsAreSticking=
@@ -506,18 +505,20 @@ for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
 #Cutscenes
 #------------------------
 #C IS LEFT, F IS RIGHT
-GREENHEART= Remember when we came through here before?{n0}{mtRight}You mean with the scout group? When you saw your so-called "playground"?{/mtRight}{n0}Yes, and that DID happen. I wish you would just... just trust me on that. You keep insisting it's fake.{n0}{mtRight}I keep insisting because I vividly remember the expedition, and you never left my side.{/mtRight}{n0}...I'm sorry. I don't want to talk about this anymore.
+GREENHEART=
+This is so stupid. So, so stupid.{n0}{mtRight}Yes, we are all very aware of this fact.{/mtRight}{n0}You, shut up. Only reason we're in this mess is because you rushed.{n0}{mtRight}If I remember correctly, we all made the decision.{/mtRight}{n0}You left them behind! You preasured them!{n0}{mtRight}...I'm sorry. I know you're worried about Kos, but don't be. We had all the time in the world. They made the decision to stay behind in sound mind.{/mtRight}
 
-BLUEHEART= Hey, what's going to happen to us?{n0}{mtRight} What do you mean? Like, in the long-term or...?{/mtRight}{n0}I mean, the lab won't stay powered forever. Even on backup energy, it's going to run out eventually.{n0}{mtRight}I think the generator has a renewable energy source... but only if the pipes don't clog up.{/mtRight}{n0}But if power were to go offline... Would we just disappear?
+BLUEHEART=
+Any luck?{n0}{mtRight}Nothing yet. You?{/mtRight}{n0}Nope. Hey, what do you think happens when they die?{n0}{mtRight}Pfft, where'd that come from?{/mtRight}{n0}I'm serious! Do they just... disappear? Is there a rule for that, or..?{n0}{mtRight}How should I know? We lost the rules, remember?{/mtRight}{n0}I was being redundant.
 
 REDHEART= Lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem ipsum quia la la la la la la la
 
 
-DIGILORE1={mtRight} Just for the record, I believe your story about the playground.{/mtRight}{n0}Wait, then why did you act like I was lying?{n0}{mtRight} Because I wanted to keep talking. You've been so quiet recently, it worries me. Have you been occupying yourself with something?{n0}{/mtRight}Not really. Well, aside from keeping these buggers from flying off... You've got it good, y'know?{n0}{mtRight}Maybe to you, but it feels so weird being one eye short...{/mtRight}
+DIGILORE1=
 
 DIGILORE2=Any abnormalties?{n0}{mtRight}Do you mean abnormal from here, or abnormal from common sense? If the latter, then yes.{n0}{/mtRight}The latter.{n0}{mtRight}There's been an influx of strange readings lately. Can't really tell what they are though.{n0}{/mtRight}That was incredibly helpful, thank you.{n0}{mtRight}How many are loose now?{n0}{mtRight}7 :(
 
-DIGILORE3={mtRight} So I've been trying to come up with a plan to get out of here. Any ideas?{n0}{/mtRight}Personally, I'm fine staying here, since escaping will likely just lead us to instant death.{n0}{mtRight}Well, yes, but what if we were able to escape a different way?{n0}{/mtRight}Like, with our bodies still intact? Will the physics still be the same?{n0}{/mtRight}Funny you should bring that up...
+DIGILORE3={mtRight}Are you alone?{/mtRight}{n0}Yeah... Where is everyone?{n0}{mtRight}I don't know... But if they went through, this just became a lot more difficult.{/mtRight}{n0}Tch. Traitors. Once I get out there I'm hunting each one of them down.{mtRight}{n0}No, don't. It's fine. We can't blame them for wanting to live. All that matters is that someone solves this.{/mtRight}{n0}...What if y-{n0}What if we can't?
 
 DIGILORE4={mtRight}Y'know those observers we set up around the village?{n0}{/mtRight}You mean the ones that I invented..? Yes I know them.{n0}{mtRight}Right, well I still have limited access to the lab, and I found that the readings there match up perfectly with the readings from here. What's more, I think the area in here is shifting.{n0}{/mtRight}So... What does that mean?
 
@@ -547,55 +548,20 @@ PIPE=Please refer to the manual for precautions.
 PIPEWARN=Abnormal pressure levels detected in PipeSystem, please reactivate all pressure regulators.
 PIPEBEFOREFIX=All preassure regulators activated.
 
-
-3kb= Hopefully this makes it throu235 Y743OT344B52$%#$$%2439G723924334592T432{n}V4TB24#tb$#@tB49Y7TY293GV{n}TG3@tGV32849GVH34P5PT{n}GUO32HO3TOUHVI3U42T34@5B@#$%b#@$v%yg#@4O8og%@$#{n}f@#h$y%f@$#ho%fh@$#f%@#hf%h$#o%g{n}h@oto4h3558 8.Empty() at line 54
-
-CryForHelp= No^ mu&h spa#@ avail. Tra4p(d on&ot$er s]de, l0;k fo$ t@e gr!]n [isk. ;nly we can st5_op i^t.
-
-
 NDESTRUCT= DARP.exe
 NMEMORY= MStorage.exe
-
-TODO= To do:{n}- Talk with village leader about expanding available research bounds.{n}- Conduct tests on temple fluids without getting burnt.{n}- Fix broken stabilizer in sector 2.{n}- Laundry.
 
 UNKNOWN= Unrecognized file extension, file not readable
 INVALID= Invalid icon type
 RAM= !!!!!!!!!DOWNLOAD FREE RAM HERE FOR FREE FREE!!!!!!!!!
 FOLDER= Folder data here
 
-ACCESS= Please enter a valid area id. Consult C or F on which areas are safe.
-
-DESTRUCT= Level 5 clearance required to use program.
-
-DESTRUCTDENIED= Level 5 clearance not detected. Access denied.
-
+ACCESS= Please enter a valid area id.
 ACCESSDENIED= Access Module not detected. Unable to launch transport system.
 
 TEXTTEST= This is a test.{n1} This text is on the left. It is not long. {n0}{mtRight}This text is on the right. It is also not very long.{/mtRight}{n1}{mtRight}This text is once again, on the right. This time, however, we will be testing to see if the text can stay on screen regardless of how long the group is. Hopefully, I won't have to deal with this shit much longer
 
-TEXT1= To do:{n}- Talk with village leader about expanding available research bounds.{n}- 	 Conduct tests on temple fluids (WEAR GLOVES THIS TIME.){n}- Fix broken stabilizer in sector 2.{n}- Laundry.
-
-TEXT2= 20XX/05/10{n}This will be the first record of our existence here. My brother and I were investigating what we believed to be the ruins of a temple built by an ancient civilization. Even though we're scientists and not archeologists, we needed to verify something. As we explored the temple, we came across a large, pristine mirror. We were drawn to it immediately, as it seemed to radiate a somewhat otherworldly aura. But the moment I touched it's surface, the world around me spiraled into madness. Shapes and colors blended and twisted in and out. I shut my eyes, since, while it looked pretty cool, it also hurt my head.
-
-TEXT3= A moment later my brother and I found ourselves knee-deep in a small body of water. We looked around ourselves and saw leaves and crystals strung about, connecting the floor and walls to the ceiling. With nowhere to go, we picked a direction and started walking. Walking was better than sitting around waiting to starve. 
-
-TEXT5= The village was covered in blues and purples. The villagers were wary of us, but oddly they seemed terrified of me in partiular. One of them who seemed to have high authority took one look at me and ordered the both of us to come with them. We didn't really know what to do, so we followed him, hoping to get some answers.
-
-TEXT7= Once we entered the small house, it seemed to only have one room, but it was littered with books and strange scrawlings. The one who lead us here told us he was the village Leader, and he wanted to evaluate us to make sure we could be trusted.
-
-TEXT11= When the time came for the scout group to move out, they breifed us on some rules we had to follow no matter what: 1. Duck if we hear any high pitched noises. 2. Be prepared for any and all temperatures. 3. Stick close to the main group, and never wander off on our own.
-
-TEXT12= We ventured into the labyrinth, running rope through stakes in the ground to mark our path as we went. Aside from the usual dull, grey rocky texture lining the floors and walls, we encountered areas that seemed to sort of... pop in and pop out, almost instantly. We breifly walked through a lush slice of forestry, only to then find ourselves in a warehouse-like room. Then we were back in the rocky atmosphere of the labyrinth.
-
-TEXT13= I saw a playground. Empty. But it wasn't just any playground, this was the playground from my elementary school. We would spend hours playing on it, so I know without a doubt it was the same one. 
-
-TEXT14= As I stepped over the crude line seperating the stone from the gravel, a wave of nostalgia hit me instantly. I must have lost track of time, because by the time I realized I had broken rule 3, it was too late. I could no longer hear the chatter of the scout group. I rushed over to the corner I had turned earlier, knowing the rope had to still be there, but all I saw was one end of it, perfectly sliced off.
-
-TEXT15= I tried screaming, hoping someone would hear me, but I got no reply. But once I looked up, I saw that where I was... was nothing like where I had been before I left the group. The chill, damp atmosphere of the labyrinth had turned into a black, empty nothingness. The ground was devoid of any character, the landscape was empty, there was no color anywhere. I thought I had gone mad.
-
-TEXT16= Then, as if it were all a dream, I heard my brother from behind me. Not just my brother, but the whole scout team. I had somehow wound up ahead of them. Immediately I profusely apologized for my reckless behavior, but they all seemed confused. I told them I went off on my own, but they said that I was gone at most for 10 seconds. They just assumed I fell behind slightly so they went back to check on me before I showed up in front of them.
-
-
+TEXT1= To do:{n}- Talk with chief about expanding available research bounds.{n}- 	 Conduct tests on rock fluids (WEAR GLOVES THIS TIME.){n}- Fix broken stabilizer in sector 2.{n}- Laundry.
 
 INFO1= This device is to be used only by laboratory personnel. Please report any unauthorized individuals operating laboratory devices to the village leader. If you don't know whether you qualify as laboratory personnel, then you do not.
 

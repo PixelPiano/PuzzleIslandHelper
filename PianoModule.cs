@@ -32,6 +32,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 return o;
             }
         }
+        public static bool IsFromPuzzleIsland(Level level)
+        {
+            return level.Session.MapData.Data.Name.StartsWith("Piano_Boy/Puzzle_Island");
+        }
         public static bool IsPuzzleIsland => MapName.StartsWith("Piano_Boy/Puzzle_Island");
         public static bool IsMap1 => MapName == "Piano_Boy/Puzzle_Island/map1";
         public static bool IsMap2 => MapName == "Piano_Boy/Puzzle_Island/map2";
@@ -66,7 +70,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 PipeSpout.DissolveTextures[i] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve0" + i];
             }
             LoadCustomData();
-            ShaderFX.LoadFXs();
+            ShaderFX.LoadFx();
         }
         public static T GetContent<T>(string path)
         {

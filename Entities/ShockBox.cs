@@ -56,15 +56,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float interval;
         private float intervalTimer;
         private Color color;
-        public RandomShock(Vector2 position, int strands, int generations, float interval, Entity track, Color color) : base(position)
+        private Vector2 trackOffset;
+        public RandomShock(Vector2 position, int strands, int generations, float interval, Entity track, Color color, Vector2 trackOffset = default) : base(position)
         {
+            this.trackOffset = trackOffset;
             Depth = 1;
             this.color = color;
             this.interval = interval;
             this.generations = generations;
             for (int i = 0; i < strands; i++)
             {
-                Strands.Add(new Strand(position, track.Position, 8));
+                Strands.Add(new Strand(position, track.Position + trackOffset, 8));
             }
             Track = track;
         }
@@ -72,7 +74,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             for (int i = 0; i < Strands.Count; i++)
             {
-                Strands[i].Update(Track.Position);
+                Strands[i].Update(Track.Position + trackOffset);
             }
             timesRegenerated++;
         }

@@ -1,5 +1,6 @@
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -8,7 +9,7 @@ using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
-    [CustomEntity("PuzzleIslandHelper/PortalNodeManager")]
+    [ConstantEntity("PuzzleIslandHelper/PortalNodeManager")]
     [Tracked]
     public class PortalNodeManager : Entity
     {
@@ -41,6 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Collider = new Hitbox(20, 16, -10, -8);
             foreach (var d in Data)
             {
+                if(ParticleSystems.ContainsKey(d.Flag)) continue;
                 ParticleSystem PSystem = new ParticleSystem(Depth, 300);
                 PSystem.AddTag(Tags.Global);
                 PSystem.AddTag(Tags.TransitionUpdate);
@@ -200,20 +202,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return true;
             }
             return false;
-        }
-        private static void LevelLoader_OnLoadingThread(Level level)
-        {
-            level.Add(new PortalNodeManager());
-        }
-        [OnLoad]
-        public static void Load()
-        {
-            Everest.Events.LevelLoader.OnLoadingThread += LevelLoader_OnLoadingThread;
-        }
-        [OnUnload]
-        public static void Unload()
-        {
-            Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;
         }
     }
 }

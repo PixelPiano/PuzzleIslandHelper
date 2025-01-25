@@ -11,8 +11,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WarpCapsule.UI;
+
 
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -21,12 +20,45 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class WarpCapsule : Entity
     {
+        public static Rune.RuneNodeInventory Inv => PianoModule.SaveData.RuneNodeInventory;
         public static List<Rune> AllRunes = [];
         public static List<Rune> DefaultRunes = [];
         public static List<Rune> ObtainedRunes = [];
+
         [Tracked]
         public class Machine : Entity
         {
+            public class MachineNode : GraphicsComponent
+            {
+                public Machine Parent => Entity as Machine;
+                public int Index;
+                public static readonly Vector2[] Offsets =
+                {
+                    new Vector2(4, 2), new Vector2(8, 2), new Vector2(12, 2),
+                    new Vector2(2, 5), new Vector2(6, 5), new Vector2(10, 5), new Vector2(14, 5),
+                    new Vector2(4, 8), new Vector2(8, 8), new Vector2(12, 8)
+                };
+                private Vector2 offset;
+                public Rectangle Bounds;
+                public bool Usable => Inv.HasNode((NodeTypes)Index);
+                public MachineNode(int index, Rectangle bounds) : base(true)
+                {
+                    Index = index;
+                    offset = bounds.Location.ToVector2() + Offsets[index];
+                }
+                public override void Update()
+                {
+                    base.Update();
+                }
+                public override void Render()
+                {
+                    base.Render();
+                    if (Usable)
+                    {
+                        Draw.Point(RenderPosition + offset, Color.Red);
+                    }
+                }
+            }
             public static MTexture Texture => GFX.Game[Path + "control"];
             public static MTexture EmptyTex => GFX.Game[Path + "controlEmpty"];
             public static MTexture FilledTex => GFX.Game[Path + "controlFilled"];
@@ -35,9 +67,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public WarpCapsule Parent;
             public DotX3 Talk;
             public UI UI;
+            public List<MachineNode> Nodes = [];
             public bool Blocked;
             public bool Filled => PianoModule.SaveData.PlayerFixedWarpDisplay;
-            public bool PlayerHasItem => PianoModule.SaveData.PlayerHasWarpDisplayPart;
+            public bool PlayerHasAnyNodes => Inv.IsObtained.Any(item => item == true);
             public Machine(WarpCapsule parent, Vector2 position) : base(position)
             {
                 Depth = 10;
@@ -49,10 +82,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(Talk);
                 Add(new BathroomStallComponent(null, Block, Unblock));
             }
+            public override void Added(Scene scene)
+            {
+                base.Added(scene);
+                Rectangle bounds = new Rectangle(0, 0, 13, 7);
+                for (int i = 0; i < 10; i++)
+                {
+                    MachineNode n = new MachineNode(i, bounds);
+                    Nodes.Add(n);
+                    Add(n);
+                }
+            }
             public override void Update()
             {
                 base.Update();
-                Talk.Enabled = Parent.Accessible && !Blocked && (Filled || PlayerHasItem);
+                Talk.Enabled = Parent.Accessible && !Blocked && PlayerHasAnyNodes;
             }
             public override void Render()
             {
@@ -72,33 +116,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Alarm.Set(this, 0.3f, delegate { Blocked = false; });
             }
-            public static void Fill()
-            {
-                //todo:add placing sound
-                PianoModule.SaveData.PlayerHasWarpDisplayPart = true;
-                PianoModule.SaveData.PlayerFixedWarpDisplay = true;
-            }
             public IEnumerator Sequence(Player player)
             {
                 player.DisableMovement();
-                if (!Filled)
-                {
-                    if (PlayerHasItem)
-                    {
-                        IEnumerator placePart()
-                        {
-                            Fill();
-                            yield return null;
-                        }
-                        yield return Textbox.Say("PlaceMachinePart", placePart);
-                    }
-                    else
-                    {
-                        yield return Textbox.Say("MachineEmpty");
-                        player.EnableMovement();
-                        yield break;
-                    }
-                }
                 Scene.Add(UI = new UI(Parent));
                 while (!UI.Finished)
                 {
@@ -163,7 +183,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public override void OnBegin(Level level)
             {
-
                 Parent.InCutscene = true;
                 Add(new Coroutine(Routine(Player)));
             }
@@ -202,7 +221,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (Parent != null)
                 {
                     Scale = Vector2.One;
-                    Parent.ShineAmount = 1;
                     Parent.DoorPercent = DoorPercentSave;
                     Parent.MoveAlong(DoorPercentSave);
                     Parent.LeftDoor.MoveToFg();
@@ -213,34 +231,55 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Beam.Parent = Parent;
                     Beam.Sending = false;
                     Beam.Position = Parent.Floor.TopCenter;
-                    Beam.AddPulses();
+                    if (!Returning)
+                    {
+                        Parent.ShineAmount = 1;
+                        Beam.AddPulses();
+                    }
                 }
             }
+            public bool Returning;
             private IEnumerator Routine(Player player)
             {
                 Player = player;
                 yield return player.DummyWalkToExact((int)Parent.CenterX);
                 yield return Parent.OutroRoutine(player);
-                Beam = new WarpBeam(Parent);
+
+                Returning = PianoModule.SaveData.VisitedRuneSites.Contains(Data.Rune);
+
+                Beam = new WarpBeam(Parent, Returning);
                 Scene.Add(Beam);
-                while (!Beam.ReadyForScale)
+                if (Returning)
                 {
-                    yield return null;
+                    yield return 1.5f;
                 }
-                yield return Parent.ScaleFirst();
+                else
+                {
+                    while (!Beam.ReadyForScale)
+                    {
+                        yield return null;
+                    }
+                    yield return Parent.ScaleFirst();
+                }
                 AddTag(Tags.Global);
                 Beam.AddTag(Tags.Global);
                 PlayerPosSave = player.Position - Parent.Position;
                 DoorPercentSave = Parent.DoorPercent;
-                Beam.EmitBeam(10, (int)Parent.Width, this);
+                if (!Returning)
+                {
+                    Beam.EmitBeam(10, (int)Parent.Width, this);
+                }
                 yield return null;
                 InstantTeleport(Level, player, Data, TeleportCleanUp);
                 yield return null;
-                while (!Beam.Finished)
+                if (!Returning)
                 {
-                    yield return null;
+                    while (!Beam.Finished)
+                    {
+                        yield return null;
+                    }
+                    yield return PianoUtils.Lerp(null, 0.4f, f => Parent.ShineAmount = 1 - f);
                 }
-                yield return PianoUtils.Lerp(null, 0.4f, f => Parent.ShineAmount = 1 - f);
                 Parent.ShineAmount = 0;
                 yield return Parent.IntroRoutine(Player);
 
@@ -396,189 +435,87 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 LockPlate.Depth = 7;
             }
         }
-
-        public static Dictionary<Rune, WarpCapsuleData> Data => PianoMapDataProcessor.WarpRunes;
-        public static bool RuneExists(Rune input, out Rune orderedRune)
+        public struct Fragment(string id, NodeTypes a, NodeTypes b)
         {
-            orderedRune = null;
-            foreach (Rune rune in Data.Keys)
-            {
-                if (input.Match(rune))
-                {
-                    orderedRune = rune;
-                    return true;
-                }
-            }
-            return false;
-        }
-        public static bool RuneExists(Rune input)
-        {
-            return RuneExists(input, out _);
-        }
-
-        public static Rune GetRune(string name)
-        {
-            if (!string.IsNullOrEmpty(name))
-            {
-                foreach (var pair in Data)
-                {
-                    if (pair.Value.Name == name)
-                    {
-                        return pair.Key;
-                    }
-                }
-            }
-            return null;
-        }
-        public static WarpCapsuleData GetWarpData(string name)
-        {
-            if (!string.IsNullOrEmpty(name))
-            {
-                foreach (var pair in Data)
-                {
-                    if (pair.Value.Name == name)
-                    {
-                        return pair.Value;
-                    }
-                }
-            }
-            return null;
-        }
-        public static WarpCapsuleData GetWarpData(Rune rune)
-        {
-            if (rune == null) return null;
-            Data.TryGetValue(rune, out WarpCapsuleData value);
-            return value;
-        }
-        [CustomEntity("PuzzleIslandHelper/RuneFragment")]
-        [Tracked]
-        public class CollectableFragment : Entity
-        {
-            public string ID;
-            public string Connections;
-            public Image Image;
-            public List<Fragment> Fragments = new();
-            public CollectableFragment(EntityData data, Vector2 offset) : base(data.Position + offset)
-            {
-                ID = data.Attr("runeID");
-                Connections = data.Attr("connections");
-                Fragments = Fragment.Parse(ID, Connections);
-                Image = new Image(GFX.Game["PuzzleIslandHelper/collectableRuneFragment"]);
-                Add(Image);
-                Collider = Image.Collider();
-                Add(new DotX3(Collider, Collect));
-            }
-            public override void Added(Scene scene)
-            {
-                base.Added(scene);
-                if (GetFlag())
-                {
-                    RemoveSelf();
-                }
-            }
-            public void SetFlag(bool value)
-            {
-                SceneAs<Level>().Session.SetFlag(ToString(), value);
-            }
-            public bool GetFlag()
-            {
-                return SceneAs<Level>().Session.GetFlag(ToString());
-            }
-            public override string ToString()
-            {
-                string output = "RuneFragment: {ID: " + ID + "}, {Connections: ";
-                foreach (Fragment fragment in Fragments)
-                {
-                    output += fragment;
-                }
-                return output;
-            }
-
-            public void Collect(Player player)
-            {
-                SetFlag(true);
-                Fragment.AddFragments(Fragments);
-                RemoveSelf();
-            }
-
-        }
-        public class Fragment(string id, Tuple<NodeTypes, NodeTypes> fragment)
-        {
-            public Tuple<NodeTypes, NodeTypes> Frag = fragment;
             public string ID = id;
-            public override string ToString()
-            {
-                return Frag.ToString();
-            }
-            public static Dictionary<string, List<Fragment>> Fragments = new();
-            public static List<Fragment> Parse(string id, string value)
-            {
-                List<Fragment> list = [];
-                string[] groups = value.Split(',');
-                for (int i = 0; i < groups.Length; i++)
-                {
-                    string[] pair = groups[i].Split(' ');
-                    for (int j = 1; j < pair.Length; j += 2)
-                    {
-                        if (Enum.TryParse(pair[j - 1], out NodeTypes type1) && Enum.TryParse(pair[j], out NodeTypes type2))
-                        {
-                            if (type1 > type2)
-                            {
-                                list.Add(new Fragment(id, new(type2, type1)));
-                            }
-                            else
-                            {
-                                list.Add(new Fragment(id, new(type1, type2)));
-                            }
-                        }
-                    }
-                }
-                return list;
-            }
-            public static void AddFragments(List<Fragment> fragments)
-            {
-                foreach (Fragment rf in fragments)
-                {
-                    AddFragment(rf);
-                }
-            }
-            public static void ParseAndAddFragments(string id, string value)
-            {
-                AddFragments(Parse(id, value));
-            }
-            public static void AddFragment(string id, Tuple<NodeTypes, NodeTypes> fragment)
-            {
-                if (!Fragments.TryGetValue(id, out List<Fragment> value))
-                {
-                    Fragments.Add(id, value = []);
-                }
-                value.TryAdd(new Fragment(id, fragment));
-            }
-            public static void AddFragment(Fragment fragment)
-            {
-                if (!Fragments.TryGetValue(fragment.ID, out List<Fragment> value))
-                {
-                    Fragments.Add(fragment.ID, value = []);
-                }
-                value.TryAdd(fragment);
-            }
-            public static void Clear()
-            {
-                Fragments.Clear();
-            }
-            [OnLoad]
-            public static void Load()
-            {
-                Clear();
-            }
-            [OnUnload]
-            public static void Unload()
-            {
-                Clear();
-            }
+            public NodeTypes NodeA = a;
+            public NodeTypes NodeB = b;
         }
         public class Rune
         {
+            public class RuneNodeInventory
+            {
+                public enum ProgressionSets
+                {
+                    //Default:
+                    //  0   0   0
+                    //0   1   1   0
+                    //  0   0   0
+                    FirstEver,
+                    //After Tutorial:
+                    //  1   1   1
+                    //1   0   0   1
+                    //  1   1   1
+                    First,
+                    //After Freeing Calidus:
+                    //  1   1   1
+                    //1   1   1   1
+                    //  1   1   1
+                    Second
+                }
+                public bool[] IsObtained = new bool[10];
+                public bool HasNode(NodeTypes node)
+                {
+                    return IsObtained[(int)node];
+                }
+                public bool HasNodes(params NodeTypes[] types)
+                {
+                    bool result = true;
+                    foreach (NodeTypes t in types)
+                    {
+                        result &= IsObtained[(int)t];
+                    }
+                    return result;
+                }
+                [Command("node_set", "change the node set the player has access to")]
+                public static void SetProgress(int i = 0)
+                {
+                    PianoModule.SaveData.SetRuneProgression((ProgressionSets)i);
+                }
+
+                public RuneNodeInventory()
+                {
+                }
+
+                public void Set(ProgressionSets set)
+                {
+                    for (int i = 0; i < IsObtained.Length; i++)
+                    {
+                        IsObtained[i] = false;
+                    }
+                    List<NodeTypes> types = [];
+                    switch (set)
+                    {
+                        case ProgressionSets.FirstEver:
+                            types = [NodeTypes.ML, NodeTypes.MR];
+                            break;
+
+                        case ProgressionSets.First:
+                        case ProgressionSets.Second:
+                            types = [.. Enum.GetValues<NodeTypes>()];
+                            break;
+                    }
+                    if (set == ProgressionSets.First)
+                    {
+                        types.Remove(NodeTypes.ML);
+                        types.Remove(NodeTypes.MR);
+                    }
+                    foreach (NodeTypes t in types)
+                    {
+                        IsObtained[(int)t] = true;
+                    }
+                }
+            }
             public static Dictionary<string, string> ReplaceAssumed = new()
             {
                 {"02","0112"},
@@ -626,7 +563,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     ReplaceAssumed.TryGetValue(s, out string value);
                     newString += !string.IsNullOrEmpty(value) ? value : s;
                 }
-
                 //transform the new pattern into groups of (int, int) tuples
                 var normalized = newString.Segment(2, false).Select(item => (item[0] - '0', item[1] - '0')).ToList();
 
@@ -660,14 +596,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public static List<Fragment> ToFragments(Rune rune)
             {
                 List<Fragment> fragments = [];
-                Console.WriteLine("ToFragments rune:" + rune.ToString());
                 foreach (var a in rune.Segments)
                 {
-                    fragments.Add(new(rune.ID, new((NodeTypes)a.Item1, (NodeTypes)a.Item2)));
+                    fragments.Add(new(rune.ID, (NodeTypes)a.Item1, (NodeTypes)a.Item2));
                 }
                 return fragments;
             }
-            public static string GetSortedPattern(ConnectionList list)
+            public static string GetSortedPattern(UI.ConnectionList list)
             {
                 return list.ToString();
             }
@@ -679,37 +614,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return rune.ToString() == ToString();
             }
-            /*            public bool Match(List<(int, int)> pairs)
-                        {
-                            foreach ((int, int) pair in pairs)
-                            {
-                                if (!ContainsSegment(pair))
-                                {
-                                    return false;
-                                }
-                            }
-                            return pairs.Count == Segments.Count;
-                        }*/
-            /*            public bool ContainsSegment((int, int) segment)
-                        {
-                            foreach ((int, int) pair in Segments)
-                            {
-                                if ((segment.Item1 == pair.Item1 || segment.Item1 == pair.Item2) &&
-                                    (segment.Item2 == pair.Item1 || segment.Item2 == pair.Item2))
-                                {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }*/
-            /*            public bool MatchSegment((int, int) input, (int, int) compare)
-                        {
-                            if (input.Item1 == compare.Item1 || input.Item1 == compare.Item2)
-                            {
-                                return input.Item2 == compare.Item1 || input.Item2 == compare.Item2;
-                            }
-                            return false;
-                        }*/
             [OnUnload]
             public static void Unload()
             {
@@ -758,7 +662,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 private float scrollSize;
 
                 public Rune Rune;
-                public ConnectionList Connections;
+                public UI.ConnectionList Connections;
 
                 public void Render()
                 {
@@ -767,7 +671,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         Vector2 p = RenderPosition;
                         Draw.Rect(p, Size, Size, Color.Black);
                         Draw.HollowRect(p, Size, Size, Color);
-                        foreach (Connection c in Connections.Connections)
+                        foreach (UI.Connection c in Connections.Connections)
                         {
                             c.RenderNodeLine(p, new Vector2(Size) / new Vector2(1920, 1080), 3);
                         }
@@ -927,7 +831,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public int Index;
             public MTexture HeadTex => GFX.Game[UI.Path + "nodeHead"];
             public MTexture BodyTex => GFX.Game[UI.Path + "nodeBody"];
-            public bool Obtained = true;//PianoModule.Session.RuneNodes.Contains(Index);
+            public bool Obtained => Inv.HasNode(Type);
             public Dictionary<NodeTypes, List<NodeTypes>> ImpliedConnections = [];
             public Node(Vector2 center, NodeTypes node)
             {
@@ -983,13 +887,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public void DrawTexture()
             {
+                Vector2 pos = RenderPosition;
                 if (Obtained)
                 {
-                    Vector2 pos = RenderPosition;
                     BodyTex.DrawOutline(pos);
                     HeadTex.DrawOutline(pos);
                     BodyTex.Draw(pos);
                     HeadTex.Draw(pos, Vector2.Zero, Lit ? Color.Orange : Color.Red);
+                }
+                else
+                {
+                    BodyTex.Draw(pos, Vector2.Zero, Color.Gray);
+                    HeadTex.Draw(pos, Vector2.Zero, Color.DarkGray);
                 }
             }
             public void TurnOn()
@@ -1021,6 +930,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public const string Path = "objects/PuzzleIslandHelper/runeUI/";
             public class Connection
             {
+
                 public override string ToString()
                 {
                     string output = "";
@@ -1035,6 +945,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
 
                 public Node[] Nodes = new Node[2];
+                public bool Naive;
                 public Connection(Node a, Node b)
                 {
                     Nodes = [a, b];
@@ -1045,7 +956,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 public bool IsForbidden()
                 {
-                    return Nodes[0] != null && Nodes[1] != null && Nodes[0].ImpliedConnections.ContainsKey(Nodes[1].Type);
+                    return Nodes[0] != null && Nodes[1] != null && !Naive && ((!Nodes[0].Obtained && !Nodes[1].Obtained) || Nodes[0].ImpliedConnections.ContainsKey(Nodes[1].Type));
                 }
                 public bool CollideHead(Vector2 pos)
                 {
@@ -1168,13 +1079,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                     foreach (var rf in Rune.ToFragments(slot.Rune))
                     {
-                        int item1 = (int)rf.Frag.Item1;
-                        int item2 = (int)rf.Frag.Item2;
+                        int item1 = (int)rf.NodeA;
+                        int item2 = (int)rf.NodeB;
                         list.Add((Nodes[item1], Nodes[item2]));
                     }
                     foreach (var pair in list)
                     {
-                        AddValidConnections(pair.Item1, pair.Item2);
+                        AddValidConnections(pair.Item1, pair.Item2, true);
                     }
                 }
                 public static List<Connection> GetAllUnique(List<Connection> a)
@@ -1214,17 +1125,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         LeftHeld = new Connection(node, null);
                     }
                 }
+                public static Rune.RuneNodeInventory NodeInventory => PianoModule.SaveData.RuneNodeInventory;
                 public bool TryAddConnection(Node from, Node to)
                 {
-                    if (!HasPair(from, to))
+                    if (!HasPair(from, to) && NodeInventory.HasNodes(from.Type, to.Type))
                     {
                         AddConnection(from, to);
                         return true;
                     }
                     return false;
                 }
-                public void AddValidConnections(Node from, Node to)
+                public void AddValidConnections(Node from, Node to, bool naive = false)
                 {
+                    void add(Node f, Node t, bool naive)
+                    {
+                        if (naive)
+                        {
+                            if (!HasPair(f, t))
+                            {
+                                Connection c = AddConnection(f, t);
+                                c.Naive = true;
+                            }
+                        }
+                        else
+                        {
+                            TryAddConnection(f, t);
+                        }
+                    }
                     if (from != to)
                     {
                         if (from.ImpliedConnections.TryGetValue(to.Type, out List<NodeTypes> list))
@@ -1234,11 +1161,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             {
                                 Node fromNode = Nodes[(int)start];
                                 Node connect = Nodes[(int)node];
-                                TryAddConnection(fromNode, connect);
+                                add(fromNode, connect, naive);
                                 start = node;
                             }
                         }
-                        else TryAddConnection(from, to);
+                        else add(from, to, naive);
                     }
 
                 }
@@ -1277,7 +1204,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         if (node == null)
                         {
-
                             ClearHeld();
                         }
                         else if (Held.Count > 0)
@@ -1314,9 +1240,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     Connections.Add(c);
                 }
-                public void AddConnection(Node a, Node b)
+                public Connection AddConnection(Node a, Node b)
                 {
-                    Connections.Add(new Connection(a, b));
+                    Connection c = new Connection(a, b);
+                    AddConnection(c);
+                    return c;
                 }
                 public void RemoveConnection(Connection c)
                 {
@@ -1432,18 +1360,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                 }
             }
-            public class SubmitButton
+            public abstract class Button
             {
                 public Vector2 Offset;
                 public bool ClickedFirstFrame;
                 public bool Colliding;
-                public MTexture IdleTex => GFX.Game[Path + "button"];
-                public MTexture PressedTex => GFX.Game[Path + "buttonPressed"];
-
+                public MTexture IdleTex => GFX.Game[Path + TexturePath];
+                public MTexture PressedTex => GFX.Game[Path + TexturePath + "Pressed"];
                 public MTexture Texture => ClickedFirstFrame && Colliding ? PressedTex : IdleTex;
-                public SubmitButton(Vector2 offset)
+                public string TexturePath;
+                public Button(Vector2 offset, string path)
                 {
                     Offset = offset;
+                    TexturePath = path;
                 }
                 public void Render()
                 {
@@ -1461,16 +1390,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     return false;
                 }
             }
+            public class SubmitButton(Vector2 offset) : Button(offset, "button") { }
+            public class HomeButton(Vector2 offset) : Button(offset, "homeButton") { }
             public VirtualRenderTarget Buffer, Buffer2;
             public List<Node> Nodes = new();
             public ConnectionList Connections;
-            public SubmitButton Button;
+            public SubmitButton Submit;
+            public HomeButton Home;
             public MouseComponent Mouse;
             public Inventory Inventory;
             public float Alpha = 1;
             public bool Standby;
             public bool Finished;
-            public bool CollidingWithButton;
+            public bool CollidingWithSubmit;
+            public bool CollidingWithHome;
             public WarpCapsule Parent;
 
 
@@ -1515,35 +1448,50 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Nodes.Add(new Node(center + new Vector2(-spacing + spacing * i, spacing), (NodeTypes)(7 + i)));
                 }
                 Connections = new(Nodes);
-                Button = new SubmitButton(new Vector2(50, 1080 - 209));
+                Submit = new SubmitButton(new Vector2(50, 1080 - 209));
+                Home = new HomeButton(new Vector2(50, 209));
+                Home.Offset += Home.Texture.HalfSize();
                 Inventory = new(Connections, 60);
             }
             public override void Update()
             {
                 base.Update();
-                if (Standby) return;
-                if (Input.DashPressed)
+                if (!Standby)
                 {
-                    FadeOut(true);
+                    if (Input.DashPressed)
+                    {
+                        FadeOut(true);
+                    }
+                    Vector2 pos = Mouse.MousePosition;
+                    Connections.Update();
+                    CollidingWithSubmit = Submit.Check(pos);
+                    CollidingWithHome = Home.Check(pos);
+                    Inventory.Update(Mouse);
                 }
-                Vector2 pos = Mouse.MousePosition;
-                Connections.Update();
-                CollidingWithButton = Button.Check(pos);
-                Inventory.Update(Mouse);
             }
             public void OnLeftClick()
             {
-                Button.ClickedFirstFrame = CollidingWithButton;
+                Submit.ClickedFirstFrame = CollidingWithSubmit;
+                Home.ClickedFirstFrame = CollidingWithHome;
                 Connections.OnLeftClick(GetFirstCollided());
             }
             public void OnLeftRelease()
             {
-                if (Button.ClickedFirstFrame && CollidingWithButton)
+                if (Submit.ClickedFirstFrame && CollidingWithSubmit)
                 {
                     CheckRune();
                 }
-                Button.ClickedFirstFrame = false;
+                else if (Home.ClickedFirstFrame && CollidingWithHome)
+                {
+                    GoHome();
+                }
+                Home.ClickedFirstFrame = false;
+                Submit.ClickedFirstFrame = false;
                 Connections.OnLeftRelease(GetFirstCollided());
+            }
+            public void GoHome()
+            {
+                SetRune(Rune.Default);
             }
             public void OnLeftIdle()
             {
@@ -1551,7 +1499,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public void OnLeftHeld()
             {
-                Button.Colliding = Button.ClickedFirstFrame && CollidingWithButton;
+                Submit.Colliding = Submit.ClickedFirstFrame && CollidingWithSubmit;
+                Home.Colliding = Home.ClickedFirstFrame && CollidingWithHome;
                 Connections.OnLeftHeld(Mouse.MousePosition, GetFirstCollided());
             }
             public Node GetFirstCollided()
@@ -1585,8 +1534,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public void ResetButton()
             {
-                Button.Colliding = false;
-                Button.ClickedFirstFrame = false;
+                Submit.Colliding = false;
+                Submit.ClickedFirstFrame = false;
+                Home.Colliding = false;
+                Home.ClickedFirstFrame = false;
             }
             public Rune CreateRune()
             {
@@ -1601,17 +1552,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 return new Rune("", list);
             }
+            private IEnumerator lockedRoutine()
+            {
+                Standby = true;
+                yield return Textbox.Say("WarpRestricted");
+                Standby = false;
+            }
             public void CheckRune()
             {
-                Button.ClickedFirstFrame = false;
-                Button.Colliding = false;
+                ResetButton();
                 if (RuneExists(CreateRune(), out Rune orderedRune))
                 {
-                    WarpCapsule.ObtainedRunes.TryAdd(orderedRune);
-                    ClearAll();
-                    FadeOut(true);
-                    Parent.WarpRune = orderedRune;
+                    var data = Data[orderedRune];
+                    if (PianoModule.SaveData.WarpLockedToLab && !data.Lab)
+                    {
+                        Add(new Coroutine(lockedRoutine()));
+                        return;
+                    }
+                    SetRune(orderedRune);
                 }
+            }
+            public void SetRune(Rune rune)
+            {
+                ObtainedRunes.TryAdd(rune);
+                ClearAll();
+                FadeOut(true);
+                Parent.WarpRune = rune;
             }
             public void ClearAll()
             {
@@ -1638,7 +1604,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         node.DrawTexture();
                     }
-                    Button.Render();
+                    Submit.Render();
+                    Home.Render();
                     Draw.SpriteBatch.Draw(Buffer2, Vector2.Zero, Color.White);
                     Inventory.Render();
                     Cursor.DrawCentered(p);
@@ -1662,6 +1629,61 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Buffer2?.Dispose();
                 Buffer2 = null;
             }
+        }
+
+
+        public static Dictionary<Rune, WarpCapsuleData> Data => PianoMapDataProcessor.WarpRunes;
+        public static bool RuneExists(Rune input, out Rune orderedRune)
+        {
+            orderedRune = null;
+            foreach (Rune rune in Data.Keys)
+            {
+                if (input.Match(rune))
+                {
+                    orderedRune = rune;
+                    return true;
+                }
+            }
+            return false;
+        }
+        public static bool RuneExists(Rune input)
+        {
+            return RuneExists(input, out _);
+        }
+
+        public static Rune GetRune(string name)
+        {
+            if (!string.IsNullOrEmpty(name))
+            {
+                foreach (var pair in Data)
+                {
+                    if (pair.Value.Name == name)
+                    {
+                        return pair.Key;
+                    }
+                }
+            }
+            return null;
+        }
+        public static WarpCapsuleData GetWarpData(string name)
+        {
+            if (!string.IsNullOrEmpty(name))
+            {
+                foreach (var pair in Data)
+                {
+                    if (pair.Value.Name == name)
+                    {
+                        return pair.Value;
+                    }
+                }
+            }
+            return null;
+        }
+        public static WarpCapsuleData GetWarpData(Rune rune)
+        {
+            if (rune == null) return null;
+            Data.TryGetValue(rune, out WarpCapsuleData value);
+            return value;
         }
         public bool IsFirstTime => WarpCapsule.ObtainedRunes.Count < 1 && PianoModule.Session.TimesUsedCapsuleWarp < 1 && Marker.TryFind("isStartingWarpRoom", out _);
         public const int XOffset = 10;
@@ -1734,13 +1756,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 PianoModule.Session.PersistentWarpLinks.Add(ID, "");
             }
-            if (IsFirstTime)
+/*            if (IsFirstTime)
             {
                 WarpRune = Rune.Default;
                 Enabled = true;
                 InstantOpenDoors();
             }
-            else
+            else*/
             if (WarpIsValid())
             {
                 InstantOpenDoors();
@@ -1765,15 +1787,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             ShineTex.Color = Color.White * ShineAmount;
             if (!InCutscene)
             {
-                if (!IsFirstTime)
-                {
+/*                if (!IsFirstTime)
+                {*/
                     bool valid = WarpIsValid();
                     Enabled = valid;
                     if (DoorStallTimer <= 0)
                     {
                         MoveAlongTowards(valid);
                     }
-                }
+               // }
             }
         }
         public override void Render()

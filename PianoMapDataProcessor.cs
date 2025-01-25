@@ -49,26 +49,19 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public string LeftArmFlag;
         public string RightArmFlag;
     }
-    public struct TileLayoutData
-    {
-        public string CopyFrom;
-        public string CopyTo;
-        public Point Offset;
-    }
     public class WarpCapsuleData
     {
         public string Name;
+        public bool Lab;
         public string Room;
-        public string Password;
         public Vector2 Position;
-        public float Delay;
+        public WarpCapsule.Rune Rune;
     }
     public class PianoMapDataProcessor : EverestMapDataProcessor
     {
         private string levelName;
         public static List<BitrailData> Bitrails = new();
         public static List<PortalNodeData> PortalNodes = new();
-        public static List<TileLayoutData> CopiedTileseedData = new();
         public static Dictionary<string, WarpCapsuleData> WarpLinks = new();
         public static Dictionary<WarpCapsule.Rune, WarpCapsuleData> WarpRunes = new();
         
@@ -154,7 +147,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     {
                         Name = id,
                         Room = levelName,
-                        Delay = data.AttrFloat("warpDelay"),
+                        Rune = rune,
+                        Lab = data.AttrBool("isLaboratory")
                     };
                     WarpRunes.Add(rune, awData);
                 }
@@ -212,7 +206,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
             PortalNodes = new();
             Bitrails = new();
             CalidusSpawners = new();
-            CopiedTileseedData = new();
         }
 
         public override void End()

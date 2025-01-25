@@ -22,27 +22,29 @@ public class ShaderFX
     public static Effect GlitchAura;
     public static Effect InvertOrb;
     public static Effect BitrailAbsorb;
-    public static void LoadFXs()
+    public static Effect Scroll;
+    public static void LoadFx()
     {
-
-        Jitter = LoadFx("jitter");
-        InvertOrb = LoadFx("invertOrb");
-        MonitorDecal = LoadFx("monitorDecal");
-        Static = LoadFx("static");
-        LCD = LoadFx("lcd");
-        SineLines = LoadFx("sineLines");
-        CurvedScreen = LoadFx("curvedScreen");
-        FuzzyNoise = LoadFx("fuzzyNoise");
-        FuzzyAppear = LoadFx("fuzzyAppear");
-        Shine = LoadFx("shine");
-        PlayerStatic = LoadFx("playerStatic");
-        Sway = LoadFx("huskSway");
-        GlitchAura = LoadFx("glitchAura");
-        BitrailAbsorb = LoadFx("bitrailAbsorb");
+        Scroll = LoadEffect("scroll");
+        Jitter = LoadEffect("jitter");
+        InvertOrb = LoadEffect("invertOrb");
+        MonitorDecal = LoadEffect("monitorDecal");
+        Static = LoadEffect("static");
+        LCD = LoadEffect("lcd");
+        SineLines = LoadEffect("sineLines");
+        CurvedScreen = LoadEffect("curvedScreen");
+        FuzzyNoise = LoadEffect("fuzzyNoise");
+        FuzzyAppear = LoadEffect("fuzzyAppear");
+        Shine = LoadEffect("shine");
+        PlayerStatic = LoadEffect("playerStatic");
+        Sway = LoadEffect("huskSway");
+        GlitchAura = LoadEffect("glitchAura");
+        BitrailAbsorb = LoadEffect("bitrailAbsorb");
 
     }
     public static void DisposeFXs()
     {
+        Scroll?.Dispose();
         Jitter?.Dispose();
         MonitorDecal?.Dispose();
         Static?.Dispose();
@@ -61,6 +63,7 @@ public class ShaderFX
     [OnLoad]
     public static void Load()
     {
+        //LoadFx();
         Everest.Content.OnUpdate += Content_OnUpdate;
     }
     [OnUnload]
@@ -69,7 +72,7 @@ public class ShaderFX
         DisposeFXs();
         Everest.Content.OnUpdate -= Content_OnUpdate;
     }
-    public static Effect LoadFx(string id, bool fullPath = false)
+    public static Effect LoadEffect(string id, bool fullPath = false)
     {
         id = id.Replace('\\', '/');
 
@@ -99,7 +102,7 @@ public class ShaderFX
                 AssetReloadHelper.Do("Reloading Shaders", () =>
                 {
                     DisposeFXs();
-                    LoadFXs();
+                    LoadFx();
                 }, () =>
                 {
                     (Engine.Scene as Level)?.Reload();

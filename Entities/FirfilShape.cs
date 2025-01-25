@@ -7,7 +7,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
-    [CustomEntity("PuzzleIslandHelper/WipEntity")]
+    //[CustomEntity("PuzzleIslandHelper/WipEntity")]
     [Tracked]
     public class FirfilShape : Entity
     {

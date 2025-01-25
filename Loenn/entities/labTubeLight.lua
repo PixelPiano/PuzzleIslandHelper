@@ -5,63 +5,100 @@ local labTubeLight = {}
 local path = "objects/PuzzleIslandHelper/machines/gizmos/tubeLight"
 labTubeLight.name = "PuzzleIslandHelper/LabTubeLight"
 labTubeLight.depth = 2000
-labTubeLight.minimumSize = {16, 8}
-labTubeLight.canResize = {true, false}
+function labTubeLight.minimumSize(room, entity)
+    local f = entity.facing or "Down"
+    if f == "Up" or f == "Down" then
+        return {16, 8}
+    else
+        return {8, 16}
+    end
+end
+function labTubeLight.canResize(room,entity)
+    local f = entity.facing or "Down"
+    if f == "Up" or f == "Down" then
+        return {true, false}
+    else
+        return {false, true}
+    end
+end
+local facings = {"Down","Up","Left","Right"}
 labTubeLight.placements = {
     name = "Lab Tube Light",
     data = {
         width = 16,
+        height = 16,
         digital = false,
         broken = false,
-        flipY = false
+        facing = "Down",
     }
 }
-
+local function getSprite(path,entity, x, y, quadX,quadY,scaleX,scaleY,rotation)
+    local sprite = drawableSprite.fromTexture(path, entity)
+    sprite:setJustification(0, 0)
+    sprite:setOffset(0, 0)
+    sprite:addPosition(x,y)
+    sprite:useRelativeQuad(quadX, quadY, 8, 8)
+    sprite:setScale(scaleX,scaleY)
+    sprite.rotation = rotation
+    return sprite
+end
 -- Manual offsets and justifications of the sprites
 function labTubeLight.sprite(room, entity)
     local sprites = {}
-    local width = math.max(entity.width or 0, 8)
-
+    local f = entity.facing or "Down"
     local p = path;
     if entity.digital then
         p = path .. "Digi"
-    end
-    if entity.broken then
+    elseif entity.broken then
         p = path .. "BrokenLonn"
     end
-    local leftSprite = drawableSprite.fromTexture(p, entity)
-
-    leftSprite:setJustification(0, 0)
-    leftSprite:setOffset(0, 0)
-    leftSprite:useRelativeQuad(0, 0, 8, 8)
-
-    table.insert(sprites, leftSprite)
-
-    for i = 8, width - 16, 8 do
-        local middleSprite = drawableSprite.fromTexture(p, entity)
-
-        middleSprite:setJustification(0, 0)
-        middleSprite:setOffset(0, 0)
-        middleSprite:addPosition(i, 0)
-        middleSprite:useRelativeQuad(8, 0, 8, 8)
-
-        table.insert(sprites, middleSprite)
+    local rotation = 0
+    local length
+    local scaleX = 1
+    local scaleY = 1
+    local offX = 0
+    local offY = 0
+    if f == "Up" then
+        scaleY = -1
+        offY = 8
+    elseif f == "Right" then
+        scaleX = -1
+        rotation = -math.pi / 2
+    elseif f == "Left" then
+        offX = 8
+        rotation = math.pi / 2
+    end
+    local xm = 1
+    local ym = 1
+    local horizontal = f == "Up" or f == "Down"
+    if horizontal then
+        ym = 0
+        length = math.max(entity.width or 0, 8)
+    else
+        xm = 0
+        length = math.max(entity.height or 0, 8)
     end
 
-    local rightSprite = drawableSprite.fromTexture(p, entity)
-
-    rightSprite:setJustification(0, 0)
-    rightSprite:setOffset(0, 0)
-    rightSprite:addPosition(width-8, 0)
-    rightSprite:useRelativeQuad(16, 0, 8, 8)
-
-    table.insert(sprites, rightSprite)
-
+    table.insert(sprites, getSprite(p,entity,offX,offY,0,0,scaleX,scaleY,rotation))
+    for i = 8, length - 16, 8 do
+        table.insert(sprites, getSprite(p,entity,i * xm + offX,i * ym + offY,8,0,scaleX,scaleY,rotation))
+    end
+    table.insert(sprites, getSprite(p,entity,(length - 8) * xm + offX,(length - 8) * ym + offY,16,0,scaleX,scaleY,rotation))
     return sprites
 end
 
 function labTubeLight.selection(room, entity)
-    return utils.rectangle(entity.x, entity.y, math.max(entity.width, 16),8)
+    if entity.facing == "Down" or entity.facing == "Up" then
+        return utils.rectangle(entity.x, entity.y, math.max(entity.width, 16),8)
+    else
+        return utils.rectangle(entity.x, entity.y,8,math.max(entity.height, 16))
+    end
 end
-
+labTubeLight.fieldInformation =
+{
+    facing = {
+        options = facings,
+        editable = false
+    }
+}
 return labTubeLight

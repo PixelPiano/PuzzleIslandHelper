@@ -25,6 +25,7 @@ using static Celeste.Player;
 /// <summary>A collection of methods + extensions methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+
     public static bool CheckAll(this List<(string, bool)> flags, bool inverted = false)
     {
         return !flags.Exists(item => !item.Item1.GetFlag(!item.Item2) != inverted);
@@ -104,6 +105,11 @@ public static class PianoUtils
         return entity.Collider != null && entity.Collider.OnScreen(Engine.Scene as Level, pad);
     }
 
+    public static bool OnScreen(this Vector2 v, float pad = 0)
+    {
+        Collider c = new Hitbox(1, 1, v.X, v.Y);
+        return c.OnScreen(Engine.Scene as Level, pad);
+    }
     /// <summary>Gets all entities currently on screen.</summary>
     /// <param name="level">The <see cref="Level" /> to search.</param>
     /// <param name="pad">The number of units to extend the left, right, top and bottom edges of the camera bounds by.</param>
