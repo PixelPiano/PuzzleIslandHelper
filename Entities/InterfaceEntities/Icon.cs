@@ -4,8 +4,8 @@ using Color = Microsoft.Xna.Framework.Color;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [TrackedAs(typeof(DesktopEntity))]
-    public class Icon : DesktopEntity
+    [TrackedAs(typeof(DesktopClickable))]
+    public class Icon : DesktopClickable
     {
         public string Name;
         public string TextID; //ID for text stored in Dialog.txt
@@ -16,7 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private float clickedTimer;
         private Vector2? clickedPosition;
         public bool Dragging;
-        public Icon(Interface inter, string name, string textID, string tabText = "") : base(inter, false, 2)
+        public Icon(Interface inter, string name, string textID, string tabText = "") : base(inter, (int)Interface.Priority.Icon)
         {
             Name = name;
             TextID = textID;
@@ -25,7 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Collider = new Hitbox(Texture.Width, Texture.Height);
             Visible = true;
         }
-        public Icon(Interface inter, InterfaceData.Preset.IconData data) : base(inter, false, 2)
+        public Icon(Interface inter, InterfaceData.Preset.IconData data) : base(inter, (int)Interface.Priority.Icon)
         {
             Name = data.ID;
             TextID = data.Window;
@@ -54,14 +54,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 clickedPosition = null;
             }
-            if (!Parent.LeftPressed) Dragging = false;
-            if (Dragging && !(Parent.Window is not null && Parent.Window.Drawing))
+            if (!Interface.LeftPressed) Dragging = false;
+            if (Dragging && !(Interface.Window is not null && Interface.Window.Drawing))
             {
-                Center = Parent.Collider.AbsolutePosition;
+                Center = Interface.Collider.AbsolutePosition;
             }
             else
             {
-                Entity m = Parent.Monitor;
+                Entity m = Interface.Monitor;
                 if (X < m.X) X = m.X;
                 if (Y < m.Y) Y = m.Y;
                 if (X + Width > m.X + m.Width) X = m.X + m.Width - Width;
@@ -74,16 +74,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             base.OnClick();
             if (JustClicked)
             {
-                Parent.OpenIcon(this);
+                Interface.OpenIcon(this);
             }
             JustClicked = true;
             clickedTimer = 0;
-            clickedPosition = Parent.MousePosition;
+            clickedPosition = Interface.MousePosition;
         }
-        public void InterfaceRender()
+        public override void InterfaceRender() //(Only called if base.Visible is true
         {
-            if (Parent.ForceHide || !Visible) return;
-            base.Render();
+            base.InterfaceRender();
             Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, Position, Color.White * Alpha);
         }
     }

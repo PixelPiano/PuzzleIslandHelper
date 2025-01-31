@@ -6,7 +6,7 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
     [TrackedAs(typeof(Icon))]
-    public class YouHaveMail : DesktopEntity
+    public class YouHaveMail : DesktopClickable
     {
         public bool State;
         private Sprite sprite;
@@ -20,7 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Update()
         {
             base.Update();
-            if (Parent.Monitor != null)
+            if (Interface.Monitor != null)
             {
                // Position = Interface.monitor.Center - new Vector2(Width / 2, Height / 2);
             }
@@ -40,7 +40,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Begin(Scene scene)
         {
             base.Begin(scene);
-            Position = Parent.Monitor.Center - new Vector2(Width / 2, Height / 2);
+            Position = Interface.Monitor.Center - new Vector2(Width / 2, Height / 2);
             Tween tween = Tween.Create(Tween.TweenMode.Oneshot, Ease.CubeIn, 1, false);
             tween.OnUpdate = (Tween t) =>
             {
@@ -62,7 +62,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         private IEnumerator sequence()
         {
-            Parent.Window.Alpha = 0;
+            Interface.Window.Alpha = 0;
             for (float i = 0; i < 1; i += Engine.DeltaTime / 0.5f)
             {
                 sprite.Scale.Y = 1 - Ease.BigBackIn(i);
@@ -71,16 +71,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             sprite.Scale.Y = 0;
             yield return null;
             sprite.Visible = false;
-            WindowContent content = Parent.GetProgram("mail");
+            WindowContent content = Interface.GetProgram("mail");
             if (content is null) yield break;
             content.Visible = false;
-            Parent.CreateAndOpenIcon("mail", TextID, TabText);
+            Interface.CreateAndOpenIcon("mail", TextID, TabText);
             for (float i = 0; i < 1; i += Engine.DeltaTime / 0.4f)
             {
-                Parent.Window.Alpha = Ease.SineInOut(i);
+                Interface.Window.Alpha = Ease.SineInOut(i);
                 yield return null;
             }
-            Parent.Window.Alpha = 1;
+            Interface.Window.Alpha = 1;
             content.Visible = true;
         }
     }

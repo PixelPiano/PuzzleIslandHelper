@@ -6,8 +6,8 @@ using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [TrackedAs(typeof(DesktopEntity))]
-    public class FloppyLoader : DesktopEntity
+    [TrackedAs(typeof(DesktopClickable))]
+    public class FloppyLoader : DesktopClickable
     {
         public Image Tab;
         public Image ULTex, DLTex, SideTex, MiddleTex, TopTex, BottomTex;
@@ -24,7 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private bool clickedOnce;
         public FloppyLoader(Interface @interface) : base(@interface, (int)Interface.Priority.Power)
         {
-            Parent = @interface;
+            Interface = @interface;
             Depth = Interface.BaseDepth - 1;
             MTexture tex = GFX.Game["objects/PuzzleIslandHelper/interface/floppyLoaderPanel"];
             ULTex = new Image(tex.GetSubtexture(0, 0, 8, 8));
@@ -197,9 +197,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public override void Update()
         {
-            if (!clickedOnce && Parent.Monitor is not null)
+            if (!clickedOnce && Interface.Monitor is not null)
             {
-                Position = OrigPosition = Parent.Monitor.BottomRight - new Vector2(Width, Height);
+                Position = OrigPosition = Interface.Monitor.BottomRight - new Vector2(Width, Height);
             }
             Position = Position.Floor();
             UpdateIconPositions();
@@ -207,9 +207,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 foreach (Icon i in Disks)
                 {
-                    if (i.Check(Parent))
+                    if (i.Check(Interface))
                     {
-                        Parent.QuickLoadPreset(i.Disk.Preset);
+                        Interface.QuickLoadPreset(i.Disk.Preset);
                     }
                 }
             }

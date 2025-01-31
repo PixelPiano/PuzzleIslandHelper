@@ -4,8 +4,8 @@ using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [TrackedAs(typeof(DesktopEntity))]
-    public class Power : DesktopEntity
+    [TrackedAs(typeof(DesktopClickable))]
+    public class Power : DesktopClickable
     {
         public Sprite sprite;
         public Power(Interface inter, string path = "objects/PuzzleIslandHelper/interface/") : base(inter, (int)Interface.Priority.Power)
@@ -25,17 +25,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Update()
         {
             base.Update();
-            if (Parent.Monitor is not null)
+            if (Interface.Monitor is not null)
             {
-                Position = Parent.Monitor.Position + new Vector2(8, Parent.Monitor.Height - Height - 8);
+                Position = Interface.Monitor.Position + new Vector2(8, Interface.Monitor.Height - Height - 8);
             }
         }
         public override void OnClick()
         {
             base.OnClick();
-            if (!Parent.Closing)
+            if (!Interface.Closing)
             {
-                Parent.CloseInterface(false);
+                Interface.CloseInterface(false);
             }
         }
     }

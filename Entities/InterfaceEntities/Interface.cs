@@ -104,7 +104,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public const int BorderX = 16;
         public const int BorderY = 10;
         public const int BaseDepth = -1000001;
-
         private float prevLightAlpha;
         private float prevBloomStrength;
         private float oobTimer;
@@ -192,7 +191,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public List<Icon> Icons = [];
         public List<WindowContent> Content = [];
         public InterfaceData.Preset CurrentPreset;
-        public static InterfaceData DefaultData => PianoModule.SaveData.InterfaceData;
+        public static InterfaceData Data => PianoModule.SaveData.InterfaceData;
 
         public Interface(Color background, Machine machine) : base()
         {
@@ -316,29 +315,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             #region Check for icon clicked
             bool windowActiveAndNotDrawing = Window is not null && !Window.Drawing;
-            List<DesktopEntity> collided = [];
-            foreach (DesktopEntity clickable in Scene.Tracker.GetEntities<DesktopEntity>())
+            List<DesktopComponent> collided = [];
+            foreach (DesktopComponent component in Scene.Tracker.GetComponents<DesktopComponent>())
             {
-                if (CollideCheck(clickable))
+                if (component.CollideCheck(this))
                 {
-                    if (!(clickable is Icon && !CanClickIcons) && !Window.CollidePoint(Position))
+                    if (!(component.Entity is Icon && !CanClickIcons) && !Window.CollidePoint(Position))
                     {
-                        collided.Add(clickable);
+                        collided.Add(component);
                     }
                 }
             }
             if (collided.Count > 0)
             {
-                collided.OrderBy(item => item.Priority).First().OnClick();
+                collided.OrderBy(item => item.Priority).First().Click();
             }
             #endregion
         }
-        public void OpenIcon(Icon icon, string preset = null)
+        public void OpenIcon(Icon icon)
         {
-            if (!string.IsNullOrEmpty(preset))
-            {
-
-            }
             IconText.CurrentIcon = icon;
             CanCloseWindow = CanClickIcons = false;
             CurrentIconName = Window.Name = icon.Name;
@@ -355,30 +350,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public static void AddToPreset(Icon icon, string preset)
         {
-            if (DefaultData.IsValid(preset))
-            {
-                DefaultData[preset].Add(icon.Name, icon.TabText, icon.TextID);
-            }
-            else
-            {
-
-            }
-        }
-        public static void AddToPreset(string preset, string name, string tab, string window)
-        {
-            if (DefaultData.IsValid(preset))
-            {
-                DefaultData[preset].Add(name, tab, window);
-            }
+            AddToPreset(preset, icon.Name, icon.TabText, icon.TextID);
         }
         [Command("addtopreset", "")]
-        public static void AddToPresetCommand(string preset, string name, string textid, string windowtext)
+        public static void AddToPreset(string preset, string name, string tab, string window)
         {
-            AddToPreset(preset, name, textid, windowtext);
+            if (Data.IsValid(preset))
+            {
+                Data[preset].Add(name, tab, window);
+            }
         }
+
         public bool TryLoadPreset(string id)
         {
-            if (DefaultData[id] is InterfaceData.Preset preset)
+            if (Data[id] is InterfaceData.Preset preset)
             {
                 CurrentPreset = new InterfaceData.Preset();
                 CurrentPreset.Icons = [.. preset.Icons];
@@ -437,13 +422,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Border.Position = level.Camera.CameraToScreen(level.Camera.Position) + Vector2.One;
             if (!FakeStarting)
             {
-                foreach (DesktopEntity clickable in Scene.Tracker.GetEntities<DesktopEntity>())
+                foreach (DesktopComponent d in Scene.Tracker.GetComponents<DesktopComponent>())
                 {
-                    clickable.Prepare(level);
+                    d.Prepare(level);
                 }
-                foreach (DesktopEntity clickable in Scene.Tracker.GetEntities<DesktopEntity>())
+                foreach (DesktopComponent d in Scene.Tracker.GetComponents<DesktopComponent>())
                 {
-                    clickable.Begin(level);
+                    d.Begin(level);
                 }
                 SetIconInitialPositions(Icons);
             }
@@ -478,17 +463,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public void ShowIcons()
         {
-            foreach (DesktopEntity dc in Scene.Tracker.GetEntities<DesktopEntity>())
+            foreach (DesktopComponent component in Scene.Tracker.GetComponents<DesktopComponent>())
             {
-                dc.Visible = true;
+                component.Entity.Visible = true;
             }
             Cursor.Visible = true;
         }
         public void HideIcons()
         {
-            foreach (DesktopEntity dc in Scene.Tracker.GetEntities<DesktopEntity>())
+            foreach (DesktopComponent component in Scene.Tracker.GetComponents<DesktopComponent>())
             {
-                dc.Visible = false;
+                component.Entity.Visible = false;
             }
             Cursor.Visible = false;
         }
@@ -509,10 +494,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 CurrentPreset.Icons.Clear();
                 Window?.RemoveSelf();
                 Cursor?.RemoveSelf();
-                foreach (DesktopEntity dl in Scene.Tracker.GetEntities<DesktopEntity>())
+                foreach (DesktopComponent component in Scene.Tracker.GetComponents<DesktopComponent>())
                 {
-                    dl.RemoveSelf();
+                    component.Entity.RemoveSelf();
                 }
+                Icons.Clear();
                 foreach (WindowContent content in Content)
                 {
                     if (!full)
@@ -526,7 +512,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                     content?.RemoveSelf();
                 }
                 Content.Clear();
-
             }
             Interacting = false;
             PianoModule.Session.Interface = null;
@@ -589,7 +574,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             if (!FakeStarting)
             {
                 scene.Add(Window = new Window(Position, this));
-                scene.Add(new IconText(this));
+                scene.Add(new IconText(this)); //
                 scene.Add(Cursor = new Cursor());
                 scene.Add(Power = new Power(this));
                 scene.Add(new Nightmode(this));
@@ -697,7 +682,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             PianoModule.Session.MonitorActivated = true;
             if (UsesStartupMonitor)
             {
-                yield return MonitorIconAnim(true);
+                yield return ScreenIconAnimation(true);
                 yield return 0.3f;
             }
             Border.Visible = true;
@@ -713,12 +698,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             HoldLight = true;
             SetLightAmount(Scene as Level, 0);
             yield return 0.2f;
-            Monitor.StartUp();
+            Monitor.StartAnimation();
             yield return null;
         }
         private IEnumerator turnOffMonitor(bool fast)
         {
-            Monitor.TurnOff();
+            Monitor.EndAnimation();
             while (!fast && Monitor.TurningOff)
             {
                 yield return null;
@@ -762,22 +747,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 {
                     bool state = count % 8 == 0;
 
-                    foreach (DesktopEntity dc in Scene.Tracker.GetEntities<DesktopEntity>())
+                    foreach (DesktopComponent component in Scene.Tracker.GetComponents<DesktopComponent>())
                     {
-                        dc.Visible = state;
+                        component.Entity.Visible = state;
                     }
                 }
-                Monitor.SetColor(Color.Lerp(startColor, BackgroundColor, Ease.SineInOut(i)));
+                Monitor.Sprite.SetColor(Color.Lerp(startColor, BackgroundColor, Ease.SineInOut(i)));
                 count++;
                 yield return null;
             }
             if (!FakeStarting)
             {
-                foreach (DesktopEntity dc in Scene.Tracker.GetEntities<DesktopEntity>())
-                {
-                    dc.Visible = true;
-                }
-                Cursor.Visible = true;
+                ShowIcons();
                 InControl = true;
             }
             MonitorLoaded = true;
@@ -882,11 +863,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 yield return 0.8f;
                 whirringSfx.Param("Computer state", 1);
-                yield return MonitorIconAnim(false);
+                yield return ScreenIconAnimation(false);
             }
             yield return null;
         }
-        public IEnumerator MonitorIconAnim(bool state)
+        public IEnumerator ScreenIconAnimation(bool state)
         {
             InterfaceMonitor monitor = SceneAs<Level>().Tracker.GetEntity<InterfaceMonitor>();
             if (monitor is null) yield break;

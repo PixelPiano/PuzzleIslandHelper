@@ -4,8 +4,8 @@ using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [TrackedAs(typeof(DesktopEntity))]
-    public class Nightmode : DesktopEntity
+    [TrackedAs(typeof(DesktopClickable))]
+    public class Nightmode : DesktopClickable
     {
         public Sprite sprite;
         public Nightmode(Interface inter) : base(inter,(int)Interface.Priority.Nightmode, 10, true)
@@ -15,26 +15,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             sprite.AddLoop("sun", "sun", 0.1f);
             sprite.AddLoop("moon", "moon", 0.1f);
             Collider = new Hitbox(sprite.Width, sprite.Height);
-            sprite.Play(Parent.NightMode ? "moon" : "sun");
+            sprite.Play(Interface.NightMode ? "moon" : "sun");
         }
         public override void OnClick()
         {
             base.OnClick();
-            bool prev = Parent.NightMode;
-            Parent.NightMode = !prev;
+            bool prev = Interface.NightMode;
+            Interface.NightMode = !prev;
             sprite.Play(!prev ? "moon" : "sun");
         }
         public override void Begin(Scene scene)
         {
             base.Begin(scene);
-            sprite.Play(Parent.NightMode ? "moon" : "sun");
+            sprite.Play(Interface.NightMode ? "moon" : "sun");
         }
         public override void Update()
         {
             base.Update();
-            if (Parent.Power != null)
+            if (Interface.Power != null)
             {
-                Position = Parent.Power.BottomRight + new Vector2(8, -Height);
+                Position = Interface.Power.BottomRight + new Vector2(8, -Height);
             }
         }
     }

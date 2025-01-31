@@ -6,8 +6,8 @@ using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [Tracked]
-    public class Window : Entity
+    [TrackedAs(typeof(InterfaceEntity))]
+    public class Window : InterfaceEntity
     {
         public Sprite Sprite;
         public Sprite xSprite;
@@ -79,12 +79,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Components.Remove(component);
             CustomComponents.Remove(component);
         }
-        public override void Render()
+        public override void InterfaceRender()
         {
-            if (Interface.ForceHide) return;
             if (!Drawing)
             {
-                base.Render();
+                base.InterfaceRender();
                 return;
             }
             else
@@ -99,7 +98,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 CurrentProgram?.WindowRender();
 
                 Draw.Rect(new Vector2(TabArea.X, TabArea.Y), (int)CaseWidth, tabHeight, TabColor * Alpha);
-                base.Render();
+                base.InterfaceRender();
                 if (ClosingEnabled)
                 {
                     x.Position = new Vector2(TabArea.X + (int)CaseWidth - 8, TabArea.Y + 1); //must be adjusted after rectangles are drawn

@@ -81,7 +81,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Sprite.Play("buffering");
             State = States.Buffering;
         }
-        public Cursor()
+        public Cursor() : base()
         {
             Tag = TagsExt.SubHUD;
             Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/"));
@@ -91,10 +91,5 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Idle();
             Visible = false;
         }
-        public override void Update()
-        {
-            base.Update();
-        }
-
     }
 }
