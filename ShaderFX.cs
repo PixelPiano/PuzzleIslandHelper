@@ -23,6 +23,8 @@ public class ShaderFX
     public static Effect InvertOrb;
     public static Effect BitrailAbsorb;
     public static Effect Scroll;
+
+    [OnLoadContent]
     public static void LoadFx()
     {
         Scroll = LoadEffect("scroll");

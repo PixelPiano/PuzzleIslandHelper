@@ -41,52 +41,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Glitch.Value = 1;
             yield return 0.5f;
             Audio.SetMusicParam("fade", 1);
-            int suffix = CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.Third) ? 3 :
-                         CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.Second) ? 2 :
+            int suffix = CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.Second) ? 2 :
                          1;
             string room = "digiCalidus" + suffix;
             InstantTeleport(Scene, Scene.GetPlayer(), room);
         }
         public bool DirectlyIntoDigiMeet;
-
-
-        private bool panningOut;
-        private IEnumerator WaitForPanOut()
-        {
-            while (panningOut)
-            {
-                yield return null;
-            }
-        }
-        private IEnumerator PanOut()
-        {
-            Add(new Coroutine(ActuallyPanOut()));
-            yield return null;
-        }
-        private IEnumerator ActuallyPanOut()
-        {
-            panningOut = true;
-            yield return Level.ZoomBack(4.3f);
-            panningOut = false;
-            Level.ResetZoom();
-        }
         public override void OnEnd(Level level)
         {
-            /*            if (part == 2)
-                        {
-                            if (!DirectlyIntoDigiMeet)
-                            {
-                                if (WasSkipped)
-                                {
-                                    Level.ResetZoom();
-                                }
-                                if (level.GetPlayer() is Player player)
-                                {
-                                    player.StateMachine.State = Player.StNormal;
-                                }
-                            }
-                            Glitch.Value = 0;
-                        }*/
+
         }
         public static void InstantTeleport(Scene scene, Player player, string room)
         {

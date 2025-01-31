@@ -16,7 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public bool DraggingEnabled = true;
         public bool ClosingEnabled = true;
         public string Name;
-
+        public bool Open;
         public WindowContent(Window window)
         {
             Window = window;
@@ -50,7 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public virtual void OnClosed(Window window)
         {
         }
-        
+
         public virtual void OnOpened(Window window)
         {
             Window = window;

@@ -5,17 +5,29 @@ using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [TrackedAs(typeof(ComputerIcon))]
-    public class YouHaveMail : DesktopClickable
+    [TrackedAs(typeof(Icon))]
+    public class YouHaveMail : DesktopEntity
     {
         public bool State;
         private Sprite sprite;
         private bool inRoutine;
         private string TextID, TabText;
-        public YouHaveMail(Interface inter, string textId, string tabText) : base(inter)
+        public YouHaveMail(Interface inter, string textId, string tabText) : base(inter, (int)Interface.Priority.Power)
         {
             TextID = textId;
             TabText = tabText;
+        }
+        public override void Update()
+        {
+            base.Update();
+            if (Parent.Monitor != null)
+            {
+               // Position = Interface.monitor.Center - new Vector2(Width / 2, Height / 2);
+            }
+        }
+        public override void Prepare(Scene scene)
+        {
+            base.Prepare(scene);
             sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/interface/mail/");
             sprite.AddLoop("anim", "notif", 0.05f);
             sprite.AddLoop("idle", "empty", 0.1f);
@@ -25,17 +37,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             sprite.CenterOrigin();
             sprite.Position = new Vector2(Width / 2, Height / 2);
         }
-        public override void Update()
-        {
-            base.Update();
-            if (Interface.monitor != null)
-            {
-                Position = Interface.monitor.Center - new Vector2(Width / 2, Height / 2);
-            }
-        }
         public override void Begin(Scene scene)
         {
             base.Begin(scene);
+            Position = Parent.Monitor.Center - new Vector2(Width / 2, Height / 2);
             Tween tween = Tween.Create(Tween.TweenMode.Oneshot, Ease.CubeIn, 1, false);
             tween.OnUpdate = (Tween t) =>
             {
@@ -57,7 +62,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         private IEnumerator sequence()
         {
-            Interface.Window.Alpha = 0;
+            Parent.Window.Alpha = 0;
             for (float i = 0; i < 1; i += Engine.DeltaTime / 0.5f)
             {
                 sprite.Scale.Y = 1 - Ease.BigBackIn(i);
@@ -66,16 +71,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             sprite.Scale.Y = 0;
             yield return null;
             sprite.Visible = false;
-            WindowContent content = Interface.GetProgram("mail");
+            WindowContent content = Parent.GetProgram("mail");
             if (content is null) yield break;
             content.Visible = false;
-            Interface.OpenCustom("mail",TextID, TabText);
+            Parent.CreateAndOpenIcon("mail", TextID, TabText);
             for (float i = 0; i < 1; i += Engine.DeltaTime / 0.4f)
             {
-                Interface.Window.Alpha = Ease.SineInOut(i);
+                Parent.Window.Alpha = Ease.SineInOut(i);
                 yield return null;
             }
-            Interface.Window.Alpha = 1;
+            Parent.Window.Alpha = 1;
             content.Visible = true;
         }
     }

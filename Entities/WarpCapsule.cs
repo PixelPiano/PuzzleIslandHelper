@@ -60,7 +60,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             public static MTexture Texture => GFX.Game[Path + "control"];
-            public static MTexture EmptyTex => GFX.Game[Path + "controlEmpty"];
             public static MTexture FilledTex => GFX.Game[Path + "controlFilled"];
             public Image Image;
             public Image Screen;
@@ -69,14 +68,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public UI UI;
             public List<MachineNode> Nodes = [];
             public bool Blocked;
-            public bool Filled => PianoModule.SaveData.PlayerFixedWarpDisplay;
             public bool PlayerHasAnyNodes => Inv.IsObtained.Any(item => item == true);
             public Machine(WarpCapsule parent, Vector2 position) : base(position)
             {
                 Depth = 10;
                 Parent = parent;
                 Collider = new Hitbox(Texture.Width, Texture.Height);
-                Add(Screen = new Image(EmptyTex, true));
+                Add(Screen = new Image(FilledTex, true));
                 Add(Image = new Image(Texture, true));
                 Talk = new DotX3(Collider, Interact);
                 Add(Talk);
@@ -100,7 +98,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public override void Render()
             {
-                Screen.Texture = Filled ? FilledTex : EmptyTex;
                 Image.DrawSimpleOutline();
                 base.Render();
             }

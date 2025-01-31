@@ -12,7 +12,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     public class WindowImage : WindowComponent
     {
         public MTexture Texture;
-        public float Alpha = 1;
+        public float Alpha
+        {
+            get
+            {
+                return alpha * windowAlpha;
+            }
+            set
+            {
+                alpha = value;
+            }
+        }
+        private float alpha = 1;
+        private float windowAlpha => Window.Alpha;
         public virtual float Width => Texture.Width;
         public virtual float Height => Texture.Height;
         public Vector2 ImageOffset;
@@ -89,11 +101,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
         public override void Render()
         {
-            if (Outline)
+            if (Alpha > 0)
+            {            if (Outline)
             {
-                DrawOutline(OutlineColor);
+                DrawOutline(OutlineColor * Alpha);
             }
-            DrawTexture(Color);
+            DrawTexture(Color * Alpha);
+                if (Outline)
+                {
+                    DrawOutline(OutlineColor);
+                }
+                DrawTexture(Color);
+            }
         }
         public void DrawTexture(Color color)
         {
@@ -435,7 +454,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
         }
 
-        
+
         public void SetFrame(MTexture texture)
         {
             if (texture != Texture)
@@ -645,7 +664,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             };
         }
 
-        
+
         public MTexture[] GetFrames(string path, int[] frames = null)
         {
             MTexture[] array;
@@ -809,7 +828,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             return PlayUtil();
         }
 
-        
+
         public IEnumerator PlayUtil()
         {
             while (Animating)

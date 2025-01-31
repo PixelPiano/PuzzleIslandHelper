@@ -81,7 +81,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 Vector2 cPos = Window.Interface.Cursor.WorldPosition;
                 if (Collider.Bounds.Contains((int)cPos.X, (int)cPos.Y) && !Window.PressingButton)
                 {
-                    if (!Cursor.LeftClicked && !Cursor.RightClicked)
+                    if (!WIP.PianoEntities.Cursor.LeftClicked && !WIP.PianoEntities.Cursor.RightClicked)
                     {
                         return;
                     }
@@ -90,7 +90,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                     y = ((int)cPos.Y - (int)Window.DrawPosition.Y) / CellSize;
                     if (x >= 0 && y >= 0 && x < W && y < H)
                     {
-                        currentCells[x, y] = Cursor.LeftClicked && !Cursor.RightClicked;
+                        currentCells[x, y] = WIP.PianoEntities.Cursor.LeftClicked && !WIP.PianoEntities.Cursor.RightClicked;
                     }
                 }
                 return;

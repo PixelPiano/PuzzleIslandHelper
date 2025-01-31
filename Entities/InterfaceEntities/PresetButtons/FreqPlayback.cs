@@ -6,7 +6,7 @@ using System;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
 
-    [TrackedAs(typeof(Button))]
+    [TrackedAs(typeof(ListButton))]
     public class FreqPlayback : ListButton
     {
         public string EventName;
@@ -14,7 +14,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public FreqPlayback(WaveProgram parent, string eventName, Func<string> customText = null) : base(parent, eventName, customText)
         {
             EventName = eventName;
-            
             TextSize = 35f;
             TextOffset = new Vector2(16, 8);
             CustomText = customText;

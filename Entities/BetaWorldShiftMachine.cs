@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/WorldShiftMachine")]
     [Tracked]
-    public class BetaWorldShiftMachine : InterfaceMachine
+    public class BetaWorldShiftMachine : Machine
     {
         public const int WIDTH = 128;
         public const int HEIGHT = 68;
@@ -74,10 +74,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
         }
-        public override IEnumerator OnBegin(Player player, Level level)
+        public override IEnumerator OnBegin(Player player)
         {
             SetSessionInterface();
-            Interface.StartPreset("WorldShift");
+            Interface.StartWithPreset("WorldShift");
             Program = Interface.GetProgram("WorldShift") as WorldShiftProgram;
             Program.SetProgress(WorldShiftProgram.Progress.Off);
             yield return null;

@@ -99,7 +99,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalCreak1");
                 yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalsnap");
                 Preserve = true;
-                yield return Interface.CloseInterfaceRoutine(true);
+                yield return Interface.ShutDown(true);
                 player.StateMachine.State = Player.StDummy;
                 screw?.Launch();
                 SceneAs<Level>().Session.SetFlag("screwLaunch");
@@ -121,7 +121,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             {
                 PianoModule.Session.HasBrokenPipes = false;
                 yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalsnap");
-                yield return Interface.CloseInterfaceRoutine(true);
+                yield return Interface.ShutDown(true);
                 player.StateMachine.State = Player.StDummy;
                 yield return null;
                 player.Facing = Facings.Left;

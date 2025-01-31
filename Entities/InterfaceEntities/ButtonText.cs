@@ -15,6 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public float Alpha = 1;
         public Button ParentButton;
         public Window Window;
+        public Color Color = Color.Black;
         public ButtonText(Button parent, string text, float textSize, Vector2 Scale, Vector2 offset)
         {
             Size = textSize;
@@ -34,12 +35,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 Window = ParentButton.Window;
                 if(Window is null) return;
             }
-            if (!Window.Drawing || Window.Interface.ForceHide)
+            if (!Window.Drawing || Window.Interface.ForceHide || Alpha <= 0)
             {
                 return;
             }
 
-            ActiveFont.Font.Draw(Size, Text, RenderPosition + TextOffset, Vector2.Zero, Scale, Color.Lerp(Color.Black, ParentButton.Disabled ? Color.LightGray : Color.Black, 0.5f) * Alpha);
+            ActiveFont.Font.Draw(Size, Text, RenderPosition + TextOffset, Vector2.Zero, Scale,
+                Color.Lerp(Color, ParentButton.Disabled ? Color.LightGray : Color, 0.5f) * Alpha);
 
         }
     }

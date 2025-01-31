@@ -3,25 +3,25 @@ using Monocle;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
     [Tracked]
-    public class DesktopClickable : Entity
+    public class DesktopEntity : Entity
     {
-        public Interface Interface;
+        public Interface Parent;
         private int delayFrames;
         private float timer;
         public bool AlwaysClickable;
-        public DesktopClickable(Interface @interface, int delayFrames = 0, bool alwaysClickable = false) : base(@interface.Position)
+        public int Priority;
+        public bool SubHUD;
+        public DesktopEntity(Interface @interface,bool subhud, int depth, int delayFrames = 0, bool alwaysClickable = false) : base(@interface.Position)
         {
-            Interface = @interface;
-            Depth = Interface.BaseDepth - 1;
+            Priority = depth;
+            Parent = @interface;
+            //Depth = Interface.BaseDepth - 1;
             this.delayFrames = delayFrames;
             AlwaysClickable = alwaysClickable;
-            Visible = false;
-        }
-        public override void Render()
-        {
-            if (!Interface.ForceHide)
+            SubHUD = subhud;
+            if (subhud)
             {
-                base.Render();
+                Tag |= TagsExt.SubHUD;
             }
         }
         /// <summary>
@@ -37,7 +37,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         {
 
         }
-
         /// <summary>
         /// Runs when the player clicks on the clickable
         /// </summary>
@@ -45,6 +44,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         {
             if (timer < delayFrames * Engine.DeltaTime) return;
             timer = 0;
+        }
+        public virtual void InterfaceRender(Scene scene)
+        {
+            base.Render();
+        }
+        public override void Render()
+        {
         }
         public override void Update()
         {

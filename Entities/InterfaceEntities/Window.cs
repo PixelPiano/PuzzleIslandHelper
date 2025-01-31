@@ -28,15 +28,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public float CaseHeight = 1;
         public float TextCaseWidth = 1;
         public int tabHeight = 9;
-        private Vector2 PicoDimensions = new Vector2(160, 90);
         public const int TextOffset = 3;
         public bool Drawing = false;
         public Rectangle TabArea;
         public TextWindow TextWindow;
         public WindowContent CurrentProgram;
-        private bool WaitForClickRelease;
-        private bool CanCloseWindow;
-
+        public bool RunningProgram => CurrentProgram != null;
+        public string ProgramName => CurrentProgram != null ? CurrentProgram.Name : "";
         public bool DraggingEnabled = true;
         public bool ClosingEnabled = true;
         public List<Button> Buttons => Components.GetAll<Button>().ToList();
@@ -75,7 +73,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         {
             Components.Add(component);
             CustomComponents.Add(component);
-
         }
         public void Remove(WindowComponent component)
         {
@@ -84,7 +81,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public override void Render()
         {
-            if(Interface.ForceHide) return;
+            if (Interface.ForceHide) return;
             if (!Drawing)
             {
                 base.Render();
@@ -151,8 +148,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 c.Active = Drawing;
             }
 
-            CenterX = Calc.Clamp(CenterX, Interface.monitor.X, Interface.monitor.Right);
-            Position.Y = Calc.Clamp(Position.Y, Interface.monitor.Y + TabArea.Height, Interface.monitor.Bottom);
+            CenterX = Calc.Clamp(CenterX, Interface.Monitor.X, Interface.Monitor.Right);
+            Position.Y = Calc.Clamp(Position.Y, Interface.Monitor.Y + TabArea.Height, Interface.Monitor.Bottom);
             Position = Position.Floor();
             DrawPosition = Position;
             Visible = Drawing;
@@ -170,7 +167,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             foreach (Button b in Buttons)
             {
-                b.Alpha = Alpha;
                 if (b.Pressing)
                 {
                     PressingButton = true;
@@ -195,7 +191,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
 
 
-        public void OpenWindow(ComputerIcon icon)
+        public void OpenWindow(Icon icon)
         {
             OpenWindow(icon.Name);
         }

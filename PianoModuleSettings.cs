@@ -1,3 +1,4 @@
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
 using Microsoft.Xna.Framework.Input;
 
 namespace Celeste.Mod.PuzzleIslandHelper
@@ -33,6 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
         [SettingSubText("modoptions_PuzzleIslandHelperModule_InvToggle_desc")]
         public InvertActivationModes ToggleInvert { get; set; } = InvertActivationModes.Hold;
+
         [SettingSubText("modoptions_PuzzleIslandHelperModule_InvToggle_desc")]
         public StickyHoldMode ToggleSticky { get; set; } = StickyHoldMode.Click;
     }

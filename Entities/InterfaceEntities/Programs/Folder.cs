@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
     [CustomProgram("Folder")]
     public class Folder : WindowContent
     {
-        public List<ComputerIcon> Icons = new();
+        public List<Icon> Icons = new();
         public Button UpButton;
         public Button DownButton;
         public Vector2 Padding = Vector2.One * 4;

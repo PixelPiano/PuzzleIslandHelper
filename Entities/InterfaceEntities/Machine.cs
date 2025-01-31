@@ -8,7 +8,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
 
     [Tracked]
-    public class InterfaceMachine : Entity
+    public class Machine : Entity
     {
         public Sprite Sprite;
         public DotX3 Talk;
@@ -20,11 +20,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         {
             PianoModule.Session.Interface = Interface;
         }
-        public InterfaceMachine(Vector2 position) : base(position)
+        public Machine(Vector2 position) : base(position)
         {
 
         }
-        public InterfaceMachine(Vector2 position, string path, Color backgroundColor) : this(position)
+        public Machine(Vector2 position, string path, Color backgroundColor) : this(position)
         {
             BackgroundColor = backgroundColor;
             Depth = 2;
@@ -35,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Add(Talk = new DotX3(0, 0, Sprite.Width, Sprite.Height, new Vector2(Sprite.Width / 2, 0), Interact));
             Talk.PlayerMustBeFacing = false;
         }
-        public virtual IEnumerator OnBegin(Player player, Level level)
+        public virtual IEnumerator OnBegin(Player player)
         {
             yield return null;
         }
@@ -45,7 +45,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 Scene.Add(Interface = new Interface(BackgroundColor, this));
             }
-            Interface.BeginInteract(player);
+            Interface.FakeStarting = false;
+            player.StateMachine.State = Player.StDummy;
+            Add(new Coroutine(OnBegin(player)));
         }
     }
 }

@@ -6,6 +6,20 @@
 #The key is the name of the preset
 #The list holds the icons/programs the interface should load if the preset is used
 Layouts:
+  Default:
+    Icons:
+      - ID: Unknown
+        Tab: a
+      - ID: Text
+        Tab: aa
+        Window: TODO
+      - ID: Wave
+        Tab: Wave Program
+      - ID: Access
+        Tab: Access Program
+        Window: ACCESS
+      - ID: Fountain
+        Tab: fountain
   WorldShift:
     Icons:
       - ID: WorldShift
@@ -34,24 +48,6 @@ Layouts:
         
       - ID: GameOfLife
         Tab: Conway's Game of Life
-  Default:
-    Icons:
-      - ID: Unknown
-        Tab: a
-      - ID: Text
-        Tab: aa
-        Window: TODO
-      - ID: Wave
-        Tab: Wave Program
-      - ID: Access
-        Tab: Access Program
-        Window: ACCESS
-      - ID: Fountain
-        Tab: fountain
-  Calidus1:
-    Icons:
-      - ID: Access
-        Tab: Emergency
   Fountain:
     Icons:
       - ID: Fountain

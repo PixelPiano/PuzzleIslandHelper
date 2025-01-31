@@ -76,6 +76,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             float x = Padding.X, y = Padding.Y;
             for (int i = 0; i < Buttons.Count; i++)
             {
+                Buttons[i].First = i == 0;
+                Buttons[i].Last = i == Buttons.Count - 1;
                 Buttons[i].Position.Y = y;
                 Buttons[i].Position.X = x;
 
@@ -84,6 +86,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 y += Buttons[i].Height + Padding.Y;
                 totalHeight = y;
             }
+            totalHeight += Padding.Y / 2;
             UpButton = new Button(Window, "arrow");
             DownButton = new Button(Window, "arrow");
             DownButton.Outline = UpButton.Outline = true;
@@ -95,6 +98,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             ProgramComponents.Add(UpButton);
             ProgramComponents.Add(DownButton);
             ProgramComponents.Add(Slider);
+            scrollOffset = -Padding.Y / 2;
 
         }
         public void PlaySound(FreqPlayback from)
@@ -120,10 +124,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public override void Update()
         {
             scrollOffset += (UpButton.Pressing ? -1 : DownButton.Pressing ? 1 : 0) * ScrollSpeed;
-            scrollOffset = Calc.Clamp(scrollOffset, 0, Math.Max(totalHeight - Window.CaseHeight, 0));
+            scrollOffset = Calc.Clamp(scrollOffset, -Padding.Y / 2, Math.Max(totalHeight - Window.CaseHeight, 0));
             foreach (FreqPlayback button in Buttons)
             {
-                button.Y = button.origPosition.Y - scrollOffset;
+                button.Y = (float)Math.Round(button.origPosition.Y - scrollOffset);
             }
             Volume = Slider.Value;
             base.Update();

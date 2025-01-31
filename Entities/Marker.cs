@@ -32,35 +32,46 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return false;
         }
-        public static IEnumerator ZoomTo(string name, float zoom, float duration)
+        public static IEnumerator ZoomTo(string name, float zoom, float duration, Vector2 offset = default)
         {
             if (Engine.Scene is Level level)
             {
                 if (TryFind(name, out Vector2 pos))
                 {
-                    yield return level.ZoomTo(pos - level.Camera.Position, zoom, duration);
+                    yield return level.ZoomTo(pos - level.Camera.Position + offset, zoom, duration);
                 }
             }
         }
-        public static IEnumerator CameraTo(string name, Ease.Easer ease, float duration, bool x, bool y)
+        public static IEnumerator CameraTo(string name, Ease.Easer ease, float duration, Vector2 offset = default)
         {
             if (Engine.Scene is Level level)
             {
                 if (TryFind(name, out Vector2 pos))
                 {
                     Vector2 from = level.Camera.Position;
-                    if (x && y)
-                    {
-                        yield return PianoUtils.Lerp(ease, duration, f => level.Camera.Position = Vector2.Lerp(from, pos, f));
-                    }
-                    else if (x)
-                    {
-                        yield return PianoUtils.Lerp(ease, duration, f => level.Camera.Position = Vector2.Lerp(from, new Vector2(pos.X, from.Y), f));
-                    }
-                    else if (y)
-                    {
-                        yield return PianoUtils.Lerp(ease, duration, f => level.Camera.Position = Vector2.Lerp(from, new Vector2(from.X, pos.Y), f));
-                    }
+                    yield return PianoUtils.Lerp(ease, duration, f => level.Camera.Position = Vector2.Lerp(from, pos + offset, f));
+                }
+            }
+        }
+        public static IEnumerator CameraToX(string name, Ease.Easer ease, float duration, float offset = 0)
+        {
+            if (Engine.Scene is Level level)
+            {
+                if (TryFind(name, out Vector2 pos))
+                {
+                    float from = level.Camera.X;
+                    yield return PianoUtils.Lerp(ease, duration, f => level.Camera.X = Calc.LerpClamp(from, pos.X + offset, f));
+                }
+            }
+        }
+        public static IEnumerator CameraToY(string name, Ease.Easer ease, float duration, float offset = 0)
+        {
+            if (Engine.Scene is Level level)
+            {
+                if (TryFind(name, out Vector2 pos))
+                {
+                    float from = level.Camera.Y;
+                    yield return PianoUtils.Lerp(ease, duration, f => level.Camera.Y = Calc.LerpClamp(from, pos.Y + offset, f));
                 }
             }
         }

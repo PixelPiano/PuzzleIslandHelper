@@ -4,8 +4,8 @@ using Color = Microsoft.Xna.Framework.Color;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [TrackedAs(typeof(DesktopClickable))]
-    public class ComputerIcon : DesktopClickable
+    [TrackedAs(typeof(DesktopEntity))]
+    public class Icon : DesktopEntity
     {
         public string Name;
         public string TextID; //ID for text stored in Dialog.txt
@@ -16,11 +16,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private float clickedTimer;
         private Vector2? clickedPosition;
         public bool Dragging;
-        public ComputerIcon(Interface inter, string name, string textID, string tabText = "") : base(inter)
+        public Icon(Interface inter, string name, string textID, string tabText = "") : base(inter, false, 2)
         {
             Name = name;
             TextID = textID;
             TabText = tabText;
+            Texture = GFX.Game["objects/PuzzleIslandHelper/interface/icons/" + Name.ToLower()];
+            Collider = new Hitbox(Texture.Width, Texture.Height);
+            Visible = true;
+        }
+        public Icon(Interface inter, InterfaceData.Preset.IconData data) : base(inter, false, 2)
+        {
+            Name = data.ID;
+            TextID = data.Window;
+            TabText = data.Tab;
             Texture = GFX.Game["objects/PuzzleIslandHelper/interface/icons/" + Name.ToLower()];
             Collider = new Hitbox(Texture.Width, Texture.Height);
             Visible = true;
@@ -45,21 +54,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 clickedPosition = null;
             }
-            if (!Interface.LeftPressed) Dragging = false;
-            if (Dragging && !(Interface.Window is not null && Interface.Window.Drawing))
+            if (!Parent.LeftPressed) Dragging = false;
+            if (Dragging && !(Parent.Window is not null && Parent.Window.Drawing))
             {
-                Center = Interface.Collider.AbsolutePosition;
+                Center = Parent.Collider.AbsolutePosition;
             }
             else
             {
-                Entity m = Interface.monitor;
+                Entity m = Parent.Monitor;
                 if (X < m.X) X = m.X;
                 if (Y < m.Y) Y = m.Y;
                 if (X + Width > m.X + m.Width) X = m.X + m.Width - Width;
                 if (Y + Height > m.Y + m.Height) Y = m.Y + m.Height - Height;
             }
-
-
             Position = Position.Floor();
         }
         public override void OnClick()
@@ -67,20 +74,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             base.OnClick();
             if (JustClicked)
             {
-                Interface.OpenIcon(this);
+                Parent.OpenIcon(this);
             }
             JustClicked = true;
             clickedTimer = 0;
-            clickedPosition = Interface.MousePosition;
+            clickedPosition = Parent.MousePosition;
         }
-        public override void Render() //(Only called if base.Visible is true
+        public void InterfaceRender()
         {
-            if(Interface.ForceHide) return;
+            if (Parent.ForceHide || !Visible) return;
             base.Render();
-
             Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, Position, Color.White * Alpha);
-
-
         }
     }
 }

@@ -214,6 +214,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(new BeforeRenderHook(BeforeRender));
             ID = iD;
         }
+        [OnLoadContent]
+        public static void OnLoadContent()
+        {
+            StreamSpritesheet = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streams"];
+            for (int i = 0; i < 4; i++)
+            {
+                DissolveTextures[i] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve0" + i];
+            }
+        }
         public void EmitShards()
         {
             Vector2 direction = Direction switch

@@ -6,8 +6,8 @@ using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [TrackedAs(typeof(DesktopClickable))]
-    public class FloppyLoader : DesktopClickable
+    [TrackedAs(typeof(DesktopEntity))]
+    public class FloppyLoader : DesktopEntity
     {
         public Image Tab;
         public Image ULTex, DLTex, SideTex, MiddleTex, TopTex, BottomTex;
@@ -22,9 +22,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private Coroutine routine;
         private bool changing;
         private bool clickedOnce;
-        public FloppyLoader(Interface @interface) : base(@interface)
+        public FloppyLoader(Interface @interface) : base(@interface, (int)Interface.Priority.Power)
         {
-            Interface = @interface;
+            Parent = @interface;
             Depth = Interface.BaseDepth - 1;
             MTexture tex = GFX.Game["objects/PuzzleIslandHelper/interface/floppyLoaderPanel"];
             ULTex = new Image(tex.GetSubtexture(0, 0, 8, 8));
@@ -197,9 +197,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public override void Update()
         {
-            if (!clickedOnce && Interface.monitor is not null)
+            if (!clickedOnce && Parent.Monitor is not null)
             {
-                Position = OrigPosition = Interface.monitor.BottomRight - new Vector2(Width, Height);
+                Position = OrigPosition = Parent.Monitor.BottomRight - new Vector2(Width, Height);
             }
             Position = Position.Floor();
             UpdateIconPositions();
@@ -207,9 +207,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 foreach (Icon i in Disks)
                 {
-                    if (i.Check(Interface))
+                    if (i.Check(Parent))
                     {
-                        Interface.QuickLoadPreset(i.Disk.Preset);
+                        Parent.QuickLoadPreset(i.Disk.Preset);
                     }
                 }
             }

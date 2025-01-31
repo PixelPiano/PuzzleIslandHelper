@@ -3,6 +3,7 @@ using System;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using System.Reflection;
 using Monocle;
+using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -16,7 +17,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override Type SessionType => typeof(PianoModuleSession);
         public static PianoModuleSession Session => (PianoModuleSession)Instance._Session;
         public static StageData StageData { get; set; }
-        public static InterfaceData InterfaceData { get; set; }
         public static GameshowData GameshowData { get; set; }
         public static AccessData AccessData { get; set; }
         public static MazeData MazeData { get; set; }
@@ -43,16 +43,22 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             Instance = this;
         }
+        public override void DeserializeSaveData(int index, byte[] data)
+        {
+            base.DeserializeSaveData(index, data);
+            SaveData.InterfaceData = GetContent<InterfaceData>("InterfacePresets");
+        }
         public override void PrepareMapDataProcessors(MapDataFixup context)
         {
             base.PrepareMapDataProcessors(context);
             //WarpCapsule.Rune.ClearRunes();
             context.Add<PianoMapDataProcessor>();
         }
+
+        [OnLoadContent]
         public static void LoadCustomData()
         {
             StageData = GetContent<StageData>("Tutorial");
-            InterfaceData = GetContent<InterfaceData>("InterfacePresets");
             GameshowData = GetContent<GameshowData>("GameshowQuestions");
             AccessData = GetContent<AccessData>("AccessLinks");
             MazeData = GetContent<MazeData>("MazeData");
@@ -64,28 +70,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override void LoadContent(bool firstLoad)
         {
             base.LoadContent(firstLoad);
-            PipeSpout.StreamSpritesheet = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streams"];
-            for (int i = 0; i < 4; i++)
-            {
-                PipeSpout.DissolveTextures[i] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve0" + i];
-            }
-            LoadCustomData();
-            ShaderFX.LoadFx();
-        }
-        public static T GetContent<T>(string path)
-        {
-            T result = default;
-            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/" + path, out ModAsset asset))
-            {
-                asset.TryDeserialize(out result);
-            }
-            return result;
+            InvokeAllWithAttribute(typeof(OnLoadContent));
         }
         public override void Load()
         {
             InvokeAllWithAttribute(typeof(OnLoad));
         }
-
 
         public override void Unload()
         {
@@ -120,6 +110,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     }
                 }
             }
+        }
+        public static T GetContent<T>(string path)
+        {
+            T result = default;
+            if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/" + path, out ModAsset asset))
+            {
+                asset.TryDeserialize(out result);
+            }
+            return result;
         }
     }
 }

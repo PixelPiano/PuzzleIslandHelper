@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 if (program != null)
                 {
                     program.Name = name;
-                    if (PianoModule.Session.Interface is Interface inter)
+                    if (window != null && window.Interface is Interface inter)
                     {
                         if (inter.GetProgram(name) is WindowContent content)
                         {
@@ -25,9 +25,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                             return true;
                         }
                         inter.Content.Add(program);
+                        level.Add(program);
+                        return true;
                     }
-                    level.Add(program);
-                    return true;
+                    return false;
                 }
             }
             return false;

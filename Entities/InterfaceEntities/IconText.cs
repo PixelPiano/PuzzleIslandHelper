@@ -4,8 +4,6 @@ using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [CustomEntity("PuzzleIslandHelper/IconText")]
-
     public class IconText : Entity
     {
         public static float ButtonWidth;
@@ -13,7 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public Vector2 DrawPosition;
         public float IconWidth = 0;
         public static readonly float TextScale = 0.8f;
-        public static ComputerIcon CurrentIcon;
+        public static Icon CurrentIcon;
         public Interface Interface;
         public Window Window;
         private string CurrentTabText => CurrentIcon.TabText;

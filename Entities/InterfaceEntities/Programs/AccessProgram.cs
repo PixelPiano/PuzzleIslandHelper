@@ -60,7 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             if (Engine.Scene is not Level level) yield break;
             if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
             {
-                yield return PianoModule.Session.Interface.CloseInterfaceRoutine(instant);
+                yield return PianoModule.Session.Interface.ShutDown(instant);
             }
 
             level.Add(new BeamMeUp(room, AccessTeleporting));
@@ -72,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             WarpCapsule machine = level.Tracker.GetEntity<WarpCapsule>();
             if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
             {
-                yield return PianoModule.Session.Interface.CloseInterfaceRoutine(instant, machine != null);
+                yield return PianoModule.Session.Interface.ShutDown(instant, machine != null);
             }
             if (machine != null)
             {

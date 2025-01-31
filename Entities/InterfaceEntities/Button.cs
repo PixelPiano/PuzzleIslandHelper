@@ -15,7 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public IEnumerator Routine;
         public string Text;
         private bool pressing;
-        
+
         public bool Pressing
         {
             get
@@ -160,12 +160,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             if (ForcePressed)
             {
-                Color = Color.Blue * Alpha;
                 if (!Pressing)
                 {
                     RunActions();
                     Press();
                 }
+                Color = Color.Blue * Alpha;
                 return;
             }
             if (Disabled)
