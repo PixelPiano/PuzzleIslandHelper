@@ -25,7 +25,33 @@ using static Celeste.Player;
 /// <summary>A collection of methods + extensions methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
-
+    public static TileGrid GetTileOverlayBox(Scene scene, float x, float y, float width, float height, char tile)
+    {
+        Level level = scene as Level; ;
+        Rectangle tileBounds = level.Session.MapData.TileBounds;
+        VirtualMap<char> solidsData = level.SolidsData;
+        x = (int)(x / 8f) - tileBounds.Left;
+        y = (int)(y / 8f) - tileBounds.Top;
+        int tilesX = (int)width / 8;
+        int tilesY = (int)height / 8;
+        return GFX.FGAutotiler.GenerateOverlay(tile, (int)x, (int)y, tilesX, tilesY, solidsData).TileGrid;
+    }
+    public static TileGrid GetTileBox(float width, float height, char tile)
+    {
+        int tilesX = (int)width / 8;
+        int tilesY = (int)height / 8;
+        return GFX.FGAutotiler.GenerateBox(tile, tilesX, tilesY).TileGrid;
+    }
+    public static string ReplaceAt(this string input, int index, char newChar)
+    {
+        if (input == null)
+        {
+            throw new ArgumentNullException("Input is null!");
+        }
+        char[] chars = input.ToCharArray();
+        chars[index] = newChar;
+        return new string(chars);
+    }
     public static bool CheckAll(this List<(string, bool)> flags, bool inverted = false)
     {
         return !flags.Exists(item => !item.Item1.GetFlag(!item.Item2) != inverted);

@@ -11,7 +11,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
     [Tracked]
     public class CalidusCutsceneTrigger : Trigger
     {
-        private CutsceneEntity Cutscene;
+        public CalidusCutscene.Cutscenes Progress => PianoModule.Session.CalidusCutscene;
+        private CutsceneEntity CutsceneEntity;
+        public CalidusCutscene.Cutscenes Cutscene;
         private bool ActivateOnTransition;
         private bool InCutscene;
         private List<string> flags = new();
@@ -42,7 +44,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             flags = data.Attr("flag").Replace(" ", "").Split(',').ToList();
             
             Tag |= Tags.TransitionUpdate;
-            Cutscene = new CalidusCutscene(data.Enum<CalidusCutscene.Cutscenes>("cutscene"));
+            Cutscene = data.Enum<CalidusCutscene.Cutscenes>("cutscene");
+            CutsceneEntity = new CalidusCutscene(Cutscene);
             ActivateOnTransition = data.Bool("activateOnTransition");
         }
 
@@ -65,10 +68,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         public override void OnEnter(Player player)
         {
-            if (!InCutscene && FlagState)
+            if (Progress == Cutscene && !InCutscene && FlagState)
             {
                 InCutscene = true;
-                SceneAs<Level>().Add(Cutscene);
+                SceneAs<Level>().Add(CutsceneEntity);
             }
         }
     }

@@ -83,49 +83,42 @@ fountainHint5=[Paper left normal]{# 000000}5 won't sit next to 4 or 6 and must b
 fountainHint6=[Paper left normal]{# 000000}6 must be the sum of its neighbors{#}
 fountainHint7=[Paper left normal]{# 000000}7 should-
 (The rest of the writing has been scribbled out too many times to read){#}
+
 fountainHintA=
 	[Paper left normal]
 	{# 000000}Hey, what was the fountain code again? Is it written down somewhere?{#}
+
 fountainHintB=
 	[Paper left normal]
 	{# 000000}No, why would it be written down? That's just asking for someone to break in.
-	I've hidden it in fragments across the lab. I know how forgetful you are, but it can't be convenient.{#}
+	We've hidden it in fragments across the lab. I know you're forgettful, but please try to keep up.{#}
+
 fountainHintC=
 	[Paper left normal]
 	{# 000000}Oh, are you talking about the ------?{#}
 	{# 222222}(the last word has been scratched out){#}
+
 fountainHintD=
 	[Paper left normal]
-	{# 000000}YES. You're hopeless, just talk to me about it in person...{#}
+	{# 000000}YES. I AM. You're hopeless. Just ask me in person...{#}
 
 capsuleDocumentA=
 	[Paper left normal]
-	{# FF0000}WARP{#}{# 000000} Manual (Simplified){#}
-	{# FF0000}WARP{#}{# 000000} (Wireless-Artificial-Relocation-Probe) is a mechanical object of unknown origin.
-	Each WARP has a unique identifier (id) tied with it.
-	Using the program installed on its neighboring display, the user can enter in any id of an associated WARP.
-	If the id exists and is within range, the WARP will open, and the user may step inside.
-	The capsule has been equipped with a preset id for new users.{#}
-
-capsuleWelcome=
-	[Madeline left sad]
-	"Welcome, please step inside. Your {# FF0000}WARP{#}{#} has been preset with the safest destination id."
-	"To continue, please press the big button in the middle of the screen."
-	[Madeline left normal]
-	{silent_trigger 0 press button}
-	Boop!
+	{# 000000} One day I woke up to find blueprints I had not made. 
+	I figured I must have written them in the middle of the night and forgotten.
+	As the days went by they evolved from vague sketches and scribbles to detailed diagrams and instructions on how to build a strange machine.
+	I decided to build it, of course.
+	This is the result. I've named it "W.A.R.P".
+	...I haven't figured out the accronym yet.{#}
 
 capsuleDocumentB=
 	[Paper left normal]
-	{# 000000}I don't like this.
-	This thing just appears. Out of nowhere, not a scratch in sight.
-	It's exactly what we need for digital expeditions, down to the smallest detail.
-	And not one person bats an eye.
-	It's way too perfect.
-	He didn't build it. None of us built it.
-	So why are there so many of them?
-	Are we being watched?
-	If you ask me, we should stay well away from it.{#}
+	{# 000000} Building it felt so... natural. Like I had been made to do it.
+	You know when you get an idea for something and it just... fills your entire soul?
+	You have to let it free into the world. If you don't, it'll rip you to shreds.
+	It was like that, but... I never had the idea. I know that some ideas "just come to you", but...
+	I've double-checked the security footage.
+	So why were the blueprints in my handwriting?{#}
 codeResearchA=
 	[Paper left normal]
 	{# 000000}We've begun research into a strange phenomena.
@@ -202,9 +195,8 @@ faceComplaint=
 
 refillNotesA=
 	[Paper left normal]
-	{# 000000}We've received reports sightings of floating objects seperate from the FOA we've been monitoring recently.
-	These objects are diamond-shaped, have a soft, green glow, and gently float up and down.
-	It ignores any physical contact, phasing through solid matter.
+	{# 000000}We've received reports sightings of floating objects seperate from the FOAs we've been monitoring recently.
+	These objects are diamond-shaped, glow a soft green and float gently up and down.
 	We should investigate. It could be a new material!{#}
 refillNotesB=
 	[Paper left normal]
@@ -214,22 +206,25 @@ refillNotesB=
 
 refillNotesC=
 	[Paper left normal]
-	{# 000000}We've successfully created a stable replication of these objects! 
-	The glow, the shape, everything about it is perfect, a 1-1 copy!
-	...
-	What do we do now?{#}
-refillNotesD=
-	[Paper left normal]
 	{# 000000}Observations:
-	Our prototype is unstable, and shatters roughly 5-10 seconds after creation.
-	When it shatters, it loses its green glow and the frequency of its floating slows dramatically.{#}
-refillNotesE=
+	Our prototype is unstable and cracks roughly 5-10 seconds after creation.
+	When it cracks, it loses its green glow and the frequency of its floating slows dramatically.{#}
+refillNotesD=
 	[Paper left normal]
 	{# 000000}Observations:
 	While in this state, it is very fragile, and will shatter at the slightest touch.
 	Subjects who shatter them report an instant feeling of fatigue and nausea.
-	However, they don't seem to respond to touching other crystals.
+	We are unsure if this effect is natural or a result of instability.
+	Do the perfected versions of these grant some sort of health benefit?
 	For the time being, we've confined them inside these chambers.{#}
+
+refillNotesE=
+	[Paper left normal]
+	{# 000000}We've successfully created a stable replication of the object! 
+	The glow, the shape, everything about it is perfect, a 1-to-1 copy!
+	...
+	We, uh. Can't interact with it.
+	What do we do now?{#}
 
 #Washer Interact while off
 #attempt 1
@@ -523,17 +518,24 @@ DIGILORE3={mtRight}Are you alone?{/mtRight}{n0}Yeah... Where is everyone?{n0}{mt
 DIGILORE4={mtRight}Y'know those observers we set up around the village?{n0}{/mtRight}You mean the ones that I invented..? Yes I know them.{n0}{mtRight}Right, well I still have limited access to the lab, and I found that the readings there match up perfectly with the readings from here. What's more, I think the area in here is shifting.{n0}{/mtRight}So... What does that mean?
 
 #Pipe Break sequence
+#PipeAttemptZero=
+#	[Madeline left sad]
+#	Whoa! That was close! Good thing I was able to avoid that...
+#	[Madeline left distracted]
+#	Big...{0.5} screw...
+#	Hope that wasn't important or something.
+
+#PipeAttemptOhNo=
+#	[Madeline right surprised]
+#	IT WAS IMPORTANT! IT WAS IMPORTANT!!
+
 PipeAttemptZero=
 	[Madeline left sad]
-	Whoa! That was close! Good thing I was able to avoid that...
-	[Madeline left distracted]
-	Big...{0.5} screw...
-	Hope that wasn't important or something.
+	...Ah. Oops.
 
 PipeAttemptOhNo=
-	[Madeline right surprised]
-	IT WAS IMPORTANT! IT WAS IMPORTANT!!
-
+	[Madeline left sad]
+	...
 
 #Filenames
 

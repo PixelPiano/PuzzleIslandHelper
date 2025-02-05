@@ -1,8 +1,5 @@
-using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -89,13 +86,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             base.Update();
             Collider.Width = Sprite.Width;
             Collider.Height = Sprite.Height;
-            /*          CoverAlpha = Sprite.CurrentAnimationID switch
-                      {
-                          "idle" => Calc.Approach(CoverAlpha, 1, Engine.DeltaTime),
-                          "turnOff" => 0,
-                          _ => Calc.Approach(CoverAlpha, 0, Engine.DeltaTime)
-                      };*/
-            //Cover.SetColor(Sprite.Color);
         }
     }
 

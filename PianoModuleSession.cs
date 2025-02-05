@@ -9,14 +9,16 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public CalidusCutscene.Cutscenes CalidusCutscene { get; set; }
         public List<int> RuneNodes = [0, 2, 5];
         public List<EntityID> BathroomStallsOpen = new();
-        public bool BathroomStallOpened {get; set;}
+        public bool BathroomStallOpened { get; set; }
         public int TimesUsedCapsuleWarp { get; set; }
         public List<EntityID> CollectedFirfilIDs = new();
         public List<string> VoidLampGroups = new();

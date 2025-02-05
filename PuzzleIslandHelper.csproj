@@ -88,6 +88,11 @@
           <HintPath>libs\PandorasBox.dll</HintPath>
         </Reference>
     </ItemGroup>
+    <ItemGroup>
+      <Compile Update="Entities\InterfaceEntities\SegmentBox.cs">
+        <SubType>Component</SubType>
+      </Compile>
+    </ItemGroup>
 
     <Target Name="CopyFiles" AfterTargets="Build" Inputs="$(OutputPath)\$(AssemblyName).dll;$(OutputPath)\$(AssemblyName).pdb" Outputs="..\bin\$(AssemblyName).dll;..\bin\$(AssemblyName).pdb">
         <Copy SourceFiles="$(OutputPath)\$(AssemblyName).dll" DestinationFolder="..\bin" />

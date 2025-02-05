@@ -1,3 +1,4 @@
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -42,13 +43,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private Color TabColor = Color.Blue;
         public Interface Interface;
         public float Alpha = 1;
-
+        private bool blockHotkeys;
         public Window(Vector2 position, Interface inter)
         {
             Interface = inter;
             Depth = Interface.BaseDepth - 4;
             Position = position;
             Tag |= Tags.TransitionUpdate;
+            Add(new HotkeyBlocker(delegate { return blockHotkeys; }));
         }
         private void SetButtonPosition()
         {
@@ -110,6 +112,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 TextWindow.Drawing = true;
             }
         }
+        public void BlockHotkeysThisFrame()
+        {
+            blockHotkeys = true;
+        }
         public void DisableButtons()
         {
             foreach (Button button in Buttons)
@@ -126,6 +132,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public override void Update()
         {
+            blockHotkeys = false;
             if (CurrentProgram != null)
             {
                 ClosingEnabled = CurrentProgram.ClosingEnabled;

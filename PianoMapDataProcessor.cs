@@ -2,11 +2,21 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
+using PrismaticHelper.Entities.Panels;
 using System;
 using System.Collections.Generic;
+using static Celeste.Mod.PuzzleIslandHelper.Cutscenes.Gameshow;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
+    public struct SecurityCamData
+    {
+
+        public string Name;
+        public string Room;
+        public Vector2 RoomPosition;
+
+    }
     public class BitrailData
     {
         public string LevelName;
@@ -64,12 +74,21 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static List<PortalNodeData> PortalNodes = new();
         public static Dictionary<string, WarpCapsuleData> WarpLinks = new();
         public static Dictionary<WarpCapsule.Rune, WarpCapsuleData> WarpRunes = new();
-        
+        public static Dictionary<string, string> IPAddressTeleports = new();
         public static WarpCapsuleData PrimaryWarpData;
         public static Dictionary<string, CalidusSpawnerData> CalidusSpawners = new();
-        
+        public static List<SecurityCamData> SecurityCams = new();
+
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
+            Action<BinaryPacker.Element> securityCamHandler = data =>
+            {
+                SecurityCamData cam;
+                cam.Name = data.Attr("name");
+                cam.Room = levelName;
+                cam.RoomPosition = new Vector2(data.AttrFloat("x"), data.AttrFloat("y"));
+                SecurityCams.Add(cam);
+            };
             Action<BinaryPacker.Element> passengerDummyHandler = data =>
             {
                 string type = data.Attr("passengerType", "Civilian");
@@ -123,13 +142,22 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     CalidusSpawners.Add(levelName, cData);
                 }
             };
+            Action<BinaryPacker.Element> ipTeleportHandler = data =>
+            {
+                string room = levelName;
+                if (!IPAddressTeleports.ContainsValue(room))
+                {
+                    string address = IPTeleport.GetAddress(data.Attr("first", "000"), data.Attr("second", "00"), data.Attr("third", "00"), data.Attr("last", "0"));
+                    IPAddressTeleports.Add(address, room);
+                }
+            };
             Action<BinaryPacker.Element> accessWarpHandler = data =>
             {
                 WarpCapsuleData awData = default;
 
                 string id = data.Attr("warpID");
 
-                if(string.IsNullOrEmpty(id)) return;
+                if (string.IsNullOrEmpty(id)) return;
                 WarpCapsule.Rune rune = new(id, data.Attr("rune"));
                 if (!string.IsNullOrEmpty(levelName) && rune != null && !WarpRunes.ContainsKey(rune))
                 {
@@ -142,7 +170,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         WarpCapsule.DefaultRunes.TryAddRune(rune);
                     }
                     WarpCapsule.AllRunes.TryAddRune(rune);
-                    
+
                     awData = new()
                     {
                         Name = id,
@@ -164,6 +192,18 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         if (levelName.StartsWith("lvl_")) {
                             levelName = levelName.Substring(4);
                         }
+                    }
+                },
+                {
+                    "entity:PuzzleIslandHelper/SecurityCam",cam =>
+                    {
+                        securityCamHandler(cam);
+                    }
+                },
+                {
+                    "entity:PuzzleIslandHelper/IPTeleport", ip =>
+                    {
+                        ipTeleportHandler(ip);
                     }
                 },
                 {
@@ -203,9 +243,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             // reset the dictionary for the current map and mode.
             WarpLinks = new();
+            IPAddressTeleports = new();
             PortalNodes = new();
             Bitrails = new();
             CalidusSpawners = new();
+            SecurityCams = new();
         }
 
         public override void End()

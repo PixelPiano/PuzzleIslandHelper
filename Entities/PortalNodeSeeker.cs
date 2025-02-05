@@ -28,7 +28,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (!CalidusCutscene.GetCutsceneFlag(scene, CalidusCutscene.Cutscenes.Second))
+            if (!CalidusCutscene.CutsceneWatched(scene, CalidusCutscene.Cutscenes.Second))
             {
                 Talk.Enabled = false;
             }

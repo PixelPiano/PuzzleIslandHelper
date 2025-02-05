@@ -9,6 +9,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     [TrackedAs(typeof(Machine))]
     public class LabComputer : Machine
     {
+        public static bool Debug;
+        [Command("computerdebug", "")]
+        public static void ComputerDebug(bool value = false)
+        {
+            Debug = value;
+        }
+        [OnLoad]
+        public static void Load()
+        {
+            Debug = false;
+        }
+        [OnUnload]
+        public static void Unload()
+        {
+            Debug = false;
+        }
         public LabComputer(EntityData data, Vector2 offset) : base(data.Position + offset, "objects/PuzzleIslandHelper/interface/keyboard", Color.Green)
         {
             UsesStartupMonitor = true;
@@ -17,12 +33,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override IEnumerator OnBegin(Player player)
         {
             if (Scene is not Level level) yield break;
-            if (!PianoModule.Session.RestoredPower)
+            //DEBUG
+            if (Debug)
             {
-                //DEBUG
                 Interface.StartWithPreset("Default");
                 yield break;
-                //END DEBUG
+            }
+            //END DEBUG
+            if (!PianoModule.Session.RestoredPower)
+            {
                 if (PianoModule.Session.TimesMetWithCalidus < 1)
                 {
                     SetSessionInterface();

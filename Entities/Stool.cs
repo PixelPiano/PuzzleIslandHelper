@@ -7,6 +7,22 @@ using MonoMod.Utils;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+    [Tracked]
+    public class StoolMoverComponent : Component
+    {
+        public StoolMoverComponent() : base(true, true)
+        {
+
+        }
+        public bool Collide(Stool stool)
+        {
+            if (Entity != null)
+            {
+                return Entity.CollideCheck(stool);
+            }
+            return false;
+        }
+    }
     [CustomEntity("PuzzleIslandHelper/Stool")]
     [Tracked]
     public class Stool : Actor
@@ -20,7 +36,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private EntityID id;
         public bool FlagState => (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag)) != Inverted;
         private static bool InRefill = false;
-        private bool PlatformState = false;
+        private bool Raised = false;
         private bool inRoutine = false;
 
         private float noGravityTimer;
@@ -136,7 +152,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private void OnPickup()
         {
             MoveStool = false;
-            Hold.SlowRun = PlatformState;
+            Hold.SlowRun = Raised;
             Speed = Vector2.Zero;
             AddTag(Tags.Persistent);
             platform.AddTag(Tags.Persistent);
@@ -165,8 +181,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private IEnumerator ChangeState(Player player)
         {
             inRoutine = true;
-            float platTarget = PlatformState ? -2f : 2f;
-            if (!PlatformState)
+            float platTarget = Raised ? -2f : 2f;
+            if (!Raised)
             {
                 sprite.Play("extUp");
                 Audio.Play("event:/PianoBoy/stoolRise", Position);
@@ -180,8 +196,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             for (float i = 0; i < 1; i += 0.1f)
             {
                 platform.MoveTowardsY(platTarget, i * platTarget);
-                if (!PlatformState)
+                if (!Raised)
                 {
+                    foreach (StoolMoverComponent c in Scene.Tracker.GetComponents<StoolMoverComponent>())
+                    {
+                        if (c.Entity != null && c.Collide(this))
+                        {
+                            c.Entity.Bottom = platform.Position.Y;
+                        }
+                    }
+
                     if (DashesHeld != 0)
                     {
                         GivePlayerDashes(player);
@@ -206,7 +230,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 yield return null;
             }
-            PlatformState = !PlatformState;
+            Raised = !Raised;
             yield return null;
             inRoutine = false;
         }
@@ -386,7 +410,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }));
         }
-        
+
         [OnUnload]
         public static void Unload()
         {
@@ -395,9 +419,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if(Scene is not Level level) return;
+            if (Scene is not Level level) return;
             SetState();
-            if(!FlagState) return;
+            if (!FlagState) return;
             Hold.CheckAgainstColliders();
             sprite.SetColor(refillColor);
             orig_Color = refillColor;
@@ -410,11 +434,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 sprite.SetColor(orig_Color);
             }
-            Collider.Position = Hold.PickupCollider.Position = PlatformState ? _platPos : _platPos + Vector2.UnitY * 10;
+            Collider.Position = Hold.PickupCollider.Position = Raised ? _platPos : _platPos + Vector2.UnitY * 10;
             Collider.Position.X = Hold.PickupCollider.Position.X + 4;
-            Collider.Height = Hold.PickupCollider.Height = PlatformState ? sprite.Height : 10;
+            Collider.Height = Hold.PickupCollider.Height = Raised ? sprite.Height : 10;
             player = Scene.Tracker.GetEntity<Player>();
-            StateAdjustment = PlatformState ? 0 : sprite.Height - 10;
+            StateAdjustment = Raised ? 0 : sprite.Height - 10;
 
             if (!inRoutine)
             {

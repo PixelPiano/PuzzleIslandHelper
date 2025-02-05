@@ -29,7 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public Collider Collider;
         public int Width = 120;
         public int Height = 14;
-        public static bool Selected;
+        public bool Selected;
         private bool consumedButton;
         private Func<string, bool> onSubmit;
         public Vector2 ScreenSpacePosition
@@ -45,10 +45,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 return (box - cam) * 6;
             }
         }
-        public InputBox(Window window, Func<string, bool> onSubmit = null) : base(window)
+        public InputBox(Window window, Func<string, bool> onSubmit = null, int width = 120) : base(window)
         {
             this.onSubmit = onSubmit;
-
+            Width = width;
+        }
+        public InputBox(Window window, int maxChars, Func<string, bool> onSubmit = null) : base(window)
+        {
+            this.onSubmit = onSubmit;
+            string measure = "";
+            for (int i = 0; i < maxChars; i++)
+            {
+                measure += "_";
+            }
+            Width = (int)(ActiveFont.Measure(measure).X / 6);
         }
         public override void OnOpened(Scene scene)
         {
@@ -90,29 +100,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             consumedButton = false;
             base.Update();
-            if (Collider is null)
-            {
-                return;
-            }
+            if (Collider is null) return;
             Collider.Position = RenderPosition.Floor();
             Collider.Width = Width;
             Collider.Height = Height;
 
             bool collidingWithMouse = Interface.MouseOver(Collider);
-
-
-            if (collidingWithMouse && Interface.LeftPressed)
+            if (Interface.LeftPressed)
             {
-                Selected = true;
+                Selected = collidingWithMouse;
+                if (collidingWithMouse)
+                {
+                    Window.BlockHotkeysThisFrame();
+                }
             }
-            else if (Interface.LeftPressed)
-            {
-                Selected = false;
-            }
-        }
-        public void DoSomething()
-        {
-
         }
         public static bool AddedToOnInput;
         public override void Added(Entity entity)
@@ -160,7 +161,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 case '\b':
                     if (Helper.Text.Length > 0)
                     {
-                        Helper.Text = Helper.Text.Substring(0, Helper.Text.Length - 1);
+                        Helper.Text = Helper.Text[..^1];
                     }
                     else if (Input.MenuCancel.Pressed)
                     {
@@ -168,16 +169,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                     }
                     break;
                 case ' ':
-                    if (Helper.Text.Length > 0 && ActiveFont.Measure(Helper.Text + c + "_").X < Width * 6)
+                    if (Helper.Text.Length > 0 && ActiveFont.Measure(Helper.Text + c + ActiveFont.Measure("_").X).X < Width * 6)
                     {
                         Helper.Text += c;
                     }
                     break;
                 default:
                     {
-                        if (!char.IsControl(c) && ActiveFont.FontSize.Characters.ContainsKey(c) && ActiveFont.Measure(Helper.Text + c + "_").X < Width * 6)
+                        if (!char.IsControl(c) && ActiveFont.FontSize.Characters.ContainsKey(c) && ActiveFont.Measure(Helper.Text + c + ActiveFont.Measure("_").X).X < Width * 6)
                         {
-
                             Helper.Text += c;
                         }
                         break;
@@ -199,7 +199,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Removed(Entity entity)
         {
             base.Removed(entity);
-            Selected = false;
             Helper.RemoveSelf();
 
             if (AddedToOnInput)
@@ -209,43 +208,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             MInput.Disabled = false;
         }
-        [OnLoad]
-        public static void Load()
-        {
-            Selected = false;
-            IL.Monocle.MInput.Update += MInput_Update;
-        }
-        [OnUnload]
-        public static void Unload()
-        {
-            Selected = false;
-            IL.Monocle.MInput.Update -= MInput_Update;
-        }
-
-        private static void MInput_Update(ILContext il)
-        {
-            ILCursor cursor = new ILCursor(il);
-            if (cursor.TryGotoNext(
-                    MoveType.After,
-                    instr => instr.MatchCall<Engine>("get_Commands"),
-                    instr => instr.MatchLdfld<Monocle.Commands>("Open")
-                    ))
-            {
-                cursor.EmitDelegate(DisableHotkeys);
-                cursor.Emit(OpCodes.Or);
-            }
-        }
-        private static bool DisableHotkeys()
-        {
-            return Selected;
-        }
 
         [Tracked]
         public class InputBoxText : TextHelper
         {
+            public enum PositionModes
+            {
+                Left,
+                Center,
+                Right
+            }
+            public PositionModes PositionMode = PositionModes.Center;
             public InputBox Track;
             private float timer;
             private bool showUnderscore;
+            private float underWidth;
             public Interface Interface;
             public InputBoxText(Interface inter, InputBox track) : base(Color.White)
             {
@@ -255,13 +232,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             public override void Update()
             {
                 base.Update();
-
+                underWidth = ActiveFont.Measure("_").X;
                 Visible = Track.Visible;
                 if (Scene is not Level level)
                 {
                     return;
                 }
-                if (Selected)
+                if (Track.Selected)
                 {
                     if (timer < 0.5f)
                     {
@@ -288,7 +265,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 {
                     showUnderscore = false;
                 }
-                DrawOutline(Track.ScreenSpacePosition + new Vector2(Track.Width * 3 - x / 2, Track.Height * 3), Text + (showUnderscore ? "_" : ""));
+                Vector2 sc = Track.ScreenSpacePosition;
+                Vector2 offset = PositionMode switch
+                {
+                    PositionModes.Left => Vector2.UnitY * Track.Height * 3,
+                    PositionModes.Center => new Vector2(Track.Width * 3 - x / 2, Track.Height * 3),
+                    PositionModes.Right => new Vector2(Track.Width * 6 - x, Track.Height * 3)
+                };
+                Vector2 pos = sc + offset;
+                DrawOutline(pos, Text);
+                if (showUnderscore)
+                {
+                    if (pos.X + x >= sc.X + Track.Width * 6 - underWidth && Text.Length >= 2)
+                    {
+                        DrawOutline(new Vector2(pos.X + x - ActiveFont.Measure(Text[^1]).X, pos.Y), "_");
+                    }
+                    else
+                    {
+                        DrawOutline(new Vector2(pos.X + x, pos.Y), "_");
+                    }
+
+                }
             }
         }
     }

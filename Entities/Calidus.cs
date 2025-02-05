@@ -464,9 +464,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sineY = Calc.Approach(sineY, sineYTarget, Engine.DeltaTime * 6);
             if (Talk != null)
             {
-                if (CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.Second))
+                if (CalidusCutscene.CutsceneWatched(Scene, CalidusCutscene.Cutscenes.Second))
                 {
-                    Talk.Enabled = !CalidusCutscene.GetCutsceneFlag(Scene, CalidusCutscene.Cutscenes.SecondA);
+                    Talk.Enabled = !CalidusCutscene.CutsceneWatched(Scene, CalidusCutscene.Cutscenes.SecondA);
                 }
                 else
                 {
@@ -607,7 +607,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     ArmLoopCount = 0;
                 }
             };
-            EyeSprite.Position += OrbSprite.Center;
+            EyeSprite.Position += OrbSprite.Center + GetLookOffset();
             Arms[0].Position.X += -(Arms[0].Width + 1);
             Arms[1].Position.X += OrbSprite.Width;
             SpriteBox = new Hitbox(Arms[0].Width * 2 + 3 + OrbSprite.Width, OrbSprite.Height, Arms[0].X - 5);

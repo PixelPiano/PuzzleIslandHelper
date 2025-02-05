@@ -8,6 +8,8 @@
 Layouts:
   Default:
     Icons:
+      - ID: Camera
+        Tab: Security
       - ID: Unknown
         Tab: a
       - ID: Text

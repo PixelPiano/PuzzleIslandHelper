@@ -16,123 +16,69 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
     [Tracked]
     public class CalidusCutscene : CutsceneEntity
     {
+        public static void MarkCutsceneAsWatched(Scene scene, Cutscenes cutscene)
+        {
+            (scene as Level).Session.SetFlag("CalidusCutscene" + cutscene.ToString() + "Watched");
+        }
+        public static bool CutsceneWatched(Scene scene, Cutscenes cutscene)
+        {
+            return (scene as Level).Session.GetFlag("CalidusCutscene" + cutscene.ToString() + "Watched");
+        }
         public enum Cutscenes
         {
             FirstIntro,
-            SecondIntro,
             First,
+            FirstOutro,
+            SecondIntro,
             Second,
             SecondA
         }
         public Cutscenes Cutscene;
         private Calidus Calidus;
-        public Aura aura;
+        private Vector2 caliMoveBackPosition;
+        private bool panningOut;
+        private bool ShakeLevel;
+        private bool LookingSideToSide = true;
+        public Coroutine ScreenZoomAcrossRoutine;
         public CalidusCutscene(Cutscenes cutscene)
             : base()
         {
             Cutscene = cutscene;
         }
 
-        [TrackedAs(typeof(ShaderOverlay))]
-        public class Aura : ShaderOverlay
-        {
-            public bool Strong;
-            public float Random;
-            private Player player;
-            private bool forcedVisibleState;
-            public Aura() : base("PuzzleIslandHelper/Shaders/glitchAura", "", true)
-            {
-            }
-            public override void Update()
-            {
-                player = Scene.GetPlayer();
-                if (player != null)
-                {
-                    player.Visible = forcedVisibleState;
-                }
-                base.Update();
-            }
-            public override void BeforeApply()
-            {
-                base.BeforeApply();
-                if (player is null) return;
-                player.Visible = false;
-            }
-            public override void AfterApply()
-            {
-                base.AfterApply();
-                if (player is null) return;
-                Engine.Graphics.GraphicsDevice.SetRenderTarget(GameplayBuffers.Level);
-                GameplayRenderer.Begin();
-                player.Render();
-                Draw.SpriteBatch.End();
-            }
-            public override bool ShouldRender()
-            {
-                return Amplitude >= 0 && base.ShouldRender();
-            }
-
-            public override void Removed(Scene scene)
-            {
-                base.Removed(scene);
-                if (player != null)
-                {
-                    player.Visible = true;
-                }
-            }
-
-            public override void ApplyParameters()
-            {
-                base.ApplyParameters();
-                if (Scene is not Level level || player is null || Effect is null || Effect.Parameters is null) return;
-                Effect.Parameters["Strong"]?.SetValue(Strong);
-                Effect.Parameters["Center"]?.SetValue((player.Center - level.Camera.Position) / new Vector2(320, 180));
-                Effect.Parameters["Size"]?.SetValue(0.01f);
-                Effect.Parameters["Random"]?.SetValue(Calc.Random.Range(1, 100f));
-            }
-
-        }
-        public void SetCutsceneFlag()
-        {
-            Level.Session.SetFlag("CalidusCutscene" + Cutscene.ToString() + "Watched");
-        }
-        public static bool GetCutsceneFlag(Scene scene, Cutscenes cutscene)
-        {
-            return (scene as Level).Session.GetFlag("CalidusCutscene" + cutscene.ToString() + "Watched");
-        }
         public override void OnBegin(Level level)
         {
             Player player = level.GetPlayer();
 
-            if (GetCutsceneFlag(level, Cutscene))
-            {
-                EndCutscene(Level);
-                return;
-            }
             switch (Cutscene)
             {
                 case Cutscenes.FirstIntro:
-                    Add(new Coroutine(GlitchOut(player, level)));
+                    Add(new Coroutine(FirstIntro(player, level)));
                     break;
                 case Cutscenes.First:
                     PianoModule.Session.TimesMetWithCalidus = 1;
-                    Add(new Coroutine(Cutscene1(player, level)));
+                    Add(new Coroutine(First(player, level)));
+                    break;
+                case Cutscenes.FirstOutro:
+                    PianoModule.Session.TimesMetWithCalidus = 1;
+                    Add(new Coroutine(FirstOutro(player, level)));
                     break;
                 case Cutscenes.SecondIntro:
-                    Add(new Coroutine(Intro2(player, level)));
+                    Add(new Coroutine(SecondIntro(player, level)));
                     break;
                 case Cutscenes.Second:
                     PianoModule.Session.TimesMetWithCalidus = 2;
-                    Add(new Coroutine(Cutscene2(player, level)));
+                    Add(new Coroutine(Second(player, level)));
                     break;
                 case Cutscenes.SecondA:
                     PianoModule.Session.TimesMetWithCalidus = 2;
-                    Add(new Coroutine(Cutscene2B(player, level)));
+                    Add(new Coroutine(SecondOptional(player, level)));
                     break;
             }
         }
         public override void OnEnd(Level level)
         {
+            level.ResetZoom();
             Player player = Level.GetPlayer();
             Calidus calidus = Level.Tracker.GetEntity<Calidus>();
             if (calidus != null)
@@ -158,11 +104,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 Audio.PauseMusic = false;
                 level.Session.SetFlag("blockGlitch", false);
                 ShakeLevel = false;
+                Glitch.Value = 0;
                 Level.StopShake();
-                if (TagCheck(Tags.Global))
-                {
-                    RemoveTag(Tags.Global);
-                }
+
                 if (player != null)
                 {
                     switch (Cutscene)
@@ -185,113 +129,48 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     }
                 }
             }
-        }
-        private IEnumerator Intro2(Player player, Level level)
-        {
-            level.InCutscene = true;
-            Add(new Coroutine(GlitchOut(player, level)));
-            Vector2 playerMarker = level.Marker("player");
-            Vector2 ZoomPosition = level.Marker("camera1") - level.LevelOffset;
-            Coroutine zoomIn = new Coroutine(ScreenZoom(ZoomPosition, 1.5f, 2));
-            Coroutine walkTo = new Coroutine(player.DummyWalkTo(playerMarker.X));
-            Add(zoomIn);
-            yield return 1.3f;
-            Add(walkTo);
-            while (zoomIn.Active || walkTo.Active)
+            switch (Cutscene)
             {
-                yield return null;
+                case Cutscenes.FirstIntro:
+                    PianoModule.Session.CalidusCutscene = Cutscenes.First;
+                    break;
+                case Cutscenes.SecondIntro:
+                    PianoModule.Session.CalidusCutscene = Cutscenes.Second;
+                    break;
+                case Cutscenes.First:
+                    if (!WasSkipped)
+                    {
+                        PianoModule.Session.CalidusCutscene = Cutscenes.FirstOutro;
+                    }
+                    else
+                    {
+                        PianoModule.Session.CalidusCutscene = Cutscenes.SecondIntro;
+                    }
+                    break;
+                case Cutscenes.FirstOutro:
+                    PianoModule.Session.CalidusCutscene = Cutscenes.SecondIntro;
+                    break;
+                case Cutscenes.Second:
+                    PianoModule.Session.CalidusCutscene = Cutscenes.SecondA;
+                    break;
+                case Cutscenes.SecondA:
+                    break;
             }
-            yield return 0.3f;
-            yield return Textbox.Say("Cb0", PlayerLookLeft, PlayerLookRight);
-            yield return Level.ZoomBack(1.5f);
+            for (int i = (int)PianoModule.Session.CalidusCutscene - 1; i >= 0; i--)
+            {
+                MarkCutsceneAsWatched(level, (Cutscenes)i);
+            }
+        }
+
+        private IEnumerator FirstIntro(Player player, Level level)
+        {
+            yield return GlitchOut(player, level);
+            Add(new Coroutine(StutterGlitch(20)));
+            yield return Textbox.Say("wtc1", PanOut, WaitForPanOut);
+            yield return Level.ZoomBack(0.8f);
             EndCutscene(Level);
         }
-        private IEnumerator FlashIn()
-        {
-            BlackFlash flash = new BlackFlash();
-            Scene.Add(flash);
-            yield return flash.FlashIn(0.5f);
-        }
-        private IEnumerator FlashOut()
-        {
-            if (Scene.Tracker.GetEntity<BlackFlash>() is BlackFlash flash)
-            {
-                yield return flash.FlashOut(0.5f);
-            }
-            yield return null;
-        }
-        [Tracked]
-        public class BlackFlash : Entity
-        {
-            private float whiteAlpha;
-            private float blackAlpha;
-            public BlackFlash() : base()
-            {
-                Depth = -100000;
-            }
-            public override void Render()
-            {
-                base.Render();
-                if (Scene is not Level level) return;
-                if (blackAlpha > 0)
-                {
-                    Draw.Rect(level.Camera.Position, 320, 180, Color.Black * blackAlpha);
-                }
-                if (whiteAlpha > 0)
-                {
-                    Draw.Rect(level.Camera.Position, 320, 180, Color.White * whiteAlpha);
-                }
-            }
-            public IEnumerator FlashIn(float whiteTime)
-            {
-                blackAlpha = 0;
-                whiteAlpha = 0;
-                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.07f)
-                {
-                    whiteAlpha = Calc.LerpClamp(0, 1f, i);
-                    yield return null;
-                }
-                whiteAlpha = 1;
-                blackAlpha = 1;
-                for (float i = 0; i < 1; i += Engine.DeltaTime / whiteTime)
-                {
-                    whiteAlpha = Calc.LerpClamp(1f, 0, Ease.SineIn(i));
-                    yield return null;
-                }
-                whiteAlpha = 0;
-                yield return null;
-            }
-            public IEnumerator FlashOut(float whiteTime)
-            {
-                blackAlpha = 1;
-                whiteAlpha = 0;
-                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.07f)
-                {
-                    whiteAlpha = Calc.LerpClamp(0, 1f, i);
-                    yield return null;
-                }
-                whiteAlpha = 1;
-                blackAlpha = 0;
-                for (float i = 0; i < 1; i += Engine.DeltaTime / whiteTime)
-                {
-                    whiteAlpha = Calc.LerpClamp(1f, 0, Ease.SineIn(i));
-                    yield return null;
-                }
-                whiteAlpha = 0;
-                RemoveSelf();
-                yield return null;
-            }
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            Calidus = scene.Tracker.GetEntity<Calidus>();
-            if (Cutscene == Cutscenes.Second)
-            {
-                Calidus.Stern();
-            }
-        }
-        private IEnumerator Cutscene1(Player player, Level level)
+        private IEnumerator First(Player player, Level level)
         {
             level.InCutscene = true;
             Vector2 ZoomPosition = new Vector2(113, player.Position.Y - level.LevelOffset.Y - 40);
@@ -308,95 +187,167 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return 1;
             yield return Walk(-16);
             yield return 1;
-            yield return SayAndWait("Ca1", 0.6f);
-            yield return 0.6f;
-            Audio.PauseMusic = true;
-            player.Jump();
-            Add(new Coroutine(LookSideToSide(player)));
-            yield return Textbox.Say("Ca2");
-            Coroutine ScreenZoomAcrossRoutine = new Coroutine(SceneAs<Level>().ZoomAcross(ZoomPosition + Vector2.UnitX * 32, 1.5f, 7));
-            Add(ScreenZoomAcrossRoutine);
-            yield return Textbox.Say("Ca3");
-            yield return Textbox.Say("Ca4");
-            LookingSideToSide = false;
-            yield return SayAndWait("Ca5", 0.2f);
-            if (ScreenZoomAcrossRoutine.Active)
+            yield return Textbox.Say("Calidus1", maddyStartle, zoomAcross, stopLookingSideToSide, waitZoom, calidusFix, wait1, wait3, quickLookRight, maddyWalkUp, glitch, warp, waithalfsecond);
+
+            IEnumerator maddyStartle()
             {
-                ScreenZoomAcrossRoutine.Cancel();
-                Remove(ScreenZoomAcrossRoutine);
-                level.ZoomSnap(ZoomPosition + Vector2.UnitX * 32, 1.5f);
-            }
-            Add(new Coroutine(PlayerZoomAcross(player, 2f, 2, 32, -32)));
-            yield return Textbox.Say("Ca5a");
-            Calidus.BrokenParts.Play("jitter");
-            yield return 1.4f;
-            Calidus.FixSequence();
-            while (Calidus.Broken)
-            {
+                Audio.PauseMusic = true;
+                yield return 0.1f;
+                player.Jump();
+                Add(new Coroutine(LookSideToSide(player)));
                 yield return null;
             }
-            yield return null;
-            Calidus.LookSpeed /= 5;
-            Calidus.LookDir = Calidus.Looking.Left;
-            player.Facing = Facings.Right;
-            Add(new Coroutine(Events(Wait(0.5f), Walk(-16, true))));
-            yield return Textbox.Say("Ca6");
-            yield return Textbox.Say("Ca7");
-            yield return Calidus.Say("Ca8", "stern");
-            yield return Textbox.Say("Ca9");
-            yield return Calidus.Say("Ca10", "normal");
-            yield return Textbox.Say("Ca11");
-            yield return 1;
-            yield return Textbox.Say("Ca12");
-            yield return 3;
-            yield return Textbox.Say("Ca13");
-            yield return Calidus.Say("Ca14", "surprised");
-            yield return Calidus.Say("Ca15", "happy");
-            yield return Textbox.Say("Ca16");
-            Calidus.LookSpeed *= 5;
-            Calidus.LookDir = Calidus.Looking.Right;
-            yield return Calidus.Say("Ca16a", "stern");
-            Add(new Coroutine(Walk(16, false, 2)));
-            Calidus.LookDir = Calidus.Looking.Left;
-            Calidus.Surprised(false);
-            yield return Calidus.Say("Ca17", "surprised");
-            yield return 0.5f;
-            yield return Calidus.Say("Ca18", "normal");
-
-
-            //Rumble, glitchy effects
-            //todo: add sound
-            level.Session.SetFlag("blockGlitch");
-            yield return 0.1f;
-            //shake level somehow
-            yield return 0.1f;
-            Calidus.Surprised(true);
-            Calidus.LookDir = Calidus.Looking.Up;
-            yield return 0.7f;
-            Calidus.LookDir = Calidus.Looking.Left;
-            yield return Calidus.Say("Ca19", "surprised");
-            Calidus.Emotion("stern");
-            yield return Textbox.Say("Ca20");
-
-            Vector2 pos = Calidus.Position;
-            AddTag(Tags.Global);
-            for (float i = 0; i < 1; i += Engine.DeltaTime * 2)
+            IEnumerator zoomAcross()
             {
-                Calidus.Position = Vector2.Lerp(pos, player.TopCenter, Ease.BackIn(i));
+                ScreenZoomAcrossRoutine = new Coroutine(SceneAs<Level>().ZoomAcross(ZoomPosition + Vector2.UnitX * 32, 1.5f, 7));
+                Add(ScreenZoomAcrossRoutine);
                 yield return null;
             }
-            level.Flash(Color.White, true);
-            level.Session.SetFlag("blockGlitch", false);
-            SingleTextscene text = new SingleTextscene("CaL1");
-            level.Add(text);
-            Level.StopShake();
-            while (text.InCutscene)
+            IEnumerator stopLookingSideToSide()
             {
+                LookingSideToSide = false;
                 yield return null;
             }
-            yield return End(player, level);
+            IEnumerator waitZoom()
+            {
+                yield return 0.2f;
+                if (ScreenZoomAcrossRoutine.Active)
+                {
+                    ScreenZoomAcrossRoutine.Cancel();
+                    Remove(ScreenZoomAcrossRoutine);
+                    level.ZoomSnap(ZoomPosition + Vector2.UnitX * 32, 1.5f);
+                }
+                Add(new Coroutine(PlayerZoomAcross(player, 2f, 2, 32, -32)));
+            }
+            IEnumerator calidusFix()
+            {
+                Calidus.LookSpeed /= 5;
+                Calidus.LookDir = Calidus.Looking.Left;
+                Calidus.BrokenParts.Play("jitter");
+                yield return 1.4f;
+                Calidus.FixSequence();
+                while (Calidus.Broken)
+                {
+                    yield return null;
+                }
+                yield return null;
+                player.Facing = Facings.Right;
+                Add(new Coroutine(Events(Wait(0.5f), Walk(-16, true))));
+            }
+            IEnumerator wait1()
+            {
+                yield return 1;
+            }
+            IEnumerator wait3()
+            {
+                yield return 3;
+
+            }
+            IEnumerator quickLookRight()
+            {
+                Calidus.LookSpeed *= 5;
+                Calidus.LookDir = Calidus.Looking.Right;
+                yield return null;
+            }
+            IEnumerator maddyWalkUp()
+            {
+                IEnumerator routine()
+                {
+                    yield return 0.1f;
+                    yield return 0.1f;
+                    Calidus.LookDir = Calidus.Looking.Left;
+                    Calidus.Surprised(false);
+                }
+                Add(new Coroutine(routine()));
+                //Add(new Coroutine(Walk(16, false, 2)));
+                yield return null;
+            }
+            IEnumerator waithalfsecond()
+            {
+                yield return 0.5f;
+                yield return null;
+            }
+
+            IEnumerator glitch()
+            {
+
+                //Rumble, glitchy effects
+                //todo: add sound
+                level.Session.SetFlag("blockGlitch");
+                yield return 0.1f;
+                IEnumerator routine()
+                {
+                    Calidus.Surprised(true);
+                    yield return 0.1f;
+                    Calidus.LookDir = Calidus.Looking.Up;
+                    yield return 0.7f;
+                    Calidus.LookDir = Calidus.Looking.Left;
+                }
+                Add(new Coroutine(routine()));
+            }
+            IEnumerator warp()
+            {
+                level.Flash(Color.White, true);
+                level.Session.SetFlag("blockGlitch", false);
+                //todo: Move this textscene over to something on the Lab Computer. Maybe another message.
+                /* SingleTextscene text = new SingleTextscene("CaL1");
+                level.Add(text);
+                Level.StopShake();
+                while (text.InCutscene)
+                {
+                    yield return null;
+                }*/
+
+                level.Remove(Calidus);
+                InstantTeleport(level, player, "0-lcomp");
+                yield return null;
+            }
         }
-        private IEnumerator Cutscene2(Player player, Level level)
+        private IEnumerator FirstOutro(Player player, Level level)
+        {
+            player.StateMachine.State = Player.StDummy;
+            IEnumerator waithalfsecond()
+            {
+                yield return 0.5f;
+            }
+            IEnumerator wait1()
+            {
+                yield return 1;
+            }
+            yield return Textbox.Say("Calidus1a", waithalfsecond, wait1);
+            yield return level.ZoomBack(1);
+            Audio.PauseMusic = false;
+            level.InCutscene = false;
+            player.StateMachine.State = Player.StNormal;
+            EndCutscene(level);
+        }
+        private IEnumerator Cutscene1NoWarp(Player player, Level level)
+        {
+            yield return null;
+            yield return Textbox.Say("Calidus1noWarp");
+            EndCutscene(level);
+        }
+        private IEnumerator SecondIntro(Player player, Level level)
+        {
+            level.InCutscene = true;
+            Add(new Coroutine(Events(GlitchOut(player, level), StutterGlitch(20))));
+            Vector2 playerMarker = level.Marker("player");
+            Vector2 ZoomPosition = level.Marker("camera1") - level.LevelOffset;
+            Coroutine zoomIn = new Coroutine(ScreenZoom(ZoomPosition, 1.5f, 2));
+            Coroutine walkTo = new Coroutine(player.DummyWalkTo(playerMarker.X));
+            Add(zoomIn);
+            yield return 1.3f;
+            Add(walkTo);
+            while (zoomIn.Active || walkTo.Active)
+            {
+                yield return null;
+            }
+            yield return 0.3f;
+            yield return Textbox.Say("Cb0", PlayerLookLeft, PlayerLookRight);
+            yield return Level.ZoomBack(1.5f);
+            EndCutscene(Level);
+        }
+        private IEnumerator Second(Player player, Level level)
         {
 
             Add(new Coroutine(Level.ZoomTo(level.Marker("camera1", true), 1.4f, 1)));
@@ -412,11 +363,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return Level.ZoomBack(1);
             EndCutscene(Level);
         }
+
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            Calidus = scene.Tracker.GetEntity<Calidus>();
+            if (Cutscene == Cutscenes.Second)
+            {
+                Calidus.Stern();
+            }
+        }
         private IEnumerator askIfHasntDied()
         {
             if (!Level.Session.GetFlag("HasDiedInTransitLab"))
             {
-                yield return new SwapImmediately(Textbox.Say("howToLeaveTransitLab",WaitForOne));
+                yield return new SwapImmediately(Textbox.Say("howToLeaveTransitLab", WaitForOne));
             }
         }
         private IEnumerator PlayerFaceLeft()
@@ -431,7 +392,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             player.Facing = Facings.Right;
             yield return null;
         }
-        private IEnumerator Cutscene2B(Player player, Level level)
+        private IEnumerator SecondOptional(Player player, Level level)
         {
             player.StateMachine.State = Player.StDummy;
             yield return player.DummyWalkTo(Level.Marker("player5").X);
@@ -678,7 +639,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Calidus.FloatLerp(Calidus.Position + Vector2.UnitX * 16, 1, Ease.SineInOut);
             yield return null;
         }
-        private Vector2 caliMoveBackPosition;
         private IEnumerator CaliMoveCloser()
         {
             if (Level.GetPlayer() is Player player)
@@ -706,20 +666,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             Glitch.Value = 0;
             yield return 0.5f;
-            if (Cutscene is Cutscenes.FirstIntro)
-            {
-                Add(new Coroutine(StutterGlitch(20)));
-                Vector2 pos = player.Center - Level.Camera.Position - Vector2.UnitY * 24;
-                yield return Textbox.Say("wtc1", PanOut, WaitForPanOut);
-                yield return Level.ZoomBack(0.8f);
-                EndCutscene(Level);
-            }
-            else
-            {
-                yield return StutterGlitch(20);
-            }
         }
-        private bool panningOut;
         private IEnumerator WaitForPanOut()
         {
             while (panningOut)
@@ -753,29 +700,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 Glitch.Value = 0;
             }
         }
-        public IEnumerator SwapRoutine(int times, float interval, Color? flash, Player player)
-        {
-            for (int i = 0; i < times; i++)
-            {
-                SwapNext(flash, player);
-                yield return interval;
-            }
-        }
-        public void SwapNext(Color? flash, Player player)
-        {
-            SwapSection((Section % 4) + 1, Level, flash, player);
-            AddGlitches(player, Calidus);
-            Tween tween = Tween.Create(Tween.TweenMode.Oneshot, Ease.CubeIn, 0.3f, true);
-            tween.OnUpdate = (Tween t) =>
-            {
-                Glitch.Value = 0.4f - t.Eased * 0.4f;
-            };
-            tween.OnComplete = delegate
-            {
-                Glitch.Value = 0;
-            };
-            Add(tween);
-        }
         private IEnumerator PlayerLookLeft()
         {
             if (Level.GetPlayer() is not Player player) yield break;
@@ -788,117 +712,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             player.Facing = Facings.Right;
             yield return null;
         }
-        public int Section = 1;
-        public int PrevSection = 1;
 
-        public void SwapSection(int section, Level level, Color? flashColor, Player player)
-        {
-            PrevSection = Section;
-            Section = section;
-            Vector2 moveBy = level.Marker("camera" + Section) - level.Marker("camera" + PrevSection);
-            player.Position += moveBy;
-            //player.Hair.MoveHairBy(moveBy);
-            Calidus.Position += moveBy;
-            level.Camera.Position += moveBy;
-
-            if (flashColor.HasValue)
-            {
-                level.Flash(flashColor.Value);
-            }
-        }
-        private IEnumerator SmallBurst()
-        {
-            Player player = Level.GetPlayer();
-            Level.Displacement.AddBurst(player.Center, 0.3f, 0, 40, 1);
-            Calidus.FloatLerp(Calidus.Position + Vector2.UnitX * 4, 0.3f);
-            yield return null;
-        }
-        private IEnumerator WalkLeft()
-        {
-            Player player = Level.GetPlayer();
-            yield return player.DummyWalkTo(player.X - 40);
-        }
-        private IEnumerator WalkRight()
-        {
-            Player player = Level.GetPlayer();
-            yield return player.DummyWalkTo(player.X + 40);
-        }
-        private IEnumerator Approach()
-        {
-            Player player = Level.GetPlayer();
-            Add(new Coroutine(player.DummyWalkTo(player.X + 8, false, 2)));
-            yield return 0.07f;
-            Calidus.FloatLerp(Calidus.Position + Vector2.UnitX * 6, 0.3f);
-            yield return null;
-        }
-        private IEnumerator MoveCamera(Vector2 amount, float time)
-        {
-            Vector2 pos = Level.Camera.Position;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
-            {
-                Level.Camera.Position = Vector2.Lerp(pos, pos + amount, i);
-                yield return null;
-            }
-            yield return null;
-        }
-        private IEnumerator BackOff()
-        {
-            Player player = Level.GetPlayer();
-            yield return player.DummyWalkTo(player.X - 16, true, 1.4f);
-            yield return 0.5f;
-            Calidus.FloatLerp(Calidus.Position - Vector2.UnitX * 6, 1);
-            yield return 0.2f;
-            player.Facing = Facings.Left;
-            yield return 1;
-        }
-        private float AuraAmount;
-        private bool AuraStrong;
-        private bool ShakeLevel;
         public override void Update()
         {
             base.Update();
-            if (aura != null)
-            {
-                aura.Amplitude = AuraAmount;
-                aura.Strong = AuraStrong;
-            }
             if (ShakeLevel)
             {
                 Level.shakeTimer = Engine.DeltaTime;
             }
             //AuraAmount = (float)Math.Sin(Scene.TimeActive);
-        }
-        private IEnumerator AuraGrowTo(float to, float time)
-        {
-            float from = AuraAmount;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
-            {
-                AuraAmount = Calc.LerpClamp(from, to, Ease.QuintInOut(i));
-                yield return null;
-            }
-            AuraAmount = to;
-        }
-        private IEnumerator AuraSmall()
-        {
-            Add(new Coroutine(AuraGrowTo(0.1f, 0.6f)));
-            yield return null;
-        }
-        private IEnumerator AuraMedium()
-        {
-            Add(new Coroutine(AuraGrowTo(0.3f, 0.6f)));
-            yield return null;
-        }
-        private IEnumerator AuraLarge()
-        {
-            Add(new Coroutine(AuraGrowTo(0.5f, 0.6f)));
-            yield return null;
-        }
-        private void LargePulse()
-        {
-            Player player = Level.GetPlayer();
-            Level.Flash(Color.White * 0.5f);
-            Level.Displacement.AddBurst(player.Center, 1f, 0, 150, 1);
-            Calidus.FloatLerp(Calidus.Position + Vector2.UnitX * 6, 0.3f);
         }
         private IEnumerator Walk(float x, bool backwards = false, float speedmult = 1, bool intoWalls = false)
         {
@@ -943,12 +765,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 yield return 0.5f;
             }
         }
-        private bool LookingSideToSide = true;
-        private IEnumerator PlayerZoom(Player player, float amount, float time, float xOffset, float yOffset)
-        {
-            Level level = SceneAs<Level>();
-            yield return level.ZoomTo(ScreenCoords(player.Position + new Vector2(xOffset, yOffset), level), amount, time);
-        }
         private IEnumerator ScreenZoom(Vector2 screenPosition, float amount, float time)
         {
             Level level = SceneAs<Level>();
@@ -962,30 +778,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private Vector2 ScreenCoords(Vector2 position, Level level)
         {
             return position - level.Camera.Position;
-        }
-        private bool CalidusLookAround = true;
-        private float? musicVolume;
-        private IEnumerator LookBackAndForth()
-        {
-            while (CalidusLookAround)
-            {
-                Calidus.LookDir = Calidus.Looking.UpRight;
-                yield return 1;
-                Calidus.LookDir = Calidus.Looking.UpLeft;
-                yield return 1;
-            }
-        }
-        private IEnumerator EmotionThenNormal(string emotion, float wait)
-        {
-            Calidus.Emotion(emotion);
-            yield return wait;
-            Calidus.Emotion("normal");
-        }
-
-        private IEnumerator SayAndWait(string id, float waitTime)
-        {
-            yield return Textbox.Say(id);
-            yield return waitTime;
         }
         public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, int positionX = 0, int positionY = 0)
         {
@@ -1080,31 +872,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 
                 onEnd?.Invoke(level);
             };
-        }
-        private IEnumerator End(Player player, Level level)
-        {
-            if (!TagCheck(Tags.Global))
-            {
-                AddTag(Tags.Global);
-            }
-            level.Flash(Color.White, true);
-            level.Remove(Calidus);
-            InstantTeleport(level, player, "0-lcomp", null);
-            yield return null;
-            player = Engine.Scene.GetPlayer();
-            player.Speed.X = -64;
-            player.StateMachine.State = Player.StDummy;
-            yield return 0.3f;
-            yield return Textbox.Say("Ca21");
-            yield return 0.2f;
-            yield return Textbox.Say("Ca22");
-            yield return 1;
-            yield return Textbox.Say("Ca23");
-            Audio.PauseMusic = false;
-            level.InCutscene = false;
-            player.StateMachine.State = Player.StNormal;
-            RemoveTag(Tags.Global);
-            EndCutscene(level);
         }
     }
 }
