@@ -13,11 +13,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class PortalNodeManager : Entity
     {
-        public List<PortalNodeData> Data => PianoMapDataProcessor.PortalNodes;
+        public AreaKey AreaKey => SceneAs<Level>().Session.Area;
+        public static Dictionary<string,List<PortalNodeData>> DataPerArea => PianoMapDataProcessor.PortalNodes;
+        public List<PortalNodeData> Data;
         private Player Player;
         public Dictionary<string, Vector2> NodePositions => PianoModule.Session.PortalNodePositions;
         public Dictionary<string, ParticleSystem> ParticleSystems = new();
-        //public PortalData PortalData => PianoMapDataProcessor.PortalData;
         public ParticleType P_Beam = new()
         {
             Source = GFX.Game["objects/PuzzleIslandHelper/portalNode/particle"],
@@ -39,10 +40,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            if (DataPerArea.TryGetValue(scene.GetAreaKey(), out List<PortalNodeData> value) && value.Count > 0)
+            {
+                Data = value;
+            }
+            else
+            {
+                RemoveSelf();
+                return;
+            }
             Collider = new Hitbox(20, 16, -10, -8);
             foreach (var d in Data)
             {
-                if(ParticleSystems.ContainsKey(d.Flag)) continue;
+                if (ParticleSystems.ContainsKey(d.Flag)) continue;
                 ParticleSystem PSystem = new ParticleSystem(Depth, 300);
                 PSystem.AddTag(Tags.Global);
                 PSystem.AddTag(Tags.TransitionUpdate);

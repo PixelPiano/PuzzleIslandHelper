@@ -1402,7 +1402,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public bool CollidingWithSubmit;
             public bool CollidingWithHome;
             public WarpCapsule Parent;
-
+            public AreaKey AreaKey => SceneAs<Level>().Session.Area;
 
             public UI(WarpCapsule parent) : base()
             {
@@ -1558,15 +1558,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public void CheckRune()
             {
                 ResetButton();
-                if (RuneExists(CreateRune(), out Rune orderedRune))
+                if (RuneExists(CreateRune(), out WarpCapsuleData data))
                 {
-                    var data = Data[orderedRune];
                     if (PianoModule.SaveData.WarpLockedToLab && !data.Lab)
                     {
                         Add(new Coroutine(lockedRoutine()));
                         return;
                     }
-                    SetRune(orderedRune);
+                    SetRune(data.Rune);
                 }
             }
             public void SetRune(Rune rune)
@@ -1629,17 +1628,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
 
 
-        public static Dictionary<Rune, WarpCapsuleData> Data => PianoMapDataProcessor.WarpRunes;
-        public static bool RuneExists(Rune input, out Rune orderedRune)
+        public static Dictionary<string, RuneList> Data => PianoMapDataProcessor.WarpRunes;
+        public static bool RuneExists(Rune input, out WarpCapsuleData warpData)
         {
-            orderedRune = null;
-            foreach (Rune rune in Data.Keys)
+            warpData = null;
+            if (PianoUtils.TryGetAreaKey(out AreaKey key))
             {
-                if (input.Match(rune))
+
+                if (Data[key.GetSID()].GetDataFromRune(input) is WarpCapsuleData data)
                 {
-                    orderedRune = rune;
+                    warpData = data;
                     return true;
                 }
+                /*                foreach (var data in Data[key].All)
+                                {
+                                    if (input.Match(data.Rune))
+                                    {
+                                        warpData = data.Rune;
+                                        return true;
+                                    }
+                                }*/
             }
             return false;
         }
@@ -1648,41 +1656,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             return RuneExists(input, out _);
         }
 
-        public static Rune GetRune(string name)
-        {
-            if (!string.IsNullOrEmpty(name))
-            {
-                foreach (var pair in Data)
-                {
-                    if (pair.Value.Name == name)
-                    {
-                        return pair.Key;
-                    }
-                }
-            }
-            return null;
-        }
-        public static WarpCapsuleData GetWarpData(string name)
-        {
-            if (!string.IsNullOrEmpty(name))
-            {
-                foreach (var pair in Data)
-                {
-                    if (pair.Value.Name == name)
-                    {
-                        return pair.Value;
-                    }
-                }
-            }
-            return null;
-        }
         public static WarpCapsuleData GetWarpData(Rune rune)
         {
-            if (rune == null) return null;
-            Data.TryGetValue(rune, out WarpCapsuleData value);
-            return value;
+            if (rune == null || Engine.Scene is not Level level) return null;
+            return Data[level.GetAreaKey()].GetDataFromRune(rune);
         }
-        public bool IsFirstTime => WarpCapsule.ObtainedRunes.Count < 1 && PianoModule.Session.TimesUsedCapsuleWarp < 1 && Marker.TryFind("isStartingWarpRoom", out _);
+        public bool IsFirstTime => ObtainedRunes.Count < 1 && PianoModule.Session.TimesUsedCapsuleWarp < 1 && Marker.TryFind("isStartingWarpRoom", out _);
         public const int XOffset = 10;
         public const string Path = "objects/PuzzleIslandHelper/digiWarpReceiver/";
         public static MTexture LonnTexture => GFX.Game[Path + "lonn"];
@@ -1753,13 +1732,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 PianoModule.Session.PersistentWarpLinks.Add(ID, "");
             }
-/*            if (IsFirstTime)
-            {
-                WarpRune = Rune.Default;
-                Enabled = true;
-                InstantOpenDoors();
-            }
-            else*/
+            /*            if (IsFirstTime)
+                        {
+                            WarpRune = Rune.Default;
+                            Enabled = true;
+                            InstantOpenDoors();
+                        }
+                        else*/
             if (WarpIsValid())
             {
                 InstantOpenDoors();
@@ -1784,15 +1763,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             ShineTex.Color = Color.White * ShineAmount;
             if (!InCutscene)
             {
-/*                if (!IsFirstTime)
-                {*/
-                    bool valid = WarpIsValid();
-                    Enabled = valid;
-                    if (DoorStallTimer <= 0)
-                    {
-                        MoveAlongTowards(valid);
-                    }
-               // }
+                /*                if (!IsFirstTime)
+                                {*/
+                bool valid = WarpIsValid();
+                Enabled = valid;
+                if (DoorStallTimer <= 0)
+                {
+                    MoveAlongTowards(valid);
+                }
+                // }
             }
         }
         public override void Render()

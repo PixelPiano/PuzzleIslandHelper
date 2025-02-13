@@ -9,6 +9,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class SteamEmitter : Entity
     {
         public string Flag;
+        private Image image;
         public enum Directions
         {
             Right, Up, Left, Down
@@ -21,10 +22,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public SteamEmitter(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Angle = (MathHelper.Pi / -2f) * (float)data.Enum<Directions>("direction");
-            interval = data.Float("interval",0.3f);
+            image = new Image(GFX.Game["objects/PuzzleIslandHelper/cap"]);
+            image.Rotation = Angle;
+            image.CenterOrigin();
+            image.Position += image.HalfSize();
+            Add(image);
+            interval = data.Float("interval", 0.3f);
             Flag = data.Attr("flag");
-            Collider = new Hitbox(8,8);
-            emitOffset = Calc.AngleToVector(Angle, 4);
+            Collider = new Hitbox(8, 8);
+            emitOffset = Calc.AngleToVector(Angle, 6);
+            image.RenderPosition = Center + Calc.AngleToVector(Angle, 8);
 
         }
         public override void Added(Scene scene)
@@ -36,16 +43,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if(Scene is not Level level) return;
-            if(string.IsNullOrEmpty(Flag) || level.Session.GetFlag(Flag))
-            {
-                if(timer <= 0)
-                {
-                    level.ParticlesBG.Emit(ParticleTypes.Steam,Center + emitOffset,Color.White,Angle);
-                    timer = interval;
-                }
-                else timer -= Engine.DeltaTime;
-            }
+            if (Scene is not Level level || !Scene.OnInterval(interval) || !Flag.GetFlag()) return;
+            level.ParticlesBG.Emit(ParticleTypes.Steam, Center + emitOffset, Color.White * Calc.Random.Range(0.5f, 1.1f), Angle);
         }
     }
 }

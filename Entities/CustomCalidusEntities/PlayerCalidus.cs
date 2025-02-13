@@ -606,13 +606,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         }
         public static bool LevelContainsSpawner(Level level, out CalidusSpawnerData data)
         {
-            data = default;
-            if (PianoMapDataProcessor.CalidusSpawners.ContainsKey(level.Session.Level))
-            {
-                data = PianoMapDataProcessor.CalidusSpawners[level.Session.Level];
-                return true;
-            }
-            return false;
+            return PianoMapDataProcessor.CalidusSpawners[level.GetAreaKey()].TryGetValue(level.Session.Level, out data);
         }
 
         public static void SetInventory(Upgrades upgrade)

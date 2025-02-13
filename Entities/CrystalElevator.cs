@@ -272,7 +272,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private IEnumerator RockRoutine()
         {
             if (Scene is not Level level || level.GetPlayer() is not Player player || PianoModule.Session.FixedElevator) yield break;
-            InvertOverlay.HoldState = true;
+            //InvertOverlay.HoldState = true;
             yield return null;
             player.StateMachine.State = Player.StDummy;
 
@@ -285,7 +285,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 yield return null;
             }
-            InvertOverlay.HoldState = false;
+            //InvertOverlay.HoldState = false;
             player.StateMachine.State = Player.StNormal;
 
         }

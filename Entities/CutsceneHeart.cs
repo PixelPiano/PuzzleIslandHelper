@@ -14,7 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class CutsceneHeart : Entity
     {
         public EntityID ID;
-        private Sprite sprite;
+        public Sprite Sprite;
         private string collectSound = "event:/game/07_summit/gem_get";
         private Vector2 moveWiggleDir;
         private string spriteName;
@@ -23,50 +23,69 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Wiggler moveWiggler;
         private EventInstance sfx;
         private Player player;
-        private string flag;
-        private Entity heart;
+        public string flag;
+        public Entity heart;
         private bool Collected;
         private string room;
         private string returnRoom;
         private bool TeleportsPlayer;
         private Cutscene cutscene;
-
-        public CutsceneHeart(EntityData data, Vector2 offset, EntityID id)
-        : base(data.Position + offset)
+        public CutsceneHeart(Vector2 position, string sprite, string flag, bool teleportsPlayer, string room, string returnRoom, bool flipped, EntityID id) : base(position)
         {
-            spriteName = data.Attr("sprite");
-            TeleportsPlayer = data.Bool("teleportsPlayer");
-            room = data.Attr("room");
-            Tag = Tags.TransitionUpdate;
+            spriteName = sprite;
+            TeleportsPlayer = teleportsPlayer;
+            this.room = room;
+            this.returnRoom = returnRoom;
             ID = id;
-            flag = data.Attr("flag");
-            returnRoom = data.Attr("returnRoom");
-
+            this.flag = flag;
+            Tag = Tags.TransitionUpdate;
             heart = new Entity(Position)
             {
                 Collider = new Hitbox(12f, 12f, 4f, 4f)
             };
             Collider = new Hitbox(12f, 12f, 4f, 4f);
-            heart.Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/cutsceneHeart/"));
-            sprite.AddLoop("idle", spriteName, 0.08f);
-            sprite.AddLoop("static", spriteName, 1f, 0);
-            sprite.X = -(sprite.Width - 12);
-            if (data.Bool("flipped"))
+            heart.Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/cutsceneHeart/"));
+            Sprite.AddLoop("idle", spriteName, 0.08f);
+            Sprite.AddLoop("static", spriteName, 1f, 0);
+            Sprite.X = -(Sprite.Width - 12);
+            if (flipped)
             {
-                sprite.CenterOrigin();
-                sprite.Position += new Vector2(sprite.Width / 2, sprite.Height / 2);
-                sprite.Scale = -Vector2.One;
+                Sprite.CenterOrigin();
+                Sprite.Position += new Vector2(Sprite.Width / 2, Sprite.Height / 2);
+                Sprite.Scale = -Vector2.One;
             }
             Add(scaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f)
             {
-                sprite.Scale = Vector2.One * (1f + f * 0.3f);
+                Sprite.Scale = Vector2.One * (1f + f * 0.3f);
             }));
             moveWiggler = Wiggler.Create(0.8f, 2f);
             moveWiggler.StartZero = true;
             heart.Add(moveWiggler);
             heart.Add(new PlayerCollider(OnPlayer));
-            sprite.Play("idle");
-
+            Sprite.Play("idle");
+        }
+        public CutsceneHeart(Vector2 position, string sprite, string flag, EntityID id) : base(position)
+        {
+            spriteName = sprite;
+            ID = id;
+            Tag = Tags.TransitionUpdate;
+            this.flag = flag;
+            heart = new Entity(Position)
+            {
+                Collider = new Hitbox(12f, 12f, 4f, 4f)
+            };
+            Collider = new Hitbox(12f, 12f, 4f, 4f);
+            Collidable = false;
+            heart.Collidable = false;
+            heart.Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/cutsceneHeart/"));
+            Sprite.AddLoop("idle", spriteName, 0.08f);
+            Sprite.AddLoop("static", spriteName, 1f, 0);
+            Sprite.X = -(Sprite.Width - 12);
+            Sprite.Play("idle");
+        }
+        public CutsceneHeart(EntityData data, Vector2 offset, EntityID id)
+        : this(data.Position + offset, data.Attr("sprite"), data.Attr("flag"), data.Bool("teleportsPlayer"), data.Attr("room"), data.Attr("returnRoom"), data.Bool("flipped"), id)
+        {
         }
         public override void Awake(Scene scene)
         {
@@ -125,6 +144,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator Collect(Player player, Level level)
         {
+            var hinventory = PianoModule.Session.HeartInventory;
+            if (!hinventory.Collected.ContainsKey(spriteName))
+            {
+                hinventory.Collected.Add(spriteName, flag);
+            }
+            else
+            {
+                hinventory.Collected[spriteName] = flag;
+            }
             AddTag(Tags.Global);
             level.Session.DoNotLoad.Add(ID);
             level.Session.SetFlag("InCutsceneHeartCutscene");
@@ -132,6 +160,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Visible = false;
             heart.Visible = false;
             heart.Collidable = false;
+            Collidable = false;
             level.Shake();
             SoundEmitter.Play(collectSound, heart);
             Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
@@ -259,7 +288,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (!Collected)
             {
                 bounceSfxDelay -= Engine.DeltaTime;
-                sprite.Position = moveWiggleDir * moveWiggler.Value * -8f - (Vector2.UnitX * 4);
+                if (moveWiggler != null)
+                {
+                    Sprite.Position = moveWiggleDir * moveWiggler.Value * -8f - (Vector2.UnitX * 4);
+                }
             }
         }
         public static void InstantTeleport(Scene scene, Player player, string room, bool same)

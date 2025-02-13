@@ -11,7 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
 
     public class CalidusSpeaker : Entity
     {
-        public bool Calidus;
+        public bool IsCalidus;
         public static MTexture DebugTex = GFX.Game["objects/PuzzleIslandHelper/wip/texture"];
         public enum Cutscenes
         {
@@ -34,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             Add(new Image(DebugTex));
             Add(Talk = new(Collider, Interact));
             TeleportTo = data.Attr("stringValue");//data.Attr("teleportTo");
-            Calidus = data.Bool("calidus");
+            IsCalidus = data.Bool("calidus");
             FadeTime = data.Float("fadeTime", 1);
             WaitTime = data.Float("waitTime", 0.5f);
 
@@ -46,7 +46,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         public static void InstantTeleportToSpawn(Level level, string room)
         {
             Player player = level.GetPlayer();
-            bool roomHasCalidus = PianoMapDataProcessor.CalidusSpawners.ContainsKey(room);
+            bool roomHasCalidus = PianoMapDataProcessor.CalidusSpawners[level.GetAreaKey()].ContainsKey(room);
             bool isCalidus = player is PlayerCalidus;
             if (level == null || player is null || string.IsNullOrEmpty(room))
             {
@@ -76,9 +76,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
                     {
                         player = new Player(player.Position, PlayerSpriteMode.Madeline);
                     }
-                    else
+                    else if(PianoMapDataProcessor.CalidusSpawners.TryGetValue(level.GetAreaKey(), out var value) && value.Count > 0)
                     {
-                        player = new PlayerCalidus(player.Position, PianoMapDataProcessor.CalidusSpawners[room]);
+                        player = new PlayerCalidus(player.Position, value[room]);
                     }
                 }
                 level.Camera.Position = level.LevelOffset + val3;

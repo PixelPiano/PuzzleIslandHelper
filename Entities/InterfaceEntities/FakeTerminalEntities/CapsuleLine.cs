@@ -1,14 +1,16 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities
 {
     [TrackedAs(typeof(TextLine))]
+    [Obsolete("Replaced with Warp Capsule")]
     public class CapsuleLine : TextLine
     {
         public WarpProgram Program;
-        public WarpCapsuleData Data => PianoMapDataProcessor.WarpLinks[Text.Replace(" ", "").ToLower()];
+        public WarpCapsuleData Data => null;//PianoMapDataProcessor.WarpLinks[Text.Replace(" ", "").ToLower()];
         public bool Unlocked => PianoModule.Session.LoggedCapsules[Text];
         public CapsuleLine(FakeTerminal terminal, WarpProgram program, string text) : base(terminal, text, PianoModule.Session.LoggedCapsules[text] ? Color.Lime : Color.Red)
         {

@@ -21,6 +21,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             }
         }
         //public WarpCapsuleData SelectedCapsule => WarpCapsule.GetCapsuleData(SelectedID);
+        public static Dictionary<string, WarpCapsuleData> Data;
         public WarpCapsule Parent;
         public WarpProgram(WarpCapsule parent, FakeTerminal terminal) : base(terminal, "Please enter the destination node ID.")
         {
@@ -32,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public void OnDebug(string input)
         {
             bool added = false;
-            foreach (KeyValuePair<string, WarpCapsuleData> pair in PianoMapDataProcessor.WarpLinks)
+            foreach (KeyValuePair<string, WarpCapsuleData> pair in Data)
             {
                 string text = pair.Key;
 /*                if (!string.IsNullOrEmpty(pair.Value.Password))
@@ -116,7 +117,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 Error("Error: Parent warp chamber already using Link ID.");
                 yield break;
             }
-            if (!PianoMapDataProcessor.WarpLinks.ContainsKey(name))
+            if (!Data.ContainsKey(name))
             {
                 SelectedID = null;
                 Error("Error: Origin of Link ID could not be traced.");
@@ -127,7 +128,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 Error("Error: Link ID cannot be identical {n}to the parent warp chamber's Link ID.");
                 yield break;
             }*/
-            WarpCapsuleData data = PianoMapDataProcessor.WarpLinks[name];
+            WarpCapsuleData data = Data[name];
 /*            if (!string.IsNullOrWhiteSpace(data.Password))
             {
                 string dataPass = data.Password.Replace(" ", "").ToLower();
@@ -160,7 +161,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         }
         public static bool ValidateID(string id, WarpCapsule parent)
         {
-            return !string.IsNullOrEmpty(id) && /*parent.WarpID != id &&*/ PianoMapDataProcessor.WarpLinks.ContainsKey(id);
+            return !string.IsNullOrEmpty(id) && /*parent.WarpID != id &&*/ Data.ContainsKey(id);
         }
         public override void AfterWelcome()
         {

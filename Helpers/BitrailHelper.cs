@@ -80,10 +80,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                 }
             }
         }
-        public static void InitializeGrids()
+        public static void InitializeGrids(Scene scene)
         {
+            if (!PianoMapDataProcessor.Bitrails.TryGetValue(scene.GetAreaKey(), out List<BitrailData> value) || value.Count == 0) return;
             float left = int.MaxValue, right = int.MinValue, top = int.MaxValue, bottom = int.MinValue;
-            foreach (BitrailData d in PianoMapDataProcessor.Bitrails)
+            foreach (BitrailData d in value)
             {
                 Vector2 pos = d.LevelData.Position + d.Offset;
                 left = Calc.Min(pos.X, left);
@@ -98,10 +99,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
 
             Map = new VirtualMap<BitrailNode>(cellsX + 1, cellsY + 1, null);
         }
-        public static HashSet<BitrailNode> CreateNodes()
+        public static HashSet<BitrailNode> CreateNodes(Scene scene)
         {
+            AreaKey key = (scene as Level).Session.Area;
             HashSet<BitrailNode> nodes = new();
-            foreach (BitrailData d in PianoMapDataProcessor.Bitrails)
+            if (!PianoMapDataProcessor.Bitrails.ContainsKey(key.GetSID())) return nodes;
+            foreach (BitrailData d in PianoMapDataProcessor.Bitrails[key.GetSID()])
             {
                 Vector2 pos = d.LevelData.Position + d.Offset - MapPosition;
                 int x = (int)pos.X / 8;

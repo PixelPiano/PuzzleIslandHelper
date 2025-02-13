@@ -85,15 +85,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            BitrailHelper.InitializeGrids();
+            if(!PianoMapDataProcessor.Bitrails.TryGetValue(scene.GetAreaKey(), out var value) || value.Count == 0)
+            {
+                RemoveSelf();
+                return;
+            }
+            BitrailHelper.InitializeGrids(scene);
             Position = BitrailHelper.MapPosition;
-            Nodes = BitrailHelper.CreateNodes();
+            Nodes = BitrailHelper.CreateNodes(scene);
             foreach (BitrailNode node in Nodes)
             {
                 Add(node);
             }
             Add(exitAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { IgnoreNode = null; }, 0.4f, false));
-            Add(dashAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { DashedFrom = null; }, 0.5f, false));;
+            Add(dashAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { DashedFrom = null; }, 0.5f, false)); ;
 
         }
         private List<Vector2> checkedPositions = new();

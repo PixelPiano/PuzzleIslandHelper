@@ -12,17 +12,16 @@ using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
-
     [Tracked]
     public class CalidusCutscene : CutsceneEntity
     {
         public static void MarkCutsceneAsWatched(Scene scene, Cutscenes cutscene)
         {
-            (scene as Level).Session.SetFlag("CalidusCutscene" + cutscene.ToString() + "Watched");
+            (scene as Level).Session.SetFlag("CalCut" + cutscene.ToString());
         }
         public static bool CutsceneWatched(Scene scene, Cutscenes cutscene)
         {
-            return (scene as Level).Session.GetFlag("CalidusCutscene" + cutscene.ToString() + "Watched");
+            return (scene as Level).Session.GetFlag("CalCut" + cutscene.ToString());
         }
         public enum Cutscenes
         {
@@ -33,6 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Second,
             SecondA
         }
+
         public Cutscenes Cutscene;
         private Calidus Calidus;
         private Vector2 caliMoveBackPosition;
@@ -49,7 +49,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public override void OnBegin(Level level)
         {
             Player player = level.GetPlayer();
-
             switch (Cutscene)
             {
                 case Cutscenes.FirstIntro:
@@ -129,39 +128,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     }
                 }
             }
-            switch (Cutscene)
+            PianoModule.Session.CalidusCutscene = Cutscene switch
             {
-                case Cutscenes.FirstIntro:
-                    PianoModule.Session.CalidusCutscene = Cutscenes.First;
-                    break;
-                case Cutscenes.SecondIntro:
-                    PianoModule.Session.CalidusCutscene = Cutscenes.Second;
-                    break;
-                case Cutscenes.First:
-                    if (!WasSkipped)
-                    {
-                        PianoModule.Session.CalidusCutscene = Cutscenes.FirstOutro;
-                    }
-                    else
-                    {
-                        PianoModule.Session.CalidusCutscene = Cutscenes.SecondIntro;
-                    }
-                    break;
-                case Cutscenes.FirstOutro:
-                    PianoModule.Session.CalidusCutscene = Cutscenes.SecondIntro;
-                    break;
-                case Cutscenes.Second:
-                    PianoModule.Session.CalidusCutscene = Cutscenes.SecondA;
-                    break;
-                case Cutscenes.SecondA:
-                    break;
-            }
-            for (int i = (int)PianoModule.Session.CalidusCutscene - 1; i >= 0; i--)
-            {
-                MarkCutsceneAsWatched(level, (Cutscenes)i);
-            }
+                Cutscenes.FirstIntro => Cutscenes.First,
+                Cutscenes.First => WasSkipped ? Cutscenes.SecondIntro : Cutscenes.FirstOutro,
+                Cutscenes.FirstOutro => Cutscenes.SecondIntro,
+                Cutscenes.SecondIntro => Cutscenes.Second,
+                Cutscenes.Second => Cutscenes.SecondA,
+                _ => PianoModule.Session.CalidusCutscene
+            };
         }
-
         private IEnumerator FirstIntro(Player player, Level level)
         {
             yield return GlitchOut(player, level);
@@ -173,12 +149,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private IEnumerator First(Player player, Level level)
         {
             level.InCutscene = true;
-            Vector2 ZoomPosition = new Vector2(113, player.Position.Y - level.LevelOffset.Y - 40);
-            Coroutine zoomIn = new Coroutine(ScreenZoom(ZoomPosition, 1.5f, 2));
+            Vector2 zoomPosition = new Vector2(113, player.Position.Y - level.LevelOffset.Y - 40);
+            Coroutine zoomIn = new Coroutine(ScreenZoom(new Vector2(113, player.Position.Y - level.LevelOffset.Y - 40), 1.5f, 2));
             Coroutine walkTo = new Coroutine(player.DummyWalkTo(113 + level.Bounds.X));
-            Add(zoomIn);
-            Add(walkTo);
-            while (zoomIn.Active || walkTo.Active)
+            Coroutine cameraTo = new Coroutine(CameraTo(level.LevelOffset + Vector2.UnitY * 8, 2, Ease.SineInOut));
+            Add(zoomIn, walkTo, cameraTo);
+            while (zoomIn.Active || walkTo.Active || cameraTo.Active)
             {
                 yield return null;
             }
@@ -199,7 +175,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             IEnumerator zoomAcross()
             {
-                ScreenZoomAcrossRoutine = new Coroutine(SceneAs<Level>().ZoomAcross(ZoomPosition + Vector2.UnitX * 32, 1.5f, 7));
+                ScreenZoomAcrossRoutine = new Coroutine(SceneAs<Level>().ZoomAcross(zoomPosition + Vector2.UnitX * 32, 1.5f, 7));
                 Add(ScreenZoomAcrossRoutine);
                 yield return null;
             }
@@ -215,7 +191,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 {
                     ScreenZoomAcrossRoutine.Cancel();
                     Remove(ScreenZoomAcrossRoutine);
-                    level.ZoomSnap(ZoomPosition + Vector2.UnitX * 32, 1.5f);
+                    level.ZoomSnap(zoomPosition + Vector2.UnitX * 32, 1.5f);
                 }
                 Add(new Coroutine(PlayerZoomAcross(player, 2f, 2, 32, -32)));
             }
@@ -253,10 +229,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 IEnumerator routine()
                 {
-                    yield return 0.1f;
-                    yield return 0.1f;
-                    Calidus.LookDir = Calidus.Looking.Left;
+                    yield return 0.3f;
                     Calidus.Surprised(false);
+                    yield return 0.5f;
+                    Calidus.LookDir = Calidus.Looking.Left;
                 }
                 Add(new Coroutine(routine()));
                 //Add(new Coroutine(Walk(16, false, 2)));

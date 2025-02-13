@@ -25,6 +25,23 @@ using static Celeste.Player;
 /// <summary>A collection of methods + extensions methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+
+    public static string GetAreaKey(this Entity entity, bool includeMode = true)
+    {
+        return GetAreaKey(entity.Scene, includeMode);
+    }
+    public static string GetAreaKey(this Scene scene, bool includeMode = true)
+    {
+        if (scene is Level level)
+        {
+            return level.Session.Area.GetFullID(includeMode);
+        }
+        return "";
+    }
+    public static string GetFullID(this AreaKey key, bool includeMode = true)
+    {
+        return key.SID + key.Mode.ToString();
+    }
     public static TileGrid GetTileOverlayBox(Scene scene, float x, float y, float width, float height, char tile)
     {
         Level level = scene as Level; ;
@@ -198,7 +215,16 @@ public static class PianoUtils
         }
         return list;
     }
-
+    public static bool TryGetAreaKey(out AreaKey key)
+    {
+        if (Engine.Scene is Level level)
+        {
+            key = level.Session.Area;
+            return true;
+        }
+        key = default;
+        return false;
+    }
     /// <summary>Adds a <see cref="Rune"/> to the provided List if it doesn't already contain a matching <see cref="Rune"/>.</summary>
     /// <param name="list">The <see cref="List{}"/> to add the rune to.</param>
     /// <param name="rune">The <see cref="Rune"/> to check.</param>
@@ -416,7 +442,8 @@ public static class PianoUtils
     }
     public static bool GetFlag(this string str, bool inverted = false)
     {
-        return Engine.Scene is Level level && (string.IsNullOrEmpty(str) || level.Session.GetFlag(str)) != inverted;
+        if (string.IsNullOrEmpty(str)) return !inverted;
+        return Engine.Scene is Level level && level.Session.GetFlag(str) != inverted;
     }
     public static bool TryGetFlag(this string str, out bool result, bool inverted = false)
     {
@@ -1059,13 +1086,17 @@ public static class PianoUtils
         return texture.Texture.Collider();
     }
 
-    public static IEnumerator Lerp(this Ease.Easer ease, float time, Action<float> action)
+    public static IEnumerator Lerp(this Ease.Easer ease, float time, Action<float> action, bool actionOnEnd = false)
     {
         ease ??= Ease.Linear;
         for (float i = 0; i < 1; i += Engine.DeltaTime / time)
         {
             action?.Invoke(ease(i));
             yield return null;
+        }
+        if (actionOnEnd)
+        {
+            action?.Invoke(1);
         }
     }
     public static IEnumerator LerpYoyo(this Ease.Easer ease, float halfTime, Action<float> action, Action onHalf = null)
@@ -1075,13 +1106,17 @@ public static class PianoUtils
         onHalf?.Invoke();
         yield return Ease.Invert(ease).ReverseLerp(halfTime, action);
     }
-    public static IEnumerator ReverseLerp(this Ease.Easer ease, float time, Action<float> action)
+    public static IEnumerator ReverseLerp(this Ease.Easer ease, float time, Action<float> action, bool actionOnEnd = false)
     {
         ease ??= Ease.Linear;
         for (float i = 0; i < 1; i += Engine.DeltaTime / time)
         {
             action?.Invoke(ease(1 - i));
             yield return null;
+        }
+        if (actionOnEnd)
+        {
+            action?.Invoke(0);
         }
     }
 

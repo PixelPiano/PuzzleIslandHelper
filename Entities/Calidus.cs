@@ -84,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private int ArmLoopCount;
         private int ArmBuffer = 60;
         private int heeheeBuffer = 2;
-        private float[] ArmOffsets = new float[2];
+        private (float, float) ArmOffsets;
         public float FloatHeight = 6;
         public float LookSpeed = 1;
 
@@ -95,7 +95,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Part EyeSprite;
         public Sprite Symbols;
         public Part[] Arms = new Part[2];
-        private Player player;
         private ParticleSystem system;
         public VertexLight Light;
         public Vector2 OrigPosition;
@@ -131,7 +130,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float shakeTimer;
         public CalidusSprite Sprite;
         public Follower Follower;
-        public Leader Leader => FollowTarget.Leader;
 
         public Collider SpriteBox;
         public List<Part> Parts = new();
@@ -288,13 +286,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Reset();
             }
         }
-        public static Calidus Create(bool follow = false)
+        public static Calidus Create()
         {
-            return Create(Vector2.Zero, false, true, Looking.Center, Mood.Normal, follow);
+            return Create(Vector2.Zero, false, true, Looking.Center, Mood.Normal);
         }
-        public static Calidus Create(Vector2 position, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal, bool follow = false)
+        public static Calidus CreateAndFollow(Player player)
         {
-            Calidus c = new Calidus(position, new EntityID(Guid.NewGuid().ToString(), 0), broken, startFloating, look, mood);
+            return Create(player.Position, false, true, Looking.Player, Mood.Normal, true);
+        }
+        public static Calidus Create(Vector2 position, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal, bool startFollowing = false)
+        {
+            Calidus c = new Calidus(position, new EntityID(Guid.NewGuid().ToString(), 0), broken, startFloating, look, mood, startFollowing);
             Engine.Scene.Add(c);
             return c;
         }
@@ -403,21 +405,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(Talk = new TalkComponent(new Rectangle((int)Collider.Position.X, 0, (int)Width, (int)Height + 24), OrbSprite.Center.XComp(), Interact));
             }
             (scene as Level).Add(system = new ParticleSystem(Depth + 1, 500));
+
+            if (PianoUtils.SeekController<CalidusFollowerTarget>(scene) == null)
+            {
+                scene.Add(new CalidusFollowerTarget());
+            }
+
         }
         public CalidusFollowerTarget FollowTarget;
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             if (scene is not Level level) return;
-            player = level.Tracker.GetEntity<Player>();
             foreach (Part part in Components.GetAll<Part>())
             {
                 Parts.Add(part);
             }
             Parts.Remove(EyeSprite);
-            CalidusFollowerTarget target = level.Tracker.GetEntity<CalidusFollowerTarget>();
-            FollowTarget = target;
+            FollowTarget = scene.Tracker.GetEntity<CalidusFollowerTarget>();
+            if (FollowTarget.Follow == null && scene.GetPlayer() is Player player)
+            {
+                FollowTarget.Initialize(player);
+            }
             CreateFollower();
+            if (StartFollowingImmediately)
+            {
+                StartFollowing(Looking.Player);
+            }
         }
         public void CreateFollower()
         {
@@ -426,7 +440,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(Follower = new Follower());
                 Follower.FollowDelay = 0.2f;
                 Follower.MoveTowardsLeader = false;
-                Leader.GainFollower(Follower);
+                FollowTarget.Leader.GainFollower(Follower);
             }
         }
         public void SnapToLeader()
@@ -437,7 +451,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             StopFollowing();
             base.Removed(scene);
-            Leader?.LoseFollower(Follower);
+            FollowTarget?.Leader?.LoseFollower(Follower);
+            if (scene.Tracker.GetEntities<Calidus>().Count < 2)
+            {
+                FollowTarget?.RemoveSelf();
+            }
         }
         public override void Update()
         {
@@ -488,8 +506,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 part.Offset.Y = -FloatAmount;
             }
             EyeSprite.Offset.Y = -FloatAmount;
-            Arms[0].Offset.X = ArmOffsets[0];
-            Arms[1].Offset.X = ArmOffsets[1];
+            Arms[0].Offset.X = ArmOffsets.Item1;
+            Arms[1].Offset.X = ArmOffsets.Item2;
             BrokenParts.Visible = Broken;
             BrokenParts.OutlineOpacity = OutlineOpacity;
             base.Update();
@@ -564,6 +582,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return RotatePoint(OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, LookEntity.Center).ToDeg());
             }
+            Vector2 p = Center;
+            if (Scene.GetPlayer() is Player player)
+            {
+                p = player.Center;
+            }
             return LookDir switch
             {
                 Looking.Left => -Vector2.UnitX * 4,
@@ -574,7 +597,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Looking.UpRight => new Vector2(4, -4),
                 Looking.DownLeft => new Vector2(-4, 4),
                 Looking.DownRight => Vector2.One * 4,
-                Looking.Player => RotatePoint(OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, player.Center).ToDeg()),
+                Looking.Player => RotatePoint(OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, p).ToDeg()),
                 Looking.Target => RotatePoint(OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, LookTarget).ToDeg()),
                 Looking.Center => Vector2.Zero,
                 _ => Vector2.Zero
@@ -1046,32 +1069,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             Add(new Coroutine(DuckBounceCheck()));
                         }*/
         }
-        public IEnumerator Say(string id, string emotion, params Func<IEnumerator>[] events)
-        {
-            if (Broken)
-            {
-                yield break;
-            }
-            Emotion(emotion);
-            if (player is not null)
-            {
-                PlayerFace(player);
-            }
-            yield return Textbox.Say(id, events);
-        }
-        public IEnumerator Say(string id, string emotion, bool useSymbol, params Func<IEnumerator>[] events)
-        {
-            if (Broken)
-            {
-                yield break;
-            }
-            Emotion(emotion);
-            if (player is not null)
-            {
-                PlayerFace(player);
-            }
-            yield return Textbox.Say(id, events);
-        }
         public IEnumerator FallApartRoutine()
         {
             FallApart();
@@ -1392,9 +1389,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             while (true)
             {
-                if (player is null)
+                if (Scene.GetPlayer() is not Player player)
                 {
-                    player = Scene.GetPlayer();
                     yield return null;
                     continue;
                 }
@@ -1474,39 +1470,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (y) Position.Y = position.Y;
 
         }
-        private Vector2 armOffset => new Vector2(ArmOffsets[0], ArmOffsets[1]);
         private IEnumerator ArmLoop()
         {
-            ArmOffsets[0] = ArmOffsets[1] = 0;
+            ArmOffsets = (0, 0);
             while (true)
             {
                 if (CanFloat)
                 {
                     Color target = Color.Lerp(Color.White, Color.Black, 0.2f);
-                    float armPosX = ArmOffsets[0];
-                    float armRightPosX = ArmOffsets[1];
+                    float armPosX = ArmOffsets.Item1;
+                    float armRightPosX = ArmOffsets.Item2;
                     float delay = Engine.DeltaTime / 2;
                     int armDistance = 1;
                     for (float i = 0; i < 1; i += Engine.DeltaTime)
                     {
-                        ArmOffsets[0] = (int)Math.Round(Calc.LerpClamp(armPosX, armPosX - armDistance, Ease.SineInOut(i)));
-                        ArmOffsets[1] = (int)Math.Round(Calc.LerpClamp(armRightPosX, armRightPosX + armDistance, Ease.SineInOut(i)));
+                        ArmOffsets.Item1 = (int)Math.Round(Calc.LerpClamp(armPosX, armPosX - armDistance, Ease.SineInOut(i)));
+                        ArmOffsets.Item2 = (int)Math.Round(Calc.LerpClamp(armRightPosX, armRightPosX + armDistance, Ease.SineInOut(i)));
                         OrbSprite.Color = Color.Lerp(target, Color.White, Ease.SineInOut(i));
                         yield return delay;
                     }
-                    armPosX = ArmOffsets[0];
-                    armRightPosX = ArmOffsets[1];
+                    armPosX = ArmOffsets.Item1;
+                    armRightPosX = ArmOffsets.Item2;
                     for (float i = 0; i < 1; i += Engine.DeltaTime)
                     {
-                        ArmOffsets[0] = (int)Math.Round(Calc.LerpClamp(armPosX, armPosX + armDistance, Ease.SineInOut(i)));
-                        ArmOffsets[1] = (int)Math.Round(Calc.LerpClamp(armRightPosX, armRightPosX - armDistance, Ease.SineInOut(i)));
+                        ArmOffsets.Item1 = (int)Math.Round(Calc.LerpClamp(armPosX, armPosX + armDistance, Ease.SineInOut(i)));
+                        ArmOffsets.Item2 = (int)Math.Round(Calc.LerpClamp(armRightPosX, armRightPosX - armDistance, Ease.SineInOut(i)));
                         OrbSprite.Color = Color.Lerp(Color.White, target, Ease.SineInOut(i));
                         yield return delay;
                     }
                 }
                 else
                 {
-                    ArmOffsets[0] = ArmOffsets[1] = 0;
+                    ArmOffsets = (0, 0);
                 }
                 yield return null;
             }

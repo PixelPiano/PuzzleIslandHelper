@@ -2,7 +2,7 @@ local calidusCutscene = {}
 
 calidusCutscene.name = "PuzzleIslandHelper/CalidusCutsceneTrigger"
 
-local cutscenes = {"FirstIntro","First","SecondIntro","Second","Third","TEST"}
+local cutscenes = {"FirstIntro","First", "FirstOutro","SecondIntro","Second"}
 calidusCutscene.placements =
 {
     {

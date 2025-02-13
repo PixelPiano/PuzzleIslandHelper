@@ -5,7 +5,6 @@ using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
 {
-    [ConstantEntity("PuzzleIslandHelper/CalidusFollowerTarget")]
     [Tracked]
     public class CalidusFollowerTarget : Entity
     {
@@ -20,7 +19,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
                     PastPoints[i] = position;
                 }
                 SnapTimer = duration;
-
             }
             public override void Update()
             {
@@ -69,20 +67,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         public Vector2 AdditionalOffset;
         public CustomLeader Leader;
         public Entity Follow;
-        public Calidus Calidus;
         public CalidusFollowerTarget() : base()
         {
-            Tag |= Tags.TransitionUpdate | Tags.Global;
-            Leader = new CustomLeader();
+            Tag |= Tags.TransitionUpdate | Tags.Persistent;
         }
-        public override void Awake(Scene scene)
+        public void Initialize(Player player)
         {
-            base.Awake(scene);
-            Add(Leader);
-            Player player = scene.GetPlayer();
             Follow = player;
             Offset.X = -(int)player.Facing * 10;
             Offset.Y = -20f;
+            if (Leader == null)
+            {
+                Leader = new CustomLeader();
+                Add(Leader);
+            }
         }
         public static void SetOffset(Vector2 offset)
         {
@@ -126,16 +124,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         public override void Update()
         {
             base.Update();
-            Calidus = Scene.Tracker.GetEntity<Calidus>();
-            if (Scene.GetPlayer() is Player player)
+            if (Scene is not Level level || level.GetPlayer() is not Player player) return;
+            if (Leader == null)
             {
+                Initialize(player);
+            }
+            else
+            {
+                Follow = player;
                 if (Math.Abs(player.Speed.X) > 0)
                 {
                     Offset.X = Calc.Approach(Offset.X, -(int)player.Facing * 10, Engine.DeltaTime * 70f);
                 }
-                Follow = player;
+                Position = new Vector2(Follow.CenterX, Follow.Top) + Offset + AdditionalOffset;
             }
-            Position = new Vector2(Follow.CenterX, Follow.Top) + Offset + AdditionalOffset;
         }
         [OnLoad]
         public static void Load()
@@ -157,7 +159,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         private static void Player_OnDie(Player obj)
         {
             Calidus calidus = obj.Scene.Tracker.GetEntity<Calidus>();
-            if (calidus != null && calidus.Following && calidus.FollowTarget.Follow == obj)
+            if (calidus != null && calidus.Following && calidus.FollowTarget != null && calidus.FollowTarget.Follow == obj)
             {
                 spawnCalidusOnPlayerSpawn = true;
             }
@@ -172,8 +174,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         [Command("add_calidus_follower", "adds a good boy to follow you and look at you")]
         public static void AddCalidusFollower()
         {
-            if (Engine.Scene is not Level level || level.Tracker.GetEntity<CalidusFollowerTarget>() is not CalidusFollowerTarget target) return;
-            AddCalidusFollower(target);
+            if (Engine.Scene is not Level level) return;
+            if (level.Tracker.GetEntity<CalidusFollowerTarget>() is CalidusFollowerTarget target)
+            {
+                AddCalidusFollower(target);
+            }
+            else if (level.GetPlayer() is Player player)
+            {
+                AddCalidusFollower(player);
+            }
+        }
+        public static void AddCalidusFollower(Player player)
+        {
+            Calidus.CreateAndFollow(player);
         }
         public static void AddCalidusFollower(CalidusFollowerTarget target)
         {

@@ -29,24 +29,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             TargetFloat = data.Float("maxFloat", 8);
             randomizeStartFloat = data.Bool("randomizeStartFloat");
             floatTime = data.Float("floatTime");
-            var d = data.Attr("indices").Replace(" ", "").Split(',');
-            List<int> list = [];
-            foreach (string s in d)
-            {
-                if (!string.IsNullOrEmpty(s) && int.TryParse(s, NumberStyles.Integer, null, out int result))
-                {
-                    list.Add(result);
-                }
-            }
-            var d2 = data.Attr("floatMults").Replace(" ", "").Split(',');
-            List<float> list2 = [];
-            foreach (string s2 in d2)
-            {
-                if (!string.IsNullOrEmpty(s2) && float.TryParse(s2, NumberStyles.AllowDecimalPoint, null, out float result2))
-                {
-                    list2.Add(result2);
-                }
-            }
+            Indices = [.. data.Attr("indices").Replace(" ", "").Split(',').Select(item => int.TryParse(item, NumberStyles.Integer, null, out int result) ? result : 0)];
+            List<float> list2 = [.. data.Attr("floatMult").Replace(" ", "").Split(',').Select(item => float.TryParse(item, NumberStyles.AllowDecimalPoint, null, out float result2) ? result2 : 0f)];
             var c = data.Attr("colors").Replace(" ", "").Split(',');
             List<Color> list3 = [];
             foreach (string s3 in c)
@@ -84,8 +68,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Vertices[i].Color = Colors[i % Colors.Length];
                 }
             }
-            Indices = [.. list];
-            for (int i = FloatMults.Length; i < Vertices.Length; i++)
+            for (int i = list2.Count; i < Vertices.Length; i++)
             {
                 list2.Add(0);
             }
@@ -105,6 +88,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     tween.Randomize();
                 }
             }
+            float left = int.MaxValue, right = int.MinValue, top = int.MaxValue, bottom = int.MinValue;
+            for (int i = 0; i < Vertices.Length; i++)
+            {
+                var v = Vertices[i];
+                left = Math.Min(left, v.Position.X);
+                right = Math.Max(right, v.Position.X);
+                top = Math.Min(top, v.Position.Y);
+                bottom = Math.Max(bottom, v.Position.Y);
+            }
+            Collider = new Hitbox(right - left, bottom - top);
         }
         private bool onScreen;
         public override void Update()
@@ -113,10 +106,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             onScreen = false;
             for (int i = 0; i < Vertices.Length; i++)
             {
-                
                 Vertices[i].Position.Y = Position.Y + Points[i].Y + (FloatAmount[i] * TargetFloat) * FloatMults[i];
                 Vertices[i].Position.X = Position.X + Points[i].X;
-                Vertices[i].Color = Colors[i];
+                Vertices[i].Color = Colors[i % Colors.Length];
                 Vector2 p = Vertices[i].Position.XY();
                 if (!onScreen && p.OnScreen(4))
                 {

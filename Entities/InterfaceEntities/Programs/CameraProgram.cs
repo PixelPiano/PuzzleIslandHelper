@@ -63,7 +63,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 
             float x = limitx / 3 + limitx / 6 - width / 2;
             float y = limity / 3 + limity / 6 - height / 2;
-            foreach (SecurityCamData data in PianoMapDataProcessor.SecurityCams)
+           foreach (SecurityCamData data in PianoMapDataProcessor.SecurityCams[this.GetAreaKey()])
             {
                 CameraView view = new CameraView(window, data, Scene);
                 view.Position.X = x;

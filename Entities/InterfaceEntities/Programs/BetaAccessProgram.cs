@@ -1,12 +1,14 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
     [Tracked]
     //[CustomProgram("Access")]
+    [Obsolete("Use AccessProgram.cs")]
     public class BetaAccessProgram : WindowContent
     {
         public static bool AccessTeleporting;
@@ -68,7 +70,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public static IEnumerator TransitionRoutine(string pass, bool instant = false, bool buggy = false)
         {
             if (Engine.Scene is not Level level) yield break;
-            WarpCapsuleData data = PianoMapDataProcessor.WarpLinks[pass];
+            WarpCapsuleData data = null;//PianoMapDataProcessor.WarpLinks[pass];
             WarpCapsule machine = level.Tracker.GetEntity<WarpCapsule>();
             if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
             {
@@ -86,7 +88,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         }
         private static bool TransitionValid(string id)
         {
-            return PianoMapDataProcessor.WarpLinks.ContainsKey(id);
+            return false;
+            //return PianoMapDataProcessor.WarpLinks.ContainsKey(id);
         }
         public bool TryStartWarpRoutine(string pass)
         {

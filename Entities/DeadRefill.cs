@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using static MonoMod.InlineRT.MonoModRule;
 // PuzzleIslandHelper.ArtifactSlot
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -29,15 +30,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(sine = new SineWave(0.2f));
             sine.Randomize();
             Collider = new Hitbox(16f, 16f, -8f, -8f);
-
-            string text;
-
-            text = "objects/PuzzleIslandHelper/deadRefill/";
             p_shatter = Refill.P_Shatter;
-            Add(sprite = new Sprite(GFX.Game, text + "idle" + data.Attr("type")));
-            sprite.AddLoop("idle", "", 0.1f);
-            sprite.Play("idle");
-            sprite.CenterOrigin();
 
             Add(new MirrorReflection());
             Depth = data.Int("depth", -100);
@@ -50,6 +43,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            string text = "objects/PuzzleIslandHelper/deadRefill/";
+            //Add(sprite = new Sprite(GFX.Game, text + "idle" + data.Attr("type")));
+            Random random = new Random((int)Position.X + (int)Position.Y);
+            Add(sprite = new Sprite(GFX.Game, text + "idle" + random.Choose("A", "B", "C", "D")));
+            sprite.AddLoop("idle", "", 0.1f);
+            sprite.Play("idle");
+            sprite.CenterOrigin();
             Add(new Coroutine(ColorFlash()));
             level = SceneAs<Level>();
         }
@@ -93,6 +93,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void DrainPlayer(Player player)
         {
+            if(player.StateMachine.State == Player.StStarFly)
+            {
+                player.StateMachine.State = Player.StNormal;
+            }
             if (player.Dashes > 0)
             {
                 player.Dashes--;

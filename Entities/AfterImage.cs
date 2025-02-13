@@ -6,17 +6,26 @@ using System;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [Tracked(false)]
-    public class AfterImage : Entity
+    public class AfterImage : Actor
     {
         public VirtualRenderTarget Target;
         public float Alpha = 0.8f;
         private bool renderedOnce;
+        public bool DrawOnce = true;
         public Action DrawFunction;
         public float ScaleOutRate;
         public Effect Effect;
         public Entity Entity;
+        public Vector2 Speed;
+        public Vector2 Acceleration;
+        public float Friction;
+        public Vector2 Scale = Vector2.One;
+        public Action<AfterImage, CollisionData> OnCollideH;
+        public Action<AfterImage, CollisionData> OnCollideV;
         public AfterImage(Entity entity, Action drawZero, float duration = 1, float startAlpha = 0.8f, Effect effect = null) : this(entity.Position, entity.Width, entity.Height, drawZero, duration, startAlpha, effect)
         {
+            Collidable = false;
+            Depth = entity.Depth;
         }
         public void DrawZero()
         {
@@ -83,12 +92,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void BeforeRender()
         {
-            if (renderedOnce || DrawFunction == null || Target == null) return;
+            if ((DrawOnce && renderedOnce) || DrawFunction == null || Target == null) return;
             Target.SetAsTarget(Color.Transparent);
             Draw.SpriteBatch.StandardBegin(Matrix.Identity, Effect);
             DrawFunction?.Invoke();
             Draw.SpriteBatch.End();
             renderedOnce = true;
+        }
+        private void onCollideH(CollisionData data)
+        {
+            if (Collidable) OnCollideH?.Invoke(this, data);
+        }
+        private void onCollideV(CollisionData data)
+        {
+            if (Collidable) OnCollideV?.Invoke(this, data);
+        }
+        public override void Update()
+        {
+            base.Update();
+            MoveH(Speed.X * Engine.DeltaTime, onCollideH);
+            MoveV(Speed.Y * Engine.DeltaTime, onCollideV);
+            Speed += Acceleration * Engine.DeltaTime;
+            Speed = Calc.Approach(Speed, Vector2.Zero, Friction * Engine.DeltaTime);
         }
         public override void Render()
         {
@@ -97,7 +122,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (Target != null)
                 {
-                    Draw.SpriteBatch.Draw(Target, Position, null, Color.White * Alpha);
+                    Draw.SpriteBatch.Draw(Target, Position + Collider.HalfSize, null, Color.White * Alpha, 0, Collider.HalfSize, Scale, SpriteEffects.None, 0);
                 }
                 else
                 {

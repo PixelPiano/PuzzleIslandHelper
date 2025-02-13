@@ -16,33 +16,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public CalidusCutscene.Cutscenes Cutscene;
         private bool ActivateOnTransition;
         private bool InCutscene;
-        private List<string> flags = new();
-        public bool FlagState
-        {
-            get
-            {
-                if (Scene is not Level level) return false;
-                List<bool> bools = new();
-                foreach (string s in flags)
-                {
-
-                    if (string.IsNullOrEmpty(s)) continue;
-                    bool inverted = s[0] == '!';
-                    bool flagState = level.Session.GetFlag(s);
-                    bools.Add(flagState || !flagState && inverted);
-                }
-                foreach (bool b in bools)
-                {
-                    if (!b) return false;
-                }
-                return true;
-            }
-        }
+        //private List<string> flags = new();
+        private List<(string, bool)> flags = new();
+        public bool FlagState => PianoUtils.CheckAll(flags);
         public CalidusCutsceneTrigger(EntityData data, Vector2 offset)
             : base(data, offset)
         {
-            flags = data.Attr("flag").Replace(" ", "").Split(',').ToList();
-            
+            flags = PianoUtils.ParseFlagsFromString(data.Attr("flag"));
             Tag |= Tags.TransitionUpdate;
             Cutscene = data.Enum<CalidusCutscene.Cutscenes>("cutscene");
             CutsceneEntity = new CalidusCutscene(Cutscene);
@@ -53,14 +33,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             base.Awake(scene);
             (scene as Level).InCutscene = false;
-            if (!FlagState)
+            if (ActivateOnTransition && scene.GetPlayer() is Player player)
             {
-                RemoveSelf();
-            }
-            else
-            {
-                Player player = (scene as Level).Tracker.GetEntity<Player>();
-                if (ActivateOnTransition && player is not null)
+                if (!FlagState)
+                {
+                    RemoveSelf();
+                }
+                else if (player is not null)
                 {
                     OnEnter(player);
                 }

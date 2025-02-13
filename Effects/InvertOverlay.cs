@@ -19,7 +19,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public EventInstance invertAudio;
         private bool Transitioning;
         private bool WasTransitioning;
-        public static bool HoldState;
         private static PropertyInfo engineDeltaTimeProp = typeof(Engine).GetProperty("DeltaTime");
         private static float baseTimeRate = 1f;
 
@@ -27,16 +26,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public static bool ForcedState;
         public static bool EnforceState;
 
-        private float holdTimer;
         public static bool UseNormalTimeRate;
-        public bool wasReleased;
-        public PianoModuleSettings.InvertActivationModes Mode => PianoModule.Settings.ToggleInvert;
         public InvertOverlay(BinaryPacker.Element data) : this(data.Attr("colorgradeFlag"), data.AttrFloat("timeMod")) { }
-        public ButtonBinding Binding => PianoModule.Settings.InvertAbilityBinding;
         public InvertOverlay(string flag, float timeMod)
         {
             this.flag = flag;
-
             OnTime = timeMod;
 
         }
@@ -48,7 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 Reset(scene);
                 return false;
             }
-            if(level.Wipe != null)
+            if (level.Wipe != null)
             {
                 return true;
             }
@@ -57,10 +51,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 if (player.Dead || player.StateMachine.State == 11)
                 {
-                    if (!HoldState)
-                    {
-                        Reset(scene);
-                    }
+                    Reset(scene);
                     return false;
                 }
             }
@@ -84,38 +75,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         {
             base.Update(scene);
             Level level = scene as Level;
-            if(level.GetPlayer() is PlayerCalidus)
+            if (level.GetPlayer() is PlayerCalidus)
             {
                 State = false;
                 return;
             }
-            if (PianoModule.Settings.InvertAbility)
-            {
-                level.Session.SetFlag("invertOverlay");
-            }
-            if (!level.Session.GetFlag("invertOverlay"))
-            {
-                return;
-            }
             previousState = State;
-            if (!HoldState)
-            {
-                switch (Mode)
-                {
-                    case PianoModuleSettings.InvertActivationModes.Toggle:
-                        if (Binding.Pressed) State = !State;
-                        break;
-                    case PianoModuleSettings.InvertActivationModes.Hold:
-                        bool check = Binding.Check;
-                        holdTimer = check ? holdTimer + Engine.DeltaTime : 0;
-                        State = check && holdTimer >= WaitTime;
-                        break;
-                }
-            }
-            if (EnforceState)
-            {
-                State = ForcedState;
-            }
+            State = ForcedState;
             if (!State) Engine.TimeRate = 1;
             level.Session.SetFlag(flag, State);
             if (!CheckScene(scene))
@@ -154,10 +120,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public override void Ended(Scene scene)
         {
             base.Ended(scene);
-            if (invertAudio is not null)
-            {
-                invertAudio.stop(STOP_MODE.IMMEDIATE);
-            }
+            invertAudio?.stop(STOP_MODE.IMMEDIATE);
             EnforceState = false;
         }
         [OnLoad]

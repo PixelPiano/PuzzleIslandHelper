@@ -30,7 +30,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         public override void OnLeave(Player player)
         {
             base.OnLeave(player);
-            if (!everyFrame) flag.SetFlag(activeFlag.GetFlag(activeFlagInverted) != inverted);
+            if (!everyFrame) flag.SetFlag(activeFlag.GetFlag(activeFlagInverted) == inverted);
         }
         public override void Update()
         {
