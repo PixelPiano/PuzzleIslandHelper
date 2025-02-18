@@ -8,25 +8,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class LabDoor : Solid
     {
-        public bool transitioning;
-
+        public bool Manual;
         public string flag;
-
-        public bool auto;
-
+        public bool automatic;
         private float range;
-
         private Sprite doorSprite;
-
         public int closeRate = 7;
         public int openRate = 7;
-
         public int openSpeed = 30;
-
         public int closeSpeed = 30;
-
         private int height = 48;
-
         private Player player;
         public enum States
         {
@@ -38,7 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public States State;
         public Collider Detect;
         private bool dependsOnLabPower;
-        private bool firstFrame = true;
+        private SoundSource sfx;
         public bool PowerState
         {
             get
@@ -46,13 +37,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return !dependsOnLabPower || PianoModule.Session.RestoredPower;
             }
         }
+
         public LabDoor(EntityData data, Vector2 offset)
             : base(data.Position + offset, 8, 48, false)
         {
             dependsOnLabPower = data.Bool("dependsOnLabPower", true);
-            auto = data.Bool("automatic");
+            automatic = data.Bool("automatic");
             flag = data.Attr("flag");
             State = data.Bool("startState") ? States.Open : States.Closed;
+            Collider = new Hitbox(8, 48, 0, 0);
+            range = data.Float("range") * 8;
+            Depth = -8500;
+            Add(new LightOcclude());
+            Tag |= Tags.TransitionUpdate;
+            Detect = new Hitbox(Width + range * 2, Height + 16, Position.X - range, Position.Y - 8);
+            Add(sfx = new SoundSource());
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/machineDoor/"));
             doorSprite.AddLoop("idle", "idle", 0.1f);
             doorSprite.AddLoop("open", "open", 0.1f, 8);
@@ -60,18 +63,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             doorSprite.Add("opening", "open", 0.1f, "open");
             doorSprite.Add("closing", "close", 0.1f, "idle");
             doorSprite.Rate = 1.5f;
-            Collider = new Hitbox(8, 48, 0, 0);
-            range = data.Float("range") * 8;
-            Depth = -8500;
-            Add(new LightOcclude());
-            Tag |= Tags.TransitionUpdate;
-            Detect = new Hitbox(Width + range * 2, Height + 16, Position.X - range, Position.Y - 8);
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
             player = Scene.Tracker.GetEntity<Player>();
-            doorSprite.Play(State != States.Open || !PowerState ? "closed" : "open");
+            bool flag = string.IsNullOrEmpty(this.flag) || SceneAs<Level>().Session.GetFlag(this.flag);
+            if (State != States.Open || !PowerState || !flag)
+            {
+                InstantClose();
+            }
+            else
+            {
+                InstantOpen();
+            }
         }
         public override void DebugRender(Camera camera)
         {
@@ -80,19 +81,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void Open()
         {
-            if (!firstFrame)
-            {
-                Add(new SoundSource("event:/PianoBoy/labDoorOpen"));
-            }
+            sfx.Stop();
+            sfx.Play("event:/PianoBoy/labDoorOpen");
             doorSprite.Play("opening");
             State = States.Opening;
         }
         public void Close()
         {
-            if (!firstFrame)
-            {
-                Add(new SoundSource("event:/PianoBoy/labDoorClose"));
-            }
+            sfx.Stop();
+            sfx.Play("event:/PianoBoy/labDoorClose");
             doorSprite.Play("closing");
             State = States.Closing;
         }
@@ -109,7 +106,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 switch (State)
                 {
                     case States.Closed:
-                        if ((!auto && flagState) || (auto && collided))
+                        if (!Manual && (!automatic && flagState) || (automatic && collided))
                         {
                             Open();
                         }
@@ -123,7 +120,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         }
                         break;
                     case States.Open:
-                        if ((!auto && !flagState) || (auto && !collided))
+                        if (!Manual && (!automatic && !flagState) || (automatic && !collided))
                         {
                             Close();
                         }
@@ -139,7 +136,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             base.Update();
-            firstFrame = false;
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            sfx.Stop(true);
         }
         public void InstantClose()
         {

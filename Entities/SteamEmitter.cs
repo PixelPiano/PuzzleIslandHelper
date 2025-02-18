@@ -21,6 +21,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float interval;
         public SteamEmitter(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
+            
             Angle = (MathHelper.Pi / -2f) * (float)data.Enum<Directions>("direction");
             image = new Image(GFX.Game["objects/PuzzleIslandHelper/cap"]);
             image.Rotation = Angle;
@@ -44,7 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             if (Scene is not Level level || !Scene.OnInterval(interval) || !Flag.GetFlag()) return;
-            level.ParticlesBG.Emit(ParticleTypes.Steam, Center + emitOffset, Color.White * Calc.Random.Range(0.5f, 1.1f), Angle);
+            level.ParticlesFG.Emit(ParticleTypes.Steam, Center + emitOffset, Color.White * Calc.Random.Range(0.5f, 1.1f), Angle);
         }
     }
 }

@@ -1,5 +1,6 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
@@ -23,11 +24,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         public bool CanActivate = true;
         public bool CheckForArea;
         public DoorStates DoorState;
-        public DetectArea Area;
         public Dictionary<LabDoor, bool> Doors = [];
         public class Cutscene : CutsceneEntity
         {
             public Decontam Trigger;
+            private EventInstance Event;
             public Cutscene(Decontam trigger) : base()
             {
                 Trigger = trigger;
@@ -46,7 +47,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 Trigger.DoorState = DoorStates.Closed;
                 yield return 0.7f;
                 setFlag(arg + "Steam", true);
-                Audio.Play("event:/PianoBoy/steam");
+                Event = Audio.Play("event:/PianoBoy/steam");
                 yield return 0.3f;
                 setFlag(arg + "SteamFill", true);
                 yield return 6f;
@@ -56,7 +57,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 yield return 0.6f;
                 Trigger.DoorState = DoorStates.Open;
                 yield return null;
-
+                EndCutscene(Level);
             }
             private void setFlag(string flag, bool value)
             {
@@ -64,16 +65,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             }
             public override void OnEnd(Level level)
             {
-                if (WasSkipped)
-                {
-                    Trigger.DoorState = DoorStates.Open;
-                    Trigger.CheckForArea = true;
-                }
+                Event?.stop(STOP_MODE.ALLOWFADEOUT);
+                Trigger.DoorState = DoorStates.Open;
+                Trigger.CheckForArea = true;
+                string arg = Trigger.Prefix;
+                setFlag(arg + "SteamFill", false);
+                setFlag(arg + "Steam", false);
             }
         }
         public Decontam(EntityData data, Vector2 offset) : base(data, offset)
         {
-            AreaID = data.Attr("detectAreaID");
+            AreaID = data.Attr("areaID");
             Prefix = data.Attr("prefix");
         }
         public override void Awake(Scene scene)
@@ -83,7 +85,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             {
                 if (area.ID == AreaID)
                 {
-                    foreach (LabDoor door in Area.CollideAll<LabDoor>())
+                    foreach (LabDoor door in area.CollideAll<LabDoor>())
                     {
                         Doors.Add(door, door.automatic);
                     }
@@ -122,17 +124,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                     case DoorStates.Open:
                         door.automatic = false;
                         door.Manual = true;
-                        if (!door.Open)
+                        if (door.State is LabDoor.States.Closed)
                         {
-                            door.OpenDoor();
+                            door.Open();
                         }
                         break;
                     case DoorStates.Closed:
                         door.automatic = false;
                         door.Manual = true;
-                        if (door.Open)
+                        if (door.State is LabDoor.States.Open)
                         {
-                            door.CloseDoor();
+                            door.Close();
                         }
                         break;
                 }

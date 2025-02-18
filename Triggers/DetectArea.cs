@@ -33,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
-            if (SetFlagOnRemoved && !string.IsNullOrEmpty(ID)) SceneAs<Level>().Session.SetFlag(Prefix + ID, false);
+            if (SetFlagOnRemoved && !string.IsNullOrEmpty(ID)) (scene as Level).Session.SetFlag(Prefix + ID, false);
         }
         public bool Inside()
         {
