@@ -3,7 +3,6 @@ local entityStateTrigger = {}
 entityStateTrigger.name = "PuzzleIslandHelper/EntityStateTrigger"
 entityStateTrigger.nodeLimits = {0, 1}
 local entities = {"DashBlock","ExitBlock","Bumper","Refill","Feather","Booster"}
-local flagModes = {"OnChange","EveryFrame","OnlyOnce"}
 
 entityStateTrigger.placements =
 {
@@ -12,17 +11,17 @@ entityStateTrigger.placements =
         data = {
             flag = "",
             inverted = false,
-            flagMode = "OnChange",
             target = "DashBlock",
-            tiedToTarget = false
+            tiedToTarget = false,
+            startState = false,
+            persistent = false,
+            setFlagOnTransition = false,
+            invertFlagOnContact = false,
+            onlyOnContact = false
         }
     },
 }
 entityStateTrigger.fieldInformation = {
-    flagMode = {
-        options = flagModes,
-        editable = false
-    },
     target = {
         options = entities,
         editable = false

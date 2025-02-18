@@ -15,6 +15,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public Dictionary<EntityID, List<int>> TiletypePuzzleCache = new();
+        public Dictionary<EntityID, int> CrystalElevatorFurthestLevelReached = new();
         public HeartInventory HeartInventory = new();
         public Dictionary<EntityID, (string, string)> UsedHeartMachines = new();
         public CalidusCutscene.Cutscenes CalidusCutscene { get; set; }

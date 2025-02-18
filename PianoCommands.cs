@@ -10,9 +10,12 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Helpers;
 using Celeste.Mod.PuzzleIslandHelper.Loaders;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using Monocle;
+using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.PlayerCalidus;
 
 public class PianoCommands

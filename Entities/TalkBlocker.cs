@@ -7,8 +7,8 @@ using System.Reflection;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [Tracked]
-    [ConstantEntity("TalkBlock")]
-    public class TalkBlock : Entity
+    [ConstantEntity("PuzzleIslandHelper/TalkBlocker")]
+    public class TalkBlocker : Entity
     {
         [Command("disable_talk", "Prevents Talk Components from being used for x time")]
         public static void CommandDisableTalk(float time)
@@ -20,7 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static bool TalkDisabled => DisabledTimer > 0 || ForcedOff;
         public static float DisabledTimer;
         public static bool ForcedOff;
-        public TalkBlock() : base()
+        public TalkBlocker() : base()
         {
             Tag |= Tags.Global;
         }
@@ -62,7 +62,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             hook_TalkComponentUI_get_Display = new Hook(
                typeof(TalkComponent.TalkComponentUI).GetProperty("Display").GetGetMethod(),
-               typeof(TalkBlock).GetMethod("TalkComponentUI_get_Display", BindingFlags.NonPublic | BindingFlags.Static)
+               typeof(TalkBlocker).GetMethod("TalkComponentUI_get_Display", BindingFlags.NonPublic | BindingFlags.Static)
            );
             On.Celeste.TalkComponent.Update += TalkComponent_Update;
         }

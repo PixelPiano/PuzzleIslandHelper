@@ -12,63 +12,6 @@ using static Celeste.Mod.PuzzleIslandHelper.Cutscenes.Gameshow;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
-    /*    public class AreaDataDict<TKey, TValue> : Dictionary<AreaKey, Dictionary<TKey, TValue>>
-        {
-            public AreaDataDict() { }
-            public bool HasArea(Scene scene)
-            {
-                return scene is Level level && ContainsKey(level.Session.Area);
-            }
-            public void Reset(AreaKey key)
-            {
-                if (!ContainsKey(key))
-                {
-                    Add(key, []);
-                }
-                else
-                {
-                    base[key] = [];
-                }
-            }
-        }
-        public class AreaDataList<TValue> : Dictionary<AreaKey, List<TValue>>
-        {
-            public AreaDataList() { }
-            public bool HasArea(Scene scene)
-            {
-                return scene is Level level && ContainsKey(level.Session.Area);
-            }
-            public void Reset(AreaKey key)
-            {
-                if (!ContainsKey(key))
-                {
-                    Add(key, []);
-                }
-                else
-                {
-                    base[key] = [];
-                }
-            }
-        }
-        public class AreaData<TValue> : Dictionary<AreaKey, TValue>
-        {
-            public AreaData() { }
-            public bool HasArea(Scene scene)
-            {
-                return scene is Level level && ContainsKey(level.Session.Area);
-            }
-            public void Reset(AreaKey key, Func<TValue> create)
-            {
-                if (!ContainsKey(key))
-                {
-                    Add(key, create());
-                }
-                else
-                {
-                    base[key] = create();
-                }
-            }
-        }*/
     public struct SecurityCamData
     {
         public string Name;
@@ -78,7 +21,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             return string.Format("{0},{1},{2}", Name, Room, RoomPosition);
         }
-
+    }
+    public struct MarkerData
+    {
+        public Vector2 Offset;
+        public Vector2 RoomPosition;
+        public string ID;
     }
     public class SlotData
     {
@@ -154,13 +102,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
     public class PianoMapDataProcessor : EverestMapDataProcessor
     {
         private string levelName;
-        /*        public static readonly AreaDataDict<string, string> IPAddressTeleports = [];
-                public static readonly AreaDataList<PortalNodeData> PortalNodes = [];
-                public static readonly AreaDataList<BitrailData> Bitrails = [];
-                public static readonly AreaDataDict<string, CalidusSpawnerData> CalidusSpawners = [];
-                public static readonly AreaDataList<SecurityCamData> SecurityCams = [];
-                public static readonly AreaData<RuneList> WarpRunes = [];
-                public static readonly AreaDataDict<string, List<SlotData>> SlotData = [];*/
         public static readonly Dictionary<string, Dictionary<string, string>> IPAddressTeleports = [];
         public static readonly Dictionary<string, List<PortalNodeData>> PortalNodes = [];
         public static readonly Dictionary<string, List<BitrailData>> Bitrails = [];
@@ -168,17 +109,18 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static readonly Dictionary<string, List<SecurityCamData>> SecurityCams = [];
         public static readonly Dictionary<string, RuneList> WarpRunes = [];
         public static readonly Dictionary<string, Dictionary<string, List<SlotData>>> SlotData = [];
-        public void Reset<T>(Dictionary<string, List<T>> dict, string key)
+        public static readonly Dictionary<string, Dictionary<string, List<MarkerData>>> MarkerData = [];
+        public static void Reset<T>(Dictionary<string, List<T>> dict, string key)
         {
             dict.Remove(key);
             dict.Add(key, []);
         }
-        public void Reset<T, T2>(Dictionary<string, Dictionary<T, T2>> dict, string key)
+        public static void Reset<T, T2>(Dictionary<string, Dictionary<T, T2>> dict, string key)
         {
             dict.Remove(key);
             dict.Add(key, []);
         }
-        public void Reset<T>(Dictionary<string, T> dict, string key, Func<T> create)
+        public static void Reset<T>(Dictionary<string, T> dict, string key, Func<T> create)
         {
             dict.Remove(key);
             dict.Add(key, create());
@@ -193,10 +135,40 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Reset(CalidusSpawners, key);
             Reset(SecurityCams, key);
             Reset(WarpRunes, key, delegate { return new RuneList(); });
+            Reset(MarkerData, key);
+        }
+        [Command("print_markers", "")]
+        public static void PrintMarkers()
+        {
+            if (Engine.Scene is Level level && level.GetAreaKey() is string s && MarkerData.TryGetValue(s, out var value))
+            {
+                foreach (var pair in value)
+                {
+                    Engine.Commands.Log(string.Format("{0}: ({1})", pair.Key, pair.Value.Count));
+                }
+            }
         }
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
             string key = AreaKey.GetFullID();
+            Action<BinaryPacker.Element> markerHandler = data =>
+            {
+                MarkerData marker = default;
+                marker.ID = data.Attr("markerID");
+                marker.Offset = data.Position();
+                if (MapData != null && MapData.Get(levelName) is LevelData leveldata)
+                {
+                    marker.RoomPosition = leveldata.Position;
+                }
+                if (MarkerData[key].TryGetValue(levelName, out List<MarkerData> value))
+                {
+                    value.Add(marker);
+                }
+                else
+                {
+                    MarkerData[key].Add(levelName, [marker]);
+                }
+            };
             Action<BinaryPacker.Element> memoryBlockadeHandler = data =>
             {
                 Vector2 pos = new Vector2(data.AttrFloat("x"), data.AttrFloat("y"));
@@ -331,6 +303,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         if (levelName.StartsWith("lvl_")) {
                             levelName = levelName.Substring(4);
                         }
+                    }
+                },
+                {
+                    "entity:PuzzleIslandHelper/Marker",marker =>
+                    {
+                       markerHandler(marker);
                     }
                 },
                 {

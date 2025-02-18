@@ -18,8 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         {
             get
             {
-                if (SingleGraphic) return FocusedAnim;
-                else return unfocusedAnim;
+                return SingleGraphic ? FocusedAnim : unfocusedAnim;
             }
             set
             {
@@ -29,28 +28,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         private string unfocusedAnim;
         public bool UsesSprite;
         public bool Focused;
-        public MTexture Texture
-        {
-            get
-            {
-                if (Focused)
-                {
-                    return FocusedTexture;
-                }
-                else
-                {
-                    return UnfocusedTexture;
-                }
-            }
-        }
-
+        public MTexture Texture => Focused ? FocusedTexture : UnfocusedTexture;
         public MTexture FocusedTexture;
         public MTexture UnfocusedTexture
         {
             get
             {
-                if (SingleGraphic) return FocusedTexture;
-                else return unfocusedTexture;
+                return SingleGraphic ? FocusedTexture : unfocusedTexture;
             }
             set
             {

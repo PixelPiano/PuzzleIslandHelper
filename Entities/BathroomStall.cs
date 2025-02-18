@@ -248,7 +248,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Cooldown = true;
             Alarm.Set(entity, 0.1f, delegate { Cooldown = false; });
-            TalkBlock.DisableFor(0.3f);
+            TalkBlocker.DisableFor(0.3f);
             Input.Dash.ConsumePress();
         }
         public void Interact(Player player)

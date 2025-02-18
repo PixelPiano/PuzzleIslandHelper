@@ -7,7 +7,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.MemoryBlockade;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

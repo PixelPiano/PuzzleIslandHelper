@@ -442,8 +442,11 @@ public static class PianoUtils
     }
     public static bool GetFlag(this string str, bool inverted = false)
     {
-        if (string.IsNullOrEmpty(str)) return !inverted;
-        return Engine.Scene is Level level && level.Session.GetFlag(str) != inverted;
+        return string.IsNullOrEmpty(str) ? !inverted : Engine.Scene is Level level && level.Session.GetFlag(str) != inverted;
+    }
+    public static bool GetFlag(this string str, Level level, bool inverted = false)
+    {
+        return string.IsNullOrEmpty(str) ? !inverted : level.Session.GetFlag(str) != inverted;
     }
     public static bool TryGetFlag(this string str, out bool result, bool inverted = false)
     {
@@ -1713,6 +1716,10 @@ public static class PianoUtils
             }
         };
     }
+    public static Vector2 Position(this BinaryPacker.Element element)
+    {
+        return new Vector2(element.AttrFloat("x"), element.AttrFloat("y"));
+    }
     public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint)
     {
         InstantRelativeTeleport(scene, room, snapToSpawnPoint, 0, 0);
@@ -1720,6 +1727,18 @@ public static class PianoUtils
     public static void InstantTeleport(Scene scene, string room, Vector2 newPosition)
     {
         InstantTeleport(scene, room, newPosition.X, newPosition.Y);
+    }
+    public static void InstantTeleportToMarker(Scene scene, string room, string markerName)
+    {
+        foreach (MarkerData d in PianoMapDataProcessor.MarkerData[scene.GetAreaKey()][room])
+        {
+            if (d.ID == markerName)
+            {
+                Vector2 pos = d.RoomPosition + d.Offset + new Vector2(4, 5);
+                InstantTeleport(scene, room, pos);
+                return;
+            }
+        }
     }
     public static void InstantTeleport(Scene scene, string room, float positionX, float positionY)
     {
