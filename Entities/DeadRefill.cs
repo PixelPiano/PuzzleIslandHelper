@@ -21,10 +21,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private EntityID id;
         private Vector2 _position;
         public bool Explosive;
+        private string type;
         public DeadRefill(EntityData data, Vector2 offset, EntityID id)
             : base(data.Position + offset)
         {
             this.id = id;
+            
             Explosive = data.Bool("explosive");
             _position = Position;
             Add(sine = new SineWave(0.2f));
@@ -38,6 +40,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Add(new PlayerCollider(OnPlayer));
             }
+            type = data.Attr("type");
         }
 
         public override void Added(Scene scene)
@@ -46,7 +49,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             string text = "objects/PuzzleIslandHelper/deadRefill/";
             //Add(sprite = new Sprite(GFX.Game, text + "idle" + data.Attr("type")));
             Random random = new Random((int)Position.X + (int)Position.Y);
-            Add(sprite = new Sprite(GFX.Game, text + "idle" + random.Choose("A", "B", "C", "D")));
+            char t = type == "Random" ? random.Choose('A', 'B', 'C') : !string.IsNullOrEmpty(type) ? type[0] : 'A';
+            Add(sprite = new Sprite(GFX.Game, text + "idle" + t));
             sprite.AddLoop("idle", "", 0.1f);
             sprite.Play("idle");
             sprite.CenterOrigin();

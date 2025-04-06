@@ -1,6 +1,4 @@
-﻿
-using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
-using Celeste.Mod.PuzzleIslandHelper.Structs;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;

@@ -15,6 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSession : EverestModuleSession
     {
+        public bool DEBUG { get; set; }
         public Dictionary<EntityID, List<int>> TiletypePuzzleCache = new();
         public Dictionary<EntityID, int> CrystalElevatorFurthestLevelReached = new();
         public HeartInventory HeartInventory = new();
@@ -23,6 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public List<int> RuneNodes = [0, 2, 5];
         public List<EntityID> BathroomStallsOpen = new();
         public bool BathroomStallOpened { get; set; }
+        public int TimesUsedCapsuleWarpWithRunes { get; set; }
         public int TimesUsedCapsuleWarp { get; set; }
         public List<EntityID> CollectedFirfilIDs = new();
         public List<string> VoidLampGroups = new();

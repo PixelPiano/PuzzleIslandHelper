@@ -13,7 +13,8 @@ marker.placements =
         name = "Marker",
         data = 
         {
-            markerID = "marker1"
+            markerID = "marker1",
+            args = ""
         }
     }
 }

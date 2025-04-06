@@ -57,7 +57,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Broken = data.Bool("broken");
             dimAmount = Broken ? 0.4f : 0.2f;
             SpriteColor = Color.Lerp(Color.White, Color.Black, dimAmount);
-            Depth = -1;
+            Depth = -51;
 
             dir = data.Enum("facing", directions.Down);
             string p = "objects/PuzzleIslandHelper/machines/gizmos/tubeLight";

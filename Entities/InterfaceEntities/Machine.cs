@@ -35,6 +35,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Add(Talk = new DotX3(0, 0, Sprite.Width, Sprite.Height, new Vector2(Sprite.Width / 2, 0), Interact));
             Talk.PlayerMustBeFacing = false;
         }
+        public virtual void OnMonitorOff()
+        {
+
+        }
+        public virtual void OnEnd()
+        {
+
+        }
+
         public virtual IEnumerator OnBegin(Player player)
         {
             yield return null;

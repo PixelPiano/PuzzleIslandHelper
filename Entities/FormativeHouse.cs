@@ -136,7 +136,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             for (int i = 0; i < Points.Length; i += 3)
             {
                 int r = Calc.Random.Range(0, 3);
-                Color random = Calc.Random.Choose(Color.Green, Color.Lime, Color.DarkGreen, Color.Turquoise, Color.DarkOliveGreen, Color.Red);
+                Color random = Calc.Random.Choose(Color.Green, Color.Lime, Color.DarkGreen, Color.DarkOliveGreen);
                 for (int j = 0; j < 3; j++)
                 {
                     Vector2 point = Points[i + j];
@@ -152,6 +152,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Render();
             if (Scene is not Level level) return;
             Draw.SpriteBatch.Draw(Target, Position - BufferOffset, Color.White);
+
         }
     }
     [ConstantEntity("PuzzleIslandHelper/FormativeHouseRenderer")]
@@ -172,7 +173,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public void BeforeRender()
         {
             if (Scene is not Level level) return;
-
             Draw.SpriteBatch.StandardBegin(Matrix.Identity);
             Effect effect = ShaderHelperIntegration.GetEffect("PuzzleIslandHelper/Shaders/formativeHouseShader");
             EffectParameterCollection parameters = effect.Parameters;

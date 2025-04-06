@@ -3,6 +3,8 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 // PuzzleIslandHelper.ArtifactSlot
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -11,11 +13,57 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class Marker : Entity
     {
         public string ID;
+        public Dictionary<string, string> Args = [];
+        public string ArgData;
+        public string ArgInfo
+        {
+            get
+            {
+                if(Args.Count == 0) return "No arguments passed in.";
+                string output = "\n---MARKER ARGUMENTS---\n";
+                foreach(var pair in Args)
+                {
+                    output += '\t';
+                    string v = string.IsNullOrEmpty(pair.Value) ? "" : pair.Value;
+                    output += string.Format("({0}: {1})",pair.Key,v);
+                    output += '\n';
+                }
+                output += "----------------------";
+                return output;
+            }
+        }
         public static MTexture Texture => GFX.Game["objects/PuzzleIslandHelper/marker/lonn"];
         public Marker(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             ID = data.Attr("markerID");
+            ArgData = data.Attr("args");
             Collider = new Hitbox(Texture.Width, Texture.Height);
+            Tag |= Tags.TransitionUpdate;
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            if (!string.IsNullOrEmpty(ArgData))
+            {
+                foreach (string arg in ArgData.Split(','))
+                {
+                    string key = arg;
+                    string value = "";
+                    for(int i = 0; i<arg.Length; i++)
+                    {
+                        if(arg[i] == ':' || arg[i] == '=')
+                        {
+                            key = arg.Substring(0, i);
+                            value = arg.Substring(i + 1);
+                            break;
+                        }
+                    }
+                    if (!string.IsNullOrEmpty(key))
+                    {
+                        Args.Add(key, value);
+                    }
+                }
+            }
         }
         public override void DebugRender(Camera camera)
         {

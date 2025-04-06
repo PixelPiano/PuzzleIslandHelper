@@ -3,6 +3,7 @@ using Monocle;
 using Celeste.Mod.Entities;
 using System.Collections.Generic;
 using System;
+using Celeste.Mod.PuzzleIslandHelper.Triggers;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
 {
@@ -18,29 +19,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public float Length;
         public Vector2 ClosedPosition;
         public Vector2 OpenPosition;
-        public bool CanRevert;
+        public bool CanMoveBack;
         public bool Persistent;
-        public bool HasChanged;
+        public bool Moved;
         public float Amount;
-        public bool CanChange
-        {
-            get
-            {
-                return (CanRevert || !HasChanged && !CanRevert) && !PianoModule.Session.GearDoorStates.ContainsKey(EntityID);
-            }
-        }
+        public bool CanChange =>
+            (CanMoveBack || (!CanMoveBack && !Moved)) &&
+            (!Persistent || (Persistent && !PianoModule.Session.GearDoorStates.ContainsKey(EntityID)));
         public EntityID EntityID;
         public GearDoor(Vector2 position, bool vertical, bool upOrLeft, float length, string id, bool canRevert, bool persistent, EntityID entityID)
             : base(position, vertical ? 8 : length, vertical ? length : 8, false)
         {
             ClosedPosition = position;
-            int sign = upOrLeft ? -1 : 1;
-            OpenPosition = ClosedPosition + new Vector2(vertical ? 0 : length * sign, vertical ? length * sign : 0);
+            OpenPosition = ClosedPosition + (vertical ? Vector2.UnitY : Vector2.UnitX) * (upOrLeft ? -1 : 1) * length;
             Vertical = vertical;
             UpOrLeft = upOrLeft;
             Length = length;
             DoorID = id;
-            CanRevert = canRevert;
+            CanMoveBack = canRevert;
             Persistent = persistent;
             EntityID = entityID;
             CreateTextures();
@@ -50,7 +46,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             base.Awake(scene);
             if (PianoModule.Session.GearDoorStates.ContainsKey(EntityID))
             {
-                HasChanged = true;
+                Moved = true;
                 Amount = PianoModule.Session.GearDoorStates[EntityID];
                 MoveDoorTo(Amount);
             }
@@ -60,6 +56,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             if (Persistent && !PianoModule.Session.GearDoorStates.ContainsKey(EntityID))
             {
                 PianoModule.Session.GearDoorStates.Add(EntityID, Amount);
+            }
+        }
+        [Command("reveal_gears", "")]
+        public static void RevealGears()
+        {
+            foreach (Gear g in Engine.Scene.Tracker.GetEntities<Gear>())
+            {
+                g.Visible = true;
+                g.Active = true;
             }
         }
         public override void Update()

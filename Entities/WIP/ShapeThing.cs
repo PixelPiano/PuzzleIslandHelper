@@ -97,26 +97,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 
             if (!IsRandom)
             {
-                if (ConnectAllPoints)
-                {
-                    ShapePoints = PointShape switch
+                ShapePoints = ConnectAllPoints
+                    ? PointShape switch
                     {
                         Shape.Cube => ShapeStorage.CubeSimple,
                         Shape.Tetrahedron => ShapeStorage.TetrahedronSimple,
                         Shape.Octahedron => ShapeStorage.OctahedronSimple,
                         _ => null
-                    };
-                }
-                else
-                {
-                    ShapePoints = PointShape switch
+                    }
+                    : PointShape switch
                     {
                         Shape.Cube => ShapeStorage.CubeWire,
                         Shape.Tetrahedron => ShapeStorage.TetrahedronWire,
                         Shape.Octahedron => ShapeStorage.OctahedronWire,
                         _ => null
                     };
-                }
             }
         }
         private Vector3[] GetArrayUsed()

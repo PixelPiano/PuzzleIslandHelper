@@ -406,9 +406,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             (scene as Level).Add(system = new ParticleSystem(Depth + 1, 500));
 
-            if (PianoUtils.SeekController<CalidusFollowerTarget>(scene) == null)
+            FollowTarget = PianoUtils.SeekController<CalidusFollowerTarget>(scene);
+            
+            if (FollowTarget is null)
             {
-                scene.Add(new CalidusFollowerTarget());
+                scene.Add(FollowTarget = new CalidusFollowerTarget());
             }
 
         }
@@ -422,8 +424,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Parts.Add(part);
             }
             Parts.Remove(EyeSprite);
-            FollowTarget = scene.Tracker.GetEntity<CalidusFollowerTarget>();
-            if (FollowTarget.Follow == null && scene.GetPlayer() is Player player)
+            if (scene.GetPlayer() is Player player)
             {
                 FollowTarget.Initialize(player);
             }
@@ -440,6 +441,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(Follower = new Follower());
                 Follower.FollowDelay = 0.2f;
                 Follower.MoveTowardsLeader = false;
+                if(FollowTarget.Leader == null)
+                {
+                    FollowTarget.Add(FollowTarget.Leader = new CalidusFollowerTarget.CustomLeader());
+                }
                 FollowTarget.Leader.GainFollower(Follower);
             }
         }
@@ -482,14 +487,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sineY = Calc.Approach(sineY, sineYTarget, Engine.DeltaTime * 6);
             if (Talk != null)
             {
-                if (CalidusCutscene.CutsceneWatched(Scene, CalidusCutscene.Cutscenes.Second))
-                {
-                    Talk.Enabled = !CalidusCutscene.CutsceneWatched(Scene, CalidusCutscene.Cutscenes.SecondA);
-                }
-                else
-                {
-                    Talk.Enabled = false;
-                }
+                Talk.Enabled = CalidusCutscene.CutsceneWatched(Scene, CalidusCutscene.Cutscenes.Second) && !CalidusCutscene.CutsceneWatched(Scene, CalidusCutscene.Cutscenes.SecondA);
             }
             if (Shaking)
             {

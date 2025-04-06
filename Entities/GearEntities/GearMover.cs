@@ -16,7 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         private Vector2 target;
         private float MaxSpeed;
         private float acceleration;
-        public GearMover(EntityData data, Vector2 offset) : base(data.Position + offset - new Vector2(8), data.Bool("onlyOnce"), Color.Blue)
+        public GearMover(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset - new Vector2(8), data.Bool("onlyOnce"), Color.Blue, id)
         {
             MaxSpeed = data.Float("maxSpeed", 50f);
             acceleration = data.Float("acceleration");

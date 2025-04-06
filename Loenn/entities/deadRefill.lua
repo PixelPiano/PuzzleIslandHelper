@@ -6,7 +6,7 @@ deadRefill.name = "PuzzleIslandHelper/DeadRefill"
 
 deadRefill.depth = 0
 
-choices = {"A","B","C"}
+choices = {"A","B","C","Random"}
 
 deadRefill.texture = "objects/PuzzleIslandHelper/deadRefill/idleA"
 
@@ -29,8 +29,11 @@ deadRefill.placements =
 }
 function deadRefill.sprite(room,entity)
    local path = "objects/PuzzleIslandHelper/deadRefill/idle"
-   
-   return drawableSprite.fromTexture(path .. entity.type, entity)
+   local type = "A"
+   if entity.type != "Random" then
+    type = entity.type
+   end
+   return drawableSprite.fromTexture(path .. type, entity)
 
 end
 deadRefill.fieldInformation = {

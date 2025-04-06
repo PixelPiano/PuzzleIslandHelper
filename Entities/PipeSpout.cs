@@ -240,17 +240,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private IEnumerator Routine()
         {
             AdjustHideOffset(1); //set collider to fully in
-
             yield return WaitForEnabled(); //wait until state is true
             RenderTextures = false;
             yield return StartDelay;
             while (true)
             {
                 yield return null;
-                if (!Enabled)
-                {
-                    continue;
-                }
+                if (!Enabled) continue;
                 #region Grow
                 Moving = true;
                 RenderTextures = true;
@@ -316,17 +312,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
                 Moving = false;
                 #endregion
-                if (!Enabled)
-                {
-                    continue;
-                }
-
+                if (!Enabled) continue;
                 yield return WaitTime;
-
-                if (!Enabled)
-                {
-                    continue;
-                }
+                if (!Enabled) continue;
                 #region Shrink
                 Moving = true;
                 AdjustHideOffset(0);
@@ -370,31 +358,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 Moving = false;
                 #endregion
-                if (!Enabled)
-                {
-                    continue;
-                }
-
+                if (!Enabled) continue;
                 yield return WaitTime;
-
-                if (!Enabled)
-                {
-                    continue;
-                }
+                if (!Enabled) continue;
             }
         }
-        public IEnumerator BreakRoutine()
+
+        public IEnumerator BreakRoutine(bool waitUntilOnScreen = false)
         {
             //ForceEnable = true;
-            if (Scene is not Level level)
-            {
-                yield break;
-            }
+            if (Scene is not Level level) yield break;
             PianoModule.Session.CutsceneSpouts.Add(this);
             Visible = false;
-            while (!SceneAs<Level>().InsideCamera(Hole.RenderPosition))
+            if (waitUntilOnScreen)
             {
-                yield return null;
+                while (!level.InsideCamera(Hole.RenderPosition))
+                {
+                    yield return null;
+                }
             }
             //play creak sound
             yield return 0.8f;
@@ -428,9 +409,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             #endregion
             yield return null;
         }
-        public void GrowBreak()
+        public void GrowBreak(bool waitUntilOnScreen = false)
         {
-            Add(new Coroutine(BreakRoutine()));
+            Add(new Coroutine(BreakRoutine(waitUntilOnScreen)));
         }
         private IEnumerator WaitForEnabled()
         {

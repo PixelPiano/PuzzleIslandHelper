@@ -12,7 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         private string path => Flipped ? "01" : "00";
         private string texPath = "objects/PuzzleIslandHelper/interface/pipes/";
         public bool Flipped;
-        public static bool PipeCutsceneStarted;
+        public static bool PipeCutsceneStarted; //move to savedata
         private bool InRoutine;
         public Button FixButton;
 
@@ -21,34 +21,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             Name = "Pipe";
         }
-        public override void OnOpened(Window window)
-        {
-
-            base.OnOpened(window);
-        }
         public override void Added(Scene scene)
         {
             base.Added(scene);
             ProgramComponents.Add(new CustomButton(Window, "Switch", 35f, Vector2.Zero, Switch));
             Circle circle = new Circle(27 / 2f);
-            ProgramComponents.Add(FixButton = new Button(Window, circle,  "greenCircle", OnFixClicked, FixPipes()));
+            ProgramComponents.Add(FixButton = new Button(Window, circle, "greenCircle", OnFixClicked, FixPipes()));
             FixButton.Position = new Vector2(Window.WindowWidth / 2, Window.WindowHeight / 2) - new Vector2(FixButton.Width / 2, FixButton.Height / 2);
             FixButton.Visible = false;
             FixButton.Disabled = true;
         }
         public void OnFixClicked()
         {
-            SetPipeState(4);
+            PipeState = 4;
         }
         private IEnumerator FixPipes()
         {
             InRoutine = true;
             Interface.Buffering = true;
-            List<string> dialogs = new();
-            dialogs.Add("pipeFixer");
-            dialogs.AddRange(CodeDialogStorage.PipeLoader);
+            MiniLoader?.RemoveSelf();
             MiniLoader = null;
-            Add(MiniLoader = new MiniLoader(Window, new Vector2(6, Window.WindowHeight - 8), 100, dialogs.ToArray(), 0.3f,
+            Add(MiniLoader = new MiniLoader(Window, new Vector2(6, Window.WindowHeight - 8), 100, ["pipeFixer", .. CodeDialogStorage.PipeLoader], 0.3f,
                 Window.CaseWidth * 6f - 6, Window.CaseWidth * 3f));
             while (!MiniLoader.Finished)
             {
@@ -79,60 +72,57 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             Interface.Talk.Active = false;
             Interface.Talk.Visible = false;
             Interface.Buffering = true;
-            if (i == 0)
+            switch (i)
             {
-                PipeScrew screw = (PipeScrew)SceneAs<Level>().Tracker.GetEntities<PipeScrew>().Find(item => (item as PipeScrew).UsedInCutscene);
-                if (screw is not null)
-                {
-                    screw.Launched = false;
-                    screw.Position = screw.originalPosition;
-                    level.Session.SetFlag(screw.flag, false);
-                    PianoModule.Session.PipeScrewRestingPoint = null;
-                    PianoModule.Session.PipeScrewRestingFrame = 0;
-                    PianoModule.Session.PipeScrewLaunched = false;
-                    screw.Screw.Play("idle");
-                }
-                SetPipeState(1);
+                case 0:
+                    PipeScrew screw = (PipeScrew)SceneAs<Level>().Tracker.GetEntities<PipeScrew>().Find(item => (item as PipeScrew).UsedInCutscene);
+                    if (screw is not null)
+                    {
+                        screw.Launched = false;
+                        screw.Position = screw.originalPosition;
+                        level.Session.SetFlag(screw.flag, false);
+                        PianoModule.Session.PipeScrewRestingPoint = null;
+                        PianoModule.Session.PipeScrewRestingFrame = 0;
+                        PianoModule.Session.PipeScrewLaunched = false;
+                        screw.Screw.Play("idle");
+                    }
+                    PipeState = 1;
 
-                player.StateMachine.State = Player.StDummy;
-                sfx.Position = player.Position + Vector2.UnitX * 2;
-                yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalCreak1");
-                yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalsnap");
-                Preserve = true;
-                yield return Interface.ShutDown(true);
-                player.StateMachine.State = Player.StDummy;
-                screw?.Launch();
-                SceneAs<Level>().Session.SetFlag("screwLaunch");
-                yield return player.DummyWalkTo(player.Position.X + 8, true, 3);
-                player.Facing = Facings.Left;
-                yield return Textbox.Say("pipeAttemptZero");
+                    player.StateMachine.State = Player.StDummy;
+                    sfx.Position = player.Position + Vector2.UnitX * 2;
+                    yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalCreak1");
+                    yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalsnap");
+                    Preserve = true;
+                    yield return Interface.ShutDown(true);
+                    player.StateMachine.State = Player.StDummy;
+                    screw?.Launch();
+                    SceneAs<Level>().Session.SetFlag("screwLaunch");
+                    yield return player.DummyWalkTo(player.Position.X + 8, true, 3);
+                    player.Facing = Facings.Left;
+                    yield return Textbox.Say("pipeAttemptZero");
 
-                PianoModule.Session.PipeSwitchAttempts = 1;
-                player.StateMachine.State = Player.StNormal;
+                    PianoModule.Session.PipeSwitchAttempts = 1;
+                    player.StateMachine.State = Player.StNormal;
+                    break;
+                case 1:
+                    PipeState = 1;
+                    yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalCreak2");
+                    PianoModule.Session.PipeSwitchAttempts = 2;
+                    break;
+                case 2:
+                    PianoModule.Session.HasBrokenPipes = false;
+                    yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalsnap");
+                    yield return Interface.ShutDown(true);
+                    player.StateMachine.State = Player.StDummy;
+                    yield return null;
+                    player.Facing = Facings.Left;
+                    yield return PipeBreak();
+                    yield return Textbox.Say("pipeAttemptOhNo");
+
+                    player.StateMachine.State = Player.StNormal;
+                    PipeState = 2;
+                    break;
             }
-            else if (i == 1)
-            {
-                SetPipeState(1);
-                yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalCreak2");
-
-                PianoModule.Session.PipeSwitchAttempts = 2;
-            }
-            else if (i == 2)
-            {
-                PianoModule.Session.HasBrokenPipes = false;
-                yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalsnap");
-                yield return Interface.ShutDown(true);
-                player.StateMachine.State = Player.StDummy;
-                yield return null;
-                player.Facing = Facings.Left;
-                yield return PipeBreak();
-                yield return Textbox.Say("pipeAttemptOhNo");
-
-                player.StateMachine.State = Player.StNormal;
-                SetPipeState(2);
-            }
-
-
             yield return 0.3f;
             Interface.Talk.Visible = true;
             Interface.Talk.Active = true;
@@ -150,20 +140,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             {
                 if (spout.FlagState)
                 {
-                    spout.GrowBreak();
+                    spout.GrowBreak(!PianoModule.Session.DEBUG);
                 }
             }
-            float duration = 5;
-            for (float i = 0; i < duration; i += Engine.DeltaTime)
+            if (!PianoModule.Session.DEBUG)
             {
-                level.Camera.Position = Vector2.Lerp(camPosition, level.LevelOffset, i / duration);
-                yield return null;
-            }
-            yield return 3;
-            for (float i = 0; i < 1; i += 0.1f)
-            {
-                level.Camera.Position = Vector2.Lerp(level.LevelOffset, camPosition, i);
-                yield return null;
+                float duration = 5;
+                for (float i = 0; i < duration; i += Engine.DeltaTime)
+                {
+                    level.Camera.Position = Vector2.Lerp(camPosition, level.LevelOffset, i / duration);
+                    yield return null;
+                }
+                yield return 3;
+                for (float i = 0; i < 1; i += 0.1f)
+                {
+                    level.Camera.Position = Vector2.Lerp(level.LevelOffset, camPosition, i);
+                    yield return null;
+                }
             }
             yield return null;
         }
@@ -172,7 +165,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             InRoutine = true;
             Interface.Buffering = true;
             FixButton.Disabled = true;
-
+            MiniLoader?.RemoveSelf();
             MiniLoader = null;
             Add(MiniLoader = new MiniLoader(Window, new Vector2(6, Window.WindowHeight - 8), 100, CodeDialogStorage.PipeLoader, 0.3f,
                 Window.CaseWidth * 6f - 6, Window.CaseWidth * 3f));
@@ -189,31 +182,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         }
         public void Switch()
         {
-            if (GetPipeState() == 1)
+            if (!InRoutine)
             {
-                if (!InRoutine)
+                switch (PipeState)
                 {
-                    Add(new Coroutine(Routine(PianoModule.Session.PipeSwitchAttempts)));
+                    case 1:
+                        Add(new Coroutine(Routine(PianoModule.Session.PipeSwitchAttempts)));
+                        break;
+                    case 3:
+                        Add(new Coroutine(SwitchPipes()));
+                        break;
                 }
-                return;
             }
-            else if (GetPipeState() == 3 && !InRoutine)
+        }
+        public static int PipeState
+        {
+            get
             {
-                Add(new Coroutine(SwitchPipes()));
+                return PianoModule.Session.GetPipeState();
             }
-        }
-        public int GetPipeState()
-        {
-            return PianoModule.Session.GetPipeState();
-        }
-        public void SetPipeState(int state)
-        {
-            PianoModule.Session.SetPipeState(state);
+            set
+            {
+                PianoModule.Session.SetPipeState(value);
+            }
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            Flipped = SceneAs<Level>().Session.GetFlag("pipesSwitched");
+            Flipped = (scene as Level).Session.GetFlag("pipesSwitched");
             PianoModule.Session.CutsceneSpouts.Clear();
         }
 
@@ -224,7 +220,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 base.Update();
                 return;
             }
-            if (GetPipeState() == 3 && Window.Drawing)
+            int state = PipeState;
+            if (state == 3 && Window.Drawing)
             {
                 FixButton.Visible = true;
                 FixButton.Disabled = false;
@@ -235,11 +232,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 FixButton.Disabled = true;
             }
             base.Update();
-            if (Scene is not Level level)
-            {
-                return;
-            }
-            switch (GetPipeState())
+            if (Scene is not Level level) return;
+            switch (state)
             {
                 case 2:
                     Window.DisableButtons();
@@ -254,7 +248,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                     Window.ChangeWindowText("PIPE");
                     break;
             }
-            if (GetPipeState() == 2)
+            if (state == 2)
             {
                 bool allOn = true;
                 for (int i = 0; i < 5; i++)
@@ -267,36 +261,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 }
                 if (allOn)
                 {
-                    SetPipeState(3);
+                    PipeState = 3;
                 }
             }
         }
         public override void Render()
         {
-            if (Window is null || !Window.Drawing)
+            if (Window is null || !Window.Drawing || Scene is not Level level)
             {
                 base.Render();
                 return;
             }
             Vector2 drawPosition = Window.DrawPosition.Floor() + Vector2.UnitX;
             GFX.Game[texPath + "windowContent" + path].Draw(drawPosition);
-            int state = GetPipeState();
-            if (state is 2 or 3)
+            int state = PipeState;
+            Vector2 offset = new Vector2(63, 80);
+            if (state == 2 || state == 3)
             {
-                GFX.Game[texPath + "warningBack"].Draw(drawPosition, Vector2.Zero, state is 2 ? Color.Red : Color.Green);
-                if (state is 2)
+                GFX.Game[texPath + "warningBack"].Draw(drawPosition, Vector2.Zero, state == 2 ? Color.Red : Color.Green);
+                if (state == 2)
                 {
                     GFX.Game[texPath + "warningSign"].Draw(drawPosition);
                 }
                 for (int i = 0; i < 5; i++)
                 {
-                    if (Scene is not Level level)
-                    {
-                        continue;
-                    }
                     bool flag = level.Session.GetFlag("valve" + (i + 1));
-                    Vector2 offset = new Vector2(63, 80) + i * (Vector2.UnitX * (2 + 14));
-                    GFX.Game[texPath + "node" + (flag ? "Full" : "")].Draw(drawPosition + offset);
+                    GFX.Game[texPath + "node" + (flag ? "Full" : "")].Draw(drawPosition + offset + Vector2.UnitX * (i * 16));
                 }
             }
             base.Render();

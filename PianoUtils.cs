@@ -18,30 +18,29 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.FountainBlock;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WarpCapsule;
 using static Celeste.Player;
 
 /// <summary>A collection of methods + extensions methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
-
-    public static string GetAreaKey(this Entity entity, bool includeMode = true)
+    public static FlagData GetFlagData(this BinaryPacker.Element element, string flagname = "flag", string invertedname = "inverted")
+        => (new FlagData(element.Attr(flagname), element.AttrBool(invertedname)));
+    public static FlagData GetFlagData(this EntityData data, string flagname = "flag", string invertedname = "inverted")
+        => new FlagData(data.Attr(flagname), data.Bool(invertedname));
+    public static Vector2 Position(this BinaryPacker.Element element) => new Vector2(element.AttrFloat("x"), element.AttrFloat("y"));
+    public static IEnumerator TextboxSayClean(string text, params Func<IEnumerator>[] events)
     {
-        return GetAreaKey(entity.Scene, includeMode);
-    }
-    public static string GetAreaKey(this Scene scene, bool includeMode = true)
-    {
-        if (scene is Level level)
+        Textbox textbox = new Textbox("", events);
+        textbox.text = FancyText.Parse(text, (int)textbox.maxLineWidth, textbox.linesPerPage, 0f, null, Dialog.Language);
+        Engine.Scene.Add(textbox);
+        while (textbox.Opened)
         {
-            return level.Session.Area.GetFullID(includeMode);
+            yield return null;
         }
-        return "";
     }
-    public static string GetFullID(this AreaKey key, bool includeMode = true)
-    {
-        return key.SID + key.Mode.ToString();
-    }
+    public static string GetAreaKey(this Entity entity, bool includeMode = true) => GetAreaKey(entity.Scene, includeMode);
+    public static string GetAreaKey(this Scene scene, bool includeMode = true) => scene is Level level ? level.Session.Area.GetFullID(includeMode) : "";
+    public static string GetFullID(this AreaKey key, bool includeMode = true) => key.SID + key.Mode.ToString();
     public static TileGrid GetTileOverlayBox(Scene scene, float x, float y, float width, float height, char tile)
     {
         Level level = scene as Level; ;
@@ -229,9 +228,9 @@ public static class PianoUtils
     /// <param name="list">The <see cref="List{}"/> to add the rune to.</param>
     /// <param name="rune">The <see cref="Rune"/> to check.</param>
     /// <returns> <see langword="true"/> if <paramref name="rune"/> was successfully added to <paramref name="list"/>.<para/> <see langword="false"/> if <paramref name="rune"/> matches another <see cref="Rune"/> in <paramref name="list"/>.</returns>
-    public static bool TryAddRune(this List<Rune> list, Rune rune)
+    public static bool TryAddRune(this List<WARP.Rune> list, WARP.Rune rune)
     {
-        foreach (Rune r in list)
+        foreach (WARP.Rune r in list)
         {
             if (r.Match(rune))
             {
@@ -241,21 +240,21 @@ public static class PianoUtils
         list.Add(rune);
         return true;
     }
-    public static bool TryAddRuneRange(this List<Rune> list, List<Rune> runes)
+    public static bool TryAddRuneRange(this List<WARP.Rune> list, List<WARP.Rune> runes)
     {
         string current = "CURRENT RUNES IN LIST:\n";
         string adding = "RUNES TO BE CHECKED:\n";
         string added = "RUNES ADDED:\n";
-        foreach (Rune r in list)
+        foreach (WARP.Rune r in list)
         {
             current += "\t" + r.ToString() + "\n";
         }
-        foreach (Rune r in runes)
+        foreach (WARP.Rune r in runes)
         {
             adding += "\t" + r.ToString() + "\n";
         }
         bool failed = false;
-        foreach (Rune r in runes)
+        foreach (WARP.Rune r in runes)
         {
             if (!list.TryAddRune(r))
             {
@@ -280,14 +279,7 @@ public static class PianoUtils
     }
     public static int Sign(this Random random, bool allowZero = false)
     {
-        if (allowZero)
-        {
-            return random.Choose(-1, 0, 1);
-        }
-        else
-        {
-            return random.Choose(-1, 1);
-        }
+        return allowZero ? random.Choose(-1, 0, 1) : random.Choose(-1, 1);
     }
     public static Vector2 Random(this Rectangle rectangle)
     {
@@ -430,20 +422,23 @@ public static class PianoUtils
     }
     public static Rectangle Pad(this Rectangle rect, int pad)
     {
-        return new Rectangle(rect.X - pad, rect.Y - pad, rect.Width + pad * 2, rect.Height + pad * 2);
+        return rect.Pad(pad, pad);
     }
-    public static bool Contains(this Rectangle rect, Vector2 point, float pad)
+    public static Rectangle Pad(this Rectangle rect, Vector2 pad)
     {
-        if (rect.X - pad <= point.X && point.X < rect.X + rect.Width + pad && rect.Y - pad <= point.Y)
-        {
-            return point.Y < rect.Y + rect.Height + pad;
-        }
-        return false;
+        return rect.Pad((int)pad.X, (int)pad.Y);
+    }
+    public static Rectangle Pad(this Rectangle rect, int xPad, int yPad)
+    {
+        return new Rectangle(rect.X - xPad, rect.Y - yPad, rect.Width + xPad * 2, rect.Height + yPad * 2);
+    }
+    public static bool Contains(this Rectangle rect, Vector2 point, int pad)
+    {
+        Rectangle rect2 = rect.Pad(pad);
+        return rect2.Left <= point.X && rect2.Right >= point.X && rect2.Top <= point.Y && rect2.Bottom >= point.Y;
     }
     public static bool GetFlag(this string str, bool inverted = false)
-    {
-        return string.IsNullOrEmpty(str) ? !inverted : Engine.Scene is Level level && level.Session.GetFlag(str) != inverted;
-    }
+        => string.IsNullOrEmpty(str) ? !inverted : Engine.Scene is Level level && level.Session.GetFlag(str) != inverted;
     public static bool GetFlag(this string str, Level level, bool inverted = false)
     {
         return string.IsNullOrEmpty(str) ? !inverted : level.Session.GetFlag(str) != inverted;
@@ -911,29 +906,63 @@ public static class PianoUtils
     {
         yield return new SwapImmediately(level.ZoomAcross(worldPos - level.Camera.Position, zoom, duration));
     }
-    public static void Ground<T>(IEnumerable<T> list) where T : FallingBlock
+    public static void Ground<T>(IEnumerable<T> list, bool includeJumpThrus = false) where T : FallingBlock
     {
         foreach (FallingBlock block in list.OrderByDescending(item => item.Bottom))
         {
             block.Ground();
         }
     }
-    public static void Ground(this Entity entity)
+    [Command("groundplayer", "")]
+    public static void GroundPlayer(bool jumpthru = false, bool snapup = true)
+    {
+        if (Engine.Scene.GetPlayer() is Player player)
+        {
+            player.Ground(jumpthru, snapup);
+        }
+    }
+    public static void Ground(this Entity entity, bool includeJumpThrus = false, bool snapToTop = true)
     {
         if (entity is FallingBlock block)
         {
-            Ground(block);
+            Ground(block, includeJumpThrus);
             return;
         }
         if (entity.Scene is not Level level) return;
-        while (!entity.CollideCheck<Solid>(entity.Position + Vector2.UnitY) && entity.Y < level.Bounds.Bottom)
+        Vector2 prev = entity.Position;
+        if (snapToTop)
         {
-            entity.Position.Y++;
+            if (includeJumpThrus && entity.CollideFirst<JumpThru>() is JumpThru jt)
+            {
+                entity.Bottom = jt.Top;
+                return;
+            }
+            while (entity.CollideCheck<Solid>())
+            {
+                entity.Y--;
+                if (entity.Y < level.Bounds.Top)
+                {
+                    entity.Y = prev.Y;
+                    break;
+                }
+            }
         }
-    }
-    public static void Ground(this FallingBlock block)
-    {
 
+        while (entity.Y < level.Bounds.Bottom)
+        {
+            Vector2 p = entity.Position + Vector2.UnitY;
+            if (includeJumpThrus && entity.CollideCheck<JumpThru>(p)) break;
+            if (entity.CollideCheck<Solid>(p)) break;
+            entity.Y++;
+        }
+        if(entity is Player player)
+        {
+            level.Camera.Position = player.CameraTarget;
+        }
+        
+    }
+    public static void Ground(this FallingBlock block, bool includeJumpThrus = false)
+    {
         Level level = block.Scene as Level;
         foreach (Monocle.Component c in block.Components)
         {
@@ -945,7 +974,7 @@ public static class PianoUtils
         while (true)
         {
             speed = Calc.Approach(speed, maxSpeed, 500f * Engine.DeltaTime);
-            if (block.MoveVCollideSolids(speed * Engine.DeltaTime, thruDashBlocks: true))
+            if (block.MoveVCollideSolids(speed * Engine.DeltaTime, thruDashBlocks: !includeJumpThrus))
             {
                 IEnumerator makeLame()
                 {
@@ -959,7 +988,9 @@ public static class PianoUtils
                 block.Add(new KeepGrounded());
                 break;
             }
-            if (block.Top > (float)(level.Bounds.Bottom + 16) || (block.Top > (float)(level.Bounds.Bottom - 1) && block.CollideCheck<Solid>(block.Position + new Vector2(0f, 1f))))
+            Vector2 p = block.Position + Vector2.UnitY;
+            if (block.Top > (level.Bounds.Bottom + 16) || (block.Top > (level.Bounds.Bottom - 1)
+                && ((includeJumpThrus && block.CollideCheck<JumpThru>(p)) || block.CollideCheck<Solid>(p))))
             {
                 block.Collidable = (block.Visible = false);
                 block.RemoveSelf();
@@ -1214,9 +1245,12 @@ public static class PianoUtils
     }
     public static bool Colliding(this Rectangle rect, Rectangle check, Vector2 padding)
     {
-        return !(check.Left + padding.X >= rect.Right) && !(check.Right + padding.X <= rect.Left) && !(check.Top + padding.Y >= rect.Bottom) && !(check.Bottom + padding.Y <= rect.Top);
+        if (padding != Vector2.Zero)
+        {
+            check = check.Pad(padding);
+        }
+        return check.Right > rect.Left && check.Bottom > rect.Top && check.Left < rect.Right && check.Top < rect.Bottom;
     }
-
     public static Vector2 HalfSize(this MTexture texture)
     {
         return new Vector2(texture.Width / 2, texture.Height / 2);
@@ -1555,6 +1589,7 @@ public static class PianoUtils
     {
         return Random(min.X, max.X, min.Y, max.Y);
     }
+    
     public static T Random<T>(this List<T> array)
     {
         int min = 0;
@@ -1656,17 +1691,18 @@ public static class PianoUtils
                         }*/
         };
     }
-    public static void TeleportTo(Scene scene, Player player, string room, Player.IntroTypes introType = Player.IntroTypes.Transition, Vector2? nearestSpawn = null)
+    public static void TeleportTo(Scene scene, Player player, string room, IntroTypes introType = IntroTypes.Transition, Vector2? nearestSpawn = null, Action<Level, Player> onEnd = null)
     {
         if (scene is Level level)
         {
             level.OnEndOfFrame += delegate
             {
                 level.TeleportTo(player, room, introType, nearestSpawn);
+                onEnd?.Invoke(level, player);
             };
         }
     }
-    public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, int positionX = 0, int positionY = 0)
+    public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, Vector2 offset, Action<Level, Player> onEnd = null)
     {
         Level level = scene as Level;
         Player player = level.GetPlayer();
@@ -1683,7 +1719,6 @@ public static class PianoUtils
             Vector2 levelOffset = level.LevelOffset;
             Vector2 val2 = player.Position - levelOffset;
             Vector2 val3 = level.Camera.Position - levelOffset;
-            Vector2 offset = new Vector2(positionY, positionX);
             Facings facing = player.Facing;
             level.Remove(player);
             level.UnloadLevel();
@@ -1714,33 +1749,30 @@ public static class PianoUtils
             {
                 level.Wipe.Cancel();
             }
+            onEnd?.Invoke(level, player);
         };
     }
-    public static Vector2 Position(this BinaryPacker.Element element)
+    public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, Action<Level, Player> onEnd = null)
     {
-        return new Vector2(element.AttrFloat("x"), element.AttrFloat("y"));
+        InstantRelativeTeleport(scene, room, snapToSpawnPoint, Vector2.Zero, onEnd);
     }
-    public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint)
+    public static void InstantTeleport(Scene scene, string room, Vector2 newPosition, Action<Level, Player> onEnd = null)
     {
-        InstantRelativeTeleport(scene, room, snapToSpawnPoint, 0, 0);
+        InstantTeleport(scene, room, newPosition.X, newPosition.Y, onEnd);
     }
-    public static void InstantTeleport(Scene scene, string room, Vector2 newPosition)
-    {
-        InstantTeleport(scene, room, newPosition.X, newPosition.Y);
-    }
-    public static void InstantTeleportToMarker(Scene scene, string room, string markerName)
+    public static void InstantTeleportToMarker(Scene scene, string room, string markerName, Action<Level, Player> onEnd = null)
     {
         foreach (MarkerData d in PianoMapDataProcessor.MarkerData[scene.GetAreaKey()][room])
         {
             if (d.ID == markerName)
             {
                 Vector2 pos = d.RoomPosition + d.Offset + new Vector2(4, 5);
-                InstantTeleport(scene, room, pos);
+                InstantTeleport(scene, room, pos, onEnd);
                 return;
             }
         }
     }
-    public static void InstantTeleport(Scene scene, string room, float positionX, float positionY)
+    public static void InstantTeleport(Scene scene, string room, float positionX, float positionY, Action<Level, Player> onEnd = null)
     {
         Level level = scene as Level;
         Player player = level.GetPlayer();
@@ -1781,14 +1813,10 @@ public static class PianoUtils
             player.Position = new Vector2(positionX, positionY);
             player.Facing = facing;
             player.Hair.MoveHairBy(level.LevelOffset - levelOffset + val4);
-
-            if (level.Wipe != null)
-            {
-                level.Wipe.Cancel();
-            }
+            level.Wipe?.Cancel();
+            onEnd?.Invoke(level, player);
         };
     }
-
     public static void InsertPoint(this Leader leader)
     {
         Vector2 vector = leader.Entity.Position + leader.Position;

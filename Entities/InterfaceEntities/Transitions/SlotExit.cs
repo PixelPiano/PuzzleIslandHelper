@@ -227,7 +227,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions
             yield return LerpAmplitude(amplitudeTo, amplitudeTime);
 
             yield return 0.5f;
-            PianoUtils.InstantRelativeTeleport(level, room, true);
+            PianoUtils.InstantRelativeTeleport(level, room, true, null);
             Engine.TimeRate = 0;
             yield return null;
             level = Engine.Scene as Level;

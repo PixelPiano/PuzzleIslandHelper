@@ -10,6 +10,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     public class LabComputer : Machine
     {
         public static bool Debug;
+        public const string ID = "LabComputer";
+        public static bool Interacted
+        {
+            get
+            {
+                return (ID + "Interacted").GetFlag();
+            }
+            set
+            {
+                (ID + "Interacted").SetFlag();
+            }
+        }
         [Command("computerdebug", "")]
         public static void ComputerDebug(bool value = false)
         {
@@ -28,11 +40,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public LabComputer(EntityData data, Vector2 offset) : base(data.Position + offset, "objects/PuzzleIslandHelper/interface/keyboard", Color.Green)
         {
             UsesStartupMonitor = true;
-            UsesFloppyLoader = true;
         }
         public override IEnumerator OnBegin(Player player)
         {
-            if (Scene is not Level level) yield break;
             //DEBUG
             if (Debug)
             {
@@ -40,50 +50,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 yield break;
             }
             //END DEBUG
-            if (!PianoModule.Session.RestoredPower)
+            if (PianoModule.Session.RestoredPower)
             {
-                if (PianoModule.Session.TimesMetWithCalidus < 1)
-                {
-                    SetSessionInterface();
-                    Interface.LoadModules(player.Scene);
-                    YouHaveMail mail = new YouHaveMail(Interface, "mailTextA", "Important");
-                    Scene.Add(mail);
-                    Interface.LoadProgram("mail");
-                    yield return null;
-                    Interface.Start();
-                }
-                else
-                {
-                    yield return Textbox.Say("interfaceNoPower");
-                    player.StateMachine.State = Player.StNormal;
-                }
+                SetSessionInterface();
+                Interface.StartWithPreset("Default");
+                yield return null;
             }
             else
             {
-                SetSessionInterface();
-                if (PianoModule.Session.TimesMetWithCalidus < 2)
+                if (Scene.Tracker.GetEntity<InterfaceMonitor>() is var monitor)
                 {
-                    Interface.LoadModules(player.Scene);
-                    YouHaveMail mail = new YouHaveMail(Interface, "mailTextB", "Power!");
-                    Scene.Add(mail);
-                    Interface.LoadProgram("mail");
-                    yield return null;
-                    Interface.Start();
+                    if (!Interacted)
+                    {
+                        Interface.StartWhirring();
+                        monitor.SmallLogo();
+                        monitor.EndlessFlicker(0.4f);
+                        yield return 1;
+                        monitor.StopFlickering(false);
+                        Interface.StopWhirring();
+                        yield return 0.2f;
+                        monitor.LowBattery();
+                        monitor.Icon.Visible = true;
+                        player.StateMachine.State = Player.StNormal;
+                    }
                 }
-                else
-                {
-                    Interface.StartWithPreset("Default");
-                }
-                /*                else if (PianoModule.Session.CollectedDisks.Count == 0)
-                                {
-                                    yield return Interface.FakeStart();
-                                }
-                                else
-                                {
-                                    Interface.StartWithPreset(PianoModule.Session.CollectedDisks[0].Preset);
-                                }*/
-                yield return null;
             }
+            Interacted = true;
         }
     }
 

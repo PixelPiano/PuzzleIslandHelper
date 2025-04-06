@@ -1,11 +1,29 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
+using System;
 using System.Collections.Generic;
+using static Celeste.Autotiler;
 
-// PuzzleIslandHelper.VoidCritters
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+    //todo: rework void wall rendering to use custom tileset for gradient
+    public class VoidTiles : Entity
+    {
+        public SolidTiles tiles;
+        public TileGrid Tiles;
+        public Grid Grid;
+        public VirtualMap<char> Data;
+        public VoidTiles(Vector2 position, VirtualMap<char> data)
+        {
+            Position = position;
+            Data = data;
+            Autotiler.Generated generated = GFX.FGAutotiler.GenerateMap(data, paddingIgnoreOutOfLevel: true);
+            Tiles = generated.TileGrid;
+            Tiles.VisualExtend = 1;
+        }
+
+    }
     [Tracked]
     public class VoidCritterWallHelper : Entity
     {
@@ -25,7 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         };
         public VoidCritterWallHelper() : base()
         {
-            Tag |= Tags.TransitionUpdate | Tags.Global;
+            Tag |= Tags.TransitionUpdate | Tags.Persistent;
             Add(new BeforeRenderHook(BeforeRender));
         }
         public static bool CollidingWithLight(Entity entity, Level level)
@@ -131,16 +149,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (Scene is not Level level) return;
             Draw.SpriteBatch.Draw((RenderTarget2D)Walls, level.Camera.Position, Color.MediumPurple);
         }
-        [OnLoad]
-        public static void Load()
-        {
-            Everest.Events.LevelLoader.OnLoadingThread += LevelLoader_OnLoadingThread;
-        }
-
-        private static void LevelLoader_OnLoadingThread(Level level)
-        {
-            level.Add(new VoidCritterWallHelper());
-        }
 
         [OnUnload]
         public static void Unload()
@@ -149,7 +157,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             _lights = null;
             _walls?.Dispose();
             _walls = null;
-            Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;
         }
 
     }

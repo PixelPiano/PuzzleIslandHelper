@@ -37,6 +37,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             base.Removed(scene);
             LastWindow = Window;
+            Open = false;
         }
         public override void Awake(Scene scene)
         {
@@ -49,10 +50,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         }
         public virtual void OnClosed(Window window)
         {
+            Open = false;
         }
 
         public virtual void OnOpened(Window window)
         {
+            Open = true;
             Window = window;
             Interface = window.Interface;
             Depth = Window.Depth - 1;
@@ -71,5 +74,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             base.Render();
         }
+        
     }
 }

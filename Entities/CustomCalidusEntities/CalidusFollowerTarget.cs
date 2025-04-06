@@ -73,8 +73,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         }
         public void Initialize(Player player)
         {
+            if (Follow == null)
+            {
+                Offset.X = -(int)player.Facing * 10;
+            }
             Follow = player;
-            Offset.X = -(int)player.Facing * 10;
             Offset.Y = -20f;
             if (Leader == null)
             {

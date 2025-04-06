@@ -1,5 +1,4 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Structs;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using System.Collections.Generic;

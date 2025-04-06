@@ -28,10 +28,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private bool consumedButton;
         private string defaultText;
         public Func<char, bool> IsValidCharacter;
+        public Action ValidAction, InvalidAction;
         public Rectangle Bounds;
 
-        public SegmentBox(Window window, int maxChars, int pad, Func<string, bool> onSubmit = null, Func<char, bool> isValidCharacter = null) : base(window)
+        public SegmentBox(Window window, int maxChars, int pad, Func<string, bool> onSubmit = null, Func<char, bool> isValidCharacter = null, Action ifValid = null, Action ifInvalid = null) : base(window)
         {
+            ValidAction = ifValid;
+            InvalidAction = ifInvalid;
             this.onSubmit = onSubmit;
             Characters = maxChars;
             Pad = pad;
@@ -160,9 +163,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                         {
                             return;
                         }
-                        if (onSubmit != null && !onSubmit.Invoke(Helper.Text))
+                        if (onSubmit != null)
                         {
-                            ClearText();
+                            if (!onSubmit.Invoke(Helper.Text))
+                            {
+                                ClearText();
+                                InvalidAction?.Invoke();
+                            }
+                            else
+                            {
+                                ValidAction?.Invoke();
+                            }
                         }
                     };
                     break;

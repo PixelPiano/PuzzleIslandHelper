@@ -15,6 +15,9 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cal
 {
+    /// <summary>
+    /// A copy of the pico8 emulator from vanilla loaded with data for CalJr.
+    /// </summary>
     public class CalEmu : Scene
     {
        

@@ -14,8 +14,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class LabGeneratorPuzzle : Entity
     {
-        private Player player;
         private Image Texture;
+        private LabGenerator generator;
         public const int BaseDepth = -13000;
         public static int PuzzlesCompleted
         {
@@ -28,8 +28,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 PianoModule.StageData.CurrentStage = value;
             }
         }
-        public static bool Completed;
-        public static bool Reset;
+        public FlagData Completed = new FlagData("LabGeneratorPuzzleCompleted");
+        public bool Reset;
         private CustomTalkComponent Talk;
         public LabGeneratorPuzzle(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
@@ -39,43 +39,41 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Collider = new Hitbox(Texture.Width, Texture.Height);
             Depth = 2;
             Add(Talk = new DotX3(0, 0, Width, Height, Vector2.UnitX * Width / 2, Interact));
-            Talk.Enabled = !LabGenerator.Laser;
+
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            generator = scene.Tracker.GetEntity<LabGenerator>();
+            Talk.Enabled = generator != null && !generator.Laser.State;
         }
         public override void Update()
         {
             base.Update();
-            if (LabGenerator.InSequence)
-            {
-                Talk.Enabled = false;
-                return;
-            }
-            Talk.Enabled = !LabGenerator.Laser;
+            Talk.Enabled = generator != null && (!generator.InSequence && !generator.Laser.State);
 
         }
         private void Interact(Player player)
         {
-            this.player = player;
-            Completed = false;
+            Completed.State = false;
             Reset = false;
             player.StateMachine.State = Player.StDummy;
-            SceneAs<Level>().Add(new LGPOverlay(SceneAs<Level>().Camera.Position));
-            Add(new Coroutine(WaitForCompleteOrRemoved()));
+            SceneAs<Level>().Add(new PuzzleOverlay(SceneAs<Level>().Camera.Position));
+            Add(new Coroutine(WaitForCompleteOrRemoved(player)));
         }
-        private IEnumerator WaitForCompleteOrRemoved()
+        private IEnumerator WaitForCompleteOrRemoved(Player player)
         {
-            while (!Completed && !Reset)
+            while (!Completed.State && !Reset)
             {
                 yield return null;
             }
             player.StateMachine.State = Player.StNormal;
         }
-
-
-        public class LGPOverlay : Entity
+        public class PuzzleOverlay : Entity
         {
-
             public class Node : Entity
             {
+                public LabGeneratorPuzzle Parent;
                 public bool Lit;
                 public bool Lead;
 
@@ -132,8 +130,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 public int SpecialNum;
                 public Image Number;
 
-                public Node(Vector2 position, string type, Type nodeType) : base(position)
+                public Node(LabGeneratorPuzzle parent, Vector2 position, string type, Type nodeType) : base(position)
                 {
+                    Parent = parent;
                     string path = "objects/PuzzleIslandHelper/decisionMachine/puzzle/";
                     DangerColorAmount = 1;
                     NodeType = nodeType;
@@ -165,7 +164,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 }
 
-                public Node(Vector2 position, string type) : this(position, type, Type.Default)
+                public Node(LabGeneratorPuzzle parent, Vector2 position, string type) : this(parent, position, type, Type.Default)
                 {
                 }
 
@@ -273,9 +272,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     base.Render();
                 }
             }
-
             public class Goal : Entity
             {
+                public LabGeneratorPuzzle Parent;
                 public Image B;
                 public Image Battery;
                 public Image Handles;
@@ -287,14 +286,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 public Side Opposite;
                 public int CatalystX;
                 public int CatalystY;
-                public Goal(Vector2 position, Side side, float fillTime = 2) : this(0, 0, position, side, fillTime)
+                public Goal(LabGeneratorPuzzle parent, Vector2 position, Side side, float fillTime = 2) : this(parent, 0, 0, position, side, fillTime)
                 {
                 }
 
 
 
-                public Goal(int fromX, int fromY, Vector2 position, Side side, float fillTime = 2) : base(position)
+                public Goal(LabGeneratorPuzzle parent, int fromX, int fromY, Vector2 position, Side side, float fillTime = 2) : base(position)
                 {
+                    Parent = parent;
                     CatalystX = fromX;
                     CatalystY = fromY;
                     Add(CellLight = new Image(GFX.Game["objects/PuzzleIslandHelper/decisionMachine/puzzle/cellLight"]));
@@ -336,12 +336,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     base.Render();
                 }
             }
-
             public class Counter : Entity
             {
+                public LabGeneratorPuzzle Parent;
                 [Tracked]
                 public class Bead : Actor
                 {
+                    public LabGeneratorPuzzle Parent;
                     public float Speed;
                     public float Accel = 0.5f;
                     private Image Image;
@@ -356,8 +357,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     public const float Gravity = 220f;
 
 
-                    public Bead(float x, float start, float end, bool ended) : base(new Vector2(x, ended ? end : start))
+                    public Bead(LabGeneratorPuzzle parent, float x, float start, float end, bool ended) : base(new Vector2(x, ended ? end : start))
                     {
+                        Parent = parent;
                         Depth = BaseDepth - 1;
                         Start = start;
                         End = end;
@@ -468,29 +470,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     _Target?.Dispose();
                     _Target = null;
                 }
-                public Counter(Vector2 Position, float height, int max, int beadsToReset = 0) : base(Position + new Vector2(24, 20))
+                public Counter(LabGeneratorPuzzle parent, Vector2 position, float height, int max, int beadsToReset = 0) : base(position + new Vector2(24, 20))
                 {
-                    Support = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/decisionMachine/puzzle/");
-                    Barrier = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/decisionMachine/puzzle/");
-                    Case = new Image(GFX.Game["objects/PuzzleIslandHelper/decisionMachine/puzzle/counterCase"]);
-                    Bg = new Image(GFX.Game["objects/PuzzleIslandHelper/decisionMachine/puzzle/counterBg"]);
+                    Parent = parent;
+                    string path = "objects/PuzzleIslandHelper/decisionMachine/puzzle/";
+                    Support = new Sprite(GFX.Game, path);
+                    Barrier = new Sprite(GFX.Game, path);
+                    Case = new Image(GFX.Game[path + "counterCase"]);
+                    Bg = new Image(GFX.Game[path + "counterBg"]);
 
                     Support.AddLoop("forwardIdle", "supportMoveBack", 0.1f, 0);
                     Support.AddLoop("backIdle", "supportMove", 0.1f, 0);
                     Support.Add("forward", "supportMove", 0.1f, "forwardIdle");
                     Support.Add("back", "supportMoveBack", 0.1f, "backIdle");
+                    Support.Play("backIdle");
 
                     Barrier.AddLoop("forwardIdle", "barrierMoveBack", 0.1f, 0);
                     Barrier.AddLoop("backIdle", "barrierMove", 0.1f, 0);
                     Barrier.Add("forward", "barrierMove", 0.05f, "forwardIdle");
                     Barrier.Add("back", "barrierMoveBack", 0.05f, "backIdle");
-                    Add(Bg);
-                    Add(Barrier, Support);
-                    Add(Case);
-                    Barrier.Visible = false;
-                    Support.Visible = false;
                     Barrier.Play("forwardIdle");
-                    Support.Play("backIdle");
+                    Add(Bg, Barrier, Support, Case);
+                    Barrier.Visible = Support.Visible = false;
                     Fallen = beadsToReset;
                     Collidable = false;
                     Depth = BaseDepth;
@@ -503,7 +504,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     int adjust = 16;
                     Support.X -= adjust;
                     Barrier.Position = new Vector2(Barrier.Width - adjust, 0);
-                    Case.Position = Bg.Position = new Vector2(X - Position.X - Case.Width, -5);
+                    Case.Position = Bg.Position = new Vector2(X - position.X - Case.Width, -5);
                     Bg.Visible = false;
                     Bg.Color = Calc.HexToColor("16005A");
                     Case.Visible = false;
@@ -560,13 +561,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     for (int i = 0; i < Max; i++)
                     {
-                        Beads[i] = new Bead(x: Position.X - 1,
+                        Beads[i] = new Bead(Parent, x: Position.X - 1,
                                             start: Position.Y - 4 * i + Height / 8,
                                             end: Position.Y + Height - 4 - 4 * i,
                                             ended: i < BeadsToReset);
                     }
 
-                    Beads = Beads.OrderByDescending(item => item.Y).ToArray();
+                    Beads = [.. Beads.OrderByDescending(item => item.Y)];
                     for (int i = 0; i < Beads.Length; i++)
                     {
                         if (!Beads[i].Warped)
@@ -632,10 +633,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
             public const int Size = 24;
-            public static int Columns = 8;
-            public static int Rows = 5;
             private const float MoveDelay = 0.15f;
             private const float RotateDelay = 0.16f;
+            public static int Columns = 8;
+            public static int Rows = 5;
             public static float Opacity;
             public static bool Loading;
             private int CurrentRow;
@@ -656,13 +657,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             private Goal Battery;
             private Vector2 TopRightPosition;
             public float BackgroundOpacity;
-            private float ProgressOpacity;
+            public LabGeneratorPuzzle Parent;
             private static VirtualRenderTarget _Target;
             public static VirtualRenderTarget Target => _Target ??= VirtualContent.CreateRenderTarget("GeneratorPuzzleTarget", 320, 180);
             private Counter Aba;
             public static readonly Color CellColor = Color.White * 0.4f;
             public enum Side { Right, Down, Left, Up }
-            public LGPOverlay(Vector2 Position) : base(Position)
+            public PuzzleOverlay(Vector2 Position) : base(Position)
             {
                 Depth = BaseDepth;
                 Loading = true;
@@ -711,7 +712,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     if (myData is not null)
                     {
                         CreateNodesFromStageData(myData);
-                        scene.Add(Aba = new Counter(Position, 141, PianoModule.StageData.StageSequence.Count,
+                        scene.Add(Aba = new Counter(Parent, Position, 141, PianoModule.StageData.StageSequence.Count,
                                                     PianoModule.StageData.CurrentStage));
                     }
                     else
@@ -750,7 +751,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 goalX = Calc.Clamp(data.GoalX, 0, Columns - 1);
                 goalY = Calc.Clamp(data.GoalY, 0, Rows - 1);
-                Scene.Add(Battery = new Goal(goalX, goalY, Vector2.Zero, data.Side));
+                Scene.Add(Battery = new Goal(Parent, goalX, goalY, Vector2.Zero, data.Side));
                 Battery.Side = direction.ToLower() switch
                 {
                     "up" => Side.Up,
@@ -794,7 +795,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     "c" => "corner",
                     _ => "null"
                 };
-                Node n = new Node(position - offset + justify, t, nodeType)
+                Node n = new Node(Parent, position - offset + justify, t, nodeType)
                 {
                     Col = col,
                     Row = row
@@ -819,7 +820,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 Nodes[0, 0].Lead = true;
                 GoalPosition = BottomRightNode().Position + new Vector2(-Size / 3, Size / 2 + NodeSpace);
-                scene.Add(Battery = new Goal(Columns - 1, Rows - 1, GoalPosition, Side.Up));
+                scene.Add(Battery = new Goal(Parent, Columns - 1, Rows - 1, GoalPosition, Side.Up));
 
             }
             private Node BottomRightNode()
@@ -911,7 +912,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 if (Input.Jump && !Resetting)
                 {
-                    Reset(false);
+                    ResetPuzzle(false);
                     return;
                 }
                 MoveTimer += Engine.DeltaTime;
@@ -931,7 +932,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     UpdateSelected();
                 }
             }
-            private void Reset(bool random)
+            private void ResetPuzzle(bool random)
             {
                 GraceMoves = 0;
                 Resetting = true;
@@ -959,7 +960,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                 RotateTimer = 0;
                                 Nodes[i, j].Rotate(1);
                                 GraceMoves = InDanger ? GraceMoves + 1 : 0;
-                                if (GraceMoves >= 3) Reset(true);
+                                if (GraceMoves >= 3) ResetPuzzle(true);
                             }
                         }
                     }
@@ -1047,11 +1048,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 for (float i = 0; i < 1; i += Engine.DeltaTime)
                 {
                     Opacity = 1 - i;
-                    ProgressOpacity = Opacity;
                     yield return null;
                 }
                 Opacity = 0;
-                ProgressOpacity = 0;
                 for (float i = 0; i < 1; i += Engine.DeltaTime)
                 {
                     BackgroundOpacity = 1 - i;
@@ -1059,10 +1058,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 BackgroundOpacity = 0;
 
-                LabGeneratorPuzzle.Completed = complete;
+                Parent.Completed.State = complete;
                 if (!complete)
                 {
-                    LabGeneratorPuzzle.Reset = true;
+                    Parent.Reset = true;
                 }
                 RemoveSelf();
             }
@@ -1080,11 +1079,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 for (float i = 0; i < 1; i += Engine.DeltaTime)
                 {
                     Opacity = i;
-                    ProgressOpacity = i;
                     yield return null;
                 }
                 Opacity = 1;
-                ProgressOpacity = 1;
                 Loading = false;
             }
             private IEnumerator DangerFlash()

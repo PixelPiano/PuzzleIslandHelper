@@ -4,6 +4,7 @@ using Celeste.Mod.Entities;
 using System;
 using System.Collections;
 using MonoMod.Utils;
+using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -61,10 +62,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Color orig_Color = Color.White;
         private Collision onCollideV;
         private Collision onCollideH;
-
-        private Player player;
-
-        private Coroutine routine;
         public Entity GetRider()
         {
             foreach (Stool entity in Scene.Tracker.GetEntities<Stool>())
@@ -109,12 +106,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             DashesHeld = 0;
         }
 
-        public Stool(EntityData data, Vector2 offset, EntityID id)
-        : base(data.Position + offset)
+        public Stool(Vector2 position, string flag, bool inverted, EntityID id) : base(position)
         {
             this.id = id;
-            Inverted = data.Bool("inverted");
-            flag = data.Attr("flag");
+            Inverted = inverted;
+            this.flag = flag;
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/stool/"));
             sprite.AddLoop("down", "stoolext", 0.1f, 0);
             sprite.AddLoop("up", "stoolext", 0.1f, 8);
@@ -148,6 +144,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(new MirrorReflection());
             HoldingHitbox = new Hitbox(sprite.Width - 8, sprite.Height, -sprite.Width * StoolJustify.X + 2, -sprite.Height * StoolJustify.Y);
             Collider = HoldingHitbox;
+        }
+        public Stool(EntityData data, Vector2 offset, EntityID id)
+        : this(data.Position + offset, data.Attr("flag"), data.Bool("inverted"), id)
+        {
+
         }
         private void OnPickup()
         {
@@ -379,47 +380,53 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Visible = platform.Visible = Collidable = platform.Collidable = Hold.Visible = FlagState;
         }
+        [Command("give_stool", "spawns a stool")]
+        public static void GiveStool()
+        {
+            if (Engine.Scene is not Level level || level.GetPlayer() is not Player player) return;
+            level.Add(new Stool(player.Position, "", false, new EntityID(Guid.NewGuid().ToString(), 0)));
+        }
         [OnLoad]
         public static void Load()
         {
-            On.Celeste.Refill.ctor_EntityData_Vector2 += OnRefillCtor;
+            //On.Celeste.Refill.ctor_EntityData_Vector2 += OnRefillCtor;
         }
-        private static void OnRefillCtor(On.Celeste.Refill.orig_ctor_EntityData_Vector2 orig, Refill self, EntityData data, Vector2 offset)
-        {
-            orig(self, data, offset);
-            self.Add(new HoldableCollider((hold) =>
-            {
-                if (hold.Entity is Stool stool)
+        /*        private static void OnRefillCtor(On.Celeste.Refill.orig_ctor_EntityData_Vector2 orig, Refill self, EntityData data, Vector2 offset)
                 {
-                    DynamicData dynData = DynamicData.For(self);
-                    stool.routine = new Coroutine(dynData.Invoke<IEnumerator>("RefillRoutine", stool.player), true);
-                    stool.routine.RemoveOnComplete = true;
-                    stool.refillColor = dynData.Get<bool>("twoDashes") ? Color.Red : Color.LimeGreen;
-
-                    if (self.Collidable)
+                    orig(self, data, offset);
+                    self.Add(new HoldableCollider((hold) =>
                     {
-                        InRefill = true;
-                        dynData = DynamicData.For(self);
-                        stool.DashesHeld = dynData.Get<bool>("twoDashes") ? 3 : 2;
-                        Audio.Play(dynData.Get<bool>("twoDashes") ? "event:/new_content/game/10_farewell/pinkdiamond_touch" : "event:/game/general/diamond_touch", self.Position);
-                        Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
-                        self.Collidable = false;
-                        self.Add(stool.routine);
-                        dynData.Set("respawnTimer", 2.5f);
-                    }
-                }
-            }));
-        }
+                        if (hold.Entity is Stool stool)
+                        {
+                            DynamicData dynData = DynamicData.For(self);
+                            stool.routine = new Coroutine(dynData.Invoke<IEnumerator>("RefillRoutine", stool.player), true);
+                            stool.routine.RemoveOnComplete = true;
+                            stool.refillColor = dynData.Get<bool>("twoDashes") ? Color.Red : Color.LimeGreen;
+
+                            if (self.Collidable)
+                            {
+                                InRefill = true;
+                                dynData = DynamicData.For(self);
+                                stool.DashesHeld = dynData.Get<bool>("twoDashes") ? 3 : 2;
+                                Audio.Play(dynData.Get<bool>("twoDashes") ? "event:/new_content/game/10_farewell/pinkdiamond_touch" : "event:/game/general/diamond_touch", self.Position);
+                                Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
+                                self.Collidable = false;
+                                self.Add(stool.routine);
+                                dynData.Set("respawnTimer", 2.5f);
+                            }
+                        }
+                    }));
+                }*/
 
         [OnUnload]
         public static void Unload()
         {
-            On.Celeste.Refill.ctor_EntityData_Vector2 -= OnRefillCtor;
+            //On.Celeste.Refill.ctor_EntityData_Vector2 -= OnRefillCtor;
         }
         public override void Update()
         {
             base.Update();
-            if (Scene is not Level level) return;
+            if (Scene is not Level level || level.GetPlayer() is not Player player) return;
             SetState();
             if (!FlagState) return;
             Hold.CheckAgainstColliders();
@@ -437,20 +444,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Collider.Position = Hold.PickupCollider.Position = Raised ? _platPos : _platPos + Vector2.UnitY * 10;
             Collider.Position.X = Hold.PickupCollider.Position.X + 4;
             Collider.Height = Hold.PickupCollider.Height = Raised ? sprite.Height : 10;
-            player = Scene.Tracker.GetEntity<Player>();
             StateAdjustment = Raised ? 0 : sprite.Height - 10;
 
             if (!inRoutine)
             {
                 platform.Position = Position - new Vector2(sprite.Width * StoolJustify.X, sprite.Height * StoolJustify.Y) + Vector2.UnitY * StateAdjustment;
             }
-            if (player is null || Scene as Level is null)
-            {
-                return;
-            }
 
-            Depth = player.Depth + 1;
-            level = Scene as Level;
+            Depth = 1;
             #region Copied
             if (swatTimer > 0f)
             {

@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cal
 {
+    /// <summary>
+    /// Data for CalJr.
+    /// </summary>
     public class CalGame
     {
         public class Cloud
@@ -76,7 +79,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
             public player_hair hair;
 
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -85,7 +88,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 hitbox = new Rectangle(1, 3, 6, 5);
             }
 
-            
+
             public override void update()
             {
                 if (G.pause_player)
@@ -324,7 +327,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 was_on_ground = flag;
             }
 
-            
+
             public override void draw()
             {
                 if (x < -1f || x > 121f)
@@ -337,7 +340,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 G.draw_player(this, djump);
             }
 
-            
+
             public player()
             {
             }
@@ -345,7 +348,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class player_hair
         {
-            
+
             public class node
             {
                 public float x;
@@ -355,16 +358,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 public float size;
             }
 
-            
+
             public node[] hair = new node[5];
 
-            
+
             public CalEmu E;
 
-            
+
             public CalGame G;
 
-            
+
             public player_hair(GameObject obj)
             {
                 E = obj.E;
@@ -380,7 +383,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 }
             }
 
-            
+
             public void draw_hair(GameObject obj, int facing, int djump)
             {
                 int num = djump switch
@@ -403,19 +406,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class player_spawn : GameObject
         {
-            
+
             public Vector2 target;
 
-            
+
             public int state;
 
-            
+
             public int delay;
 
-            
+
             public player_hair hair;
 
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -430,7 +433,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 E.sfx(4);
             }
 
-            
+
             public override void update()
             {
                 if (state == 0)
@@ -473,7 +476,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 }
             }
 
-            
+
             public override void draw()
             {
                 hair.draw_hair(this, 1, G.max_djump);
@@ -485,13 +488,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
         {
             public int hide_in;
 
-            
+
             public int hide_for;
 
-            
+
             public int delay;
 
-            
+
             public override void update()
             {
                 if (hide_for > 0)
@@ -547,16 +550,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class balloon : GameObject
         {
-            
+
             public float offset;
 
-            
+
             public float start;
 
-            
+
             public float timer;
 
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -565,7 +568,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 hitbox = new Rectangle(-1, -1, 10, 10);
             }
 
-            
+
             public override void update()
             {
                 if (spr == 22f)
@@ -594,7 +597,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 }
             }
 
-            
+
             public override void draw()
             {
                 if (spr == 22f)
@@ -613,7 +616,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
             public int delay;
 
-            
+
             public override void update()
             {
                 if (state == 0)
@@ -646,7 +649,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 }
             }
 
-            
+
             public override void draw()
             {
                 if (state != 2)
@@ -665,7 +668,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class smoke : GameObject
         {
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -679,7 +682,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 solids = false;
             }
 
-            
+
             public override void update()
             {
                 spr += 0.2f;
@@ -692,13 +695,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class fruit : GameObject
         {
-            
+
             public float start;
 
-            
+
             public float off;
 
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -707,7 +710,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 off = 0f;
             }
 
-            
+
             public override void update()
             {
                 player player = collide<player>(0, 0);
@@ -729,19 +732,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class fly_fruit : GameObject
         {
-            
+
             public float start;
 
-            
+
             public bool fly;
 
-            
+
             public float step = 0.5f;
 
-            
+
             public float sfx_delay = 8f;
 
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -749,7 +752,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 solids = false;
             }
 
-            
+
             public override void update()
             {
                 if (fly)
@@ -794,7 +797,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 }
             }
 
-            
+
             public override void draw()
             {
                 float num = 0f;
@@ -815,7 +818,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 E.spr(45f + num, x + 6f, y - 2f);
             }
 
-            
+
             public fly_fruit()
             {
             }
@@ -823,13 +826,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class lifeup : GameObject
         {
-            
+
             public int duration;
 
-            
+
             public float flash;
 
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -841,7 +844,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 solids = false;
             }
 
-            
+
             public override void update()
             {
                 duration--;
@@ -851,7 +854,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 }
             }
 
-            
+
             public override void draw()
             {
                 flash += 0.5f;
@@ -861,7 +864,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class fake_wall : GameObject
         {
-            
+
             public override void update()
             {
                 hitbox = new Rectangle(-1, -1, 18, 18);
@@ -884,7 +887,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 hitbox = new Rectangle(0, 0, 16, 16);
             }
 
-            
+
             public override void draw()
             {
                 E.spr(64f, x, y);
@@ -896,7 +899,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class key : GameObject
         {
-            
+
             public override void update()
             {
                 int num = E.flr(spr);
@@ -919,13 +922,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class chest : GameObject
         {
-            
+
             public float start;
 
-            
+
             public float timer;
 
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -934,7 +937,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 timer = 20f;
             }
 
-            
+
             public override void update()
             {
                 if (G.has_key)
@@ -956,10 +959,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
         {
             public float dir;
 
-            
+
             public float last;
 
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -969,7 +972,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 last = x;
             }
 
-            
+
             public override void update()
             {
                 spd.X = dir * 0.65f;
@@ -991,7 +994,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 last = x;
             }
 
-            
+
             public override void draw()
             {
                 E.spr(11f, x, y - 1f);
@@ -1001,13 +1004,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class message : GameObject
         {
-            
+
             public float last;
 
-            
+
             public float index;
 
-            
+
             public override void draw()
             {
                 string text = "-- celeste mountain --#this memorial to those# perished on the climb";
@@ -1049,7 +1052,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class big_chest : GameObject
         {
-            
+
             public class particle
             {
                 public float x;
@@ -1061,23 +1064,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 public float spd;
             }
 
-            
+
             public int state;
 
-            
+
             public float timer;
 
-            
+
             public List<particle> particles;
 
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
                 hitbox.Width = 16;
             }
 
-            
+
             public override void draw()
             {
                 if (state == 0)
@@ -1140,7 +1143,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class orb : GameObject
         {
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -1148,7 +1151,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 solids = false;
             }
 
-            
+
             public override void draw()
             {
                 spd.Y = G.appr(spd.Y, 0f, 0.5f);
@@ -1175,13 +1178,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class flag : GameObject
         {
-            
+
             public float score;
 
-            
+
             public bool show;
 
-            
+
             public override void init(CalGame g, CalEmu e)
             {
                 base.init(g, e);
@@ -1191,7 +1194,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 Achievements.Register(Achievement.PICO8);
             }
 
-            
+
             public override void draw()
             {
                 spr = 118f + (float)G.frames / 5f % 3f;
@@ -1215,10 +1218,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public class room_title : GameObject
         {
-            
+
             public float delay = 5f;
 
-            
+
             public override void draw()
             {
                 delay -= 1f;
@@ -1286,7 +1289,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             {
             }
 
-            
+
             public virtual void draw()
             {
                 if (spr > 0f)
@@ -1295,7 +1298,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 }
             }
 
-            
+
             public bool is_solid(int ox, int oy)
             {
                 if (oy > 0 && !check<platform>(ox, 0) && check<platform>(ox, oy))
@@ -1311,13 +1314,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 return true;
             }
 
-            
+
             public bool is_ice(int ox, int oy)
             {
                 return G.ice_at(x + (float)hitbox.X + (float)ox, y + (float)hitbox.Y + (float)oy, hitbox.Width, hitbox.Height);
             }
 
-            
+
             public T collide<T>(int ox, int oy) where T : GameObject
             {
                 Type typeFromHandle = typeof(T);
@@ -1337,7 +1340,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 return collide<T>(ox, oy) != null;
             }
 
-            
+
             public void move(float ox, float oy)
             {
                 int num = 0;
@@ -1351,7 +1354,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 move_y(num);
             }
 
-            
+
             public void move_x(int amount, int start)
             {
                 if (solids)
@@ -1376,7 +1379,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 }
             }
 
-            
+
             public void move_y(int amount)
             {
                 if (solids)
@@ -1401,7 +1404,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
                 }
             }
 
-            
+
             public GameObject()
             {
             }
@@ -1409,99 +1412,99 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
 
         public CalEmu E;
 
-        
+
         public Point room;
 
-        
+
         public List<GameObject> objects;
 
         public int freeze;
 
-        
+
         public int shake;
 
-        
+
         public bool will_restart;
 
-        
+
         public int delay_restart;
 
-        
+
         public HashSet<int> got_fruit;
 
-        
+
         public bool has_dashed;
 
-        
+
         public int sfx_timer;
 
-        
+
         public bool has_key;
 
-        
+
         public bool pause_player;
 
-        
+
         public bool flash_bg;
 
-        
+
         public int music_timer;
 
-        
+
         public bool new_bg;
 
-        
+
         public int k_left;
 
-        
+
         public int k_right = 1;
 
-        
+
         public int k_up = 2;
 
-        
+
         public int k_down = 3;
 
-        
+
         public int k_jump = 4;
 
-        
+
         public int k_dash = 5;
 
-        
+
         public int frames;
 
-        
+
         public int seconds;
 
-        
+
         public int minutes;
 
-        
+
         public int deaths;
 
-        
+
         public int max_djump;
 
-        
+
         public bool start_game;
 
-        
+
         public int start_game_flash;
 
-        
+
         public bool room_just_loaded;
 
-        
+
         public List<Cloud> clouds;
 
-        
+
         public List<Particle> particles;
 
-        
+
         public List<DeadParticle> dead_particles;
 
-        
+
         public void Init(CalEmu emulator)
         {
             E = emulator;
@@ -1556,8 +1559,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             title_screen();
         }
 
-        
-        
+
+
         public void title_screen()
         {
             got_fruit = new HashSet<int>();
@@ -1570,8 +1573,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             load_room(7, 3);
         }
 
-        
-        
+
+
         public void begin_game()
         {
             frames = 0;
@@ -1583,21 +1586,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             load_room(0, 0);
         }
 
-        
-        
+
+
         public int level_index()
         {
             return room.X % 8 + room.Y * 8;
         }
 
-        
+
         public bool is_title()
         {
             return level_index() == 31;
         }
 
-        
-        
+
+
         public void psfx(int num)
         {
             if (sfx_timer <= 0)
@@ -1606,8 +1609,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             }
         }
 
-        
-        
+
+
         public void draw_player(GameObject obj, int djump)
         {
             int num = 0;
@@ -1624,14 +1627,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             E.spr(obj.spr + (float)num, obj.x, obj.y, 1, 1, obj.flipX, obj.flipY);
         }
 
-        
+
         public void break_spring(spring obj)
         {
             obj.hide_in = 15;
         }
 
-        
-        
+
+
         public void break_fall_floor(fall_floor obj)
         {
             if (obj.state == 0)
@@ -1648,8 +1651,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             }
         }
 
-        
-        
+
+
         public T init_object<T>(T obj, float x, float y, int? tile = null) where T : GameObject
         {
             objects.Add(obj);
@@ -1664,8 +1667,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             return obj;
         }
 
-        
-        
+
+
         public void destroy_object(GameObject obj)
         {
             int num = objects.IndexOf(obj);
@@ -1675,8 +1678,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             }
         }
 
-        
-        
+
+
         public void kill_player(player obj)
         {
             sfx_timer = 12;
@@ -1701,15 +1704,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             restart_room();
         }
 
-        
+
         public void restart_room()
         {
             will_restart = true;
             delay_restart = 15;
         }
 
-        
-        
+
+
         public void next_room()
         {
             if (room.X == 2 && room.Y == 1)
@@ -1739,7 +1742,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             }
         }
 
-        
+
         public void load_room(int x, int y)
         {
             room_just_loaded = true;
@@ -1830,7 +1833,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             }
         }
 
-        
+
         public void Update()
         {
             frames = (frames + 1) % 30;
@@ -1941,7 +1944,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             }
         }
 
-        
+
         public void Draw()
         {
             E.pal();
@@ -2074,14 +2077,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             }
         }
 
-        
+
         public void draw_object(GameObject obj)
         {
             obj.draw();
         }
 
-        
-        
+
+
         public void draw_time(int x, int y)
         {
             int num = seconds;
@@ -2091,15 +2094,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             E.print(((num3 < 10) ? "0" : "") + num3 + ":" + ((num2 < 10) ? "0" : "") + num2 + ":" + ((num < 10) ? "0" : "") + num, x + 1, y + 1, 7f);
         }
 
-        
-        
+
+
         public float clamp(float val, float a, float b)
         {
             return E.max(a, E.min(b, val));
         }
 
-        
-        
+
+
         public float appr(float val, float target, float amount)
         {
             if (!(val > target))
@@ -2110,8 +2113,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             return E.max(val - amount, target);
         }
 
-        
-        
+
+
         public int sign(float v)
         {
             if (!(v > 0f))
@@ -2127,27 +2130,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             return 1;
         }
 
-        
-        
+
+
         public bool maybe()
         {
             return E.rnd(1f) < 0.5f;
         }
 
-        
+
         public bool solid_at(float x, float y, float w, float h)
         {
             return tile_flag_at(x, y, w, h, 0);
         }
 
-        
+
         public bool ice_at(float x, float y, float w, float h)
         {
             return tile_flag_at(x, y, w, h, 4);
         }
 
-        
-        
+
+
         public bool tile_flag_at(float x, float y, float w, float h, int flag)
         {
             for (int i = (int)E.max(0f, E.flr(x / 8f)); (float)i <= E.min(15f, (x + w - 1f) / 8f); i++)
@@ -2164,15 +2167,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             return false;
         }
 
-        
-        
+
+
         public int tile_at(int x, int y)
         {
             return E.mget(room.X * 16 + x, room.Y * 16 + y);
         }
 
-        
-        
+
+
         public bool spikes_at(float x, float y, int w, int h, float xspd, float yspd)
         {
             for (int i = (int)E.max(0f, E.flr(x / 8f)); (float)i <= E.min(15f, (x + (float)w - 1f) / 8f); i++)
@@ -2205,7 +2208,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
             return false;
         }
 
-        
+
         public CalGame()
         {
         }

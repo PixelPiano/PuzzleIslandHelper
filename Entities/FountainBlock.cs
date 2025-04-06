@@ -283,20 +283,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     yield return null;
                 }
                 yield return 0.5f;
-                yield return Textbox.Say("" + Calc.Clamp(GeneratorsRequired - generators, 0, GeneratorsRequired) + " generators remain unactivated");
+                yield return PianoUtils.TextboxSayClean(Calc.Clamp(GeneratorsRequired - generators, 0, GeneratorsRequired) + " generators remain.");
                 yield return 0.3f;
                 screen.sprite.OnFinish = (string s) =>
                 {
                     if (s == "intoIdle")
                     {
-                        if (generators >= GeneratorsRequired)
-                        {
-                            screen.sprite.Play("off");
-                        }
-                        else
-                        {
-                            screen.sprite.Play("idle");
-                        }
+                        screen.sprite.Play(generators >= GeneratorsRequired ? "off" : "idle");
                     }
                 };
                 screen.sprite.Play("intoIdle");
@@ -403,20 +396,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public void ScreenState(int frame)
         {
             screen.ScreenFrame = frame;
-        }
-
-        private bool InSafeLocation(Level level)
-        {
-            Camera camera = level.Camera;
-            Player player = level.GetPlayer();
-            if (camera.GetBounds().Contains((int)Center.X, (int)Center.Y))
-            {
-                if (player != null && player.OnGround())
-                {
-                    return true;
-                }
-            }
-            return false;
         }
         public void Open(bool instant)
         {

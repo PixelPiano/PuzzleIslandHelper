@@ -4,6 +4,9 @@ using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {
+    /// <summary>
+    /// A balloon. The balloon will follow whatever entity is set to Track.
+    /// </summary>
     [Tracked]
     public class Balloon : Entity
     {
@@ -55,10 +58,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     speed = Calc.Approach(speed, 30, 70f * Engine.DeltaTime);
                 }
                 connect = Calc.Approach(connect, target, (speed + boost) * Engine.DeltaTime * approachMult);
-               
+
                 connect = Calc.Clamp(connect, target.X + Max.X, target.Y, target.X - Max.X, Position.Y);
             }
-            connect = connect + (target - connect) * (1f - (float)Math.Pow(0.7999975574f,Engine.DeltaTime));
+            connect = connect + (target - connect) * (1f - (float)Math.Pow(0.7999975574f, Engine.DeltaTime));
             base.Update();
             prev = Position;
 

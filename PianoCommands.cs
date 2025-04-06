@@ -20,6 +20,11 @@ using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.Playe
 
 public class PianoCommands
 {
+    [Command("pi_debug", "toggle Puzzle Island debug mode")]
+    public static void ToggleDebug(bool? state = null)
+    {
+        PianoModule.Session.DEBUG = state ?? !PianoModule.Session.DEBUG;
+    }
     [Command("get_counter", "returns the counter value of the specified string")]
     public static void GetCounter(string value)
     {
@@ -341,8 +346,14 @@ public class PianoCommands
     [Command("generator", "turns the generator on/off")]
     private static void Generator(bool state = true)
     {
-        LabGeneratorPuzzle.Completed = state;
-        LabGenerator.Laser = state;
+        if (Engine.Scene is Level level)
+        {
+            if (level.Tracker.GetEntity<LabGeneratorPuzzle>() is var puzzle && level.Tracker.GetEntity<LabGenerator>() is var machine)
+            {
+                puzzle.Completed.State = state;
+                machine.Laser.State = state;
+            }
+        }
         if (!state)
         {
             LabGeneratorPuzzle.PuzzlesCompleted = 0;

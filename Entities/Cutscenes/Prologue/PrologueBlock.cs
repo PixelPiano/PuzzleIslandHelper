@@ -71,7 +71,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             if (!ControllerState) return;
             if (!player.Dead && Amplitude > 0.5f)
             {
-                PianoUtils.InstantRelativeTeleport(Scene, "transfer", true);
+                PianoUtils.InstantRelativeTeleport(Scene, "transfer", true, null);
             }
         }
         public override void Added(Scene scene)

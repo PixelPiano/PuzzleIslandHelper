@@ -2,6 +2,7 @@ using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,20 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class LabElevator : Solid
     {
         public bool Moving;
-        public bool CanBeMoved
-        {
-            get
-            {
-                if (reliesOnLabPower)
-                {
-                    return PianoModule.Session.RestoredPower;
-                }
-                else
-                {
-                    return true;
-                }
-            }
-        }
+        public bool CanBeMoved => !reliesOnLabPower || PianoModule.Session.RestoredPower;
         private readonly CustomTalkComponent upButton;
         private readonly CustomTalkComponent downButton;
         private readonly float moveSpeed;
@@ -105,6 +93,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void StartMoveSound()
         {
+            moveSound?.Stop(true);
             moveSound?.Play("event:/PianoBoy/Machines/ElevatorMoving", "Arrived", 0);
         }
         private void StopMoveSound()
@@ -138,27 +127,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             CurrentFloor = floor;
             ResetPlatforms(GetFloor(floor));
         }
-        /*        public void SetStartingPosition(Scene scene)
+        [Command("testttttt", "ttt")]
+        public static void Test()
+        {
+            foreach (LabElevator e in Engine.Scene.Tracker.GetEntities<LabElevator>())
+            {
+                e.SetStartingPosition(Engine.Scene);
+            }
+        }
+        public void SetStartingPosition(Scene scene)
+        {
+            if ((reliesOnLabPower && !PianoModule.Session.RestoredPower) || !SnapToClosestFloor)
+            {
+                SetToFloor(DefaultFloor);
+            }
+            else
+            {
+                Player player = (scene as Level).Tracker.GetEntity<Player>();
+                List<(int, float)> distances = new();
+                for (int i = 0; i < Floors.Count; i++)
                 {
-                    if ((!PianoModule.Session.RestoredPower && reliesOnLabPower) || !SnapToClosestFloor)
-                    {
-                        SetToFloor(DefaultFloor);
-                        return;
-                    }
-                    Player player = (scene as Level).Tracker.GetEntity<Player>();
-                    float closest = int.MaxValue;
-                    int index = 0;
-                    for (int i = 0; i < Floors.Count; i++)
-                    {
-                        if (MathHelper.Distance(Floors[i].Y, player.Position.Y) < MathHelper.Distance(closest, player.Position.Y))
-                        {
-                            closest = Floors[i].Y;
-                            index = i;
-                        }
-                    }
-                    CurrentFloor = index;
-                    ResetPlatforms(closest);
-                }*/
+                    distances.Add(new(i, MathHelper.Distance(Floors[i].Y, player.Position.Y)));
+                }
+                (int, float) closest = distances.OrderBy(item => item.Item2).First();
+                SetToFloor(closest.Item1);
+            }
+        }
         public override void Update()
         {
             base.Update();
@@ -226,7 +220,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            //SetStartingPosition(scene);
+            SetStartingPosition(scene);
         }
         private void ResetPlatforms(float value)
         {

@@ -3,6 +3,7 @@ using Monocle;
 using Celeste.Mod.Entities;
 using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -14,20 +15,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public EntityID ID;
         public bool Activated;
         public float Amount;
-        private float duration = 3;
+        private float duration = 1.2f;
         private float timer;
         private float flashLerp;
         private float colorLerp;
-        private readonly Color StreakDefaultColor = Calc.HexToColor("203747");
-        private readonly Color SymbolDefaultColor = Calc.HexToColor("020812");
+        private Color StreakDefaultColor = Calc.HexToColor("203747");
+        private Color SymbolDefaultColor = Calc.HexToColor("020812");
         private readonly Color StreakActiveColor = Calc.HexToColor("3CFFF6");
         private readonly Color SymbolActiveColor = Calc.HexToColor("AA3CFF");
         private Color StreakColor;
         private Color SymbolColor;
         public bool Registered => PianoModule.Session.MiniGenStates.ContainsKey(ID);
         public bool RegistryState => Registered && PianoModule.Session.MiniGenStates[ID];
-        private Color FlashColor => OnStandby ? Color.Black : Color.White;
-        public bool OnStandby => InvertOverlay.State;
+        private Color FlashColor = Color.White;
         public MTexture Machine = GFX.Game["objects/PuzzleIslandHelper/miniGenerator/machine"];
         public MiniGenerator(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
@@ -54,6 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
+            
             Draw.Rect(Position + new Vector2(19, 8), 2, 26, StreakColor);
             Draw.Rect(Position + new Vector2(35, 8), 2, 25, StreakColor);
             Draw.Rect(Position + new Vector2(25, 12), 7, 16, SymbolColor);
@@ -116,6 +117,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void SetToActive(bool inLevel)
         {
+            SymbolDefaultColor = StreakDefaultColor = Color.White;
             Activated = true;
             UpdateRegistry(true); //set dictionary value to true
             Add(new Coroutine(ColorLerp()) { UseRawDeltaTime = true });
@@ -125,6 +127,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Amount = 1;
             }
         }
+        public DotX3 Talk;
         public override void Added(Scene scene)
         {
             base.Added(scene);
@@ -136,14 +139,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 SetToActive(false);
             }
+            Add(Talk = new DotX3(Collider, Interact));
+            Talk.PlayerMustBeFacing = false;
+        }
+        public void Interact(Player player)
+        {
+            //todo: swap this out with an actual mechanic to activate these
+            IEnumerator cutscene()
+            {
+                player.DisableMovement();
+                yield return PianoUtils.Lerp(Ease.SineIn, duration, f => Amount = f, true);
+                SetToActive(true);
+                player.EnableMovement();
+            }
+            Add(new Coroutine(cutscene()));
         }
         public override void Update()
         {
             base.Update();
             StreakColor = Color.Lerp(Color.Lerp(StreakDefaultColor, StreakActiveColor, colorLerp), FlashColor, flashLerp);
             SymbolColor = Color.Lerp(Color.Lerp(SymbolDefaultColor, SymbolActiveColor, colorLerp), FlashColor, flashLerp);
-
-            if (!Activated)
+            Talk.Enabled = !Activated;
+/*            if (!Activated)
             {
                 if (OnStandby && CollideCheck<Player>())
                 {
@@ -158,7 +175,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     SetToActive(true);
                 }
-            }
+            }*/
         }
     }
 }

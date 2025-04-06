@@ -38,7 +38,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     [TrackedAs(typeof(InterfaceEntity))]
     public class DesktopClickable : InterfaceEntity
     {
-
         public Interface Interface;
         private int delayFrames;
         private float timer;

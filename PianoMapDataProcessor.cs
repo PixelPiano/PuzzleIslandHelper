@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 using static Celeste.Mod.PuzzleIslandHelper.Cutscenes.Gameshow;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -83,21 +84,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public bool Lab;
         public string Room;
         public Vector2 Position;
-        public WarpCapsule.Rune Rune;
+        public WARP.Rune Rune;
     }
     public class RuneList
     {
         public WarpCapsuleData Default;
         public List<WarpCapsuleData> DefaultSet = [];
         public List<WarpCapsuleData> All = [];
-        public bool Contains(WarpCapsule.Rune rune)
-        {
-            return All.Find(item => item.Rune.Match(rune)) != null;
-        }
-        public WarpCapsuleData GetDataFromRune(WarpCapsule.Rune rune)
-        {
-            return All.Find(item => item.Rune.Match(rune));
-        }
+        public bool Contains(Rune rune) => GetDataFromRune(rune) != null;
+        public WarpCapsuleData GetDataFromRune(WARP.Rune rune) => All.Find(item => item.Rune.Match(rune));
     }
     public class PianoMapDataProcessor : EverestMapDataProcessor
     {
@@ -271,7 +266,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 string id = data.Attr("warpID");
 
                 if (string.IsNullOrEmpty(id)) return;
-                WarpCapsule.Rune rune = new(id, data.Attr("rune"));
+                WARP.Rune rune = new(id, data.Attr("rune"));
                 if (!string.IsNullOrEmpty(levelName) && rune != null && !WarpRunes[key].Contains(rune))
                 {
                     awData = new()

@@ -74,6 +74,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 GameplayRenderer.Begin();
             }
         }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            if (PianoUtils.SeekController<VoidCritterWallHelper>(scene) == null)
+            {
+                scene.Add(new VoidCritterWallHelper());
+            }
+        }
+
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
@@ -88,7 +97,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             FlagState = GetFlag(level);
-            OnScreen = Collider.Bounds.Colliding(level.Camera.GetBounds(), new Vector2(-8, 16));
+            OnScreen = Collider.Bounds.Colliding(level.Camera.GetBounds(), 16);
             if (!FlagState) return;
             foreach (CritterLight cl in level.Tracker.GetComponents<CritterLight>())
             {
@@ -100,6 +109,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void Removed(Scene scene)
         {
+            if (scene.Tracker.GetEntities<VoidCritterWall>().Count == 1)
+            {
+                foreach(VoidCritterWallHelper helper in scene.Tracker.GetEntities<VoidCritterWallHelper>())
+                {
+                    helper.RemoveSelf();
+                }
+            }
             base.Removed(scene);
             Target?.Dispose();
             Target = null;

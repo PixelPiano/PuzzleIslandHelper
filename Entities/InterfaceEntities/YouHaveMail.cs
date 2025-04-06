@@ -5,7 +5,7 @@ using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
-    [TrackedAs(typeof(Icon))]
+    [TrackedAs(typeof(DesktopClickable))]
     public class YouHaveMail : DesktopClickable
     {
         public bool State;
@@ -22,7 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             base.Update();
             if (Interface.Monitor != null)
             {
-               // Position = Interface.monitor.Center - new Vector2(Width / 2, Height / 2);
+                // Position = Interface.monitor.Center - new Vector2(Width / 2, Height / 2);
             }
         }
         public override void Prepare(Scene scene)

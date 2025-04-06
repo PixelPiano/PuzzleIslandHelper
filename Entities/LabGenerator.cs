@@ -4,6 +4,7 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.InvertAuth;
 using Color = Microsoft.Xna.Framework.Color;
 using Point = Microsoft.Xna.Framework.Point;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -72,12 +73,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-        public bool LightFixed; //move to savedata
-        public bool PortFixed; //move to savedata 
         private Sprite Outside;
         private Sprite Lights;
-        private MTexture BrokenLight;
-        private MTexture BrokenPort;
         private MTexture Inside;
         private MTexture Glass;
         private MTexture Dim;
@@ -92,65 +89,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private List<BeamLine> BeamsList = new();
         private int Beams = 15;
         private int DrawNumber;
-        private Color Color;
+        private Color Color = Color.Blue;
         private VertexLight Light;
         private BloomPoint Bloom;
-        public static bool Laser;
-        public static bool InSequence;
+        public FlagData Laser = new FlagData("LabGeneratorLaser");
+        public bool InSequence;
         public Collider LightBox;
         public Collider ConnectorBox;
-        private PowerConnector connector;
-        private PowerLight powerLight;
-        private float LightDim = 0.2f;
+
+        private float lightDim = 0.2f;
+        private LabGeneratorPuzzle puzzle;
+
+
         public LabGenerator(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
-            Color = Color.Blue;
-            Outside = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/decisionMachine/");
-            Outside.AddLoop("idle", "outside", 0.1f);
-            Lights = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/decisionMachine/");
-            Lights.AddLoop("offIdle", "lightsOffFix", 0.1f);
-            Lights.AddLoop("onIdle", "lightsLoop", 0.1f);
-            Lights.Add("activate", "lightsStart", 0.1f, "onIdle");
-            Outside.Visible = Lights.Visible = false;
-            Outside.X = Lights.X = 43;
-            Outside.Play("idle");
-            Lights.Play("offIdle");
-            Add(Outside);
-            Add(Lights);
-            Inside = GFX.Game["objects/PuzzleIslandHelper/decisionMachine/inside"];
-            Glass = GFX.Game["objects/PuzzleIslandHelper/decisionMachine/glass"];
-            Dim = GFX.Game["objects/PuzzleIslandHelper/decisionMachine/dim"];
-            FrontLines = GFX.Game["objects/PuzzleIslandHelper/decisionMachine/whiteLines"];
-            Pipes = GFX.Game["objects/PuzzleIslandHelper/decisionMachine/pipes"];
-            Glow = new Image(GFX.Game["objects/PuzzleIslandHelper/decisionMachine/glow"]);
-            Color = Color.Lerp(Color.White, Color.Black, 0.1f);
-            LightBox = new Hitbox(7, 16, Outside.X + 84, Outside.Y + 37);
-            ConnectorBox = new Hitbox(7, 6, Outside.X + 84, Outside.Y + 51);
-            Collider = new ColliderList(new Hitbox(Pipes.Width, Pipes.Height), LightBox, ConnectorBox);
-            BrokenLight = GFX.Game["objects/PuzzleIslandHelper/decisionMachine/brokenLight"];
-            BrokenPort = GFX.Game["objects/PuzzleIslandHelper/decisionMachine/connectorPort"];
-
-            Bloom = new BloomPoint(Center, 1, Outside.Width / 2);
-            Light = new VertexLight(Center, Color, 0.5f, 16, 30);
-            Light.Visible = false;
-            Bloom.Visible = false;
-            Depth = 3;
-            InSequence = false;
-            for (int i = 0; i < Beams; i++)
-            {
-                BeamsList.Add(new BeamLine(Position + new Vector2(94, Height + 8), Position + new Vector2(94, 8), xRange));
-            }
-            foreach (BeamLine line in BeamsList)
-            {
-                line.GeneratePoints(line.Start, line.End, 3);
-            }
-            timer = WaitTime;
-            DrawNumber = BeamsList.Count;
-            Add(Light);
-            Add(new CustomBloom(DrawBloom));
-            Add(Bloom);
-
         }
+
         private void DrawBloom()
         {
             Glow.Render();
@@ -158,8 +112,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            Lights.Color = Color.Lerp(Color.White, Color.Black, LightDim);
-            if (LabGeneratorPuzzle.Completed && PianoModule.Session.HasFixedPipes && PortFixed && LightFixed && !PianoModule.Session.GeneratorStarted) //If fixed
+            Lights.Color = Color.Lerp(Color.White, Color.Black, lightDim);
+            if (puzzle.Completed.State && PianoModule.Session.HasFixedPipes && !PianoModule.Session.GeneratorStarted) //If fixed
             {
                 PianoModule.Session.GeneratorStarted = true;
                 Add(new Coroutine(StartSequenceOrSomething())); //activate machine
@@ -170,35 +124,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void MissingPartsUpdate()
         {
-            if (powerLight != null)
-            {
-                if (LightBox.Collide(powerLight) && powerLight.InAir && !LightFixed)
-                {
-                    if (Math.Abs(LightBox.AbsoluteLeft + LightBox.Width / 2 - powerLight.CenterX) <= 2)
-                    {
-                        LightFixed = true;
-                        //play click sound or something
-                        SceneAs<Level>().Remove(powerLight);
-                    }
-                    powerLight.DialogueOnHitGround = true;
-                }
-            }
-            if (connector != null)
-            {
-                if (ConnectorBox.Collide(connector) && connector.InAir && !PortFixed)
-                {
-                    if (Math.Abs(ConnectorBox.AbsoluteLeft + ConnectorBox.Width / 2 - connector.CenterX) <= 2)
-                    {
-                        PortFixed = true;
-                        //play click sound or something
-                        SceneAs<Level>().Remove(connector);
-                    }
-                }
-            }
+            //currentlly unused, wasn't necessary.
+            /*            if (powerLight != null)
+                        {
+                            if (LightBox.Collide(powerLight) && powerLight.InAir && !LightFixed)
+                            {
+                                if (Math.Abs(LightBox.AbsoluteLeft + LightBox.Width / 2 - powerLight.CenterX) <= 2)
+                                {
+                                    LightFixed = true;
+                                    //play click sound or something
+                                    SceneAs<Level>().Remove(powerLight);
+                                }
+                                powerLight.DialogueOnHitGround = true;
+                            }
+                        }
+                        if (connector != null)
+                        {
+                            if (ConnectorBox.Collide(connector) && connector.InAir && !PortFixed)
+                            {
+                                if (Math.Abs(ConnectorBox.AbsoluteLeft + ConnectorBox.Width / 2 - connector.CenterX) <= 2)
+                                {
+                                    PortFixed = true;
+                                    //play click sound or something
+                                    SceneAs<Level>().Remove(connector);
+                                }
+                            }
+                        }*/
         }
         private void LaserUpdate()
         {
-            if (Laser)
+            if (Laser.State)
             {
                 if (Scene.OnInterval(5f / 60f))
                 {
@@ -231,25 +186,62 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Awake(scene);
             Level level = scene as Level;
-            if (level.Tracker.GetEntity<PowerLight>() != null)
-            {
-                powerLight = level.Tracker.GetEntity<PowerLight>();
-            }
-            if (level.Tracker.GetEntity<PowerConnector>() != null)
-            {
-                connector = level.Tracker.GetEntity<PowerConnector>();
-            }
+            puzzle = level.Tracker.GetEntity<LabGeneratorPuzzle>();
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            string path = "objects/PuzzleIslandHelper/decisionMachine/";
+            Outside = new Sprite(GFX.Game, path);
+            Outside.AddLoop("idle", "outside", 0.1f);
+            Lights = new Sprite(GFX.Game, path);
+            Lights.AddLoop("offIdle", "lightsOffFix", 0.1f);
+            Lights.AddLoop("onIdle", "lightsLoop", 0.1f);
+            Lights.Add("activate", "lightsStart", 0.1f, "onIdle");
+            Outside.Visible = Lights.Visible = false;
+            Outside.X = Lights.X = 43;
+            Outside.Play("idle");
+            Lights.Play("offIdle");
+            Add(Outside);
+            Add(Lights);
+            Inside = GFX.Game[path + "inside"];
+            Glass = GFX.Game[path + "glass"];
+            Dim = GFX.Game[path + "dim"];
+            FrontLines = GFX.Game[path + "whiteLines"];
+            Pipes = GFX.Game[path + "pipes"];
+            Glow = new Image(GFX.Game[path + "glow"]);
+            Color = Color.Lerp(Color.White, Color.Black, 0.1f);
+            LightBox = new Hitbox(7, 16, Outside.X + 84, Outside.Y + 37);
+            ConnectorBox = new Hitbox(7, 6, Outside.X + 84, Outside.Y + 51);
+            Collider = new ColliderList(new Hitbox(Pipes.Width, Pipes.Height), LightBox, ConnectorBox);
+
+            Bloom = new BloomPoint(Center, 1, Outside.Width / 2);
+            Light = new VertexLight(Center, Color, 0.5f, 16, 30);
+            Light.Visible = false;
+            Bloom.Visible = false;
+            Depth = 3;
+            InSequence = false;
+            for (int i = 0; i < Beams; i++)
+            {
+                BeamsList.Add(new BeamLine(Position + new Vector2(94, Height + 8), Position + new Vector2(94, 8), xRange));
+            }
+            foreach (BeamLine line in BeamsList)
+            {
+                line.GeneratePoints(line.Start, line.End, 3);
+            }
+            timer = WaitTime;
+            DrawNumber = BeamsList.Count;
+            Add(Light);
+            Add(new CustomBloom(DrawBloom));
+            Add(Bloom);
+
             scene.Add(glowEntity = new Entity(Center));
             glowEntity.Add(Glow);
             glowEntity.Depth = -1;
             Glow.CenterOrigin();
-            if (PianoModule.Session.GeneratorStarted && LightFixed)
+            if (PianoModule.Session.GeneratorStarted)
             {
-                Laser = true;
+                Laser.State = true;
                 Lights.Play("onIdle");
             }
             else
@@ -257,7 +249,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Glow.Visible = false;
             }
             Glow.Color = Color.White * 0.4f;
-
         }
 
         private IEnumerator StartSequenceOrSomething()
@@ -273,50 +264,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             for (int i = 0; i < 3; i++)
             {
                 yield return Calc.Random.Range(0.05f, 0.2f);
-                Laser = true;
+                Laser.State = true;
                 yield return 0.1f;
-                Laser = false;
+                Laser.State = false;
             }
             InSequence = false;
-            Laser = true;
+            Laser.State = true;
             //todo: play machine sounds or something mechanical
 
         }
         public override void Render()
         {
-            if (Scene as Level is null)
-            {
-                return;
-            }
-            bool Paused = (Scene as Level).Paused;
-            Vector2 MachinePosition = Position + Vector2.UnitX * 43;
-            Inside.Draw(MachinePosition, Vector2.Zero, Color.White);
-            Dim.Draw(MachinePosition, Vector2.Zero, Color.White * 0.4f);
-            FrontLines.Draw(MachinePosition, Vector2.Zero, Color.Lerp(Color.White, Color.Black, 0.1f) * 0.5f);
-            if (Laser)
+            if (Scene is not Level level) return;
+            Vector2 machinePosition = Position + Vector2.UnitX * 43;
+            Inside.Draw(machinePosition, Vector2.Zero, Color.White);
+            Dim.Draw(machinePosition, Vector2.Zero, Color.White * 0.4f);
+            FrontLines.Draw(machinePosition, Vector2.Zero, Color.Lerp(Color.White, Color.Black, 0.1f) * 0.5f);
+            if (Laser.State)
             {
                 for (int i = 0; i < DrawNumber; i++)
                 {
-                    BeamsList[i].DrawBeamLine(Color.Blue, !Paused, !Paused ? Calc.Random.Choose(1, 3) : 2);
+                    BeamsList[i].DrawBeamLine(Color.Blue, !level.Paused, !level.Paused ? Calc.Random.Choose(1, 3) : 2);
                 }
             }
 
-            Glass.Draw(MachinePosition, Vector2.Zero, Color.White * 0.8f);
-            Outside.RenderPosition = Lights.RenderPosition = MachinePosition;
+            Glass.Draw(machinePosition, Vector2.Zero, Color.White * 0.8f);
+            Outside.RenderPosition = Lights.RenderPosition = machinePosition;
             Outside.Render();
             Lights.Render();
-            if (!LightFixed)
-            {
-                BrokenLight.Draw(new Vector2(LightBox.AbsoluteLeft, LightBox.AbsoluteTop));
-            }
-            if (!PortFixed)
-            {
-                BrokenPort.Draw(new Vector2(ConnectorBox.AbsoluteLeft, ConnectorBox.AbsoluteTop + 2));
-            }
             Pipes.Draw(Position, Vector2.Zero, Color.White);
             base.Render();
-
-
         }
 
         public override void DebugRender(Camera camera)

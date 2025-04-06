@@ -29,7 +29,7 @@ warpCapsule.placements =
             isPartOfFirstSet = false,
             runeDisplayWidth = 24,
             runeDisplayHeight = 16,
-            isLaboratory = false
+            isLaboratory = false,
         }
     }
 }
@@ -110,9 +110,11 @@ function warpCapsule.sprite(room, entity)
     local sprite = drawableSprite.fromTexture("objects/PuzzleIslandHelper/digiWarpReceiver/lonn",entity)
     sprite:setJustification(0,0)
     table.insert(sprites, sprite)
-    local lines = getLineSprites(entity, 26, 16)
-    for i, line in ipairs(lines) do
+    if not entity.prototype then
+        local lines = getLineSprites(entity, 26, 16)
+        for i, line in ipairs(lines) do
          table.insert(sprites, line)
+        end
     end
     return sprites
 end

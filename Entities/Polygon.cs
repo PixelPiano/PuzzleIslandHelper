@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -16,6 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public VertexPositionColor[] Vertices;
         public Vector2[] Points;
         public Color[] Colors;
+        public VertexBreath[] Breaths;
         public int[] Indices;
         public int Triangles;
         public float[] FloatMults;
@@ -28,6 +30,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             TargetFloat = data.Float("maxFloat", 8);
             randomizeStartFloat = data.Bool("randomizeStartFloat");
+
             floatTime = data.Float("floatTime");
             Indices = [.. data.Attr("indices").Replace(" ", "").Split(',').Select(item => int.TryParse(item, NumberStyles.Integer, null, out int result) ? result : 0)];
             List<float> list2 = [.. data.Attr("floatMult").Replace(" ", "").Split(',').Select(item => float.TryParse(item, NumberStyles.AllowDecimalPoint, null, out float result2) ? result2 : 0f)];
@@ -56,11 +59,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Colors = [.. list3];
             Points = data.NodesWithPosition(offset);
+            Vertices = new VertexPositionColor[Points.Length];
+            Breaths = new VertexBreath[Points.Length];
             for (int i = 0; i < Points.Length; i++)
             {
+                Vertices[i] = new VertexPositionColor(new Vector3(Points[i], 0), Color.White);
                 Points[i] -= Position;
             }
-            Vertices = Points.Select(item => new VertexPositionColor(new Vector3(Position + item, 0), Color.White)).ToArray();
             if (Colors.Length > 0)
             {
                 for (int i = 0; i < Vertices.Length; i++)
@@ -79,7 +84,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            for (int i = 0; i < FloatAmount.Length; i++)
+            for (int i = 0; i < Vertices.Length; i++)
+            {
+                Breaths[i] = new VertexBreath(floatTime, TargetFloat * FloatMults[i], randomizeStartFloat);
+            }
+            Add(Breaths);
+/*            for (int i = 0; i < FloatAmount.Length; i++)
             {
                 int j = i;
                 Tween tween = Tween.Set(this, Tween.TweenMode.YoyoLooping, floatTime / 2, Ease.SineInOut, t => FloatAmount[j] = Calc.LerpClamp(0, TargetFloat, t.Eased));
@@ -87,7 +97,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     tween.Randomize();
                 }
-            }
+            }*/
             float left = int.MaxValue, right = int.MinValue, top = int.MaxValue, bottom = int.MinValue;
             for (int i = 0; i < Vertices.Length; i++)
             {
@@ -106,7 +116,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             onScreen = false;
             for (int i = 0; i < Vertices.Length; i++)
             {
-                Vertices[i].Position.Y = Position.Y + Points[i].Y + (FloatAmount[i] * TargetFloat) * FloatMults[i];
+                Vertices[i].Position.Y = Position.Y + Points[i].Y + Breaths[i].Amount;
                 Vertices[i].Position.X = Position.X + Points[i].X;
                 Vertices[i].Color = Colors[i % Colors.Length];
                 Vector2 p = Vertices[i].Position.XY();

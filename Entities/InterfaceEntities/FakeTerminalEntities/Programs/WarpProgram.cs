@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using System.Collections;
 using System.Collections.Generic;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs
 {
@@ -13,17 +14,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             get
             {
-                return Parent.TargetID;
+                return Parent.RoomName;
             }
             set
             {
-                Parent.TargetID = value;
+                Parent.RoomName = value;
             }
         }
         //public WarpCapsuleData SelectedCapsule => WarpCapsule.GetCapsuleData(SelectedID);
         public static Dictionary<string, WarpCapsuleData> Data;
-        public WarpCapsule Parent;
-        public WarpProgram(WarpCapsule parent, FakeTerminal terminal) : base(terminal, "Please enter the destination node ID.")
+        public WarpCapsule2 Parent;
+        public WarpProgram(WarpCapsule2 parent, FakeTerminal terminal) : base(terminal, "Please enter the destination node ID.")
         {
             Parent = parent;
             AddCommand("id", null, OnID, "destination", "target", "travel");
@@ -159,7 +160,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             return !Closed;
         }
-        public static bool ValidateID(string id, WarpCapsule parent)
+        public static bool ValidateID(string id, WarpCapsule2 parent)
         {
             return !string.IsNullOrEmpty(id) && /*parent.WarpID != id &&*/ Data.ContainsKey(id);
         }
@@ -169,7 +170,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         }
         public void SetTarget(string id, string realName = null)
         {
-            Parent.TargetID = id;
+            Parent.RoomName = id;
             SelectedID = id;
             AddText("Link established. Opening warp chamber.", Color.Lime);
             if (realName != null && !PianoModule.Session.LoggedCapsules.ContainsKey(realName))

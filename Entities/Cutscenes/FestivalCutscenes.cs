@@ -3,7 +3,6 @@ using Celeste.Mod.LuaCutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
-using Celeste.Mod.PuzzleIslandHelper.Structs;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;

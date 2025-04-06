@@ -23,11 +23,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             }
         }
         private float timer;
-        public VertexBreath(float interval, float moveDistance) : base(true, false)
+        public VertexBreath(float interval, float moveDistance, bool randomizeTimerStart = true) : base(true, false)
         {
             Interval = interval;
-            timer = Calc.Random.Range(0, Interval * 0.8f);
+            if (randomizeTimerStart)
+            {
+                RandomizeTimer();
+            }
             MoveDistance = moveDistance;
+        }
+        public void RandomizeTimer()
+        {
+            timer = Calc.Random.Range(0, Interval * 0.8f);
         }
         public override void Update()
         {

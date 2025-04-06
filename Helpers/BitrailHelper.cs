@@ -103,8 +103,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
         {
             AreaKey key = (scene as Level).Session.Area;
             HashSet<BitrailNode> nodes = new();
-            if (!PianoMapDataProcessor.Bitrails.ContainsKey(key.GetSID())) return nodes;
-            foreach (BitrailData d in PianoMapDataProcessor.Bitrails[key.GetSID()])
+            if (!PianoMapDataProcessor.Bitrails.ContainsKey(key.GetFullID())) return nodes;
+            foreach (BitrailData d in PianoMapDataProcessor.Bitrails[key.GetFullID()])
             {
                 Vector2 pos = d.LevelData.Position + d.Offset - MapPosition;
                 int x = (int)pos.X / 8;

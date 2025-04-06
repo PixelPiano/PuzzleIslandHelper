@@ -14,10 +14,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
     {
         private const int XOffset = 1920 / 16;
         private const int MaxLineWidth = 1920 / 2 - XOffset;
-        private const string fontName = "pixelary";
         private bool uses_;
         
 
+        private const string fontName = "pixelary";
         private static readonly Dictionary<string, List<string>> fontPaths;
         static MemoryTextscene()
         {

@@ -19,7 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         {
             Up, Down, Left, Right, UpLeft, UpRight, DownLeft, DownRight
         }
-        public GearLauncher(EntityData data, Vector2 offset) : base(data.Position + offset - Vector2.One * 8, data.Bool("onlyOnce"), Color.Orange)
+        public GearLauncher(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset - Vector2.One * 8, data.Bool("onlyOnce"), Color.Orange, id)
         {
             Force = data.Float("force", 50f);
             direction = data.Enum<Direction>("direction") switch
@@ -37,17 +37,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             chargeTime = data.Float("chargeTime", 1);
             normalRate = RotateRate;
         }
-        public void RenderAt(Vector2 position, Color color)
+        public override void Update()
         {
-            MTexture tex = GFX.Game["objects/PuzzleIslandHelper/Gear/holder"];
-            Vector2 offset = new Vector2(tex.Width / 2, tex.Height / 2);
-            Draw.SpriteBatch.Draw(tex.Texture.Texture_Safe, position + offset, null, color, Rotation.ToRad(), offset, 1, SpriteEffects.None, 0);
+            base.Update();
         }
-        public override void StopSpinning(bool drop = true)
+        public void Launch(Gear gear)
         {
-            base.StopSpinning(drop);
+            gear?.Launch(direction, Force * 6);
+            StartShaking(0.2f);
         }
-
         public override IEnumerator WhileSpinning(Gear gear)
         {
             RotateRate = normalRate;
@@ -57,7 +55,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                 {
                     break;
                 }
-
                 RotateRate = Calc.LerpClamp(RotateRate, Force / 5, Ease.SineIn(i));
                 if (RotateRate > 6)
                 {
@@ -67,14 +64,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             }
             float speed = GearSparks.SpeedMax;
             yield return Engine.DeltaTime * 2;
-            gear?.Launch(direction, Force * 6);
+            Launch(gear);
             Rotation %= 360;
             for (float i = 0; i < 1; i += Engine.DeltaTime / 3)
             {
                 RotateRate = Calc.LerpClamp(RotateRate, normalRate, Ease.CubeOut(i));
                 yield return null;
             }
-            StopSpinning();
+            StopSpinning(true);
             yield return base.WhileSpinning(gear);
         }
     }

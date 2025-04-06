@@ -83,7 +83,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         private IEnumerator appearObject()
         {
-            MTexture t = WarpCapsule.Machine.FilledTex;
+            MTexture t = WARP.InputMachine.FilledTex;
             ShineObject o = new ShineObject(t, new Vector2((Passenger.X - Player.Right) / 2 - t.Width / 2, Passenger.Y - t.Height / 2));
             Scene.Add(o);
             yield return null;

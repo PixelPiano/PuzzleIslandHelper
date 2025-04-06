@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using System;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.ChipPhrase;
+using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Effects
 {
@@ -15,14 +17,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
     {
         private string[] validSplits = [",", "\n", "{break}"];
         public string[] Phrases;
-        public List<Chip> Chips = [];
+        public List<ChipPhrase> Chips = [];
         public int ChipCount => Chips.Count;
         public const int MaxChips = 100;
         public float WaitTimer;
         private float minSpeed, maxSpeed;
         private float minWait, maxWait;
         public static Rectangle Bounds = new Rectangle(-16, -16, 352, 212);
-        private List<Chip> toRemove = [];
+        private List<ChipPhrase> toRemove = [];
         private bool firstFrame = true;
         public WordField(BinaryPacker.Element data) : base()
         {
@@ -53,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 AddChip(level);
             }
-            foreach (Chip c in toRemove)
+            foreach (ChipPhrase c in toRemove)
             {
                 Chips.Remove(c);
             }
@@ -69,10 +71,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             Color color = Color.Lime.Shade(depth, 40);
             Vector2 position = level.Camera.Position - Vector2.One * 16 + Bounds.Random();
 
-            Chip chip = new Chip(position, Phrases.Random(), Vector2.UnitX * speed, alpha, size, color);
-            //chip.Scroll.X = Calc.Clamp(1 + (depth / 10f * 0.5f), 0.5f, 1.5f);
-            //chip fades in, waits a random period between 10 and 20 seconds, then fades out and is removed.
-            //chip.FadeTo(0.4f, startAlpha, fadeTime, Ease.SineInOut,
+            ChipPhrase chip = new ChipPhrase(position, Phrases.Random(), Vector2.UnitX * speed, alpha, size, color);
             chip.FlickerOn(
                 delegate
                 {
@@ -89,7 +88,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             Chips.Add(chip);
             WaitTimer = Calc.Random.Range(minWait, maxWait);
         }
-        public void RemoveChip(Chip chip)
+
+        public void RemoveChip(ChipPhrase chip)
         {
             chip.RemoveSelf();
             toRemove.TryAdd(chip);

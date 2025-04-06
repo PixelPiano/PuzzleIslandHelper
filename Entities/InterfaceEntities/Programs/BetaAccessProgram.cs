@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
@@ -71,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             if (Engine.Scene is not Level level) yield break;
             WarpCapsuleData data = null;//PianoMapDataProcessor.WarpLinks[pass];
-            WarpCapsule machine = level.Tracker.GetEntity<WarpCapsule>();
+            WarpCapsule2 machine = level.Tracker.GetEntity<WarpCapsule2>();
             if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
             {
                 yield return PianoModule.Session.Interface.ShutDown(instant, machine != null);

@@ -67,6 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 try
                 {
+
                     AssetReloadHelper.Do("Reloading Interface Presets", () =>
                     {
                         if (Everest.Content.TryGet("ModFiles/PuzzleIslandHelper/InterfacePresets", out var asset)
@@ -187,7 +188,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public Machine Machine;
         public DotX3 Talk;
         public FloppyHUD FloppyHUD;
-        private SoundSource whirringSfx;
+        public SoundSource Whirring;
         public List<Icon> Icons = [];
         public List<WindowContent> Content = [];
         public InterfaceData.Preset CurrentPreset;
@@ -197,7 +198,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         {
             BackgroundColor = background;
             Tag |= Tags.TransitionUpdate;
-            Add(whirringSfx = new SoundSource());
+            Add(Whirring = new SoundSource());
             startColor = Color.Lerp(BackgroundColor, Color.White, 0.1f);
             Machine = machine;
             CurrentPreset = new();
@@ -432,7 +433,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 }
                 SetIconInitialPositions(Icons);
             }
-            whirringSfx.Play("event:/PianoBoy/interface/Whirring", "Computer state", 0);
+            StartWhirring();
             Add(new Coroutine(turnOnMonitor()));
             Vector2 pos = Monitor.Position - Position + MousePosition / 6;
             Collider = new Hitbox(ColliderWidth, ColliderHeight, pos.X, pos.Y);
@@ -440,6 +441,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             MouseBounds.Height = ((int)Monitor.Height - (int)Height) * 6;
             MouseBounds.X = (int)(Monitor.X - level.Camera.X) * 6;
             MouseBounds.Y = (int)(Monitor.Y - level.Camera.Y) * 6;
+        }
+        public void StartWhirring()
+        {
+            Whirring.Play("event:/PianoBoy/interface/Whirring", "Computer state", 0);
+        }
+        public void StopWhirring(bool instant = false)
+        {
+            if (instant)
+            {
+                Whirring.Stop();
+            }
+            else if (Whirring.Playing)
+            {
+                Whirring.Param("Computer state", 1);
+            }
         }
         public void StartWithPreset(string preset)
         {
@@ -704,6 +720,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         private IEnumerator turnOffMonitor(bool fast)
         {
             Monitor.EndAnimation();
+            Machine.OnMonitorOff();
             while (!fast && Monitor.TurningOff)
             {
                 yield return null;
@@ -720,6 +737,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                     yield return null;
                 }
             }
+            Machine.OnEnd();
             Monitor.Alpha = Border.Alpha = 0;
             Border.Visible = false;
             Monitor.Visible = false;
@@ -850,8 +868,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 
             if (!UsesStartupMonitor)
             {
-                whirringSfx.Param("Computer state", 1);
+                StopWhirring();
             }
+
             yield return turnOffMonitor(fast);
             Audio.SetMusicParam("fade", 1);
             if (Scene.GetPlayer() is Player player)
@@ -862,7 +881,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             if (UsesStartupMonitor)
             {
                 yield return 0.8f;
-                whirringSfx.Param("Computer state", 1);
+                StopWhirring();
                 yield return ScreenIconAnimation(false);
             }
             yield return null;

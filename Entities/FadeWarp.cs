@@ -232,24 +232,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 EndTimer = 0.5f
             };
         }
-/*        private void SetOnGround(Entity entity)
-        {
-            if (Scene as Level is not null)
-            {
-                try
-                {
-                    while (!entity.CollideCheck<SolidTiles>())
-                    {
-                        entity.Offset.Y += 1;
-                    }
-                }
-                catch
-                {
-                    Console.WriteLine($"{entity} could not find any SolidTiles below it to set it's Y Offset to");
-                }
-                entity.Offset.Y -= 1;
-            }
-        }*/
         private IEnumerator TeleportPlayer(Player player, bool wasNotInvincible, Camera camera)
         {
             yield return null;
@@ -288,6 +270,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             RemoveTag(Tags.Global);
             RemoveSelf();
         }
+        /*        private void SetOnGround(Entity entity)
+        {
+            if (Scene as Level is not null)
+            {
+                try
+                {
+                    while (!entity.CollideCheck<SolidTiles>())
+                    {
+                        entity.Offset.Y += 1;
+                    }
+                }
+                catch
+                {
+                    Console.WriteLine($"{entity} could not find any SolidTiles below it to set it's Y Offset to");
+                }
+                entity.Offset.Y -= 1;
+            }
+        }*/
         public override void Render()
         {
             base.Render();

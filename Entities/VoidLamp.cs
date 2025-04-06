@@ -20,26 +20,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (scene is Level level && scene.GetPlayer() is Player player)
             {
                 List<Entity> lamps = scene.Tracker.GetEntities<VoidLamp>();
-                VoidLamp closest = null;
-                Vector2 spawn = level.GetSpawnPoint(player.Position);
-                float dist = int.MaxValue;
-                foreach (VoidLamp lamp in lamps)
+                if (player.Holding != null && player.Holding.Entity is VoidLamp held)
                 {
-                    if (lamp.CompeteForPlayerOnSpawn)
+                    foreach (VoidLamp lamp in lamps)
                     {
-                        float lampdist = Vector2.DistanceSquared(spawn, lamp.Position);
-                        if (lampdist < dist)
-                        {
-                            dist = lampdist;
-                            closest = lamp;
-                        }
+                        if (lamp.CompeteForPlayerOnSpawn && lamp != held) lamp.RemoveSelf();
                     }
                 }
-                foreach (VoidLamp lamp in lamps)
+                else
                 {
-                    if (lamp.CompeteForPlayerOnSpawn && lamp != closest)
+                    VoidLamp closest = null;
+                    Vector2 spawn = level.GetSpawnPoint(player.Position);
+                    float dist = int.MaxValue;
+                    foreach (VoidLamp lamp in lamps)
                     {
-                        lamp.RemoveSelf();
+                        if (lamp.CompeteForPlayerOnSpawn)
+                        {
+                            float lampdist = Vector2.DistanceSquared(spawn, lamp.Position);
+                            if (lampdist < dist)
+                            {
+                                dist = lampdist;
+                                closest = lamp;
+                            }
+                        }
+                    }
+                    foreach (VoidLamp lamp in lamps)
+                    {
+                        if (lamp.CompeteForPlayerOnSpawn && lamp != closest)
+                        {
+                            lamp.RemoveSelf();
+                        }
                     }
                 }
             }

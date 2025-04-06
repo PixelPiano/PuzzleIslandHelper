@@ -14,7 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         private float spins;
         public string DoorID;
         public List<GearDoor> LinkedDoors = new();
-        public GearDoorActivator(EntityData data, Vector2 offset) : base(data.Position + offset, data.Bool("onlyOnce"), Color.MediumPurple, 10f)
+        public GearDoorActivator(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset, data.Bool("onlyOnce"), Color.MediumPurple, id, 10f)
         {
             spins = data.Float("spins", 1);
             DoorID = data.Attr("doorID");
@@ -52,7 +52,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             base.Update();
             foreach (GearDoor door in LinkedDoors)
             {
-                if (!door.CanRevert && door.Amount >= 1) continue;
+                if (!door.CanMoveBack && door.Amount >= 1) continue;
                 door.Amount = Calc.Clamp(Rotations, 0, spins) / spins;
             }
         }

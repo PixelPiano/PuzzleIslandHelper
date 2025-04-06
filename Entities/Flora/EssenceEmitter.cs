@@ -1,5 +1,4 @@
 ﻿using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Structs;
 using Microsoft.Xna.Framework;
 using Monocle;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora

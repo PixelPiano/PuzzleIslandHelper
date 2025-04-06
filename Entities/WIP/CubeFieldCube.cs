@@ -59,7 +59,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 Add(new Coroutine(blinkRoutine()));
             }
         }
-        
+
         private IEnumerator blinkRoutine()
         {
             float interval = Calc.Random.Range(0.4f, 5);
@@ -82,10 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 Mesh.Vertices[i].Color = GetZColor(Mesh.Vertices[i].Position, Color);
             }
         }
-        public float ClosestMultiple(double num, float factor)
-        {
-            return (float)(Math.Round(num / (double)factor, MidpointRounding.AwayFromZero) * factor);
-        }
+
 
         public Color GetZColor(Vector3 vector, Color color)
         {
@@ -94,6 +91,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             float lerp = Math.Abs(avg);
             Color newColor = Color.Lerp(color, to, lerp);
             return Color.Lerp(color, Color.Black, (float)ZLayer / (MaxLayers + 1));
+        }
+        public float ClosestMultiple(double num, float factor)
+        {
+            return (float)(Math.Round(num / (double)factor, MidpointRounding.AwayFromZero) * factor);
         }
         public override void Update()
         {

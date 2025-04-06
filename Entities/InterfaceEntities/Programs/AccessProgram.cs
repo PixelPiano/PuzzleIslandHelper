@@ -31,7 +31,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public override void Update()
         {
             base.Update();
-            SetBoxPositions();
+            if (Open)
+            {
+                SetBoxPositions();
+            }
         }
         public bool IsValidCharacter(char c)
         {
@@ -40,10 +43,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            SegmentBox box1 = new SegmentBox(Window, 3, 2, CheckInput, IsValidCharacter);
-            SegmentBox box2 = new SegmentBox(Window, 2, 2, CheckInput, IsValidCharacter);
-            SegmentBox box3 = new SegmentBox(Window, 2, 2, CheckInput, IsValidCharacter);
-            SegmentBox box4 = new SegmentBox(Window, 1, 2, CheckInput, IsValidCharacter);
+            SegmentBox box1 = new SegmentBox(Window, 3, 2, CheckInput, IsValidCharacter, CompletePuzzle);
+            SegmentBox box2 = new SegmentBox(Window, 2, 2, CheckInput, IsValidCharacter, CompletePuzzle);
+            SegmentBox box3 = new SegmentBox(Window, 2, 2, CheckInput, IsValidCharacter, CompletePuzzle);
+            SegmentBox box4 = new SegmentBox(Window, 1, 2, CheckInput, IsValidCharacter, CompletePuzzle);
             Boxes = [box1, box2, box3, box4];
             for (int i = 0; i < Boxes.Count; i++)
             {
@@ -51,20 +54,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 ProgramComponents.Add(b);
             }
         }
+        public void CompletePuzzle()
+        {
+
+        }
         public bool CheckInput(string i)
         {
             return CheckAllInput();
         }
         public bool CheckAllInput()
         {
-            return false;
+            return true;
         }
         public void SetBoxPositions()
         {
             float width = 0;
             for (int i = 0; i < Boxes.Count; i++)
             {
-                if(i < Boxes.Count - 1) Snippets[i].Offset.X = Boxes[i].Width + Boxes[i].CellWidth / 2 - ActiveFont.Measure(".").X / 6 / 2;
+                if (i < Boxes.Count - 1) Snippets[i].Offset.X = Boxes[i].Width + Boxes[i].CellWidth / 2 - ActiveFont.Measure(".").X / 6 / 2;
                 width += Boxes[i].Width + Boxes[i].CellWidth;
             }
             float x = Window.CaseWidth / 2 - width / 2;

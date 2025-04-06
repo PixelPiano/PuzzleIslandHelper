@@ -1,5 +1,5 @@
 ﻿using System;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.LabGeneratorPuzzle.LGPOverlay;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.LabGeneratorPuzzle.PuzzleOverlay;
 using System.Collections.Generic;
 using System.Linq;
 
