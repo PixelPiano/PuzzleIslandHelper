@@ -164,11 +164,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public override void BeforeBegin()
         {
         }
-        public override bool Continue()
-        {
-            return State != States.Launched;
-        }
-
+        public override bool Continue() => State != States.Launched;
         public IEnumerator Launch(string input)
         {
             if (State == States.Off)

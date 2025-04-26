@@ -3,20 +3,22 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
+using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
     [Tracked]
-    //[CustomProgram("Access")]
-    [Obsolete("Use AccessProgram.cs")]
+    [CustomProgram("Access")]
+    //[Obsolete("Use AccessProgram.cs")]
     public class BetaAccessProgram : WindowContent
     {
         public static bool AccessTeleporting;
         public InputBox Box;
+        private Button placeholderButton;
         public BetaAccessProgram(Window window) : base(window)
         {
-            Name = "BetaAccess";
+            Name = "Access";
         }
         [OnLoad]
         public static void Load()
@@ -35,28 +37,64 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            ProgramComponents.Add(Box = new InputBox(Window, TryStartWarpRoutine));
+            //ProgramComponents.Add(Box = new InputBox(Window, TryStartWarpRoutine));
+            Circle circle = new Circle(27 / 2f);
+            ProgramComponents.Add(placeholderButton = new Button(Window, circle, "greenCircle", OnClicked));
+            placeholderButton.Position = new Vector2(Window.WindowWidth / 2, Window.WindowHeight / 2) - new Vector2(placeholderButton.Width / 2, placeholderButton.Height / 2);
+        }
+        public void OnClicked()
+        {
+            Scene.Add(new cutscene(this));
+        }
+
+        private class cutscene : CutsceneEntity
+        {
+            public BetaAccessProgram Program;
+            public cutscene(BetaAccessProgram program) : base()
+            {
+                Program = program;
+            }
+            public override void OnBegin(Level level)
+            {
+                Add(new Coroutine(routine()));
+            }
+            private IEnumerator routine()
+            {
+                yield return Program.AccessRoutine("digiCalidus1",true);
+                EndCutscene(Level);
+            }
+            public override void OnEnd(Level level)
+            {
+                if (WasSkipped)
+                {
+                    Program.Interface.CloseInterface(true);
+                    level.GetPlayer()?.EnableMovement();
+                    if(level.Tracker.GetEntity<WarpCapsuleBeta>() is var machine)
+                    {
+                        machine.RoomName = "digiCalidus1";
+                    }
+                }
+            }
         }
         public override void OnOpened(Window window)
         {
             base.OnOpened(window);
         }
-        private IEnumerator WaitAnimation(float time)
+        public IEnumerator WaitAnimation(float time)
         {
             Interface.Buffering = true;
             yield return time;
             Interface.Buffering = false;
         }
-        public IEnumerator AccessRoutine(string pass, bool success)
+        public IEnumerator AccessRoutine(string room, bool success)
         {
             yield return WaitAnimation(Calc.Random.Range(1f, 3f));
             yield return 0.05f;
-
             if (!success)
             {
                 yield break;
             }
-            yield return TransitionRoutine(pass);
+            yield return TransitionRoutine(room);
         }
         public static IEnumerator ForceTransition(string room, bool instant = false, bool buggy = false)
         {
@@ -68,35 +106,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 
             level.Add(new BeamMeUp(room, AccessTeleporting));
         }
-        public static IEnumerator TransitionRoutine(string pass, bool instant = false, bool buggy = false)
+        public IEnumerator TransitionRoutine(string room, bool instant = false, bool buggy = false)
         {
             if (Engine.Scene is not Level level) yield break;
-            WarpCapsuleData data = null;//PianoMapDataProcessor.WarpLinks[pass];
-            WarpCapsule2 machine = level.Tracker.GetEntity<WarpCapsule2>();
+            WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
             if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
             {
-                yield return PianoModule.Session.Interface.ShutDown(instant, machine != null);
+                yield return PianoModule.Session.Interface.ShutDown(true, machine != null);
             }
             if (machine != null)
             {
-                //machine.SetWarpTarget(pass);
                 machine.LeftDoor.MoveToBg();
                 machine.RightDoor.MoveToBg();
-                yield return machine.MoveTo(1, 0, 0.7f, null);
-                machine.Enabled = true;
+                machine.RoomName = room;
+                machine.LockPlayerState = true;
                 level.GetPlayer().StateMachine.State = Player.StNormal;
             }
         }
-        private static bool TransitionValid(string id)
+
+        //leftover from ip address puzzle
+        public static PuzzleData.AccessData.Link GetLink(string id)
         {
-            return false;
-            //return PianoMapDataProcessor.WarpLinks.ContainsKey(id);
+            if (PianoModule.AccessData.HasID(id))
+            {
+                return PianoModule.AccessData.GetLink(id);
+            }
+            return null;
         }
+        //ditto
         public bool TryStartWarpRoutine(string pass)
         {
-            if (TransitionValid(pass))
+            if (GetLink(pass) is var data)
             {
-                Add(new Coroutine(AccessRoutine(pass, true)));
+                Add(new Coroutine(AccessRoutine(data.Room, true)));
                 return true;
             }
             return false;

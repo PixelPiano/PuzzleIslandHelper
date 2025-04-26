@@ -3,31 +3,16 @@ using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
-    public struct FlagData
+    public struct FlagData(string flag = "", bool inverted = false, bool ignore = false)
     {
-        public FlagData(string flag = "", bool inverted = false, bool ignore = false)
+        public string Flag = flag;
+        public bool Inverted = inverted;
+        public bool Ignore = ignore;
+        public readonly bool Empty => string.IsNullOrEmpty(Flag);
+        public readonly bool State
         {
-            Flag = flag;
-            Inverted = inverted;
-            Ignore = ignore;
-        }
-        public string Flag;
-        public bool Inverted;
-        public bool Ignore;
-        public bool State
-        {
-            get
-            {
-                return Ignore || (string.IsNullOrEmpty(Flag) ? !Inverted :
-                Engine.Scene is Level level && level.Session.GetFlag(Flag) != Inverted);
-            }
-            set
-            {
-                if (!string.IsNullOrEmpty(Flag) && Engine.Scene is Level level)
-                {
-                    level.Session.SetFlag(Flag, value);
-                }
-            }
+            get => Ignore || Empty ? !Inverted : Engine.Scene is Level level && level.Session.GetFlag(Flag) != Inverted;
+            set => Flag.SetFlag(value);
         }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {

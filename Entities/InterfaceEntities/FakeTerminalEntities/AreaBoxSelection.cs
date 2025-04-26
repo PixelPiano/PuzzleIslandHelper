@@ -28,12 +28,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             return ActiveFont.Measure("[").X + ActiveFont.Measure("] [").X * index;
         }
-        public override void TerminalRender(Level level, Vector2 renderAt)
+        public override void TerminalRender(Level level, Vector2 renderAt, PixelFont font)
         {
-            base.TerminalRender(level, renderAt);
+            base.TerminalRender(level, renderAt, font);
             float scale = 0.7f;
-            ActiveFont.Draw('_', 
-                level.Camera.CameraToScreen(renderAt + new Vector2(GetLengthTo(SelectedBox), ActiveFont.BaseSize) * scale).Floor() * 6, 
+            font.Draw(Dialog.Language.FontFaceSize, '_',
+                level.Camera.CameraToScreen(renderAt + new Vector2(GetLengthTo(SelectedBox), Dialog.Language.FontFaceSize) * scale).Floor() * 6,
                 Vector2.Zero, Vector2.One * scale, Color);
         }
         public override void Awake(Scene scene)
@@ -43,7 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public override void Update()
         {
             base.Update();
-            if(Submitted) return;
+            if (Submitted) return;
             if (lastPressed != Keys.None && MInput.Keyboard.Released(lastPressed))
             {
                 keyBufferTimer = 0;

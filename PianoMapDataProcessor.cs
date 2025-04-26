@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 using static Celeste.Mod.PuzzleIslandHelper.Cutscenes.Gameshow;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -78,21 +78,27 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public string LeftArmFlag;
         public string RightArmFlag;
     }
-    public class WarpCapsuleData
+    public class WarpData
+    {
+        public string Room;
+    }
+    public class AlphaWarpData : WarpData
     {
         public string Name;
         public bool Lab;
-        public string Room;
         public Vector2 Position;
-        public WARP.Rune Rune;
+        public WarpRune Rune;
+    }
+    public class BetaWarpData : WarpData
+    {
     }
     public class RuneList
     {
-        public WarpCapsuleData Default;
-        public List<WarpCapsuleData> DefaultSet = [];
-        public List<WarpCapsuleData> All = [];
-        public bool Contains(Rune rune) => GetDataFromRune(rune) != null;
-        public WarpCapsuleData GetDataFromRune(WARP.Rune rune) => All.Find(item => item.Rune.Match(rune));
+        public AlphaWarpData Default;
+        public List<AlphaWarpData> DefaultSet = [];
+        public List<AlphaWarpData> All = [];
+        public bool Contains(WarpRune rune) => GetDataFromRune(rune) != null;
+        public AlphaWarpData GetDataFromRune(WarpRune rune) => All.Find(item => item.Rune.Match(rune));
     }
     public class PianoMapDataProcessor : EverestMapDataProcessor
     {
@@ -103,6 +109,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static readonly Dictionary<string, Dictionary<string, CalidusSpawnerData>> CalidusSpawners = [];
         public static readonly Dictionary<string, List<SecurityCamData>> SecurityCams = [];
         public static readonly Dictionary<string, RuneList> WarpRunes = [];
+        public static readonly Dictionary<string, List<BetaWarpData>> BetaWarpData = [];
         public static readonly Dictionary<string, Dictionary<string, List<SlotData>>> SlotData = [];
         public static readonly Dictionary<string, Dictionary<string, List<MarkerData>>> MarkerData = [];
         public static void Reset<T>(Dictionary<string, List<T>> dict, string key)
@@ -131,6 +138,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Reset(SecurityCams, key);
             Reset(WarpRunes, key, delegate { return new RuneList(); });
             Reset(MarkerData, key);
+            Reset(BetaWarpData, key);
         }
         [Command("print_markers", "")]
         public static void PrintMarkers()
@@ -261,12 +269,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
             Action<BinaryPacker.Element> accessWarpHandler = data =>
             {
-                WarpCapsuleData awData = default;
+                AlphaWarpData awData = default;
 
                 string id = data.Attr("warpID");
 
                 if (string.IsNullOrEmpty(id)) return;
-                WARP.Rune rune = new(id, data.Attr("rune"));
+                WarpRune rune = new(id, data.Attr("rune"));
                 if (!string.IsNullOrEmpty(levelName) && rune != null && !WarpRunes[key].Contains(rune))
                 {
                     awData = new()
@@ -285,6 +293,19 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         WarpRunes[key].DefaultSet.Add(awData);
                     }
                     WarpRunes[key].All.Add(awData);
+                }
+
+            };
+            Action<BinaryPacker.Element> betaAccessWarpHandler = data =>
+            {
+                BetaWarpData bwData = default;
+                if (!string.IsNullOrEmpty(levelName))
+                {
+                    bwData = new()
+                    {
+                        Room = levelName
+                    };
+                    BetaWarpData[key].Add(bwData);
                 }
 
             };
@@ -346,6 +367,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     "entity:PuzzleIslandHelper/WarpCapsule", accessWarp =>
                     {
                         accessWarpHandler(accessWarp);
+                    }
+                },
+                {
+                    "entity:PuzzleIslandHelper/WarpCapsuleBeta", betaAccessWarp =>
+                    {
+                        betaAccessWarpHandler(betaAccessWarp);
                     }
                 },
                 {

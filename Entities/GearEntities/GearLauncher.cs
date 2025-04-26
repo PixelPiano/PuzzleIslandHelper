@@ -36,6 +36,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             };
             chargeTime = data.Float("chargeTime", 1);
             normalRate = RotateRate;
+            DropGear = false;
         }
         public override void Update()
         {
@@ -45,6 +46,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         {
             gear?.Launch(direction, Force * 6);
             StartShaking(0.2f);
+        }
+        public override void OnWindBack(Gear gear, bool drop)
+        {
+            HasGear = false;
+            PreventRegrab(0.5f);
         }
         public override IEnumerator WhileSpinning(Gear gear)
         {
@@ -66,6 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             yield return Engine.DeltaTime * 2;
             Launch(gear);
             Rotation %= 360;
+            
             for (float i = 0; i < 1; i += Engine.DeltaTime / 3)
             {
                 RotateRate = Calc.LerpClamp(RotateRate, normalRate, Ease.CubeOut(i));

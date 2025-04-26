@@ -1,11 +1,13 @@
 using Microsoft.Xna.Framework;
 using System.Collections;
 using System.Collections.Generic;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
+using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities.Programs
 {
     //BETA - NOW OBSOLETE
+    [Obsolete("Replaced with warp capsule game mechanic")]
     [CustomProgram("WarpProgram")]
     public class WarpProgram : TerminalProgram
     {
@@ -22,9 +24,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             }
         }
         //public WarpCapsuleData SelectedCapsule => WarpCapsule.GetCapsuleData(SelectedID);
-        public static Dictionary<string, WarpCapsuleData> Data;
-        public WarpCapsule2 Parent;
-        public WarpProgram(WarpCapsule2 parent, FakeTerminal terminal) : base(terminal, "Please enter the destination node ID.")
+        public static Dictionary<string, AlphaWarpData> Data;
+        public WarpCapsuleAlpha Parent;
+        public WarpProgram(WarpCapsuleAlpha parent, FakeTerminal terminal) : base(terminal, "Please enter the destination node ID.")
         {
             Parent = parent;
             AddCommand("id", null, OnID, "destination", "target", "travel");
@@ -34,7 +36,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public void OnDebug(string input)
         {
             bool added = false;
-            foreach (KeyValuePair<string, WarpCapsuleData> pair in Data)
+            foreach (KeyValuePair<string, AlphaWarpData> pair in Data)
             {
                 string text = pair.Key;
 /*                if (!string.IsNullOrEmpty(pair.Value.Password))
@@ -129,7 +131,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 Error("Error: Link ID cannot be identical {n}to the parent warp chamber's Link ID.");
                 yield break;
             }*/
-            WarpCapsuleData data = Data[name];
+            AlphaWarpData data = Data[name];
 /*            if (!string.IsNullOrWhiteSpace(data.Password))
             {
                 string dataPass = data.Password.Replace(" ", "").ToLower();
@@ -160,7 +162,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             return !Closed;
         }
-        public static bool ValidateID(string id, WarpCapsule2 parent)
+        public static bool ValidateID(string id, WarpCapsuleAlpha parent)
         {
             return !string.IsNullOrEmpty(id) && /*parent.WarpID != id &&*/ Data.ContainsKey(id);
         }

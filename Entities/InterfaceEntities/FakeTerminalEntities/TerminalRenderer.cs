@@ -21,8 +21,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             get
             {
-                if (Groups.Count < LinesAvailable) return 0;
-                return Calc.Clamp(startIndex, 0, (int)Calc.Max(0, Groups.Count - LinesAvailable));
+                return Math.Clamp(startIndex, 0, Math.Max(0, Groups.Count - LinesAvailable));
+                //return Groups.Count < LinesAvailable ? 0 : Math.Clamp(startIndex, 0, Math.Max(0, Groups.Count - LinesAvailable));
             }
             set
             {
@@ -33,8 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             get
             {
-                if (Groups is null || Groups.Count < 1) return 0;
-                return Calc.Clamp(lineIndex, StartIndex, Groups.Count - 1);
+                return Groups is null || Groups.Count < 1 ? 0 : Calc.Clamp(lineIndex, StartIndex, Groups.Count - 1);
             }
             set
             {
@@ -49,13 +48,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             get
             {
                 int index = LineIndex;
-                if (Groups is null || Groups.Count == 0 || index < 0 || index >= Groups.Count)
-                {
-                    return null;
-                }
-                return Groups[index];
-
+                return Groups is null || Groups.Count == 0 || index < 0 || index >= Groups.Count ? null : Groups[index];
             }
+
         }
         public bool UserInputSelectedPreviously;
         private Alarm squareAlarm;
@@ -65,16 +60,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             Terminal = terminal;
             LinesAvailable = (int)(terminal.Height / Group.LINEHEIGHT) - 1;
             TextPosition = Terminal.TopLeft + new Vector2(3, 0);
-            squareAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { TextLine.HideSquare = false; }, 5 * Engine.DeltaTime, false);
+            squareAlarm = Alarm.Create(Alarm.AlarmMode.Persist, delegate { TextLine.UniversalHideSquare = false; }, 5 * Engine.DeltaTime, false);
             Add(squareAlarm);
-
+            Input = new UserInput(Terminal, Color.Cyan);
+            Input.Alpha = 0;
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            Input = new UserInput(Terminal, Color.Cyan);
-            Input.Alpha = 0;
-
             Scene.Add(Input);
             Groups.Add(Input);
         }
@@ -89,7 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             {
                 g.Alpha = value;
             }
-            Input.Alpha = value;
+            //Input.Alpha = value;
         }
         public IEnumerator FadeGroups(float from, float to, float duration)
         {
@@ -120,27 +113,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             UserInput.RefreshBlockedBindings();
         }
-        public TextLine[] AddText(string input, params Color[] lineColors)
+        public TextLine[] AddText(string input, string prefix, params Color[] lineColors)
         {
-            string[] array = input.Split(new string[] { "{n}" }, StringSplitOptions.RemoveEmptyEntries);
+            string[] array = input.Split(["{n}"], StringSplitOptions.RemoveEmptyEntries);
             TextLine[] lines = new TextLine[array.Length];
             for (int i = 0; i < array.Length; i++)
             {
                 Color c = lineColors.Length > i ? lineColors[i] : Color.White;
                 if (lineColors.Length > i) c = lineColors[i];
-                TextLine line = new TextLine(Terminal, array[i], c);
+                TextLine line = new TextLine(Terminal, array[i], c)
+                {
+                    Prefix = prefix,
+                };
                 lines[i] = line;
                 addGroup(line);
             }
+
             return lines;
         }
-        public TextLine[] AddText(string input, Color color)
+        public TextLine[] AddText(string input, string prefix, Color color)
         {
-            string[] array = input.Split(new string[] { "{n}" }, StringSplitOptions.RemoveEmptyEntries);
+            string[] array = input.Split(["{n}"], StringSplitOptions.RemoveEmptyEntries);
             TextLine[] lines = new TextLine[array.Length];
             for (int i = 0; i < array.Length; i++)
             {
-                TextLine line = new TextLine(Terminal, array[i], color);
+                TextLine line = new TextLine(Terminal, array[i], color)
+                {
+                    Prefix = prefix
+                };
                 lines[i] = line;
                 addGroup(line);
             }
@@ -150,9 +150,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             squareAlarm.Stop();
             squareAlarm.Start();
-            TextLine.HideSquare = true;
-            Groups.Add(group);
+            TextLine.UniversalHideSquare = true;
             Scene.Add(group);
+            Groups.Add(group);
             MoveInputToFront();
             int count = Groups.Count + 1;
             if (count > LinesAvailable && (count - StartIndex) * Group.LINEHEIGHT > Terminal.Height)
@@ -176,10 +176,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             if (Scene is not Level level) return;
             float offset = 0;
+            PixelFont font = ActiveFont.Font;
             for (int i = StartIndex; i < Groups.Count && i < StartIndex + LinesAvailable; i++)
             {
                 Groups[i].IsCurrentIndex = i == LineIndex;
-                Groups[i].TerminalRender(level, TextPosition + Vector2.UnitY * offset);
+                Groups[i].TerminalRender(level, TextPosition + Vector2.UnitY * offset, font);
                 offset += Group.LINEHEIGHT;
             }
             //Input.TerminalRender(level, TextPosition + Vector2.UnitY * (Group.LINEHEIGHT * (LinesAvailable)));

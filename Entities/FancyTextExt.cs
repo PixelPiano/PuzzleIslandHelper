@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Linq;
 using Celeste.Mod;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 using Microsoft.Xna.Framework;
@@ -23,10 +24,128 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         public class Node
         {
+            public override string ToString()
+            {
+                return "{Generic Node}";
+            }
         }
         public class PassengerName : Node
         {
             public string Name;
+            public override string ToString()
+            {
+                return "{Passenger Name -> name: " + Name + "}";
+            }
+        }
+        public class Confirm : Node
+        {
+            public override string ToString()
+            {
+                return "{Confirm}";
+            }
+        }
+        public class Choice : Node
+        {
+            public class Option
+            {
+                public string Text;
+                public Advance Advance;
+                private FancyTextExt.Text fancyText;
+                public bool Selected;
+                public Vector2 Size;
+                private string underline = "";
+                private float underlineWidth;
+                public Option(string text, string advanceId)
+                {
+                    Text = text;
+                    Advance = new Advance(advanceId);
+                    fancyText = Parse(text, int.MaxValue, int.MaxValue, Vector2.Zero);
+                    Size = ActiveFont.Measure(text);
+                    float x = 0;
+                    float uw = ActiveFont.Measure('_').X;
+                    while (x - uw < Size.X)
+                    {
+                        underline += '_';
+                        x += uw;
+                    }
+                    underlineWidth = x;
+                }
+                public override string ToString()
+                {
+                    return "{Option -> text: " + Text + "," + Advance.ToString() + "}";
+                }
+                public void DrawRect(Vector2 position, Vector2 scale)
+                {
+                    Draw.Rect(position - 8 * scale, (Size.X + 16) * scale.X, (Size.Y + 16) * scale.Y, Color.Red);
+                }
+                public void Render(Vector2 position, Vector2 scale)
+                {
+                    fancyText.Draw(position, Vector2.Zero, scale, 1, Color.White);
+                    if (Selected)
+                    {
+                        ActiveFont.Draw(underline, position + new Vector2(Size.X / 2 - underlineWidth / 2, Size.Y) * scale, Color.White);
+                    }
+                }
+            }
+            public List<Option> Options = [];
+            public Choice(params (string, string)[] choices)
+            {
+                foreach (var a in choices)
+                {
+                    Options.Add(new Option(a.Item1, a.Item2));
+                }
+            }
+            public void Render(Vector2 position, Vector2 scale, Vector2 spacing, float maxWidth)
+            {
+                Vector2 prev = position;
+                Vector2 offset = Vector2.Zero;
+                float w = 0;
+                foreach (var a in Options)
+                {
+                    a.DrawRect(position + offset, scale);
+                    offset.X += a.Size.X + spacing.X;
+                    if (w >= maxWidth)
+                    {
+                        w = 0;
+                        offset.Y += spacing.Y;
+                    }
+                }
+                position = prev;
+                offset = Vector2.Zero;
+                w = 0;
+                foreach (var a in Options)
+                {
+                    a.Render(position + offset, scale);
+                    offset.X += a.Size.X + spacing.X;
+                    if (w >= maxWidth)
+                    {
+                        w = 0;
+                        offset.Y += spacing.Y;
+                    }
+                }
+            }
+            public override string ToString()
+            {
+                string output = "{Choice -> ";
+                foreach (var o in Options)
+                {
+                    output += o.ToString();
+                }
+                output += '}';
+                return output;
+            }
+        }
+        public class Advance : Node
+        {
+            public string ID;
+            public Advance(string id)
+            {
+                ID = id;
+            }
+            public override string ToString()
+            {
+                return "{Advance -> id: " + ID + "}";
+            }
         }
         public class Char : Node
         {
@@ -98,10 +217,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 LastPosition = position + zero * vector;
             }
+            public override string ToString()
+            {
+                return $"{(char)Character}";
+            }
         }
 
         public class Portrait : Node
         {
+            public override string ToString()
+            {
+                return "{Portrait -> " + string.Format("side:{0},sprite:{1},anim:{2}", Side, Sprite, Animation) + '}';
+            }
             public int Side;
 
             public string Sprite;
@@ -127,11 +254,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public string IdleAnimation => "idle_" + Animation;
 
             public string TalkAnimation => "talk_" + Animation;
+
         }
 
         public class Wait : Node
         {
             public float Duration;
+            public override string ToString()
+            {
+                return "{Wait -> duration: " + Duration + "}";
+            }
         }
 
         public class Trigger : Node
@@ -141,14 +273,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public bool Silent;
 
             public string Label;
+            public override string ToString()
+            {
+                return "{Trigger -> " + string.Format("index: {0}, silent: {1}, label: {2}", Index, Silent, Label) + "}";
+            }
         }
 
         public class NewLine : Node
         {
+            public override string ToString()
+            {
+                return "{New Line}";
+            }
         }
 
         public class NewPage : Node
         {
+            public override string ToString()
+            {
+                return "{New Page}";
+            }
         }
 
         public class NewSegment : Node
@@ -157,6 +301,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public NewSegment(int newLines = 1)
             {
                 Lines = newLines;
+            }
+            public override string ToString()
+            {
+                return "{New Segment -> lines: " + Lines + "}";
             }
         }
 
@@ -170,6 +318,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public class Anchor : Node
         {
             public Anchors Position;
+            public override string ToString()
+            {
+                return "{Anchor -> position:" + Position.ToString() + "}";
+            }
         }
         public class CalidusNode : Node
         {
@@ -238,7 +390,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public class Text
         {
-
             public List<Node> Nodes;
 
             public int Lines;
@@ -466,8 +617,92 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             return new FancyTextExt(text, maxLineWidth, linesPerPage, offset, startFade, defaultColor.HasValue ? defaultColor.Value : DefaultColor, language).Parse();
         }
+        public static string[] ParseSplit(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade = 1f, Color? defaultColor = null, Language language = null)
+        {
+            //i don't fucking know man i've rewritten dialog parsing logic 6 times in the past 5 hours and this works
+            return new FancyTextExt(text, maxLineWidth, linesPerPage, offset, startFade, defaultColor.HasValue ? defaultColor.Value : DefaultColor, language).ParseSplit();
+        }
+        private string[] ParseSplit()
+        {
+            List<string> output = [];
+            float currentPosition = 0;
+            float currentScale = 1;
+            PixelFontSize size = this.size;
+            string[] split = Regex.Split(this.text, language.SplitRegex);
+            string[] parts = new string[split.Length];
+            int num = 0;
+            for (int i = 0; i < split.Length; i++)
+            {
+                if (!string.IsNullOrEmpty(split[i]))
+                {
+                    parts[num++] = split[i];
+                }
+            }
+            string raw = "";
+            for (int j = 0; j < num; j++)
+            {
+                if (parts[j] == "{")
+                {
+                    j++;
+                    string inside = "";
+                    for (; j < parts.Length && parts[j] != "}"; j++)
+                    {
+                        if (!string.IsNullOrEmpty(parts[j]))
+                        {
+                            inside += parts[j];
+                        }
+                    }
+                    if(inside == "break" || inside == "n")
+                    {
+                        new_AddNewLine();
+                    }
+                    else
+                    {
+                        raw += "{" + inside + "}";
+                    }
+                }
+                else
+                {
+                    new_AddWord(parts[j]);
+                }
+            }
+            return [.. output];
+            void new_AddNewLine()
+            {
+                output.Add(raw);
+                raw = "";
+                this.currentPosition = 0;
+                currentLine = 0;
+                currentPage = 0;
+                currentPosition = 0;
+            }
+            void new_AddWord(string word)
+            {
+                Emoji.Apply(word);
 
-        private FancyTextExt(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade, Color defaultColor, Language language)
+                float num = size.Measure(word).X * currentScale;
+                if (currentPosition + num > maxLineWidth)
+                {
+                    new_AddNewLine();
+                }
+
+                for (int i = 0; i < word.Length; i++)
+                {
+                    if ((currentPosition == 0f && word[i] == ' ') || word[i] == '\\')
+                    {
+                        continue;
+                    }
+                    if (size.Get(word[i]) is not PixelFontCharacter pixelFontCharacter) continue;
+                    raw += word[i];
+                    currentPosition += (float)pixelFontCharacter.XAdvance * currentScale;
+                    if (i < word.Length - 1 && pixelFontCharacter.Kerning.TryGetValue(word[i], out var value))
+                    {
+                        currentPosition += (float)value * currentScale;
+                    }
+                }
+            }
+        }
+        public FancyTextExt(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade, Color defaultColor, Language language)
         {
 
             this.text = text;
@@ -520,6 +755,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return found;
         }
+
         private Text Parse()
         {
             string[] array = Regex.Split(this.text, language.SplitRegex);
@@ -555,13 +791,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         }
                     }
 
-                    float result = 0f;
-                    if (float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out result))
+                    if (float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out float result))
                     {
-                        group.Nodes.Add(new Wait
-                        {
-                            Duration = result
-                        });
+                        group.Nodes.Add(new Wait { Duration = result });
                         continue;
                     }
                     if (text[0] == '#')
@@ -621,6 +853,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     switch (text)
                     {
+                        case "goto":
+                            if (list.Count > 0 && Dialog.Has(list[0]))
+                            {
+                                group.Nodes.Add(new Advance(list[0]));
+                            }
+                            break;
+                        case "choice":
+                            List<(string, string)> choices = [];
+                            if (list.Count > 0)
+                            {
+                                for (int k = 0; k < list.Count; k++)
+                                {
+                                    string s = list[k];
+                                    if (s == "goto" && k < list.Count - 1 && k - 1 >= 0)
+                                    {
+                                        choices.Add((list[k - 1], list[k + 1]));
+                                    }
+                                }
+                                group.Nodes.Add(new Choice([.. choices]));
+                            }
+                            break;
                         case "calidus":
                             if (list.Count > 1)
                             {
@@ -650,6 +903,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                 }
                             }
                             continue;
+                        case "confirm":
+                            group.Nodes.Add(new Confirm());
+                            break;
                         case "break":
                             CalcLineWidth();
                             currentPage++;

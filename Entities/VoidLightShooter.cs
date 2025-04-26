@@ -8,7 +8,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     public enum Directions
     {
-        Left, Right, Up, Down
+        Left, Right, Up, Down, None
     }
     [CustomEntity("PuzzleIslandHelper/VoidLightShooter")]
     [Tracked]

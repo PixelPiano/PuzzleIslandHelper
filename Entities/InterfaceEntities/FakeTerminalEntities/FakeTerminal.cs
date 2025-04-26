@@ -9,6 +9,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
     [Tracked]
     public class FakeTerminal : Entity
     {
+        public bool TypingEnabled = true;
         public UserInput UserInput => Renderer.Input;
         public bool Waiting;
         public const int LINEHEIGHT = 6;
@@ -20,8 +21,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public float TransitionAmount;
         public Color DebugColor = Color.White;
         public Group SelectedGroup => Renderer.SelectedGroup;
-        private float hideSquareTimer;
-        public bool HideSquare => hideSquareTimer > 0;
+
         public FakeTerminal(Vector2 position, float width, float height) : base(position)
         {
             Depth = -100000;
@@ -45,10 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             TransitionAmount = 1;
             yield return Renderer.FadeGroups(0, 1, 1);
         }
-        public void SetGroupAlphas(float value)
-        {
-            Renderer.SetGroupAlphas(value);
-        }
+        public void SetGroupAlphas(float value) => Renderer.SetGroupAlphas(value);
         private IEnumerator transitionClose()
         {
             yield return Renderer.FadeGroups(1, 0, 1);
@@ -85,10 +82,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             base.Update();
             if (Renderer.Groups.Count == 0) return;
 
-            if (HideSquare)
-            {
-                hideSquareTimer -= Engine.DeltaTime;
-            }
             if (keyBufferTimer <= 0)
             {
                 int lines;
@@ -128,22 +121,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 keyBufferTimer -= Engine.DeltaTime;
             }
         }
-        public void AddGroup(Group group)
-        {
-            Renderer.AddGroup(group);
-        }
-        public TextLine[] AddText(string text, params Color[] lineColors)
-        {
-            return Renderer.AddText(text, lineColors);
-        }
-        public TextLine[] AddText(string text, Color color)
-        {
-            return Renderer.AddText(text, color);
-        }
-        public void AddSpace(int spaces)
-        {
-            Renderer.AddSpace(spaces);
-        }
+        public void Clear() => Renderer.Clear();
         public void Shift(int lines)
         {
             int a = Math.Abs(lines);
@@ -167,10 +145,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
 
 
         }
-        public void Clear()
-        {
-            Renderer.Clear();
-        }
+
         public override void Added(Scene scene)
         {
             base.Added(scene);

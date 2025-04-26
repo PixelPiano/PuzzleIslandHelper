@@ -39,7 +39,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (!blendIn)
             {
                 tileGrid = GFX.FGAutotiler.GenerateBox(tileType, (int)Width / 8, (int)Height / 8).TileGrid;
-                Add(new LightOcclude());
             }
             else
             {
@@ -52,8 +51,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 int tilesY = (int)Height / 8;
                 tileGrid = GFX.FGAutotiler.GenerateOverlay(tileType, x, y, tilesX, tilesY, solidsData).TileGrid;
                 Add(new EffectCutout());
-                Depth = -10501;
             }
+            Add(new LightOcclude());
             Add(tileGrid);
             Add(new TileInterceptor(tileGrid, highPriority: true));
             if (CollideCheck<Player>())
@@ -80,7 +79,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 alpha = Calc.Approach(alpha, 1, Engine.DeltaTime);
             }
             bool c = CollideCheck<Player>();
-            if(waiting && c)
+            if (waiting && c)
             {
                 waiting = false;
             }

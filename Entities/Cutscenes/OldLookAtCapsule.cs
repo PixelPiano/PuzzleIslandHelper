@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
@@ -33,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         private IEnumerator calidusToMarker(string s, float speed = 1f)
         {
             Calidus c = SceneAs<Level>().Tracker.GetEntity<Calidus>();
-            WarpCapsule2 capsule = SceneAs<Level>().Tracker.GetEntity<WarpCapsule2>();
+            WarpCapsuleAlpha capsule = SceneAs<Level>().Tracker.GetEntity<WarpCapsuleAlpha>();
             if (c != null && capsule != null && Marker.TryFind("c" + s, out Vector2 position))
             {
                 c.StopFollowing();
@@ -48,19 +48,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         //[Command("add_default_runes", "adds the default set of runes to the rune inventory")]
         public static void AddDefaultRunes()
         {
-            WARP.ObtainedRunes.TryAddRuneRange(WARP.DefaultRunes);
+           WARPData.ObtainedRunes.TryAddRuneRange(WARPData.DefaultRunes);
         }
         private IEnumerator calidusBam()
         {
             yield return 0.8f;
-            if (Level.Tracker.GetEntity<Calidus>() is not Calidus c || Level.Tracker.GetEntity<WarpCapsule2>() is not WarpCapsule2 w) yield break;
+            if (Level.Tracker.GetEntity<Calidus>() is not Calidus c || Level.Tracker.GetEntity<WarpCapsuleAlpha>() is not WarpCapsuleAlpha w) yield break;
             Vector2 pos = w.Input.TopLeft + Vector2.One * 8;
             Vector2 from = c.BottomRight;
             yield return PianoUtils.LerpYoyo(Ease.Linear, 0.1f, f => c.BottomRight = Vector2.Lerp(from, pos, f), delegate {/*todo: play sound of calidus ramming into screen*/});
         }
         private IEnumerator screenOn()
         {
-            WarpCapsule2 capsule = Level.Tracker.GetEntity<WarpCapsule2>();
+            WarpCapsuleAlpha capsule = Level.Tracker.GetEntity<WarpCapsuleAlpha>();
             //capsule.InputMachine.Fill();
             yield return null;
         }
@@ -87,7 +87,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         private IEnumerator calidusTo3()
         {
             Calidus c = Level.Tracker.GetEntity<Calidus>();
-            WarpCapsule2 w = Level.Tracker.GetEntity<WarpCapsule2>();
+            WarpCapsuleAlpha w = Level.Tracker.GetEntity<WarpCapsuleAlpha>();
             if (c != null && w != null)
             {
                 c.LookAt(w);

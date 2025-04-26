@@ -20,6 +20,27 @@ Toggle: Ability toggles on/off everytime the button is pressed.
 
 modoptions_PuzzleIslandHelperModule_InvState=Invert Ability
 
+chatTest=
+This dialogue is for testing purposes.
+This should be a new line.
+This should be split{n}between two lines.
+There should be a wait {1}of 1 second here.
+This line requires a button input to procede.{confirm}
+Button has been received.
+{goto chatchoice}
+
+chatchoice=
+This line presents a choice at the end. {choice yes goto chatchoice1 no goto chatchoice2}
+
+chatchoice1=
+The user has chosen "yes".
+{goto chatTest}
+
+
+chatchoice2=
+The user has chosen "no".
+{goto chatTest}
+
 portfolio1=
 This is the most special (and biggest!) entity I've created so far. It is an in-universe computer, with various features.
 It has various programs it can run (with many more still to come). 
@@ -53,12 +74,12 @@ I can't remember the last time I saw one of those!
 [Madeline left distracted]
 How long has this place been here?
 
-wtc1=
-	[Madeline left surprised]
-	WHA-
 
-	[Madeline left angry]
-	Oh, come ON!
+wtc1=
+	[Madeline left panic]
+	*cough* *cough*
+	*cough* Ah- *cough* -jeez...
+	[Madeline left sad]
 	What's with this place's obsession with...
 	{silent_trigger 0 pan out}
 	[Madeline left sad] 
@@ -71,8 +92,6 @@ wtc1=
 	{trigger 1 wait for pan}
 	[Madeline left sad]
 	{~}Whoaaaaa.{/~}
-
-
 fountainHint0=[Paper left normal]{# 000000}0 prefers sitting at the start{#}
 fountainHint1=[Paper left normal]{# 000000}1 feels safest next to 3{#}
 fountainHint2=[Paper left normal]{# 000000}2 feels threatened by 3 and prefers to not sit next to them{#}
@@ -224,7 +243,7 @@ refillNotesE=
 	The glow, the shape, everything about it is perfect, a 1-to-1 copy!
 	...
 	We, uh. Can't interact with it.
-	What do we do now?{#}
+	What do we do?{#}
 
 #Washer Interact while off
 #attempt 1
@@ -318,21 +337,6 @@ prologue3c=
 		[Madeline left surprised] 
 	 	...!
 
-pTA={screenoffset:-0.05,0.1}What's happening?
-pTB={screenoffset:0.3,0.3}Where am I?
-pTC={screenoffset:0.87,0.1}Where am I going?
-pTD={screenoffset:0.6,0.3}Who am I?
-pTE={1}{screenoffset:0.38,0.2}Who am I becoming?
-
-pTF=
-{screenoffset:0.4,0.7}{2}Is that...{1} the
-pTWorld= {screenoffset:0.521,0.7}World?
-
-pTAa=What's happening?
-pTBa=Where am I?
-pTCa=Where am I going?
-pTDa=Who am I?
-pTEa=Who am I becoming?
 #------------------------
 #GrassShift
 #------------------------
@@ -499,23 +503,20 @@ for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
 #------------------------
 #Cutscenes
 #------------------------
-#C IS LEFT, F IS RIGHT
-GREENHEART=
-This is so stupid. So, so stupid.{n0}{mtRight}Yes, we are all very aware of this fact.{/mtRight}{n0}You, shut up. Only reason we're in this mess is because you rushed.{n0}{mtRight}If I remember correctly, we all made the decision.{/mtRight}{n0}You left them behind! You preasured them!{n0}{mtRight}...I'm sorry. I know you're worried about Kos, but don't be. We had all the time in the world. They made the decision to stay behind in sound mind.{/mtRight}
 
-BLUEHEART=
-Any luck?{n0}{mtRight}Nothing yet. You?{/mtRight}{n0}Nope. Hey, what do you think happens when they die?{n0}{mtRight}Pfft, where'd that come from?{/mtRight}{n0}I'm serious! Do they just... disappear? Is there a rule for that, or..?{n0}{mtRight}How should I know? We lost the rules, remember?{/mtRight}{n0}I was being redundant.
+GREENHEART=
+This is so stupid. So, so stupid.{n0}{mtRight}Yes, we are all very aware of this fact.{/mtRight}{n0}You, shut up. Only reason we're in this mess is because you rushed.{n0}{mtRight}If I remember correctly, we were all in agreement.{/mtRight}{n0}You left them behind! You pressured them!{n0}{mtRight}You're worried about Kos. I get it. However, we had all the time in the world. It was ultimately their decision.{/mtRight}
+
+BLUEHEART={mtRight}Are you alone?{/mtRight}{n0}Yeah... Where is everyone?{n0}{mtRight}I don't know... But if they went through, this just became a lot more difficult.{/mtRight}{n0}Tch. Traitors. Once I get out there I'm hunting each one of them down.{mtRight}{n0}No, don't. It's fine. We can't blame them for wanting to live. All that matters is that someone resolves this.{/mtRight}{n0}...And if y-{n0}{2}...What if we can't?
 
 REDHEART= Lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem ipsum quia la la la la la la la
 
 
-DIGILORE1=
-
-DIGILORE2=Any abnormalties?{n0}{mtRight}Do you mean abnormal from here, or abnormal from common sense? If the latter, then yes.{n0}{/mtRight}The latter.{n0}{mtRight}There's been an influx of strange readings lately. Can't really tell what they are though.{n0}{/mtRight}That was incredibly helpful, thank you.{n0}{mtRight}How many are loose now?{n0}{mtRight}7 :(
-
-DIGILORE3={mtRight}Are you alone?{/mtRight}{n0}Yeah... Where is everyone?{n0}{mtRight}I don't know... But if they went through, this just became a lot more difficult.{/mtRight}{n0}Tch. Traitors. Once I get out there I'm hunting each one of them down.{mtRight}{n0}No, don't. It's fine. We can't blame them for wanting to live. All that matters is that someone solves this.{/mtRight}{n0}...What if y-{n0}What if we can't?
-
-DIGILORE4={mtRight}Y'know those observers we set up around the village?{n0}{/mtRight}You mean the ones that I invented..? Yes I know them.{n0}{mtRight}Right, well I still have limited access to the lab, and I found that the readings there match up perfectly with the readings from here. What's more, I think the area in here is shifting.{n0}{/mtRight}So... What does that mean?
+DIGILORE1= XX/XX/XXXX{n0}
+Readings from observers have been getting more confusing each day.{n0}
+Some of them began acting erratically. Some would even refuse to start.{n0}
+I think my equipment is malfunctioning, too. Scanning the area showed duplicate signals for each observer.{n0}
+Slotting in repairs ASAP
 
 #Pipe Break sequence
 #PipeAttemptZero=
@@ -558,7 +559,7 @@ INVALID= Invalid icon type
 RAM= !!!!!!!!!DOWNLOAD FREE RAM HERE FOR FREE FREE!!!!!!!!!
 FOLDER= Folder data here
 
-ACCESS= Please enter a valid area id.
+ACCESS= (this text is wip)
 ACCESSDENIED= Access Module not detected. Unable to launch transport system.
 
 TEXTTEST= This is a test.{n1} This text is on the left. It is not long. {n0}{mtRight}This text is on the right. It is also not very long.{/mtRight}{n1}{mtRight}This text is once again, on the right. This time, however, we will be testing to see if the text can stay on screen regardless of how long the group is. Hopefully, I won't have to deal with this shit much longer

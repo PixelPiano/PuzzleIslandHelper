@@ -10,7 +10,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
     public class UserInput : TextLine
     {
         public bool Submitted;
-        public bool CanType = true;
+        public bool TypingEnabled => Terminal.TypingEnabled;
+        private bool canType = true;
         public static bool BlockHotkeys;
         public Func<string, bool> OnSubmit;
         public static List<Binding> BlockedBindings = new();
@@ -63,9 +64,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             base.SceneBegin(scene);
             RefreshBlockedBindings();
         }
+        public override void TerminalRender(Level level, Vector2 renderAt, PixelFont font)
+        {
+            bool prev = HideSquare;
+            if (!TypingEnabled)
+            {
+                HideSquare = true;
+            }
+            base.TerminalRender(level, renderAt, font);
+            HideSquare = prev;
+        }
         public override void Update()
         {
+            string prev = Prefix;
+            if (!TypingEnabled)
+            {
+                Prefix = "";
+            }
             base.Update();
+            Prefix = prev;
         }
         public override void Awake(Scene scene)
         {
@@ -95,11 +112,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             Clear();
             Submitted = false;
-            CanType = true;
+            canType = true;
         }
         public void OnTextInput(char c)
         {
-            if (!IsCurrentIndex || !CanType || Scene is not Level level || level.Paused)
+            if (!IsCurrentIndex || !(TypingEnabled && canType) || Scene is not Level level || level.Paused)
             {
                 return;
             }
@@ -113,8 +130,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                             return;
                         }
                         Submitted = true;
-                        CanType = false;
-                        Terminal.AddText(Text, Color.SlateBlue);
+                        canType = false;
+                        Terminal.Renderer.AddText(Text, Prefix, Color.SlateBlue);
                     };
                     break;
                 case '\b':

@@ -137,8 +137,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(dashListener = new DashListener());
             dashListener.OnDash = delegate (Vector2 dir)
             {
-                Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAA");
-                Console.WriteLine("dir: "+dir);
                 string text = "";
                 dir = dir.CorrectJoystickPrecision();
                 text = dir.Y < 0f ? "U" : dir.Y > 0f ? "D" : "";

@@ -2,6 +2,7 @@ using Celeste.Mod.LuaCutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -139,16 +140,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator FirstIntro(Player player, Level level)
         {
-            yield return GlitchOut(player, level);
-            Add(new Coroutine(StutterGlitch(20)));
+            WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
+            player.StateMachine.State = Player.StDummy;
+            Vector2 zoomPosition = player.Center - Level.Camera.Position - Vector2.UnitY * 24;
+            level.ZoomSnap(zoomPosition, 1.7f);
+            while (machine.DoorClosedPercent > 0)
+            {
+                player.StateMachine.State = Player.StDummy;
+                yield return null;
+            }
+            Add(new Coroutine(player.DummyWalkTo(player.Right + 24)));
             yield return Textbox.Say("wtc1", PanOut, WaitForPanOut);
             yield return Level.ZoomBack(0.8f);
             EndCutscene(Level);
         }
         private IEnumerator First(Player player, Level level)
         {
+            Coroutine lookAroundCoroutine = new Coroutine(false);
+            Add(lookAroundCoroutine);
             level.InCutscene = true;
             Vector2 zoomPosition = new Vector2(113, player.Position.Y - level.LevelOffset.Y - 40);
+            zoomPosition.X = Math.Max(0, zoomPosition.X);
             Coroutine zoomIn = new Coroutine(ScreenZoom(new Vector2(113, player.Position.Y - level.LevelOffset.Y - 40), 1.5f, 2));
             Coroutine walkTo = new Coroutine(player.DummyWalkTo(113 + level.Bounds.X));
             Coroutine cameraTo = new Coroutine(CameraTo(level.LevelOffset + Vector2.UnitY * 8, 2, Ease.SineInOut));
@@ -250,19 +262,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 //todo: add sound
                 level.Session.SetFlag("blockGlitch");
                 yield return 0.1f;
+                Calidus.Surprised(true);
+                Add(new Coroutine(Level.ZoomBack(1.2f)));
                 IEnumerator routine()
                 {
-                    Calidus.Surprised(true);
-                    yield return 0.1f;
-                    Calidus.LookDir = Calidus.Looking.Up;
-                    yield return 0.7f;
-                    Calidus.LookDir = Calidus.Looking.Left;
+                    while (true)
+                    {
+                        Calidus.LookDir = Calidus.Looking.UpLeft;
+                        yield return 0.7f;
+                        Calidus.LookDir = Calidus.Looking.UpRight;
+                        yield return 0.7f;
+                    }
                 }
-                Add(new Coroutine(routine()));
+                lookAroundCoroutine.Replace(routine());
             }
             IEnumerator warp()
             {
-                level.Flash(Color.White, true);
+                WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
+                if (machine != null)
+                {
+                    machine.RoomName = "0-lcomp";
+                    void onEnd()
+                    {
+                        level.Remove(Calidus);
+                    }
+                    machine.LockPlayerState = true;
+                    lookAroundCoroutine.Cancel();
+                    Calidus.Look(Calidus.Looking.Left);
+                    machine.PullInteract(player, onEnd);
+                    yield return 0.1f;
+                }
                 level.Session.SetFlag("blockGlitch", false);
                 //todo: Move this textscene over to something on the Lab Computer. Maybe another message.
                 /* SingleTextscene text = new SingleTextscene("CaL1");
@@ -273,8 +302,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     yield return null;
                 }*/
 
-                level.Remove(Calidus);
-                InstantTeleport(level, player, "0-lcomp");
+                /*                level.Remove(Calidus);
+                                InstantTeleport(level, player, "0-lcomp");*/
                 yield return null;
             }
         }

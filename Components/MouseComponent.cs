@@ -46,6 +46,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             }
         }
         public MouseState State;
+        public MouseComponent(bool active, bool visible) : base(active, visible)
+        {
+
+        }
         public MouseComponent(Action onLeftClick = null, Action onRightClick = null, Action onLeftRelease = null, Action onRightRelease = null, Action onLeftIdle = null, Action onRightIdle = null, Action onLeftHeld = null, Action onRightHeld = null) : base(true, true)
         {
             OnLeftClick = onLeftClick;

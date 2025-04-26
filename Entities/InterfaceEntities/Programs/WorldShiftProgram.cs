@@ -1,3 +1,4 @@
+using Celeste.Mod.PuzzleIslandHelper.Beta;
 using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs

@@ -87,6 +87,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Helper.Visible = Visible;
             if (Selected)
             {
+                MInput.Disabled = false;
+                MInput.Update();
                 if (MInput.Keyboard.Pressed(Keys.Delete))
                 {
                     if (Helper.Text.Length > 0)
@@ -109,10 +111,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             if (Interface.LeftPressed)
             {
                 Selected = collidingWithMouse;
-                if (collidingWithMouse)
-                {
-                    Window.BlockHotkeysThisFrame();
-                }
+            }
+            if (Selected)
+            {
+                Window.BlockHotkeysThisFrame();
             }
         }
         public static bool AddedToOnInput;

@@ -43,7 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             Operator = data.Enum<Operators>("operator");
             Threshold = data.Float("threshold");
             IfEqual = data.Bool("activateIfEqual");
-            FlagData = data.GetFlagData();
+            FlagData = data.Flag();
         }
         public void DoTeleport(Player player)
         {

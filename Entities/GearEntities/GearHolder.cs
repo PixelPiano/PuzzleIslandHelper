@@ -107,10 +107,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         }
         private float rate;
         public bool DropGear;
-        public float cannotHoldTimer;
         public float Rotations;
-        private bool timerActive;
-        public const float WaitTime = 1;
+        public float WaitTime = 1;
         public bool OnlyOnce;
         public bool UsedOnce;
         public int SpinDirection = 1;
@@ -156,12 +154,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             }
         }
         public Vector2 RenderPosition => Position + RealShakeAmount;
-        public bool CanUseGear(Gear gear)
-        {
-            return !HasGear && gear is not null && !InGearRoutine && !gear.Hold.IsHeld && (!OnlyOnce || !UsedOnce) &&
-                   !(timerActive && cannotHoldTimer < WaitTime) &&
-                  InReach(gear, 8);
-        }
+        public bool CanUseGear(Gear gear) => gear != null && !HasGear && !gear.Hold.IsHeld && (!OnlyOnce || !UsedOnce) && !preventGrab;
         public ParticleType GearSparks = new()
         {
             Color = Color.Orange,
@@ -198,6 +191,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             Bloom = new BloomPoint(0.5f, 24);
             Bloom.Position = Vector2.One * 12;
             Add(Bloom);
+            Add(SlotCoroutine = new Coroutine(false));
         }
         public GearHolder(EntityData data, Vector2 offset, EntityID entityID)
             : this(data.Position + offset - Vector2.One * 8, data.Bool("onlyOnce"), Color.White, entityID, 10, data.Int("holderId"), data.Attr("flagOnFinish"), 1)
@@ -285,6 +279,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             if (!whileSpinning.Finished) whileSpinning.Cancel();
             gear.Sprite.Play("flash");
             Spinning = false;
+
             yield return WindBack(gear, DropGear);
         }
         public void LockGear(Gear gear)
@@ -302,8 +297,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             useFakeGearImage = true;
             HasGear = true;
         }
+        public virtual void OnWindBack(Gear gear, bool drop)
+        {
+
+        }
+        private bool preventGrab;
+        public void PreventRegrab(float time)
+        {
+            preventGrab = true;
+            bool cancelled = false;
+            Tween.Set(this, Tween.TweenMode.Oneshot, time, Ease.Linear, t =>
+            {
+                if (ForceCanHold)
+                {
+                    cancelled = true;
+                    preventGrab = false;
+                    ForceCanHold = false;
+                }
+            }, t =>
+            {
+                if (!cancelled)
+                {
+                    ForceCanHold = false;
+                    preventGrab = false;
+                }
+            });
+        }
         public IEnumerator WindBack(Gear gear, bool drop)
         {
+            OnWindBack(gear, drop);
             float time = 0.3f;
             bool lockgear = IsBaseHolder() && gear is not null && gear.InSlot && !UsedOnce;
             float from = gear is not null ? gear.Light.Alpha : 0;
@@ -323,7 +345,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             }
             else if (drop)
             {
-                timerActive = true;
+                PreventRegrab(WaitTime);
                 if (gear is not null)
                 {
                     HasGear = false;
@@ -398,22 +420,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             }
             Rotation = (float)Math.Round(Rotation);
             Rotations = Rotation / 360;
-
-            if (timerActive)
-            {
-                if (cannotHoldTimer < WaitTime && !ForceCanHold)
-                {
-                    cannotHoldTimer += Engine.DeltaTime;
-                    return;
-                }
-                else
-                {
-                    ForceCanHold = false;
-                    cannotHoldTimer = 0;
-                    timerActive = false;
-                }
-            }
         }
+        public Coroutine SlotCoroutine;
         public void StartRoutine(Gear gear)
         {
             if (gear is null) return;
@@ -421,7 +429,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             InGearRoutine = true;
             DropGear = false;
             gear.InSlot = true;
-            Add(new Coroutine(SlotRoutine(gear)));
+            SlotCoroutine.Replace(SlotRoutine(gear));
+            //Add(new Coroutine(SlotRoutine(gear)));
         }
         public bool InReach(Gear gear, float distance)
         {

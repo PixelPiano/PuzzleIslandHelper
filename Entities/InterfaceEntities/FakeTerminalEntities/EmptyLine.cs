@@ -9,7 +9,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public EmptyLine(FakeTerminal terminal) : base(terminal, "", Color.Black)
         {
         }
-        public override void TerminalRender(Level level, Vector2 renderAt)
+        public override void TerminalRender(Level level, Vector2 renderAt, PixelFont font)
         {
         }
     }

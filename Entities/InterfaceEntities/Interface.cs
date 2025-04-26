@@ -90,7 +90,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
     }
 
-    [CustomEntity("PuzzleIslandHelper/Interface")]
     [Tracked]
     public class Interface : Entity
     {
@@ -888,7 +887,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public IEnumerator ScreenIconAnimation(bool state)
         {
-            InterfaceMonitor monitor = SceneAs<Level>().Tracker.GetEntity<InterfaceMonitor>();
+            ComputerMonitor monitor = SceneAs<Level>().Tracker.GetEntity<ComputerMonitor>();
             if (monitor is null) yield break;
             if (state)
             {

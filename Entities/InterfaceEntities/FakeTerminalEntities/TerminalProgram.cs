@@ -53,6 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public bool ProgramFinished;
         public bool Closed;
         public string Welcome;
+        public string LinePrefix = "> ";
         public Color UserColor = Color.Cyan;
         public UserInput UserInput => Terminal.Renderer.Input;
         private bool forcedClosed;
@@ -206,7 +207,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public IEnumerator CommandEnter()
         {
             bool justStarted = true;
-            while (Continue())
+            while (Continue() && !Closed)
             {
                 if (!justStarted)
                 {
@@ -246,12 +247,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                         }
                     }
                 }
+                else
+                {
+                    Error("NOTICE: Commands are disabled for this program.");
+                }
 
             }
         }
         public void Error(string message)
         {
             AddText(message, Color.Red);
+        }
+        public void Info(string message)
+        {
+            AddText(message, Color.Cyan);
         }
         public IEnumerator Loading(string fillerString, string completeString, float rate, float interval, bool showProgress)
         {
@@ -261,14 +270,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             float percentage = 0;
 
             TextLine[] lines = showProgress ?
-                AddText(fillerString + dots + "{n}/100", Color.LightGray, Color.Magenta) :
+                AddText(fillerString + dots + "{n}/100", null, Color.LightGray, Color.Magenta) :
                 AddText(fillerString + dots, Color.LightGray);
 
             float endMult;
             Terminal.Waiting = true;
             while (percentage < 100)
             {
-
                 endMult = 0.01f + 0.96f * (Calc.Clamp(100 - percentage, 0, 30) / 40f) * 0.95f;
 
                 if (showProgress)
@@ -321,28 +329,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             }
         }
         public abstract IEnumerator Help(string input);
-        public void AddSpace(int spaces = 1)
-        {
-            Terminal.AddSpace(spaces);
-        }
-        public void AddGroup(Group group)
-        {
-            Terminal.AddGroup(group);
-        }
-        public TextLine[] AddText(string text, params Color[] lineColors)
-        {
-            return Terminal.AddText(text, lineColors);
-        }
-        public TextLine[] AddText(string text, Color color)
-        {
-            return Terminal.AddText(text, color);
-        }
-
+        public void AddSpace(int spaces = 1) => Terminal.Renderer.AddSpace(spaces);
+        public void AddGroup(Group group) => Terminal.Renderer.AddGroup(group);
+        public TextLine[] AddText(string text, string prefix, params Color[] lineColors) => Terminal.Renderer.AddText(text, prefix, lineColors);
+        public TextLine[] AddText(string text, Color color, string prefix) => Terminal.Renderer.AddText(text, prefix, color);
+        public TextLine[] AddText(string text, params Color[] lineColors) => Terminal.Renderer.AddText(text, LinePrefix, lineColors);
+        public TextLine[] AddText(string text, Color color) => Terminal.Renderer.AddText(text, LinePrefix, color);
         public virtual void BeforeBegin() { }
-        public void Begin()
-        {
-            Add(new Coroutine(Routine()));
-        }
+        public void Begin() => Add(new Coroutine(Routine()));
         public abstract bool Continue();
         public abstract void OnClose();
         public static Color? GetColor(string input)

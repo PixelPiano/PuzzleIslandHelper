@@ -82,14 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float SignalTime;
         public Vector2 UVCenter;
         public bool Digital;
-        public bool Spinning
-        {
-            get
-            {
-                if (Sprite is null) return false;
-                return Sprite.CurrentAnimationID.Contains("spin");
-            }
-        }
+        public bool Spinning => Sprite is not null && Sprite.CurrentAnimationID.Contains("spin");
         public Observer(EntityData data, Vector2 offset) : base(data.Position + offset - Vector2.UnitY * 8)
         {
             Tag |= Tags.TransitionUpdate;
@@ -133,7 +126,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Awake(scene);
             UVCenter = Collider.AbsolutePosition + Collider.HalfSize - (scene as Level).LevelOffset;
             UVCenter /= new Vector2(320, 180);
-            Renderer = new ObserverRenderer(this, UVCenter, SignalWidth, SignalHeight, SignalTime, 0.06f);
+            Renderer = new ObserverRenderer(this, UVCenter, SignalWidth, SignalHeight, SignalTime, 1f);
             scene.Add(Renderer);
         }
         public override void Removed(Scene scene)

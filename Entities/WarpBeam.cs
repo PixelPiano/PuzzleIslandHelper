@@ -5,14 +5,13 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [Tracked(false)]
     public class WarpBeam : Entity
     {
-        public WarpCapsule Parent;
+        public WARP.WarpCapsule Parent;
         public Image Glow;
         private float scaleMult = 0;
         public Vector2 Scale;
@@ -35,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float scaleTargetMult = 1;
         public bool Returning;
         public List<PulseRing> Rings = new();
-        public WarpBeam(WarpCapsule parent, bool isReturnTrip)
+        public WarpBeam(WARP.WarpCapsule parent, bool isReturnTrip)
         {
             Returning = isReturnTrip;
             Depth = -100000;

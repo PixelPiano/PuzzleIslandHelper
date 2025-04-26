@@ -16,6 +16,9 @@ namespace Celeste.Mod.PuzzleIslandHelper
     public class PianoModuleSession : EverestModuleSession
     {
         public bool DEBUG { get; set; }
+        public bool HasPiano { get; set; }
+        public Dictionary<string, List<int>> DestroyedVanillaSpinnerIDs = [];
+        public Dictionary<string, List<int>> DestroyedCustomSpinnerIDs = [];
         public Dictionary<EntityID, List<int>> TiletypePuzzleCache = new();
         public Dictionary<EntityID, int> CrystalElevatorFurthestLevelReached = new();
         public HeartInventory HeartInventory = new();
@@ -38,6 +41,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public bool DEBUGBOOL4 { get; set; }
         public float DEBUGFLOAT1 { get; set; }
         public Vector2 DEBUGVECTOR { get; set; }
+        public string DEBUGSTRING { get; set; }
         public List<RecordedMemory> Memories = new();
         public int TimesMetWithCalidus;
         public AltCalidus.AltCalidusScene.States AltCalidusSceneState;

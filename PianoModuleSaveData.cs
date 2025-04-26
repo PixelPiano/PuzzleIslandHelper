@@ -2,7 +2,7 @@
 using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
 using System.Collections.Generic;
-
+using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSaveData : EverestModuleSaveData
@@ -10,13 +10,13 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public InterfaceData InterfaceData;
         public int CalJrState { get; set; }
         public bool WarpLockedToLab { get; set; }
-        public WARP.Rune.RuneNodeInventory.ProgressionSets RuneProgression = WARP.Rune.RuneNodeInventory.ProgressionSets.Second;
-        public WARP.Rune.RuneNodeInventory RuneNodeInventory = new();
-        public List<WARP.Rune> VisitedRuneSites = new();
+        public WarpRune.RuneNodeInventory.ProgressionSets RuneProgression = WarpRune.RuneNodeInventory.ProgressionSets.Second;
+        public WarpRune.RuneNodeInventory RuneNodeInventory = new();
+        public List<WarpRune> VisitedRuneSites = new();
         public PlayerCalidus.CalidusInventory CalidusInventory { get; set; }
         public Dictionary<string, bool> Achievements = new();
 
-        public void SetRuneProgression(WARP.Rune.RuneNodeInventory.ProgressionSets set)
+        public void SetRuneProgression(WarpRune.RuneNodeInventory.ProgressionSets set)
         {
             RuneProgression = set;
             RuneNodeInventory.Set(set);

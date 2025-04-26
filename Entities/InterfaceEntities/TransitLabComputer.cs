@@ -25,11 +25,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         }
         public void Interact(Player player)
         {
-            if (Scene.Tracker.GetEntity<TransitMonitor>() is var monitor)
+/*            if (Scene.Tracker.GetEntity<TransitMonitor>() is var monitor)
             {
                 player.DisableMovement();
                 monitor.Activate();
-            }
+            }*/
         }
     }
 

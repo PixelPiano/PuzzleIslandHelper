@@ -16,73 +16,81 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class CrystalElevator : Solid
     {
+
+        public static Dictionary<string, List<int>> DestroyedCustomSpinnerIDs => PianoModule.Session.DestroyedCustomSpinnerIDs;
         public class Roof : Solid
         {
-            public Rectangle Bounds;
-            public int Radius = 30;
             public CrystalElevator Parent;
+            public Collider SpinnerCollider;
             public Roof(CrystalElevator parent, Image front, Vector2 position, float width, float height) : base(position, width, height, true)
             {
                 Depth = -1;
                 Parent = parent;
                 AddTag(Tags.TransitionUpdate);
                 Add(new LightOcclude());
-                Bounds = new Rectangle((int)X, (int)Y, (int)width, (int)height);
                 Add(front);
+                SpinnerCollider = new Hitbox(Width, Parent.Bottom - Top, 0, 0);
             }
-            public override void Update()
+            public override void DebugRender(Camera camera)
             {
-                base.Update();
-                if (Scene is Level level && Parent.Moving)
+                base.DebugRender(camera);
+                Collider prev = Collider;
+                Collider = SpinnerCollider;
+                Draw.HollowRect(Collider, Color.LightBlue);
+                Collider = prev;
+            }
+            public void CheckForSpinners(Level level, bool instant = false)
+            {
+                Collider prev = Collider;
+                Collider = SpinnerCollider;
+                foreach (CustomSpinner spinner in level.Tracker.GetEntities<CustomSpinner>())
                 {
-                    Vector2 half = Collider.HalfSize;
-                    Vector2 c = Center;
-                    Bounds.X = (int)(c.X - half.X - Radius);
-                    Bounds.Y = (int)(c.Y - half.Y - Radius);
-                    Bounds.Width = (int)(c.X + half.X + Radius) - Bounds.X;
-                    Bounds.Height = (int)(c.Y + half.Y + Radius) - Bounds.Y;
-                    foreach (CustomSpinner spinner in level.Tracker.GetEntities<CustomSpinner>())
+                    if (CollideCheck(spinner))
                     {
-                        if (InRange(spinner) && CollideCheck(spinner))
+                        if (instant)
+                        {
+                            spinner.RemoveSelf();
+                        }
+                        else
                         {
                             spinner.Destroy();
-/*                            //todo: replace with everest functions once the pr gets released or something
-                            if (EntityDataHelper.GetEntityData(spinner) is var data)
-                            {
-                                level.Session.DoNotLoad.Add(data.ToEntityId());
-                            }*/
                         }
-                    }
-                    foreach (CrystalStaticSpinner spinner2 in level.Tracker.GetEntities<CrystalStaticSpinner>())
-                    {
-                        if (InRange(spinner2) && CollideCheck(spinner2))
+                        if (DestroyedCustomSpinnerIDs.TryGetValue(level.Session.Level, out var list))
                         {
-                            spinner2.Destroy();
-/*                            //todo: replace with everest functions once the pr gets released or something
-                            if (EntityDataHelper.GetEntityData(spinner2) is var data)
+                            if (!list.Contains(spinner.ID))
                             {
-                                level.Session.DoNotLoad.Add(data.ToEntityId());
-                            }*/
+                                list.Add(spinner.ID);
+                            }
+                        }
+                        else
+                        {
+                            DestroyedCustomSpinnerIDs.Add(level.Session.Level, [spinner.ID]);
                         }
                     }
                 }
-            }
-            public bool InRange(Entity entity)
-            {
-                return entity.Right > Bounds.Left && entity.Bottom > Bounds.Top && entity.Left < Bounds.Right && entity.Top < Bounds.Bottom;
+
+                foreach (CrystalStaticSpinner spinner2 in level.Tracker.GetEntities<CrystalStaticSpinner>())
+                {
+                    if (CollideCheck(spinner2))
+                    {
+                        if (!instant)
+                        {
+                            spinner2.Destroy();
+                        }
+                        else
+                        {
+                            spinner2.RemoveSelf();
+                        }
+                    }
+                }
+                Collider = prev;
             }
         }
         public class CrystalElevatorLevel : Component
         {
             public int FloorNum;
             public List<GearHolder> Holders = new();
-            public bool Free
-            {
-                get
-                {
-                    return Holders is null || Holders.Count <= 0;
-                }
-            }
+            public bool Free => Holders is null || Holders.Count <= 0;
             public Vector2 Position;
             public CrystalElevatorLevel(Vector2 position, int floor) : base(true, true)
             {
@@ -191,6 +199,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Awake(scene);
             if (scene is not Level level || level.GetPlayer() is not Player player) return;
+            if (DestroyedCustomSpinnerIDs.TryGetValue(level.Session.Level, out var list))
+            {
+                foreach (CustomSpinner spinner in level.Tracker.GetEntities<CustomSpinner>())
+                {
+                    if (list.Contains(spinner.ID))
+                    {
+                        spinner.RemoveSelf();
+                    }
+                }
+            }
             Front.RenderPosition = Back.RenderPosition;
             int furthest = 0;
             if (Furthest.TryGetValue(ID, out int value))
@@ -206,12 +224,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Rocks.Visible = !ControlsBlocked;
             CrystalElevatorLevel closest = Floors.OrderBy(item => Vector2.DistanceSquared(item.Position, player.Position)).First();
             Floor = closest != null ? (int)Calc.Min(furthest, closest.FloorNum) : furthest;
-            //MoveElevatorTowards(level, null, Floor, 1, false);
+            MoveElevatorTowards(level, null, Floor, 1, false, true);
         }
         public override void Update()
         {
             Front.RenderPosition = Back.RenderPosition;
             base.Update();
+            Furthest[ID] = (int)Calc.Max(Furthest[ID], Floor);
             if (Moving)
             {
                 if (particleBuffer >= 4 && (int)(prevY - Position.Y) != 0)
@@ -255,21 +274,51 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-        public void MoveElevatorTowards(Level level, Player player, int floor, float percent, bool affectCamera = true)
+        public void MoveElevatorTowards(Level level, Player player, int floor, float percent, bool affectCamera = true, bool instant = false)
         {
             Vector2 start = GetFloorAt(Floor);
             Vector2 end = GetFloorAt(floor);
             float length = (start - end).Length();
             elevatorSpeed = Calc.Approach(elevatorSpeed, 64f, 120f * Engine.DeltaTime);
             elevatorPercent = Calc.Approach(elevatorPercent, percent, elevatorSpeed / length * Engine.DeltaTime);
-            MoveToY((float)Math.Floor(start.Y + (end.Y - start.Y) * elevatorPercent));
-            if (player != null && player.Hair != null && HasPlayerRider())
-            {
-                player.Hair.MoveHairBy(Vector2.UnitY * elevatorSpeed);
-            }
-            roof.MoveTo(Back.RenderPosition + Vector2.UnitY * 3);
+            float newY = (float)Math.Floor(start.Y + (end.Y - start.Y) * elevatorPercent);
+            MoveElevatorToY(newY, true, instant);
             if (affectCamera) level.Camera.Y = Calc.LerpClamp(level.Camera.Y, Y - 60f, percent);
         }
+        public void MoveToFloor(int floor, bool collideSpinners = true, bool instant = false)
+        {
+            float y = GetFloorAt(floor).Y;
+            MoveElevatorToY(y, collideSpinners, instant);
+            Floor = floor;
+        }
+        public void MoveElevatorToY(float y, bool collideSpinners = true, bool instant = false)
+        {
+            Level level = Scene as Level;
+            Player player = level.GetPlayer();
+            while (Y != y)
+            {
+                float prev = Y;
+                MoveTowardsY(y, 1);
+                if (player != null && player.Hair != null && HasPlayerRider())
+                {
+                    player.Hair.MoveHairBy(Vector2.UnitY * (Y - prev));
+                }
+                roof.MoveTo(Back.RenderPosition + Vector2.UnitY * 3);
+                if (collideSpinners)
+                {
+                    roof.CheckForSpinners(level, instant);
+                }
+            }
+        }
+        [Command("crystal_elevator", "")]
+        public static void a(int floor, bool spinners)
+        {
+            foreach (CrystalElevator e in Engine.Scene.Tracker.GetEntities<CrystalElevator>())
+            {
+                e.MoveToFloor(floor, spinners, true);
+            }
+        }
+
         public void StartRide(Level level, int floor, Player player, int floorToCheck)
         {
             Add(new Coroutine(RideRoutine(level, floor, player, floorToCheck)));

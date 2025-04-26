@@ -1,6 +1,5 @@
 ﻿using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -138,7 +137,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public string FlagOnComplete;
         public string Flag;
         public bool Inverted;
-        public string[] Flags;
+        public string[] FlagArray;
+        public string Flags;
         public static Dictionary<string, Dictionary<string, List<SlotData>>> DataPerArea => PianoMapDataProcessor.SlotData;
         public static Dictionary<string, List<SlotData>> Data;
         public static Dictionary<EntityID, (string, string)> Used => PianoModule.Session.UsedHeartMachines;
@@ -155,7 +155,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(image);
             Collider = image.Collider();
             Add(new Rect(Vector2.One * (Width / 2 - 6), 12, 12, Color.Gray));
-            Flags = data.Attr("flags").Replace(" ", "").Split(',');
+            FlagArray = data.Attr("flags").Replace(" ", "").Split(',');
+            Flags = data.Attr("flags");
             FlagOnComplete = data.Attr("flagOnComplete");
             Flag = data.Attr("flag");
             Inverted = data.Bool("inverted");
@@ -205,7 +206,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 foreach (var s in PianoModule.Session.HeartInventory.Collected)
                 {
-                    if (Flags.Contains(s.Value))
+                    if (FlagArray.Contains(s.Value))
                     {
                         NextPair = s;
                         Talk.Enabled = true;
@@ -908,9 +909,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     for (int i = 0; i < heartData.Count; i++)
                     {
 
-                        for (int j = 0; j < Machine.Flags.Length; j++)
+                        for (int j = 0; j < Machine.FlagArray.Length; j++)
                         {
-                            if (heartData[i].Value == Machine.Flags[j])
+                            if (heartData[i].Value == Machine.FlagArray[j])
                             {
                                 //Vector2 position = Machine.positions[j];
                                 MachineHeart heart = new MachineHeart(Player.Center, Vector2.Zero, heartData[i].Value, heartData[i].Key);

@@ -8,7 +8,7 @@ waterDroplet.justification = { 0, 0 }
 waterDroplet.name = "PuzzleIslandHelper/WaterDroplet"
 
 waterDroplet.depth = -8500
-waterDroplet.texture = "objects/PuzzleIslandHelper/waterDroplet/lonn"
+waterDroplet.texture = "objects/PuzzleIslandHelper/droplet"
 local dirs = {"Right","Up","Left","Down"}
 
 waterDroplet.placements =
@@ -17,7 +17,8 @@ waterDroplet.placements =
         name = "Water Droplet",
         data = 
         {
-            waitTime = 0.5,
+            interval = 0.5,
+            delay = 0,
             randomWaitTime = true,
             baseColor = "0000ff",
             direction = "Down"

@@ -8,7 +8,7 @@ using System.Linq;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
     [Tracked]
-    [CustomProgram("Access")]
+    //[CustomProgram("Access")]
     public class AccessProgram : WindowContent
     {
         public static bool AccessTeleporting;
@@ -88,7 +88,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             {
                 if (i < Boxes.Count - 1)
                 {
-                    Snippets.Add(Boxes[i].Helper.AddSnippet(".", new Vector2(0, Boxes[i].Height - ActiveFont.Measure(".").Y / 6f)));
+                    Snippets.Add(Boxes[i].Helper.AddSnippet("", new Vector2(0, Boxes[i].Height - ActiveFont.Measure(".").Y / 6f)));
                 }
             }
             SetBoxPositions();

@@ -28,7 +28,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     if (player.Bottom > Top)
                     {
-                        player.MoveToY(Top);
+                        player.Y = Top;
                     }
                 }
                 Collider = prev;

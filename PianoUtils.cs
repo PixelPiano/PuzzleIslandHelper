@@ -6,6 +6,7 @@ using Celeste.Mod.CommunalHelper.Utils;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -23,9 +24,31 @@ using static Celeste.Player;
 /// <summary>A collection of methods + extensions methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static Directions Direction(this Vector2 vector)
+    {
+        if (vector.X > 0) return Directions.Right;
+        else if (vector.X < 0) return Directions.Left;
+        else if (vector.Y > 0) return Directions.Down;
+        else if (vector.Y < 0) return Directions.Up;
+        else return Directions.None;
+    }
+    public static Vector2 Vector(this Directions direction)
+    {
+        return direction switch
+        {
+            Directions.Left => -Vector2.UnitX,
+            Directions.Right => Vector2.UnitX,
+            Directions.Up => -Vector2.UnitY,
+            Directions.Down => Vector2.UnitY,
+            Directions.None => Vector2.Zero,
+            _ => Vector2.Zero,
+        };
+    }
+    public static Vector2 Size(this VirtualRenderTarget target) => new Vector2(target.Width, target.Height);
+    public static Vector2 HalfSize(this VirtualRenderTarget target) => new Vector2(target.Width, target.Height) / 2f;
     public static FlagData GetFlagData(this BinaryPacker.Element element, string flagname = "flag", string invertedname = "inverted")
         => (new FlagData(element.Attr(flagname), element.AttrBool(invertedname)));
-    public static FlagData GetFlagData(this EntityData data, string flagname = "flag", string invertedname = "inverted")
+    public static FlagData Flag(this EntityData data, string flagname = "flag", string invertedname = "inverted")
         => new FlagData(data.Attr(flagname), data.Bool(invertedname));
     public static Vector2 Position(this BinaryPacker.Element element) => new Vector2(element.AttrFloat("x"), element.AttrFloat("y"));
     public static IEnumerator TextboxSayClean(string text, params Func<IEnumerator>[] events)
@@ -228,9 +251,9 @@ public static class PianoUtils
     /// <param name="list">The <see cref="List{}"/> to add the rune to.</param>
     /// <param name="rune">The <see cref="Rune"/> to check.</param>
     /// <returns> <see langword="true"/> if <paramref name="rune"/> was successfully added to <paramref name="list"/>.<para/> <see langword="false"/> if <paramref name="rune"/> matches another <see cref="Rune"/> in <paramref name="list"/>.</returns>
-    public static bool TryAddRune(this List<WARP.Rune> list, WARP.Rune rune)
+    public static bool TryAddRune(this List<WarpRune> list, WarpRune rune)
     {
-        foreach (WARP.Rune r in list)
+        foreach (WarpRune r in list)
         {
             if (r.Match(rune))
             {
@@ -240,21 +263,21 @@ public static class PianoUtils
         list.Add(rune);
         return true;
     }
-    public static bool TryAddRuneRange(this List<WARP.Rune> list, List<WARP.Rune> runes)
+    public static bool TryAddRuneRange(this List<WarpRune> list, List<WarpRune> runes)
     {
         string current = "CURRENT RUNES IN LIST:\n";
         string adding = "RUNES TO BE CHECKED:\n";
         string added = "RUNES ADDED:\n";
-        foreach (WARP.Rune r in list)
+        foreach (WarpRune r in list)
         {
             current += "\t" + r.ToString() + "\n";
         }
-        foreach (WARP.Rune r in runes)
+        foreach (WarpRune r in runes)
         {
             adding += "\t" + r.ToString() + "\n";
         }
         bool failed = false;
-        foreach (WARP.Rune r in runes)
+        foreach (WarpRune r in runes)
         {
             if (!list.TryAddRune(r))
             {
@@ -265,9 +288,9 @@ public static class PianoUtils
                 added += "\t" + r.ToString() + "\n";
             }
         }
-        Engine.Commands.Log(current);
-        Engine.Commands.Log(adding);
-        Engine.Commands.Log(added);
+        /*        Engine.Commands.Log(current);
+                Engine.Commands.Log(adding);
+                Engine.Commands.Log(added);*/
         return !failed;
     }
     public static void MakePersistent(this Entity entity)
@@ -467,7 +490,8 @@ public static class PianoUtils
     {
         if (Engine.Scene is Level level && !string.IsNullOrEmpty(str))
         {
-            level.Session.SetFlag(str, !str.GetFlag(inverted));
+            //level.Session.SetFlag(str, !str.GetFlag(inverted));
+            level.Session.SetFlag(str, !level.Session.GetFlag(str));
         }
     }
     public static int GetCounter(this string str)
@@ -955,11 +979,11 @@ public static class PianoUtils
             if (entity.CollideCheck<Solid>(p)) break;
             entity.Y++;
         }
-        if(entity is Player player)
+        if (entity is Player player)
         {
             level.Camera.Position = player.CameraTarget;
         }
-        
+
     }
     public static void Ground(this FallingBlock block, bool includeJumpThrus = false)
     {
@@ -1190,6 +1214,26 @@ public static class PianoUtils
     {
         return new Vector2(rect.Right, (int)(rect.Top + rect.Height / 2f));
     }
+
+    public static float RenderLeft(this Image image) => image.RenderPosition.X;
+    public static float RenderRight(this Image image) => image.RenderPosition.X + image.Width;
+    public static float RenderTop(this Image image) => image.RenderPosition.Y;
+    public static float RenderBottom(this Image image) => image.RenderPosition.Y + image.Height;
+    public static float RenderCenterX(this Image image) => image.RenderPosition.X + image.HalfSize().X;
+    public static float RenderCenterY(this Image image) => image.RenderPosition.Y + image.HalfSize().Y;
+    public static Vector2 RenderTopRight(this Image image) => image.RenderPosition + Vector2.UnitX * image.Width;
+    public static Vector2 RenderTopLeft(this Image image) => image.RenderPosition;
+    public static Vector2 RenderBottomRight(this Image image) => image.RenderPosition + image.Size();
+    public static Vector2 RenderBottomLeft(this Image image) => image.RenderPosition + Vector2.UnitY * image.Height;
+    public static Vector2 RenderCenterLeft(this Image image) => image.RenderPosition + Vector2.UnitY * image.Height / 2;
+    public static Vector2 RenderCenterRight(this Image image) => image.RenderPosition + new Vector2(image.Width, image.Height / 2);
+    public static Vector2 RenderTopCenter(this Image image) => image.RenderPosition + Vector2.UnitX * image.Width / 2;
+    public static Vector2 RenderBottomCenter(this Image image) => image.RenderPosition + new Vector2(image.Width / 2, image.Height);
+    public static Vector2 RenderCenter(this Image image) => image.RenderPosition + image.HalfSize();
+    public static Rectangle Bounds(this Image image) => new((int)image.X, (int)image.Y, (int)image.Width, (int)image.Height);
+    public static Rectangle RenderBounds(this Image image) =>
+        new((int)image.RenderPosition.X, (int)image.RenderPosition.Y, (int)image.Width, (int)image.Height);
+
 
     public static Rectangle SetPos(this Rectangle rect, Vector2 position)
     {
@@ -1589,7 +1633,7 @@ public static class PianoUtils
     {
         return Random(min.X, max.X, min.Y, max.Y);
     }
-    
+
     public static T Random<T>(this List<T> array)
     {
         int min = 0;

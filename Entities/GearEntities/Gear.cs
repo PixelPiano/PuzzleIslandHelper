@@ -34,6 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public bool WasNotLeader = true;
         public Collider HoldingHitbox;
         public Collider IdleHitbox;
+        public Collider DetectHitbox;
 
         public float Rotation => Sprite is null ? 0 : Sprite.Rotation;
         public bool InHolder => Holder is not null;
@@ -81,14 +82,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                 Launching = true;
             }
         }
+        public bool ShouldBeActive;
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             bool isEmpty = string.IsNullOrEmpty(ContinuityID);
-            if (!PianoModule.Session.GearData.ShouldBeActive(this))
+            ShouldBeActive = PianoModule.Session.GearData.ShouldBeActive(this);
+            if (!ShouldBeActive)
             {
                 Visible = false;
                 Active = false;
+                Hold.cannotHoldTimer = 0.1f;
             }
             if (!isEmpty)
             {
@@ -96,6 +100,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                 {
                     Visible = false;
                     Active = false;
+                    Hold.cannotHoldTimer = 0.1f;
                 }
                 else
                 {
@@ -136,6 +141,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             int moe = 7;
             HoldingHitbox = new Hitbox(Sprite.Width - moe, Sprite.Height, moe / 2 - Sprite.Width * Justify.X, -Sprite.Height * Justify.Y);
             IdleHitbox = new Hitbox(Sprite.Width, Sprite.Height, -Sprite.Width * Justify.X, -Sprite.Height * Justify.Y);
+            DetectHitbox = new Hitbox(Width - 4, Height - 4, -Sprite.Width * Justify.X + 2, -Sprite.Height * Justify.Y + 2);
             Collider = IdleHitbox;
 
             Add(Light = new VertexLight(Collider.Center, Color.White, 0.7f, 32, 64));
@@ -295,7 +301,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public void DropFromHolder()
         {
             if (Launching) return;
-            
+
             ResetCollider();
             Speed = Vector2.Zero;
             Sprite.Rotation = 0;
@@ -327,6 +333,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             Sprite.Position = prevPosition;
 
         }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            Collider prev = Collider;
+            Collider = DetectHitbox;
+            Draw.HollowRect(Collider, Color.Lime);
+            Collider = prev;
+        }
         public override void Update()
         {
             base.Update();
@@ -342,13 +356,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                     Collider = IdleHitbox;
                 }
             }
-            else if (CollideFirst<GearHolder>() is GearHolder holder)
+            else
             {
-                if (holder.CanUseGear(this))
+                Collider prev = Collider;
+                Collider = DetectHitbox;
+                if (CollideFirst<GearHolder>() is GearHolder holder)
                 {
-                    holder.StartRoutine(this);
-                    Holder = holder;
+                    if (holder.CanUseGear(this))
+                    {
+                        holder.StartRoutine(this);
+                        Holder = holder;
+                    }
                 }
+                Collider = prev;
             }
 
             #region Copied Holdable code

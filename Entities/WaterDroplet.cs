@@ -14,6 +14,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private const float MaxSpeed = 350f;
         private Rectangle PlayerRectangle = new(0, 0, 0, 0);
         private float wait;
+        private bool randomWaitTime;
+        private float delay;
         private ParticleSystem system;
         private Vector2 End;
         private Vector2 Start;
@@ -42,19 +44,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             return (MathHelper.Pi / -2f) * (float)direction;
         }
         public WaterDroplet(EntityData data, Vector2 offset)
-        : base(data.Position + offset)
+        : base(data.Position + offset + Vector2.One)
         {
 
-            if (Calc.Random.Range(1, 3) == 1)
-            {
-                wait = Calc.Random.Range(0.5f, 1.5f);
-            }
-            else
-            {
-                wait = Calc.Random.Range(1.5f, 5);
-            }
-
             MoveDirection = data.Enum<Dir>("direction");
+            randomWaitTime = data.Bool("randomWaitTime");
+            if (!randomWaitTime)
+            {
+                wait = data.Float("interval");
+            }
+            delay = data.Float("delay");
             Drip.Color = Color.Lerp(data.HexColor("baseColor", Color.Blue), Color.LightBlue, 0.7f);
             Drip.Color2 = Color.Lerp(data.HexColor("baseColor", Color.Blue), Color.LightBlue, 0.3f);
             Collider = new Hitbox(1, 1);
@@ -62,6 +61,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            if (randomWaitTime) wait = Calc.Random.Chance(0.3f) ? Calc.Random.Range(0.5f, 1.5f) : Calc.Random.Range(1.5f, 5);
             scene.Add(system = new ParticleSystem(-1, 4));
             if (scene.GetPlayer() is Player player)
             {
@@ -109,8 +109,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Dir.Right => new Vector2(level.Bounds.Right + 16, start.Y),
                 _ => start
             };
-            Vector2? ray = PianoUtils.DoRaycast(level, start, end);
-            End = ray.HasValue ? ray.Value : end;
+            End = PianoUtils.DoRaycast(level, start, end) ?? end;
         }
         private Vector2 DirectionAmount(float amount)
         {
@@ -128,16 +127,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             };
             return new Vector2(x, y) * amount;
         }
-        
+
         private IEnumerator DropletJourney()
         {
             Vector2 collideOffset = Vector2.Zero;
             Water collidedWater = null;
             bool collidedWithPlayer = false;
             bool collidedWithWater = false;
+            yield return delay;
             while (true)
             {
-                yield return wait + Calc.Random.Range(0.2f, 0.4f);
+                yield return wait + (randomWaitTime ? Calc.Random.Range(0.2f, 0.4f) : 0);
                 Position = Start;
                 Vector2 amount = DirectionAmount(1);
                 //Slow ease before drop
@@ -205,25 +205,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 for (int i = 0; i < 3; i++)
                 {
-                    Drip.Direction = (MathHelper.Pi / -2f) * (Opposite() + (float)Dir.Left);
+                    Drip.Direction = (MathHelper.Pi / -2f) * (OppositeDirection() + (float)Dir.Left);
                     system.Emit(Drip, 1, pos + collideOffset, Vector2.One * 5);
-                    Drip.Direction = (MathHelper.Pi / -2f) * (Opposite() + (float)Dir.Right);
+                    Drip.Direction = (MathHelper.Pi / -2f) * (OppositeDirection() + (float)Dir.Right);
                     system.Emit(Drip, 1, pos + collideOffset, Vector2.One * 5);
                     yield return null;
                 }
             }
         }
-        private float Opposite()
-        {
-            return MoveDirection switch
-            {
-                Dir.Up => (float)Dir.Down,
-                Dir.Down => (float)Dir.Up,
-                Dir.Left => (float)Dir.Right,
-                Dir.Right => (float)Dir.Left,
-                _ => 0
-            };
-        }
+        private float OppositeDirection() => ((int)MoveDirection + 2) % 4;
         public override void Update()
         {
             base.Update();

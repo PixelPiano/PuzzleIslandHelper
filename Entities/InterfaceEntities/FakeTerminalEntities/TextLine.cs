@@ -1,5 +1,7 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using Monocle;
+using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminalEntities
 {
@@ -10,19 +12,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public string Text;
         public string FullText { get; private set; }
         public float LineHeight;
-
+        public int Start = 0;
+        public int End = int.MaxValue;
         public Vector2 Scale = Vector2.One * 0.7f;
         public Color Color = Color.White;
         public static Color DebugColor = Color.White;
         public bool DrawsSquare = true;
-        public static bool HideSquare;
+        public static bool UniversalHideSquare;
+        public bool HideSquare;
         public bool ForceSquare;
+        public string Prefix = "> ";
         public Vector2 RenderPosition { get; private set; }
         public TextLine(FakeTerminal terminal, string text, Color color) : base(terminal)
         {
             Color = color;
             Text = text;
         }
+
         public virtual string GetText()
         {
             return Text;
@@ -30,7 +36,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public override void Update()
         {
             base.Update();
-            string text = "> ";
+            string text = Prefix;
             string full = GetText();
             if (!string.IsNullOrEmpty(full))
             {
@@ -38,11 +44,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
             }
             FullText = text;
         }
-        public override void TerminalRender(Level level, Vector2 renderAt)
+        public virtual void DrawText(PixelFont font, Vector2 position, Color color)
+        {
+            font.Draw(Dialog.Language.FontFaceSize, FullText, position, Vector2.Zero, Scale, color * Alpha);
+        }
+        public override void TerminalRender(Level level, Vector2 renderAt, PixelFont font)
         {
             RenderPosition = level.Camera.CameraToScreen(renderAt).Floor() * 6;
-            ActiveFont.Draw(FullText, RenderPosition, Vector2.Zero, Scale, Color * Alpha);
-            if (ForceSquare || (DrawsSquare && IsCurrentIndex && !Halt && !HideSquare))
+            DrawText(font, RenderPosition, Color);
+            if (ForceSquare || (DrawsSquare && IsCurrentIndex && !Halt && !UniversalHideSquare && !HideSquare))
             {
                 Vector2 measure = ActiveFont.Measure(FullText) * Scale;
                 float width = ActiveFont.BaseSize * 0.6f * Scale.X;

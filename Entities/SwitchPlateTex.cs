@@ -4,6 +4,7 @@ using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+    //note to self stop messing with this evil evil evil evil thing evil
     [Tracked]
     public class SwitchPlateTex : Entity
     {
@@ -268,7 +269,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 new Vector2(0f,0f)
             }
         };
-
         public static Dictionary<string, Vector2> CornerTextureQuads = new Dictionary<string, Vector2>
         {
             {
@@ -286,13 +286,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 "downLeft",new Vector2(1f,0f)
             }
         };
-
         public static MTexture GetTextureQuad(MTexture texture, Vector2 position)
         {
             return texture.GetSubtexture((int)position.X * 8, (int)position.Y * 8, 8, 8);
         }
-
-
         public SwitchPlateTex(Vector2 position, float width, float height, float length, float pipeWidth, Vector2 startNode, Vector2 endNode, Vector2 nextNode, bool startNodeExit, bool endNodeExit, Color indentColor, Color spriteColor)
             : base(position)
         {

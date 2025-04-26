@@ -210,6 +210,11 @@ public class PianoCommands
     {
         PianoModule.Session.DEBUGBOOL4 = value;
     }
+    [Command("ds", "sets a debug string value")]
+    private static void SetDebugString(string value)
+    {
+        PianoModule.Session.DEBUGSTRING = value;
+    }
     [Command("df", "sets a debug float value")]
     private static void SetDebugFloat(float value)
     {
