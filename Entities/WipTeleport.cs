@@ -70,7 +70,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 else
                 {
-                    yield return Textbox.Say("Is doesn't seem to work.");
+                    yield return Textbox.Say("It doesn't seem to work.");
                 }
                 EndCutscene(Engine.Scene as Level);
             }

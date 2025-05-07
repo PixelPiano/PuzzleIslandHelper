@@ -151,21 +151,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 {
                     Color c = getColor(pos, currentLine);
                     //testing size changes - currently looks bad
-                    if (halfSize > 0)
-                    {
-                        Vector2 perp = Calc.Perpendicular(p - prev).FourWayNormal() * halfSize;
-                        Vector2 start = p + perp;
-                        Vector2 target = p - perp;
-                        while (start != target)
-                        {
-                            Draw.Point(start + position, c);
-                            start = Calc.Approach(start, target, 1);
-                        }
-                    }
-                    else
-                    {
-                        Draw.Point(p + position, c);
-                    }
+                    /*  if (halfSize > 0)
+                      {
+                          Vector2 perp = Calc.Perpendicular(p - prev).FourWayNormal() * halfSize;
+                          Vector2 start = p + perp;
+                          Vector2 target = p - perp;
+                          while (start != target)
+                          {
+                              Draw.Point(start + position, c);
+                              start = Calc.Approach(start, target, 1);
+                          }
+                      }
+                      else
+                      {
+                          Draw.Point(p + position, c);
+                      }*/
+                    Draw.Point(p + position, c);
                     prev = p;
                     p = Calc.Approach(p, currentLine.B, 1);
                     pos = Calc.Approach(pos, LineLength, 1);
@@ -196,7 +197,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 length += line.Length;
                 if (length > LineStart)
                 {
-                    
+
                     closestIndex = ii;
                     distanceFromClosestToStart = LineStart - (length - line.Length);
                     break;

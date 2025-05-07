@@ -114,7 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         private void CheckAndAddCutscene(Player player)
         {
-            if (!AddedCutscene && SceneAs<Level>().Session.GetFlag(Flag) && player.Speed.X < 0)
+            if (!AddedCutscene && (string.IsNullOrEmpty(Flag) || SceneAs<Level>().Session.GetFlag(Flag)) && player.Speed.X < 0)
             {
                 Scene.Add(new Cutscene(this));
                 AddedCutscene = true;
@@ -185,13 +185,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 //{turnOnTorches}
                 //*torches flicker on*
                 //huh?
-                //W-wow. I...
-                //How did they get all of this down here?
-                //Hold on... That symbol.
-                //I've seen that symbol before!
-                //Calidus... Is he...?
-                //{wait}
-                //...I'm getting some answers from him this time.
+                //W-wow...
                 EndCutscene(Level);
             }
 

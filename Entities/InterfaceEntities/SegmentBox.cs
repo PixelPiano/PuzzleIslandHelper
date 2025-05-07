@@ -2,26 +2,78 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
-using TAS.EverestInterop;
-using MonoMod.Cil;
-using Mono.Cecil.Cil;
 using System.Collections.Generic;
+using System.Linq;
+using TAS.EverestInterop;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
 {
     [Tracked]
     public class SegmentBox : WindowComponent
     {
-        public char DefaultChar = '#';
-        private Func<string, bool> onSubmit;
-        public SegmentBoxText Helper;
+        public struct Box
+        {
+            public int Levels;
+            public int LevelHeight;
+            public int Width;
+            public Vector2 Offset;
+            public int CurrentLevel;
+            public Color Color;
+            private const float flashTimer = 0.3f;
+            private float timer = 0;
+
+            public Box(Vector2 offset, int levels, int levelHeight, int width, Color color)
+            {
+                Offset = offset;
+                Levels = levels;
+                LevelHeight = levelHeight;
+                Width = width;
+                Color = color;
+            }
+            public void Flash()
+            {
+                timer = flashTimer;
+            }
+            public void Update()
+            {
+                if (timer > 0)
+                {
+                    timer -= Engine.DeltaTime;
+                }
+                else
+                {
+                    timer = 0;
+                }
+            }
+            public void Add(int value)
+            {
+                Set(CurrentLevel + value);
+            }
+            public void Set(int value)
+            {
+                CurrentLevel = Calc.Clamp(value, 0, Levels);
+            }
+            public void Render(Vector2 position, bool selected)
+            {
+                int totalHeight = LevelHeight * Levels;
+                Draw.Rect(position + Offset - Vector2.One, Width + 2, totalHeight + 2, Color.Lerp(Color.Black, Color.Red, timer / flashTimer));
+                if (selected)
+                {
+                    Draw.HollowRect(position + Offset - Vector2.One * 2, Width + 4, totalHeight + 4, Color.White);
+                }
+                float offset = totalHeight - LevelHeight;
+                for (int i = 0; i < Levels; i++)
+                {
+                    Color c = i < CurrentLevel ? Color : Color.Gray;
+                    Vector2 p = position + Vector2.UnitY * offset;
+                    Draw.Rect(p, Width, LevelHeight - 1, c);
+                    offset -= LevelHeight + 1;
+                }
+            }
+        }
+        public List<Box> Boxes = [];
         public Color BoxColor => Interface.NightMode ? Color.SlateBlue : Color.LightGray;
         public Vector2 ScreenSpacePosition => Scene is not Level level ? Vector2.Zero : (RenderPosition - level.Camera.Position) * 6;
-        public int Characters = 3;
-        public int Height = 14;
-        public int Width => CellWidth * Characters;
-        public int CellWidth => (int)(ActiveFont.BaseSize / 6 + Pad);
-        public int SelectedCell;
         public int Pad;
         public bool Selected;
         private float arrowTimer;
@@ -30,29 +82,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public Func<char, bool> IsValidCharacter;
         public Action ValidAction, InvalidAction;
         public Rectangle Bounds;
-
-        public SegmentBox(Window window, int maxChars, int pad, Func<string, bool> onSubmit = null, Func<char, bool> isValidCharacter = null, Action ifValid = null, Action ifInvalid = null) : base(window)
+        public int MaxLevels;
+        public int BoxCount;
+        public int[] Code;
+        public int Width;
+        public int Height;
+        public int SelectedBox;
+        public int BoxWidth;
+        public SegmentBox(Window window, int[] code, int pad, int boxWidth, int levelHeight, Action ifValid = null, Action ifInvalid = null)
+            : base(window)
         {
+            BoxWidth = boxWidth;
             ValidAction = ifValid;
             InvalidAction = ifInvalid;
-            this.onSubmit = onSubmit;
-            Characters = maxChars;
             Pad = pad;
-            IsValidCharacter = isValidCharacter;
-            for (int i = 0; i < Characters; i++)
+            MaxLevels = code.Max();
+            BoxCount = code.Length;
+            Code = code;
+            Width = boxWidth * code.Length;
+            Height = levelHeight * MaxLevels;
+            for (int i = 0; i < code.Length; i++)
             {
-                defaultText += DefaultChar;
+                Boxes.Add(new Box(Vector2.UnitX * (boxWidth + pad) * i, MaxLevels, levelHeight, boxWidth, Color.White));
             }
-            Helper = new SegmentBoxText(this);
         }
         public override void OnOpened(Scene scene)
         {
             base.OnOpened(scene);
             Position = new Vector2(Window.CaseWidth / 2, Window.CaseHeight / 2) - new Vector2(Width / 2, Height / 2);
-        }
-        public void ClearText()
-        {
-            Helper.Text = defaultText;
         }
         public void BlockKeyPress(Hotkeys.Hotkey hotkeys)
         {
@@ -70,32 +127,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         {
             arrowTimer = Math.Max(arrowTimer - Engine.DeltaTime, 0);
             Visible = Window.Drawing;
-            Helper.Visible = Visible;
             if (Selected)
             {
                 MInput.Disabled = false;
                 MInput.Update();
                 if (MInput.Keyboard.Pressed(Keys.Delete))
                 {
-                    if (Helper.Text.Length > 0)
-                    {
-                        ClearText();
-                    }
                     consumedButton = true;
                     MInput.UpdateNull();
                 }
                 else if (arrowTimer <= 0)
                 {
+                    bool detected = false;
                     if (MInput.Keyboard.Check(Keys.Left) || Input.MoveX.Value < 0)
                     {
-                        SelectedCell = Math.Max(0, SelectedCell - 1);
-                        arrowTimer = 0.2f;
-                        consumedButton = true;
-                        MInput.UpdateNull();
+                        SelectedBox = Math.Max(0, SelectedBox - 1);
+                        detected = true;
                     }
                     else if (MInput.Keyboard.Check(Keys.Right) || Input.MoveX.Value > 0)
                     {
-                        SelectedCell = Math.Min(SelectedCell + 1, Characters - 1);
+                        SelectedBox = Math.Min(SelectedBox + 1, BoxCount - 1);
+                        detected = true;
+                    }
+                    else if (MInput.Keyboard.Check(Keys.Up) || Input.MoveY.Value < 0)
+                    {
+                        detected = true;
+                        Boxes[SelectedBox].Add(1);
+                    }
+                    else if (MInput.Keyboard.Check(Keys.Down) || Input.MoveY.Value > 0)
+                    {
+                        detected = true;
+                        Boxes[SelectedBox].Add(-1);
+                    }
+                    if (detected)
+                    {
                         arrowTimer = 0.2f;
                         consumedButton = true;
                         MInput.UpdateNull();
@@ -105,16 +170,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             consumedButton = false;
             base.Update();
+            foreach(Box b in Boxes)
+            {
+                b.Update();
+            }
             Vector2 p = RenderPosition;
             if (Interface.LeftPressed)
             {
                 Selected = false;
-                for (int i = 0; i < Characters; i++)
+                for (int i = 0; i < BoxCount; i++)
                 {
-                    if (Interface.MouseOver(p + (Vector2.UnitX * CellWidth * i), CellWidth, Height))
+                    if (Interface.MouseOver(p + (Vector2.UnitX * BoxWidth * i), BoxWidth, Height))
                     {
                         Selected = true;
-                        SelectedCell = i;
+                        SelectedBox = i;
                         break;
                     }
                 }
@@ -128,8 +197,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Added(Entity entity)
         {
             base.Added(entity);
-            Scene.Add(Helper);
-            Helper.Text = defaultText;
             if (!AddedToOnInput)
             {
                 TextInput.OnInput += OnTextInput;
@@ -152,69 +219,43 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 return;
             }
-            char[] array = Helper.Text.ToCharArray();
-            char[] array2 = Helper.Text.ToCharArray();
             switch (c)
             {
                 case '\r':
                     Engine.Scene.OnEndOfFrame += delegate
                     {
-                        if (string.IsNullOrEmpty(Helper.Text))
+                        for (int i = 0; i < Code.Length; i++)
                         {
-                            return;
-                        }
-                        if (onSubmit != null)
-                        {
-                            if (!onSubmit.Invoke(Helper.Text))
+                            if (Boxes[i].CurrentLevel != Code[i])
                             {
-                                ClearText();
                                 InvalidAction?.Invoke();
+                                break;
                             }
-                            else
-                            {
-                                ValidAction?.Invoke();
-                            }
+                        }
+                        ValidAction?.Invoke();
+                        foreach (Box b in Boxes)
+                        {
+                            b.Flash();
                         }
                     };
                     break;
                 case '\b':
-
-                    for (int i = SelectedCell; i < Characters; i++)
-                    {
-                        array[Math.Max(i - 1, 0)] = array2[i];
-                    }
-                    array[Characters - 1] = DefaultChar;
-                    SelectedCell = Math.Max(SelectedCell - 1, 0);
+                    Boxes[SelectedBox].Set(0);
+                    SelectedBox = Math.Max(SelectedBox - 1, 0);
                     break;
                 case ' ':
-                    if (SelectedCell < Characters - 1)
-                    {
-                        for (int i = Characters - 1; i > SelectedCell; i--)
-                        {
-                            array[i] = array2[i - 1];
-                        }
-                        array[SelectedCell] = DefaultChar;
-                        SelectedCell++;
-                    }
-                    else
-                    {
-                        array[^1] = DefaultChar;
-                    }
+                    SelectedBox = Math.Min(SelectedBox + 1, BoxCount - 1);
                     break;
                 default:
                     {
-                        if (!char.IsControl(c) && ActiveFont.FontSize.Characters.ContainsKey(c) && (IsValidCharacter == null || IsValidCharacter.Invoke(c)))
-                        {
-                            array[SelectedCell] = c;
-                        }
                         break;
                     }
             }
-            Helper.Text = new string(array);
             consumedButton = true;
             MInput.Disabled = true;
             MInput.UpdateNull();
         }
+
         public void Deselect()
         {
             Selected = false;
@@ -222,28 +263,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override void Render()
         {
             base.Render();
-            bool altColor = Selected && !Interface.Buffering;
-            Color boxColor = altColor ? Color.Blue : BoxColor;
             Vector2 p = RenderPosition;
-            for (int i = 0; i < Characters; i++)
+            for (int i = 0; i < Boxes.Count; i++)
             {
-                Draw.Rect(p + (Vector2.UnitX * CellWidth * i), CellWidth, Height,
-                    altColor && SelectedCell == i ? Color.Blue : BoxColor);
+                Boxes[i].Render(p, i == SelectedBox);
             }
-            for (int i = 0; i < Characters; i++)
-            {
-                Draw.HollowRect(p + (Vector2.UnitX * CellWidth * i) - Vector2.One, CellWidth + 1, Height + 2, Color.Lerp(BoxColor, Color.White, 0.5f));
-            }
-            if (altColor)
-            {
-                Draw.HollowRect(p + Vector2.UnitX * CellWidth * SelectedCell - Vector2.One, CellWidth + 1, Height + 2, Color.White);
-            }
-
         }
         public override void Removed(Entity entity)
         {
             base.Removed(entity);
-            Helper.RemoveSelf();
 
             if (AddedToOnInput)
             {
@@ -251,32 +279,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 AddedToOnInput = false;
             }
             MInput.Disabled = false;
-        }
-        [Tracked]
-        public class SegmentBoxText : TextHelper
-        {
-            public SegmentBox Track;
-            public SegmentBoxText(SegmentBox track) : base(Color.White)
-            {
-                Track = track;
-            }
-            public override void Update()
-            {
-                base.Update();
-                Visible = Track.Visible;
-            }
-            public override void Render()
-            {
-                base.Render();
-                Vector2 sc = Track.ScreenSpacePosition + new Vector2(Track.Pad + Track.CellWidth / 2, Track.Height / 2) * 6;
-                foreach (char c in Text)
-                {
-                    string s = c.ToString();
-                    DrawOutline(sc - ActiveFont.Measure(s).XComp(), s);
-                    sc.X += Track.CellWidth * 6;
-                }
-                DrawSnippets(sc);
-            }
         }
     }
 }

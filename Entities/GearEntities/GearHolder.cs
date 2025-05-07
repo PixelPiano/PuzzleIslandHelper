@@ -6,6 +6,7 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using ExtendedVariants.Variants;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
 {
@@ -85,7 +86,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             }
             private void RenderImages()
             {
-                Draw.SpriteBatch.Draw(GameplayBuffers.TempA, Vector2.Zero, Color.White * 0.5f);
+                Draw.SpriteBatch.Draw(GameplayBuffers.TempA, Vector2.Zero, Color.White);
             }
         }
         public Sprite Sprite;
@@ -105,7 +106,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                 rate = value;
             }
         }
-        private float rate;
+        public float rate;
         public bool DropGear;
         public float Rotations;
         public float WaitTime = 1;
@@ -131,13 +132,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         private float timer;
         public bool HoldingGear;
         public EntityID EntityID;
-        public bool HasTime
-        {
-            get
-            {
-                return TimeLimit == -1 || timer < TimeLimit;
-            }
-        }
+        public bool HasTime => TimeLimit < 0 || timer < TimeLimit;
         public float shakeTimer;
         public Vector2 shakeAmount;
         protected bool Shaking;
@@ -154,6 +149,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             }
         }
         public Vector2 RenderPosition => Position + RealShakeAmount;
+        public bool IsBaseHolder;
+        public bool HasGear;
+        private bool preventGrab;
+        public Coroutine SlotCoroutine;
+        public float targetRotateRate;
         public bool CanUseGear(Gear gear) => gear != null && !HasGear && !gear.Hold.IsHeld && (!OnlyOnce || !UsedOnce) && !preventGrab;
         public ParticleType GearSparks = new()
         {
@@ -171,26 +171,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         };
         public GearHolder(Vector2 position, bool onlyOnce, Color color, EntityID entityId, float rotateRate = 10f, int id = -1, string flag = "", float stopAfter = -1) : base(position)
         {
+            IsBaseHolder = !GetType().IsSubclassOf(typeof(GearHolder));
+            this.flag = flag;
             EntityID = entityId;
             TimeLimit = stopAfter;
-            Depth = 2;
-            Color = Color.White;
             OnlyOnce = onlyOnce;
             ID = id;
+            targetRotateRate = rotateRate;
+            BackColor = color;
+            Depth = 2;
+            Color = Color.White;
             Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/Gear/");
             Sprite.AddLoop("idle", "holder", 0.1f);
             Sprite.Position += new Vector2(Sprite.Width / 2, Sprite.Height / 2);
             int offset = 2;
             Collider = new Hitbox(Sprite.Width - offset, Sprite.Height - offset, offset / 2, offset / 2);
-            rate = rotateRate;
-            this.flag = flag;
-            BackColor = color;
-            Light = new VertexLight(Color.White, 0.4f, 24, 40);
-            Light.Position = Vector2.One * 12;
-            Add(Light);
-            Bloom = new BloomPoint(0.5f, 24);
-            Bloom.Position = Vector2.One * 12;
-            Add(Bloom);
+            Add(Light = new VertexLight(Color.White, 0.4f, 24, 40){Position = Vector2.One * 12});
+            Add(Bloom = new BloomPoint(0.5f, 24) { Position = Vector2.One * 12 });
             Add(SlotCoroutine = new Coroutine(false));
         }
         public GearHolder(EntityData data, Vector2 offset, EntityID entityID)
@@ -222,12 +219,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             base.Awake(scene);
             if (PianoModule.Session.GearData.HasHolder(EntityID))
             {
+                flag.SetFlag();
                 SwitchToFake();
             }
-        }
-        public bool IsBaseHolder()
-        {
-            return !GetType().IsSubclassOf(typeof(GearHolder));
         }
         public override void Render()
         {
@@ -239,157 +233,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                 Vector2 gearOffset = new Vector2(FakeGear.Width / 2, FakeGear.Height / 2).Floor();
                 FakeGear.DrawOutline(RenderPosition + offset + gearOffset, gearOffset, Color.White, 1, Rotation.ToRad());
             }
-        }
-        public bool HasGear;
-        public virtual void StopSpinning(bool drop = true)
-        {
-            if (drop)
-            {
-                DropGear = true;
-            }
-            StopSpin = true;
-            timer = 0;
-        }
-        public virtual void StartSpinning()
-        {
-            DropGear = false;
-            StopSpin = false;
-            timer = 0;
-        }
-        public virtual IEnumerator WhileSpinning(Gear gear)
-        {
-            yield return null;
-        }
-        private IEnumerator SlotRoutine(Gear gear)
-        {
-            if (useFakeGearImage) yield break;
-            gear?.OnEnterHolder();
-            StartSpinning();
-            float lerp = 0;
-            Coroutine whileSpinning = new Coroutine(WhileSpinning(gear));
-            if (!DropGear) Add(whileSpinning);
-            while (gear != null && gear.InSlot && !StopSpin && HasTime)
-            {
-                timer += Engine.DeltaTime;
-                Spinning = true;
-                Rotation += RotateRate * lerp;
-                lerp = Calc.Min(1, lerp + Engine.DeltaTime);
-                yield return null;
-            }
-            if (!whileSpinning.Finished) whileSpinning.Cancel();
-            gear.Sprite.Play("flash");
-            Spinning = false;
-
-            yield return WindBack(gear, DropGear);
-        }
-        public void LockGear(Gear gear)
-        {
-            if (Scene is null || PianoModule.Session.GearData.HasHolder(EntityID)) return; //if holder already has a gear locked in place, return
-            PianoModule.Session.GearData.AddGear(gear);
-            PianoModule.Session.ContinuousGearIDs.Remove(gear.ContinuityID);
-            UsedOnce = true;
-            gear.RemoveSelf();
-            SwitchToFake();
-        }
-        public void SwitchToFake()
-        {
-            Spinning = false;
-            useFakeGearImage = true;
-            HasGear = true;
-        }
-        public virtual void OnWindBack(Gear gear, bool drop)
-        {
-
-        }
-        private bool preventGrab;
-        public void PreventRegrab(float time)
-        {
-            preventGrab = true;
-            bool cancelled = false;
-            Tween.Set(this, Tween.TweenMode.Oneshot, time, Ease.Linear, t =>
-            {
-                if (ForceCanHold)
-                {
-                    cancelled = true;
-                    preventGrab = false;
-                    ForceCanHold = false;
-                }
-            }, t =>
-            {
-                if (!cancelled)
-                {
-                    ForceCanHold = false;
-                    preventGrab = false;
-                }
-            });
-        }
-        public IEnumerator WindBack(Gear gear, bool drop)
-        {
-            OnWindBack(gear, drop);
-            float time = 0.3f;
-            bool lockgear = IsBaseHolder() && gear is not null && gear.InSlot && !UsedOnce;
-            float from = gear is not null ? gear.Light.Alpha : 0;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
-            {
-                if (lockgear)
-                {
-                    gear.Light.Alpha = Calc.LerpClamp(from, 0, Ease.SineOut(i));
-                }
-                Rotation += RotateRate * (1 - i);
-                yield return null;
-            }
-            Add(new Coroutine(easeBack(1.4f, Ease.SineInOut)));
-            if (lockgear)
-            {
-                LockGear(gear);
-            }
-            else if (drop)
-            {
-                PreventRegrab(WaitTime);
-                if (gear is not null)
-                {
-                    HasGear = false;
-                    gear.DropFromHolder();
-                    gear.InSlot = false;
-                }
-            }
-            UsedOnce = true;
-            InGearRoutine = false;
-            if (!string.IsNullOrEmpty(flag))
-            {
-                SceneAs<Level>().Session.SetFlag(flag);
-            }
-            yield return null;
-        }
-        private IEnumerator easeBack(float time, Ease.Easer ease)
-        {
-            float start = Rotation;
-            yield return 0.05f;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
-            {
-                if (Spinning) yield break;
-                Rotation = Calc.LerpClamp(start, 0, ease(i));
-                yield return null;
-            }
-            Rotation = 0;
-        }
-        public void StopShaking()
-        {
-            Shaking = false;
-
-            if (shakeAmount != Vector2.Zero)
-            {
-                OnShake(-RealShakeAmount);
-                RealShakeAmount = Vector2.Zero;
-            }
-        }
-        public void StartShaking(float time)
-        {
-            shakeTimer = time;
-            Shaking = true;
-        }
-        public virtual void OnShake(Vector2 amount)
-        {
         }
         public override void Update()
         {
@@ -412,16 +255,120 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                     }
                 }
             }
-
             base.Update();
             if (OnlyOnce && UsedOnce)
             {
                 Color = Color.Lerp(Color, Color.Gray, Engine.DeltaTime);
             }
-            Rotation = (float)Math.Round(Rotation);
+            Rotation = (float)Math.Round(Rotation + RotateRate);
             Rotations = Rotation / 360;
         }
-        public Coroutine SlotCoroutine;
+        public virtual void StopSpinning(bool drop = true)
+        {
+            if (drop)
+            {
+                DropGear = true;
+            }
+            StopSpin = true;
+            timer = 0;
+        }
+        public virtual void StartSpinning()
+        {
+            DropGear = false;
+            StopSpin = false;
+            timer = 0;
+        }
+        public virtual void OnWindBack(Gear gear, bool drop)
+        {
+
+        }
+        public virtual void SpinningUpdate(Gear gear, float rotateLerp)
+        {
+            rate = targetRotateRate * rotateLerp;
+        }
+        private IEnumerator SlotRoutine(Gear gear)
+        {
+            gear?.OnEnterHolder();
+            StartSpinning();
+            Coroutine whileSpinning = new Coroutine(WhileSpinning(gear));
+            if (!DropGear) Add(whileSpinning);
+            float lerp = 0;
+            while (gear != null && gear.InSlot && !StopSpin && HasTime)
+            {
+                if (TimeLimit >= 0) timer += Engine.DeltaTime;
+                Spinning = true;
+                SpinningUpdate(gear, lerp);
+                lerp = Calc.Min(1, lerp + Engine.DeltaTime);
+                yield return null;
+            }
+            if (!whileSpinning.Finished) whileSpinning.Cancel();
+            gear.Sprite.Play("flash");
+            Spinning = false;
+
+            yield return WindBack(gear, DropGear);
+        }
+        public virtual IEnumerator WhileSpinning(Gear gear)
+        {
+            yield return null;
+        }
+        public virtual void OnShake(Vector2 amount)
+        {
+        }
+        public void LockGear(Gear gear)
+        {
+            if (Scene is null || PianoModule.Session.GearData.HasHolder(EntityID)) return; //if holder already has a gear locked in place, return
+            PianoModule.Session.GearData.AddGear(gear);
+            PianoModule.Session.ContinuousGearIDs.Remove(gear.ContinuityID);
+            UsedOnce = true;
+            gear.RemoveSelf();
+            SwitchToFake();
+        }
+        public void SwitchToFake(bool constantSpinning = true)
+        {
+            if (constantSpinning)
+            {
+                rate = targetRotateRate;
+            }
+            Spinning = false;
+            useFakeGearImage = true;
+            HasGear = true;
+        }
+        public void PreventRegrab(float time)
+        {
+            preventGrab = true;
+            bool cancelled = false;
+            Tween.Set(this, Tween.TweenMode.Oneshot, time, Ease.Linear, t =>
+            {
+                if (ForceCanHold)
+                {
+                    cancelled = true;
+                    preventGrab = false;
+                    ForceCanHold = false;
+                }
+            }, t =>
+            {
+                if (!cancelled)
+                {
+                    ForceCanHold = false;
+                    preventGrab = false;
+                }
+            });
+        }
+        public void StopShaking()
+        {
+            Shaking = false;
+
+            if (shakeAmount != Vector2.Zero)
+            {
+                OnShake(-RealShakeAmount);
+                RealShakeAmount = Vector2.Zero;
+            }
+        }
+        public void StartShaking(float time)
+        {
+            shakeTimer = time;
+            Shaking = true;
+        }
         public void StartRoutine(Gear gear)
         {
             if (gear is null) return;
@@ -429,13 +376,72 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             InGearRoutine = true;
             DropGear = false;
             gear.InSlot = true;
-            SlotCoroutine.Replace(SlotRoutine(gear));
+            if (!useFakeGearImage)
+            {
+                SlotCoroutine.Replace(SlotRoutine(gear));
+            }
             //Add(new Coroutine(SlotRoutine(gear)));
         }
         public bool InReach(Gear gear, float distance)
         {
             float result = Vector2.Distance(Center, gear.Center);
             return result <= distance;
+        }
+        public IEnumerator WindBack(Gear gear, bool drop)
+        {
+            OnWindBack(gear, drop);
+            float time = 0.3f;
+            bool lockgear = IsBaseHolder && gear is not null && gear.InSlot && !UsedOnce;
+            float from = gear is not null ? gear.Light.Alpha : 0;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                if (lockgear)
+                {
+                    gear.Light.Alpha = Calc.LerpClamp(from, 0, Ease.SineOut(i));
+                }
+                else
+                {
+                    rate = targetRotateRate * (1 - i);
+                }
+                yield return null;
+            }
+            if (lockgear)
+            {
+                LockGear(gear);
+            }
+            else
+            {
+                Add(new Coroutine(easeBack(1.4f, Ease.SineInOut)));
+                if (drop)
+                {
+                    PreventRegrab(WaitTime);
+                    if (gear is not null)
+                    {
+                        HasGear = false;
+                        gear.DropFromHolder();
+                        gear.InSlot = false;
+                    }
+                }
+            }
+            UsedOnce = true;
+            InGearRoutine = false;
+            if (!string.IsNullOrEmpty(flag))
+            {
+                SceneAs<Level>().Session.SetFlag(flag);
+            }
+            yield return null;
+        }
+        private IEnumerator easeBack(float time, Ease.Easer ease)
+        {
+            float start = Rotation;
+            yield return 0.05f;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                if (Spinning) yield break;
+                Rotation = Calc.LerpClamp(start, 0, ease(i));
+                yield return null;
+            }
+            Rotation = 0;
         }
     }
 }

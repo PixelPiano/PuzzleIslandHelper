@@ -12,7 +12,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
     public class GearLauncher : GearHolder
     {
         private float Force;
-        private float normalRate;
         private Vector2 direction;
         private float chargeTime;
         public enum Direction
@@ -35,7 +34,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                 _ => Vector2.Zero
             };
             chargeTime = data.Float("chargeTime", 1);
-            normalRate = RotateRate;
             DropGear = false;
         }
         public override void Update()
@@ -54,17 +52,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         }
         public override IEnumerator WhileSpinning(Gear gear)
         {
-            RotateRate = normalRate;
+            rate = targetRotateRate;
             for (float i = 0; i < 1; i += Engine.DeltaTime / chargeTime)
             {
                 if (gear is null || !gear.InSlot)
                 {
                     break;
                 }
-                RotateRate = Calc.LerpClamp(RotateRate, Force / 5, Ease.SineIn(i));
-                if (RotateRate > 6)
+                rate = Calc.LerpClamp(rate, Force / 5, Ease.SineIn(i));
+                if (rate > 6)
                 {
-                    EmitSparks(RotateRate / 2, 1);
+                    EmitSparks(rate / 2, 1);
                 }
                 yield return null;
             }
@@ -75,7 +73,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             
             for (float i = 0; i < 1; i += Engine.DeltaTime / 3)
             {
-                RotateRate = Calc.LerpClamp(RotateRate, normalRate, Ease.CubeOut(i));
+                rate = Calc.LerpClamp(rate, targetRotateRate, Ease.CubeOut(i));
                 yield return null;
             }
             StopSpinning(true);

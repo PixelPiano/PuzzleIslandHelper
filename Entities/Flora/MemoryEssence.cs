@@ -5,6 +5,7 @@ using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 {
+
     [Tracked]
     public class MemoryEssence : Actor
     {

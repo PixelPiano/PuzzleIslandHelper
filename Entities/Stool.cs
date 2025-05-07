@@ -5,30 +5,56 @@ using System;
 using System.Collections;
 using MonoMod.Utils;
 using static MonoMod.InlineRT.MonoModRule;
+using Celeste.Mod.PuzzleIslandHelper.Components;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [Tracked]
-    public class StoolMoverComponent : Component
+    public class StoolListener : Component
     {
-        public StoolMoverComponent() : base(true, true)
+        public Action<Stool> OnRaised;
+        public Action<Stool> OnLowered;
+        public Action<Stool> OnGiveDashes;
+        public StoolListener(Action<Stool> onRaised, Action<Stool> onLowered = null, Action<Stool> onGiveDashes = null) : base(true, false)
+        {
+            OnRaised = onRaised;
+            OnLowered = onLowered;
+            OnGiveDashes = onGiveDashes;
+        }
+        public StoolListener() : base(true, false)
+        {
+
+        }
+    }
+    [Tracked]
+    public class StoolSnapComponent : Component
+    {
+        public StoolSnapComponent() : base(true, true)
         {
 
         }
         public bool Collide(Stool stool)
         {
-            if (Entity != null)
-            {
-                return Entity.CollideCheck(stool);
-            }
-            return false;
+            return Entity != null && Entity.CollideCheck(stool);
         }
     }
     [CustomEntity("PuzzleIslandHelper/Stool")]
     [Tracked]
     public class Stool : Actor
     {
-        private float holdTimer = 0;
+        [Command("refill_stool", "adds a refill to the nearest stool")]
+        public static void RefillStool(int dashes = 2)
+        {
+            if (dashes > 1 && Engine.Scene.GetPlayer() is Player player)
+            {
+                if (Engine.Scene.Tracker.GetNearestEntity<Stool>(player.Center) is Stool stool)
+                {
+                    stool.DashesHeld = dashes;
+                }
+            }
+        }
+
         private string flag;
         public Vector2 prevPosition = Vector2.Zero;
         public bool MoveStool = false;
@@ -36,339 +62,190 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool Inverted;
         private EntityID id;
         public bool FlagState => (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag)) != Inverted;
-        private static bool InRefill = false;
         private bool Raised = false;
-        private bool inRoutine = false;
-
+        private Coroutine coroutine;
         private float noGravityTimer;
         private float swatTimer;
-        private float StateAdjustment;
+        private float PlatformYOffset;
         private float hardVerticalHitSoundCooldown;
-        private int DashesHeld = 0;
+        public int DashesHeld = 0;
 
         private static Vector2 StoolJustify = new Vector2(0.5f, 1f);
         public Vector2 Speed;
         private Vector2 prevLiftSpeed;
-        private Vector2 _platPos;
+        private Vector2 pickupColliderOrigPosition;
 
-        private Color refillColor = Color.White;
+        private Color refillColor
+        {
+            get
+            {
+                return DashesHeld switch
+                {
+                    <= 1 => Color.White,
+                    2 => Color.LimeGreen,
+                    > 2 => Color.Red
+                };
+            }
+        }
 
         public Sprite sprite;
         public Holdable Hold;
         public HoldableCollider hitSeeker;
         private Hitbox HoldingHitbox;
-        private JumpThru platform;
+        public Hitbox RaisedHitbox;
+        public Hitbox LoweredHitbox;
+        private StoolPlatform platform;
         public VertexLight Light;
         private Color orig_Color = Color.White;
         private Collision onCollideV;
         private Collision onCollideH;
-        public Entity GetRider()
+        private Vector2 spriteOffset;
+        private int extraDashes;
+        private float flashTimer;
+        private float gracePeriod;
+        private float loweredOffset => sprite.Height - 9;
+        private float raisedOffset = 1;
+        public Vector2 PlatformPosition => Position + spriteOffset + new Vector2(1, PlatformYOffset);
+        [Tracked]
+        public class StoolPlatform : JumpThru
         {
-            foreach (Stool entity in Scene.Tracker.GetEntities<Stool>())
+            public Vector2 LiftSpeedMult = new Vector2(1, 1);
+            public bool NoLiftSpeed;
+            public Stool Stool;
+            public StoolPlatform(Stool parent, Vector2 position, int width, bool safe) : base(position, width, safe)
             {
-                if (entity.IsRiding(platform))
-                {
-                    return entity;
-                }
+                Stool = parent;
             }
-            foreach (Actor entity in Scene.Tracker.GetEntities<Actor>())
+            public override void MoveHExact(int move)
             {
-                if (entity.IsRiding(platform))
-                {
-                    return entity;
-                }
+                base.MoveHExact(move);
             }
-            foreach (Glider glider in Scene.Tracker.GetEntities<Glider>())
+
+            public override void MoveVExact(int move)
             {
-                if (glider.BottomCenter.X >= Position.X && glider.BottomCenter.X <= Position.X + sprite.Width)
+                int cancelMult = NoLiftSpeed ? 0 : 1;
+                if (Collidable)
                 {
-                    if (glider.BottomCenter.Y >= Position.Y && glider.BottomCenter.Y <= Position.Y + sprite.Height - 10)
+                    if (move < 0)
                     {
-                        return glider;
+                        foreach (Actor entity in base.Scene.Tracker.GetEntities<Actor>())
+                        {
+                            if (entity.IsRiding(this))
+                            {
+                                Collidable = false;
+                                if (entity.TreatNaive)
+                                {
+                                    entity.NaiveMove(Vector2.UnitY * move);
+                                }
+                                else
+                                {
+                                    entity.MoveVExact(move);
+                                }
+                                entity.LiftSpeed = LiftSpeed * LiftSpeedMult * cancelMult;
+                                Collidable = true;
+                            }
+                            else if (!entity.TreatNaive && CollideCheck(entity, Position + Vector2.UnitY * move) && !CollideCheck(entity))
+                            {
+                                Collidable = false;
+                                entity.MoveVExact((int)(base.Top + (float)move - entity.Bottom));
+                                entity.LiftSpeed = LiftSpeed * LiftSpeedMult * cancelMult;
+                                Collidable = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (Actor entity2 in base.Scene.Tracker.GetEntities<Actor>())
+                        {
+                            if (entity2.IsRiding(this))
+                            {
+                                Collidable = false;
+                                if (entity2.TreatNaive)
+                                {
+                                    entity2.NaiveMove(Vector2.UnitY * move);
+                                }
+                                else
+                                {
+                                    entity2.MoveVExact(move);
+                                }
+
+                                entity2.LiftSpeed = LiftSpeed * cancelMult;
+                                Collidable = true;
+                            }
+                        }
                     }
                 }
-                if (glider.IsRiding(platform))
-                {
-                    return glider;
-                }
+                Y += move;
+                MoveStaticMovers(Vector2.UnitY * move);
             }
-            return null;
         }
-
-        private void GivePlayerDashes(Player player)
-        {
-            if (player.Dashes < player.MaxDashes)
-            {
-                player.Dashes = DashesHeld;
-                player.RefillStamina();
-            }
-            refillColor = Color.White;
-            DashesHeld = 0;
-        }
-
+        private bool stackSpeedCancel;
+        //todo: add flash
         public Stool(Vector2 position, string flag, bool inverted, EntityID id) : base(position)
         {
+            Depth = 1;
             this.id = id;
-            Inverted = inverted;
             this.flag = flag;
+            Inverted = inverted;
             Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/stool/"));
             sprite.AddLoop("down", "stoolext", 0.1f, 0);
             sprite.AddLoop("up", "stoolext", 0.1f, 8);
-            sprite.Add("extUp", "stoolext", 0.03f, "up");
-            sprite.Add("extDown", "stoolextDown", 0.05f, "down");
+            sprite.Add("Rise", "stoolext", 0.02f, "up");
+            sprite.Add("Lower", "stoolLower", 0.05f, "down");
             sprite.Play("down");
             sprite.Justify = StoolJustify;
             sprite.JustifyOrigin(StoolJustify);
-            Add(Hold = new Holdable(0.5f));
-            Collider = new Hitbox(sprite.Width, sprite.Height, -sprite.Width * StoolJustify.X, -sprite.Height * StoolJustify.Y);
-            Hold.PickupCollider = new Hitbox(sprite.Width, sprite.Height, -sprite.Width * StoolJustify.X, -sprite.Height * StoolJustify.Y);
-            _platPos = Hold.PickupCollider.Position;
-            Hold.SpeedSetter = delegate (Vector2 speed)
+
+            spriteOffset = new Vector2(-sprite.Width * StoolJustify.X, -sprite.Height * StoolJustify.Y);
+            LoweredHitbox = new Hitbox(sprite.Width - 8, 10, spriteOffset.X, spriteOffset.Y);
+            RaisedHitbox = new Hitbox(sprite.Width - 8, sprite.Height, spriteOffset.X, spriteOffset.Y);
+            Collider = RaisedHitbox;
+            PlatformYOffset = loweredOffset;
+            HoldingHitbox = new Hitbox(sprite.Width - 8, sprite.Height, spriteOffset.X + 2, spriteOffset.Y);
+            Add(Light = new VertexLight(Collider.Center, Color.White, 0.7f, 32, 64));
+            Add(Hold = new Holdable(0.1f)
             {
-                Speed = speed;
-            };
-            Hold.SlowFall = false;
-            Hold.SlowRun = false;
-            Hold.OnPickup = OnPickup;
-            Hold.OnRelease = OnRelease;
-            Hold.DangerousCheck = Dangerous;
-            Hold.OnHitSeeker = HitSeeker;
-            Hold.OnSwat = Swat;
-            Hold.OnHitSpring = HitSpring;
-            Hold.OnHitSpinner = HitSpinner;
-            Hold.SpeedGetter = () => Speed;
+                SlowFall = false,
+                SlowRun = false,
+                OnPickup = OnPickup,
+                OnRelease = OnRelease,
+                DangerousCheck = Dangerous,
+                OnHitSeeker = HitSeeker,
+                OnSwat = Swat,
+                OnHitSpring = HitSpring,
+                OnHitSpinner = HitSpinner,
+                SpeedSetter = (speed) => Speed = speed,
+                SpeedGetter = () => Speed,
+                PickupCollider = new Hitbox(sprite.Width, sprite.Height + 2, spriteOffset.X, spriteOffset.Y + 2)
+            });
+
+            Collider = HoldingHitbox;
+            pickupColliderOrigPosition = Hold.PickupCollider.Position;
             onCollideH = OnCollideH;
             onCollideV = OnCollideV;
             LiftSpeedGraceTime = 0.1f;
-            Add(Light = new VertexLight(Collider.Center, Color.White, 0.7f, 32, 64));
             Add(new MirrorReflection());
-            HoldingHitbox = new Hitbox(sprite.Width - 8, sprite.Height, -sprite.Width * StoolJustify.X + 2, -sprite.Height * StoolJustify.Y);
-            Collider = HoldingHitbox;
+            Add(coroutine = new Coroutine(false));
+            Add(new DashListener()
+            {
+                OnDash = (dir) =>
+                {
+                    if (!Raised && platform.HasPlayerRider() && dir.X != 0)
+                    {
+                        gracePeriod = 0.3f;
+                    }
+                }
+            });
         }
         public Stool(EntityData data, Vector2 offset, EntityID id)
         : this(data.Position + offset, data.Attr("flag"), data.Bool("inverted"), id)
         {
 
         }
-        private void OnPickup()
-        {
-            MoveStool = false;
-            Hold.SlowRun = Raised;
-            Speed = Vector2.Zero;
-            AddTag(Tags.Persistent);
-            platform.AddTag(Tags.Persistent);
-            SceneAs<Level>().Session.DoNotLoad.Add(id);
-        }
-        public void OnRelease(Vector2 force)
-        {
-            MoveStool = false;
-            holdTimer = 0.5f;
-            RemoveTag(Tags.Persistent);
-            if (SceneAs<Level>().Session.DoNotLoad.Contains(id))
-            {
-                SceneAs<Level>().Session.DoNotLoad.Remove(id);
-            }
-            platform.RemoveTag(Tags.Persistent);
-            if (force.X != 0f && force.Y == 0f)
-            {
-                force.Y = -0.4f;
-            }
-            Speed = force * 200f;
-            if (Speed != Vector2.Zero)
-            {
-                noGravityTimer = 0.1f;
-            }
-        }
-        private IEnumerator ChangeState(Player player)
-        {
-            inRoutine = true;
-            float platTarget = Raised ? -2f : 2f;
-            if (!Raised)
-            {
-                sprite.Play("extUp");
-                Audio.Play("event:/PianoBoy/stoolRise", Position);
-            }
-            else
-            {
-                sprite.Play("extDown");
-                Audio.Play("event:/PianoBoy/stoolLower", Position);
-
-            }
-            for (float i = 0; i < 1; i += 0.1f)
-            {
-                platform.MoveTowardsY(platTarget, i * platTarget);
-                if (!Raised)
-                {
-                    foreach (StoolMoverComponent c in Scene.Tracker.GetComponents<StoolMoverComponent>())
-                    {
-                        if (c.Entity != null && c.Collide(this))
-                        {
-                            c.Entity.Bottom = platform.Position.Y;
-                        }
-                    }
-
-                    if (DashesHeld != 0)
-                    {
-                        GivePlayerDashes(player);
-                    }
-                    //if entity is riding the platform, boost that entity into the air
-                    if (platform.HasRider())
-                    {
-                        Entity rider = GetRider();
-                        if (rider as Glider is not null)
-                        {
-                            (rider as Glider).Speed.Y = -170;
-                        }
-                        else
-                        {
-                            if (rider as Stool is not null)
-                            {
-                                Launched(rider as Stool);
-                            }
-                        }
-                    }
-                    platform.LiftSpeed = Vector2.UnitY * 10;
-                }
-                yield return null;
-            }
-            Raised = !Raised;
-            yield return null;
-            inRoutine = false;
-        }
-        private DashCollisionResults OnDashed(Player player, Vector2 direction)
-        {
-            if (!inRoutine)
-            {
-                Add(new Coroutine(ChangeState(player), true));
-            }
-
-            if (player.DashDir == new Vector2(0, 1))
-            {
-                Audio.Play("event:/PianoBoy/stoolImpact", Position);
-            }
-            return DashCollisionResults.NormalCollision;
-        }
-        #region On Methods
-        private void OnCollideV(CollisionData data)
-        {
-            if (data.Hit is DashSwitch)
-            {
-                (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitY * Math.Sign(Speed.Y));
-            }
-            if (Speed.Y > 0f)
-            {
-                if (hardVerticalHitSoundCooldown <= 0f)
-                {
-                    Audio.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", Calc.ClampedMap(Speed.Y, 0f, 200f));
-                    hardVerticalHitSoundCooldown = 0.5f;
-                }
-                else
-                {
-                    Audio.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", 0f);
-                }
-            }
-
-            if (Speed.Y > 140f && !(data.Hit is SwapBlock) && !(data.Hit is DashSwitch))
-            {
-                Speed.Y *= -0.6f;
-            }
-            else
-            {
-                Speed.Y = 0f;
-            }
-        }
-        private void OnCollideH(CollisionData data)
-        {
-            if (data.Hit is DashSwitch)
-            {
-                (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitX * Math.Sign(Speed.X));
-            }
-            Audio.Play("event:/PianoBoy/stool_hit_side", Position);
-            Speed.X *= -0.4f;
-        }
-        public void Swat(HoldableCollider hc, int dir)
-        {
-            if (Hold.IsHeld && hitSeeker == null)
-            {
-                swatTimer = 0.1f;
-                hitSeeker = hc;
-                Hold.Holder.Swat(dir);
-            }
-        }
-
-        public void Launched(Stool stool)
-        {
-            stool.Speed.X *= 0.5f;
-            stool.Speed.Y = -200f;
-            stool.noGravityTimer = 0.3f;
-
-        }
-        public bool HitSpring(Spring spring)
-        {
-            if (!Hold.IsHeld)
-            {
-                if (spring.Orientation == Spring.Orientations.Floor && Speed.Y >= 0f)
-                {
-                    Speed.X *= 0.5f;
-                    Speed.Y = -160f;
-                    noGravityTimer = 0.15f;
-                    return true;
-                }
-                if (spring.Orientation == Spring.Orientations.WallLeft && Speed.X <= 0f)
-                {
-                    MoveTowardsY(spring.CenterY + 5f, 4f);
-                    Speed.X = 220f;
-                    Speed.Y = -80f;
-                    noGravityTimer = 0.1f;
-                    return true;
-                }
-                if (spring.Orientation == Spring.Orientations.WallRight && Speed.X >= 0f)
-                {
-                    MoveTowardsY(spring.CenterY + 5f, 4f);
-                    Speed.X = -220f;
-                    Speed.Y = -80f;
-                    noGravityTimer = 0.1f;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public void HitSpinner(Entity spinner)
-        {
-            /*            if (!Hold.IsHeld && Speed.Length() < 0.01f && base.LiftSpeed.Length() < 0.01f && (previousPosition - base.ExactPosition).Length() < 0.01f && OnGround())
-                        {
-                            int num = Math.Sign(base.X - spinner.X);
-                            if (num == 0)
-                            {
-                                num = 1;
-                            }
-                            Speed.X = (float)num * 120f;
-                            Speed.Y = -30f;
-                        }*/
-        }
-        public void HitSeeker(Seeker seeker)
-        {
-            if (!Hold.IsHeld)
-            {
-                Speed = (Center - seeker.Center).SafeNormalize(120f);
-            }
-            Audio.Play("event:/PianoBoy/stool_hit_side", Position);
-        }
-        public bool Dangerous(HoldableCollider holdableCollider)
-        {
-            if (!Hold.IsHeld && Speed != Vector2.Zero)
-            {
-                return hitSeeker != holdableCollider;
-            }
-            return false;
-        }
-        #endregion
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            scene.Add(platform = new JumpThru(Position - new Vector2(sprite.Width * StoolJustify.X, sprite.Height * StoolJustify.Y) + Vector2.UnitY * (sprite.Height - 10), (int)sprite.Width, false));
-            //platform.OnDashCollide = OnDashed;
+            scene.Add(platform = new StoolPlatform(this, PlatformPosition, (int)sprite.Width - 2, false));
         }
         public override void Awake(Scene scene)
         {
@@ -376,82 +253,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             platform.OnDashCollide = OnDashed;
             SetState();
         }
-        public void SetState()
+        public void UpdateColliders()
         {
-            Visible = platform.Visible = Collidable = platform.Collidable = Hold.Visible = FlagState;
+            Collider p = Hold.PickupCollider;
+            Vector2 o = pickupColliderOrigPosition;
+            Collider = Raised ? RaisedHitbox : LoweredHitbox;
+            p.Height = Collider.Height - 2;
+            p.Position.X = o.X;
+            p.Position.Y = Raised ? o.Y : o.Y + 10;
+            Collider.Position.X = p.Position.X + 4;
+            Collider.Position.Y = Raised ? o.Y - 2 : o.Y + 8;
         }
-        [Command("give_stool", "spawns a stool")]
-        public static void GiveStool()
+        public bool IsRiding<T>() where T : Platform
         {
-            if (Engine.Scene is not Level level || level.GetPlayer() is not Player player) return;
-            level.Add(new Stool(player.Position, "", false, new EntityID(Guid.NewGuid().ToString(), 0)));
-        }
-        [OnLoad]
-        public static void Load()
-        {
-            //On.Celeste.Refill.ctor_EntityData_Vector2 += OnRefillCtor;
-        }
-        /*        private static void OnRefillCtor(On.Celeste.Refill.orig_ctor_EntityData_Vector2 orig, Refill self, EntityData data, Vector2 offset)
-                {
-                    orig(self, data, offset);
-                    self.Add(new HoldableCollider((hold) =>
-                    {
-                        if (hold.Entity is Stool stool)
-                        {
-                            DynamicData dynData = DynamicData.For(self);
-                            stool.routine = new Coroutine(dynData.Invoke<IEnumerator>("RefillRoutine", stool.player), true);
-                            stool.routine.RemoveOnComplete = true;
-                            stool.refillColor = dynData.Get<bool>("twoDashes") ? Color.Red : Color.LimeGreen;
-
-                            if (self.Collidable)
-                            {
-                                InRefill = true;
-                                dynData = DynamicData.For(self);
-                                stool.DashesHeld = dynData.Get<bool>("twoDashes") ? 3 : 2;
-                                Audio.Play(dynData.Get<bool>("twoDashes") ? "event:/new_content/game/10_farewell/pinkdiamond_touch" : "event:/game/general/diamond_touch", self.Position);
-                                Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
-                                self.Collidable = false;
-                                self.Add(stool.routine);
-                                dynData.Set("respawnTimer", 2.5f);
-                            }
-                        }
-                    }));
-                }*/
-
-        [OnUnload]
-        public static void Unload()
-        {
-            //On.Celeste.Refill.ctor_EntityData_Vector2 -= OnRefillCtor;
+            if (IgnoreJumpThrus)
+            {
+                return false;
+            }
+            bool c = platform.Collidable;
+            platform.Collidable = false;
+            bool result = CollideCheckOutside<T>(Position + Vector2.UnitY);
+            platform.Collidable = c;
+            return result;
         }
         public override void Update()
         {
             base.Update();
             if (Scene is not Level level || level.GetPlayer() is not Player player) return;
             SetState();
+
             if (!FlagState) return;
-            Hold.CheckAgainstColliders();
-            sprite.SetColor(refillColor);
             orig_Color = refillColor;
-            if (holdTimer > 0f)
-            {
-                sprite.SetColor(Color.Lerp(orig_Color, Color.Black, 0.3f));
-                holdTimer -= Engine.DeltaTime;
-            }
-            else
-            {
-                sprite.SetColor(orig_Color);
-            }
-            Collider.Position = Hold.PickupCollider.Position = Raised ? _platPos : _platPos + Vector2.UnitY * 10;
-            Collider.Position.X = Hold.PickupCollider.Position.X + 4;
-            Collider.Height = Hold.PickupCollider.Height = Raised ? sprite.Height : 10;
-            StateAdjustment = Raised ? 0 : sprite.Height - 10;
-
-            if (!inRoutine)
-            {
-                platform.Position = Position - new Vector2(sprite.Width * StoolJustify.X, sprite.Height * StoolJustify.Y) + Vector2.UnitY * StateAdjustment;
-            }
-
-            Depth = 1;
+            sprite.Color = Hold.cannotHoldTimer > 0f ? Color.Lerp(orig_Color, Color.Black, 0.3f) : orig_Color;
             #region Copied
             if (swatTimer > 0f)
             {
@@ -480,7 +313,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         }
                         if (Speed.Y < 0f)
                         {
-                            noGravityTimer = 0.15f;
+                            Hold.gravityTimer = 0.15f;
                         }
                     }
                     else
@@ -558,7 +391,384 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 hitSeeker = null;
             }
             #endregion
+            if (IsRiding<StoolPlatform>())
+            {
+                prevLiftSpeed = Vector2.Zero;
+                //noLiftSpeedTimer += Engine.DeltaTime;
+            }
+            platform.NoLiftSpeed = noLiftSpeedTimer > 0;
+            noLiftSpeedTimer = Calc.Max(0, noLiftSpeedTimer - Engine.DeltaTime);
+            bool prev = platform.Collidable;
+            if (Hold.IsHeld && prev)
+            {
+                platform.Collidable = platform.Bottom < player.Top;
+            }
+            if (!coroutine.Active)
+            {
+                platform.LiftSpeedMult.Y = 1;
+            }
+            platform.MoveTo(PlatformPosition);
+            if (!Hold.IsHeld && !Raised && !coroutine.Active)
+            {
+                bool swap = false;
+                if (player.DashAttacking && player.DashDir.X != 0 && player.DashDir.Y == 0 && player.CollideCheck(platform) && MathHelper.Distance(player.Bottom, platform.Top) > 4)
+                {
+                    if (player.Bottom > platform.Top)
+                    {
+                        player.MoveToY(platform.Top);
+                    }
+                    swap = true;
+                }
+                if (gracePeriod > 0)
+                {
+                    if (!player.IsRiding(platform))
+                    {
+                        gracePeriod -= Engine.DeltaTime;
+                    }
+                    if (Input.Jump.Pressed)
+                    {
+                        player.LiftSpeed = new Vector2(player.LiftSpeed.X, player.LiftSpeed.Y - 70f);
+                        swap = true;
+                    }
+                }
+                if (swap)
+                {
+                    SwapState(player);
+                }
+            }
+            platform.Collidable = prev;
+            UpdateColliders();
+            Hold.CheckAgainstColliders();
+        }
+        private float noLiftSpeedTimer;
+        private void OnPickup()
+        {
+            noLiftSpeedTimer = 0.3f;
+            MoveStool = false;
+            Hold.SlowRun = Raised;
+            Speed = Vector2.Zero;
+            AddTag(Tags.Persistent);
+            platform.AddTag(Tags.Persistent);
+            SceneAs<Level>().Session.DoNotLoad.Add(id);
+        }
+        public void OnRelease(Vector2 force)
+        {
+            MoveStool = false;
+            RemoveTag(Tags.Persistent);
+            if (SceneAs<Level>().Session.DoNotLoad.Contains(id))
+            {
+                SceneAs<Level>().Session.DoNotLoad.Remove(id);
+            }
+            platform.RemoveTag(Tags.Persistent);
+            if (force.X != 0f && force.Y == 0f)
+            {
+                force.Y = -0.4f;
+            }
+            Speed = force * 200f;
+            if (Speed != Vector2.Zero)
+            {
+                Hold.gravityTimer = 0.1f;
+            }
+        }
+        public void SetState()
+        {
+            Visible = platform.Visible = Collidable = platform.Collidable = Hold.Visible = FlagState;
+        }
+        public Actor[] GetRiders()
+        {
+            List<Actor> riders = [];
+            foreach (Actor entity in Scene.Tracker.GetEntities<Actor>())
+            {
+                if (entity is Glider glider)
+                {
+                    if (glider.BottomCenter.X >= Position.X && glider.BottomCenter.X <= Position.X + sprite.Width)
+                    {
+                        if (glider.BottomCenter.Y >= Position.Y && glider.BottomCenter.Y <= Position.Y + sprite.Height - 10)
+                        {
+                            riders.Add(glider);
+                            continue;
+                        }
+                    }
+                }
+                if (entity.IsRiding(platform))
+                {
+                    riders.Add(entity);
+                }
+            }
+            return [.. riders];
+        }
+        public void RemoveLeftoverDashes(Player player)
+        {
+            player.Dashes = Math.Max(0, player.Dashes - extraDashes);
+        }
+        private void GivePlayerDashes(Player player)
+        {
+            foreach (StoolListener listener in Scene.Tracker.GetComponents<StoolListener>())
+            {
+                if (listener.Active)
+                {
+                    listener.OnGiveDashes?.Invoke(this);
+                }
+            }
+            if (player.Dashes < player.MaxDashes)
+            {
+                extraDashes = DashesHeld;
+                player.Dashes = DashesHeld;
+                player.RefillStamina();
+                float dashes = DashesHeld;
+                DashListener temporaryDashListener = new()
+                {
+                    OnDash = (dir) =>
+                    {
+                        dashes = (int)Calc.Max(dashes - 1, 0);
+                    }
+                };
+                player.Add(temporaryDashListener);
+                player.Add(new OnGroundAlarm(0.1f, 0.1f, null, delegate { RemoveLeftoverDashes(player); player.Remove(temporaryDashListener); }));
+            }
+            ConsumeDashes();
+        }
+        public void ConsumeDashes()
+        {
+            if (DashesHeld > 0)
+            {
+                flashTimer = 0.3f;
+                DashesHeld = 0;
+            }
+        }
+        private IEnumerator ChangeState(Player player)
+        {
+            bool rising = !Raised;
+            foreach (StoolListener listener in Scene.Tracker.GetComponents<StoolListener>())
+            {
+                if (listener.Active)
+                {
+                    if (Raised)
+                    {
+                        listener.OnLowered?.Invoke(this);
+                    }
+                    else
+                    {
+                        listener.OnRaised?.Invoke(this);
+                    }
+                }
+            }
+            string name = rising ? "Rise" : "Lower";
+            sprite.Play(name);
+            int totalFrames = sprite.CurrentAnimationTotalFrames;
+            Audio.Play("event:/PianoBoy/stool" + name, Position);
+            if (rising)
+            {
+                foreach (StoolSnapComponent c in Scene.Tracker.GetComponents<StoolSnapComponent>())
+                {
+                    if (c.Entity != null && c.Collide(this))
+                    {
+                        c.Entity.Bottom = platform.Position.Y;
+                    }
+                }
+                if (DashesHeld != 0)
+                {
+                    GivePlayerDashes(player);
+                }
+                //if entity is riding the platform, boost that entity into the air
+                if (platform.HasRider())
+                {
+                    Actor[] rider = GetRiders();
+                    foreach (Actor a in rider)
+                    {
+                        if (a is Glider g)
+                        {
+                            g.Speed.Y = -170;
+                        }
+                        else if (a is Stool stool)
+                        {
+                            Launched(stool);
+                        }
+                    }
+                }
+            }
+            float platTargetOffset = rising ? raisedOffset : loweredOffset; //y offset from the stool's "raised" y position
+            float from = PlatformYOffset;
+            float prev;
+            platform.LiftSpeedMult.Y = rising ? 3 : 1;
+            for (float i = 0; i < 1; i += 0.3f)
+            {
+                prev = platform.Y;
+                PlatformYOffset = Calc.LerpClamp(from, platTargetOffset, i);
+                platform.MoveTo(PlatformPosition);
+                if (player.IsRiding(platform))
+                {
+                    if (!rising)
+                    {
+                        player.MoveV(platform.Y - prev);
+                    }
+                }
+                yield return null;
+            }
+            PlatformYOffset = platTargetOffset;
+            platform.MoveTo(PlatformPosition);
+            Raised = rising;
+            platform.LiftSpeedMult.Y = rising ? 1 : 3;
+            yield return null;
+        }
+        public void SwapState(Player player)
+        {
+            Hold.gravityTimer = 0.3f;
+            gracePeriod = 0;
+            coroutine.Replace(ChangeState(player));
+            Audio.Play("event:/PianoBoy/stoolImpact", Position);
+        }
+        private DashCollisionResults OnDashed(Player player, Vector2 direction)
+        {
+            Hold.cannotHoldTimer = 0.1f;
+            SwapState(player);
+            return DashCollisionResults.NormalCollision;
+        }
+        #region On Methods
+        private void OnCollideV(CollisionData data)
+        {
+            if (data.Hit is DashSwitch)
+            {
+                (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitY * Math.Sign(Speed.Y));
+            }
+            if (Speed.Y > 0f)
+            {
+                if (hardVerticalHitSoundCooldown <= 0f)
+                {
+                    Audio.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", Calc.ClampedMap(Speed.Y, 0f, 200f));
+                    hardVerticalHitSoundCooldown = 0.5f;
+                }
+                else
+                {
+                    Audio.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", 0f);
+                }
+            }
 
+            if (Speed.Y > 140f && !(data.Hit is SwapBlock) && !(data.Hit is DashSwitch))
+            {
+                Speed.Y *= -0.6f;
+            }
+            else
+            {
+                Speed.Y = 0f;
+            }
+        }
+        private void OnCollideH(CollisionData data)
+        {
+            if (data.Hit is DashSwitch)
+            {
+                (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitX * Math.Sign(Speed.X));
+            }
+            Audio.Play("event:/PianoBoy/stool_hit_side", Position);
+            Speed.X *= -0.4f;
+        }
+        public void Swat(HoldableCollider hc, int dir)
+        {
+            if (Hold.IsHeld && hitSeeker == null)
+            {
+                swatTimer = 0.1f;
+                hitSeeker = hc;
+                Hold.Holder.Swat(dir);
+            }
+        }
+        public void Launched(Stool stool)
+        {
+            stool.Speed.X *= 0.5f;
+            stool.Speed.Y = -200f;
+            stool.Hold.gravityTimer = 0.3f;
+
+        }
+        public bool HitSpring(Spring spring)
+        {
+            if (!Hold.IsHeld)
+            {
+                if (spring.Orientation == Spring.Orientations.Floor && Speed.Y >= 0f)
+                {
+                    Speed.X *= 0.5f;
+                    Speed.Y = -160f;
+                    Hold.gravityTimer = 0.15f;
+                    return true;
+                }
+                if (spring.Orientation == Spring.Orientations.WallLeft && Speed.X <= 0f)
+                {
+                    MoveTowardsY(spring.CenterY + 5f, 4f);
+                    Speed.X = 220f;
+                    Speed.Y = -80f;
+                    Hold.gravityTimer = 0.1f;
+                    return true;
+                }
+                if (spring.Orientation == Spring.Orientations.WallRight && Speed.X >= 0f)
+                {
+                    MoveTowardsY(spring.CenterY + 5f, 4f);
+                    Speed.X = -220f;
+                    Speed.Y = -80f;
+                    Hold.gravityTimer = 0.1f;
+                    return true;
+                }
+            }
+            return false;
+        }
+        public void HitSpinner(Entity spinner)
+        {
+            /*            if (!Hold.IsHeld && Speed.Length() < 0.01f && base.LiftSpeed.Length() < 0.01f && (previousPosition - base.ExactPosition).Length() < 0.01f && OnGround())
+                        {
+                            int num = Math.Sign(base.X - spinner.X);
+                            if (num == 0)
+                            {
+                                num = 1;
+                            }
+                            Speed.X = (float)num * 120f;
+                            Speed.Y = -30f;
+                        }*/
+        }
+        public void HitSeeker(Seeker seeker)
+        {
+            if (!Hold.IsHeld)
+            {
+                Speed = (Center - seeker.Center).SafeNormalize(120f);
+            }
+            Audio.Play("event:/PianoBoy/stool_hit_side", Position);
+        }
+        public bool Dangerous(HoldableCollider holdableCollider)
+        {
+            if (!Hold.IsHeld && Speed != Vector2.Zero)
+            {
+                return hitSeeker != holdableCollider;
+            }
+            return false;
+        }
+        #endregion
+        [Command("give_stool", "spawns a stool")]
+        public static void GiveStool()
+        {
+            if (Engine.Scene is not Level level || level.GetPlayer() is not Player player) return;
+            level.Add(new Stool(player.Position, "", false, new EntityID(Guid.NewGuid().ToString(), 0)));
+        }
+        [OnLoad]
+        public static void Load()
+        {
+            On.Celeste.Refill.ctor_EntityData_Vector2 += OnRefillCtor;
+        }
+        private static void OnRefillCtor(On.Celeste.Refill.orig_ctor_EntityData_Vector2 orig, Refill self, EntityData data, Vector2 offset)
+        {
+            orig(self, data, offset);
+            self.Add(new HoldableCollider((hold) =>
+            {
+                if (hold.Entity is Stool stool && self.Collidable && stool.Scene.GetPlayer() is Player player)
+                {
+                    stool.DashesHeld = self.twoDashes ? 3 : 2;
+                    Audio.Play(self.twoDashes ? "event:/new_content/game/10_farewell/pinkdiamond_touch" : "event:/game/general/diamond_touch", self.Position);
+                    Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
+                    self.Collidable = false;
+                    self.Add(new Coroutine(self.RefillRoutine(player)));
+                    self.respawnTimer = 2.5f;
+                }
+            }));
+        }
+        [OnUnload]
+        public static void Unload()
+        {
+            On.Celeste.Refill.ctor_EntityData_Vector2 -= OnRefillCtor;
         }
 
     }

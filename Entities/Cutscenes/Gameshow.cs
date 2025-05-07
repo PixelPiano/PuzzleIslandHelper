@@ -1059,7 +1059,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             foreach (AudienceMember member in Level.Tracker.GetEntities<AudienceMember>())
             {
-                member.StopCheering();
+                member.Idle();
             }
         }
         public void SetLights(int index)

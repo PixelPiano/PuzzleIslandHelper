@@ -12,7 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
     public class AccessProgram : WindowContent
     {
         public static bool AccessTeleporting;
-        public List<SegmentBox> Boxes = [];
+        public List<CharBox> Boxes = [];
         public List<TextHelper.Snippet> Snippets = [];
         public AccessProgram(Window window) : base(window)
         {
@@ -43,14 +43,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            SegmentBox box1 = new SegmentBox(Window, 3, 2, CheckInput, IsValidCharacter, CompletePuzzle);
-            SegmentBox box2 = new SegmentBox(Window, 2, 2, CheckInput, IsValidCharacter, CompletePuzzle);
-            SegmentBox box3 = new SegmentBox(Window, 2, 2, CheckInput, IsValidCharacter, CompletePuzzle);
-            SegmentBox box4 = new SegmentBox(Window, 1, 2, CheckInput, IsValidCharacter, CompletePuzzle);
+            CharBox box1 = new CharBox(Window, 3, 2, CheckInput, IsValidCharacter, CompletePuzzle);
+            CharBox box2 = new CharBox(Window, 2, 2, CheckInput, IsValidCharacter, CompletePuzzle);
+            CharBox box3 = new CharBox(Window, 2, 2, CheckInput, IsValidCharacter, CompletePuzzle);
+            CharBox box4 = new CharBox(Window, 1, 2, CheckInput, IsValidCharacter, CompletePuzzle);
             Boxes = [box1, box2, box3, box4];
             for (int i = 0; i < Boxes.Count; i++)
             {
-                SegmentBox b = Boxes[i];
+                CharBox b = Boxes[i];
                 ProgramComponents.Add(b);
             }
         }

@@ -377,7 +377,7 @@ public class PianoCommands
         int blocks = 0;
         foreach (DashCodeCollectable entity in PianoModule.Session.CollectedIDs)
         {
-            if (entity.isHeart)
+            if (entity.IsHeart)
             {
                 hearts++;
             }

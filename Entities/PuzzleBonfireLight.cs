@@ -13,7 +13,6 @@ public class LabFloorLight : Entity
         : base(data.Position + offset)
     {
         Depth = -100000;
-
         Tag |= Tags.TransitionUpdate;
         Add(sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/puzzleBonfireLight/"));
         sprite.Add("idleOn", "lightAnim", 0.1f, "idleOff");

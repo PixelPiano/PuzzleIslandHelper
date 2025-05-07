@@ -131,6 +131,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 self.Speed *= BounceMult;
                 ModSpeed = false;
+                
             }
         }
         public static Vector2 BounceMult = Vector2.One;
@@ -153,6 +154,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private DashCollisionResults DashCollision(Player player, Vector2 direction)
         {
+            if (!RestoredPower) return DashCollisionResults.NormalCollision;
             if ((!Horizontal && direction.X == 0) || (Horizontal && direction.Y == 0)) //if collided on side edge
             {
                 Add(new Coroutine(FlickerShort()));
@@ -173,56 +175,52 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     if (player.Right < Left) return DashCollisionResults.NormalCollision;
                     break;
             }
-            if (RestoredPower)
+            ModSpeed = true;
+            if (Horizontal)
             {
-                ModSpeed = true;
-                if (Horizontal)
+                if (direction.X != 0)
                 {
-                    if (direction.X != 0)
-                    {
-                        BounceMult.X = 1.4f;
-                        BounceMult.Y = 1.2f;
-                    }
-                    else
-                    {
-                        BounceMult.X = 1f;
-                        BounceMult.Y = 1.5f;
-                    }
+                    BounceMult.X = 1.4f;
+                    BounceMult.Y = 1.2f;
                 }
                 else
                 {
-                    BounceMult.X = 1.7f;
-                    if (direction.Y > 0)
-                    {
-                        BounceMult.Y = -1.4f;
-                    }
-                    else
-                    {
-                        BounceMult.Y = 1.4f;
-                    }
+                    BounceMult.X = 1f;
+                    BounceMult.Y = 1.5f;
                 }
-                if (Broken)
+            }
+            else
+            {
+                BounceMult.X = 1.7f;
+                if (direction.Y > 0)
                 {
-                    BounceMult *= 0.5f;
-                    if (Calc.Random.Chance(0.5f))
-                    {
-                        AddShock(player, 1, 1, 2);
-                        Add(new Coroutine(FlickerShort()));
-                    }
+                    BounceMult.Y = -1.4f;
                 }
                 else
                 {
-                    for (int i = 0; i < Calc.Random.Range(2, 5); i++)
-                    {
-                        AddShock(player, Calc.Random.Range(2, 5), Calc.Random.Range(3, 8), Calc.Random.Range(1, 3));
-                    }
-                    player.UseRefill(false);
-                    Add(new Coroutine(HairColorFlash()));
+                    BounceMult.Y = 1.4f;
+                }
+            }
+            if (Broken)
+            {
+                BounceMult *= 0.5f;
+                if (Calc.Random.Chance(0.5f))
+                {
+                    AddShock(player, 1, 1, 2);
                     Add(new Coroutine(FlickerShort()));
                 }
-                return DashCollisionResults.Bounce;
             }
-            return DashCollisionResults.NormalCollision;
+            else
+            {
+                for (int i = 0; i < Calc.Random.Range(2, 5); i++)
+                {
+                    AddShock(player, Calc.Random.Range(2, 5), Calc.Random.Range(3, 8), Calc.Random.Range(1, 3));
+                }
+                player.UseRefill(false);
+                Add(new Coroutine(HairColorFlash()));
+                Add(new Coroutine(FlickerShort()));
+            }
+            return DashCollisionResults.Bounce;
         }
         public override void Removed(Scene scene)
         {

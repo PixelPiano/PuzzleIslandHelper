@@ -14,7 +14,11 @@ audienceMember.placements =
         name = "Audience Member",
         data = 
         {
-            faceType = "stapler"
+            faceType = "stapler",
+            flag = "",
+            inverted = false,
+            randomFace = false,
+            usesLighting = false
         }
     }
 }

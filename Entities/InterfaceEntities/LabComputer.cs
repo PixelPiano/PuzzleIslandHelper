@@ -44,7 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public override IEnumerator OnBegin(Player player)
         {
             //DEBUG
-/*            if (Debug)
+            /*            if (Debug)
             {
                 if (Scene.Tracker.GetEntity<ComputerMonitor>() is var monitor)
                 {
@@ -53,6 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 //Interface.StartWithPreset("Default");
                 yield break;
             }*/
+            Level level = SceneAs<Level>();
             //END DEBUG
             if (PianoModule.Session.RestoredPower)
             {
@@ -62,14 +63,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             else
             {
-                if (Scene.Tracker.GetEntity<ComputerMonitor>() is var monitor)
+                if (level.Tracker.GetEntity<ComputerMonitor>() is var monitor)
                 {
-                    if (PianoModule.Session.TimesUsedCapsuleWarp == 0)
+                    if (PianoModule.Session.TimesUsedCapsuleWarp == 0 && !TempStoryFlags.PowerLabFirstAndOneMeeting)
                     {
                         SetSessionInterface();
                         Interface.StartWithPreset("Default");
                     }
-                    else if (Interacted)
+                    else if (Interacted || TempStoryFlags.PowerLabFirstAndOneMeeting)
                     {
                         Interface.StartWhirring();
                         monitor.SmallLogo();

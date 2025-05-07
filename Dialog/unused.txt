@@ -1,0 +1,13 @@
+findFloppy=
+[Madeline left sad]
+Hm? There's something in that slot.
+[Madeline left normal]
+Oh, it's... it's...
+[Madeline left distracted]
+...uhhhhhhhhhh...
+[Madeline left normal]
+...a floppy disk!
+I can't remember the last time I saw one of those!
+...
+[Madeline left distracted]
+How long has this place been here?

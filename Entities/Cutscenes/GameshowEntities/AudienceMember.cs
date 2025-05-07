@@ -1,6 +1,7 @@
 ﻿using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
@@ -10,73 +11,104 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
     public class AudienceMember : Entity
     {
         public Sprite Sprite;
-        public static bool Wiped;
-        public AudienceMember(Vector2 position, string faceType) : base(position)
+        public bool AffectedByLevelLighting;
+        public FlagData Flag;
+        private bool prevState;
+        private readonly string[] types = ["angry", "ok", "stapler", "uwu"];
+        private string faceType;
+        public bool Dead;
+        public AudienceMember(EntityData data, Vector2 offset) : this(data.Position + offset, data.Flag("flag", "inverted"), data.Bool("randomFace") ? null : data.Attr("faceType"), data.Bool("usesLighting")) { }
+        public AudienceMember(Vector2 position, FlagData flag, string faceType = null, bool affectedByLevelLighting = false) : base(position)
         {
-            Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/gameshow/audience/" + faceType + "/");
-            Sprite.AddLoop("idle", faceType + "Face", 0.1f);
-            Sprite.AddLoop("cheer", faceType + "Laugh", 0.1f);
-            Sprite.AddLoop("die", faceType + "Die", 0.1f);
-            Add(Sprite);
-            Sprite.Position -= new Vector2(Sprite.Width / 2, Sprite.Height / 2);
-            Sprite.Play("idle");
+            this.faceType = faceType;
+            Flag = flag;
             Depth = 4;
             Tag |= Tags.TransitionUpdate;
+            AffectedByLevelLighting = affectedByLevelLighting;
         }
-        public override void Update()
+        public override void Awake(Scene scene)
         {
-            if (!SceneAs<Level>().Session.Level.Contains("Gameshow"))
+            base.Awake(scene);
+            if (!Flag.GetState(scene))
             {
-                Sprite.Color = Color.Lerp(Color.White, Color.Black, SceneAs<Level>().Lighting.Alpha);
+                Dead = true;
             }
             else
             {
-                Sprite.Color = Color.White;
+                if (string.IsNullOrEmpty(faceType))
+                {
+                    Calc.PushRandom((int)(X * Y));
+                    faceType = types.Random();
+                    Calc.PopRandom();
+                }
+                Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/gameshow/audience/" + faceType + "/");
+                Sprite.AddLoop("idle", faceType + "Face", 0.1f);
+                Sprite.AddLoop("cheer", faceType + "Laugh", 0.1f);
+                Sprite.AddLoop("die", faceType + "Die", 0.1f);
+
+                Add(Sprite);
+                Sprite.Position -= new Vector2(Sprite.Width / 2, Sprite.Height / 2);
+                Collider = Sprite.Collider();
+                Idle();
+            }
+        }
+        public override void Update()
+        {
+            bool state = Flag.State;
+            if (prevState != state)
+            {
+                if (!state) Die();
+                else Idle();
+            }
+            if (AffectedByLevelLighting)
+            {
+                Sprite.Color = Color.Lerp(Color.White, Color.Black, SceneAs<Level>().Lighting.Alpha);
             }
             base.Update();
+            prevState = Flag.State;
         }
         public void Die()
         {
-            Add(new Coroutine(dieRoutine()));
+            if (!Dead)
+            {
+                Add(new Coroutine(dieRoutine()));
+            }
+        }
+        public override void Render()
+        {
+            if (!Dead)
+            {
+                base.Render();
+            }
+
         }
         private IEnumerator dieRoutine()
         {
             Sprite.Play("die");
             for (int i = 0; i < 4; i++)
             {
-                Visible = true;
+                Dead = true;
                 yield return 0.1f;
-                Visible = false;
+                Dead = false;
                 yield return 0.1f;
             }
-            RemoveSelf();
+            Dead = true;
             yield return null;
         }
         public void Cheer()
         {
             Sprite.Play("cheer");
         }
-        public void StopCheering()
+        public void Idle()
         {
-            Sprite.Play("idle");
+            Dead = false;
+            Sprite.Play("idle", false, true);
         }
         public IEnumerator CheerRoutine(float duration)
         {
             Cheer();
             yield return duration;
-            StopCheering();
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            if ((scene as Level).Session.GetFlag("FacesWiped"))
-            {
-                RemoveSelf();
-            }
-        }
-        public AudienceMember(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, data.Attr("faceType"))
-        {
-
+            Idle();
         }
     }
 }

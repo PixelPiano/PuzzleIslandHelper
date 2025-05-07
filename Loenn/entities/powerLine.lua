@@ -25,6 +25,7 @@ powerLine.placements = {
         lineColorA = "FFFFFF",
         lineColorB = "FFFFFF",
         stateChangeDuration = 1,
+        backwards = false
     }
 }
 powerLine.fieldInformation = 

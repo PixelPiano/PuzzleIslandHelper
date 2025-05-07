@@ -4,6 +4,8 @@ using Celeste.Mod.Entities;
 using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using System.Linq;
+using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -12,30 +14,130 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class MiniGenerator : Entity
     {
+        public static bool FillsWithStool = true;
+        public static float FillIncrement = 100f;
         public EntityID ID;
         public bool Activated;
-        public float Amount;
-        private float duration = 1.2f;
-        private float timer;
-        private float flashLerp;
-        private float colorLerp;
-        private Color StreakDefaultColor = Calc.HexToColor("203747");
-        private Color SymbolDefaultColor = Calc.HexToColor("020812");
-        private readonly Color StreakActiveColor = Calc.HexToColor("3CFFF6");
-        private readonly Color SymbolActiveColor = Calc.HexToColor("AA3CFF");
-        private Color StreakColor;
-        private Color SymbolColor;
         public bool Registered => PianoModule.Session.MiniGenStates.ContainsKey(ID);
         public bool RegistryState => Registered && PianoModule.Session.MiniGenStates[ID];
-        private Color FlashColor = Color.White;
+        public float FillAmount;
+        public float FillSpeed;
+        private float flashLerp;
+        private float colorLerp;
+        private float endFill = 16;
+        private float speedTarget = -30f;
+        private static Color StreakDefaultColor => Calc.HexToColor("203747");
+        private static Color SymbolDefaultColor => Calc.HexToColor("020812");
+        private static Color StreakTargetColor => Calc.HexToColor("3CFFF6");
+        private static Color SymbolTargetColor => Calc.HexToColor("AA3CFF");
         public MTexture Machine = GFX.Game["objects/PuzzleIslandHelper/miniGenerator/machine"];
+        private Coroutine flashCoroutine, colorCoroutine;
         public MiniGenerator(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
             Depth = 1;
             ID = id;
             Collider = new Hitbox(Machine.Width, Machine.Height);
-            StreakColor = StreakDefaultColor;
-            SymbolColor = SymbolDefaultColor;
+            Add(colorCoroutine = new Coroutine(false));
+            Add(flashCoroutine = new Coroutine(false));
+            if (FillsWithStool)
+            {
+                Add(new StoolListener(OnStoolRaised));
+            }
+            else
+            {
+                Add(new DashListener(OnDash));
+            }
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            if (!Registered)
+            {
+                Register();
+            }
+            else if (RegistryState)
+            {
+                Activate(false);
+            }
+        }
+        public override void Update()
+        {
+            base.Update();
+            if (!Activated)
+            {
+                if (FillAmount != endFill)
+                {
+                    FillAmount = Calc.Clamp(FillAmount + FillSpeed * Engine.DeltaTime, 0, endFill);
+                }
+                FillSpeed = Calc.Approach(FillSpeed, speedTarget, Engine.DeltaTime * 30f) * 0.98f;
+                if (FillAmount >= endFill)
+                {
+                    Activate(true);
+                }
+            }
+            else
+            {
+                FillAmount = endFill;
+                FillSpeed = speedTarget;
+            }
+
+        }
+        public override void Render()
+        {
+            base.Render();
+            Color streakColor = Color.Lerp(Color.Lerp(StreakDefaultColor, StreakTargetColor, colorLerp), Color.White, flashLerp);
+            Color symbolColor = Color.Lerp(Color.Lerp(SymbolDefaultColor, SymbolTargetColor, colorLerp), Color.White, flashLerp);
+            Draw.Rect(Position + new Vector2(19, 8), 2, 26, streakColor);
+            Draw.Rect(Position + new Vector2(35, 8), 2, 25, streakColor);
+            Draw.Rect(Position + new Vector2(25, 12), 7, 16, symbolColor);
+            if (!Activated)
+            {
+                Draw.Rect(Position + new Vector2(25, 28 - FillAmount), 7, FillAmount, Color.White);
+            }
+
+            Draw.SpriteBatch.Draw(Machine.Texture.Texture_Safe, Position, Color.White);
+        }
+        private void OnDash(Vector2 dir)
+        {
+            if (dir == Vector2.UnitY && FillAmount < endFill && CollideCheck<Player>())
+            {
+                FillSpeed += FillIncrement;
+            }
+        }
+        private void OnStoolRaised(Stool stool)
+        {
+            if (FillAmount < 1 && stool.DashesHeld > 1 && CollideCheck(stool))
+            {
+                FillSpeed += FillIncrement * (stool.DashesHeld - 1);
+            }
+        }
+        public void Activate(bool flash)
+        {
+            Activated = true;
+            UpdateRegistry(true); //set dictionary value to true
+            colorCoroutine.Replace(ColorLerp());
+            colorLerp = 0;
+            flashLerp = 1;
+            FillAmount = endFill;
+            if (flash)
+            {
+                flashCoroutine.Replace(FlashRoutine());
+            }
+        }
+        public void Deactivate()
+        {
+            if (!Registered)
+            {
+                Register();
+            }
+            Activated = false;
+            flashCoroutine.Cancel();
+            colorCoroutine.Cancel();
+            FillAmount = 0;
+            FillSpeed = -50f;
+            colorLerp = 0;
+            flashLerp = 0;
+            UpdateRegistry(false);
         }
         public void Register()
         {
@@ -51,131 +153,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 PianoModule.Session.MiniGenStates[ID] = state;
             }
         }
-        public override void Render()
+        private IEnumerator FlashRoutine()
         {
-            base.Render();
-            
-            Draw.Rect(Position + new Vector2(19, 8), 2, 26, StreakColor);
-            Draw.Rect(Position + new Vector2(35, 8), 2, 25, StreakColor);
-            Draw.Rect(Position + new Vector2(25, 12), 7, 16, SymbolColor);
-            float progress = Amount * 16;
-            if (!Activated)
-            {
-                Draw.Rect(Position + new Vector2(25, 28 - progress), 7, progress, Color.White);
-            }
-            Draw.SpriteBatch.Draw(Machine.Texture.Texture_Safe, Position, Color.White);
+            yield return 0.4f;
+            yield return PianoUtils.Lerp(Ease.SineIn, 1, (f) => flashLerp = 1 - f, true);
         }
         private IEnumerator ColorLerp()
         {
             float duration = 3;
-            while (true)
+            yield return PianoUtils.Lerp(Ease.SineInOut, duration, f => colorLerp = f, true);
+            while (Activated)
             {
-                for (float i = 0; i < 1; i += Engine.RawDeltaTime / duration)
-                {
-                    colorLerp = Ease.SineInOut(i);
-                    yield return null;
-                }
-                colorLerp = 1;
-                for (float i = 0; i < 1; i += Engine.RawDeltaTime / 0.5f)
-                {
-                    colorLerp = Calc.LerpClamp(1, 0.7f, Ease.SineInOut(i));
-                    yield return null;
-                }
-                colorLerp = 0.7f;
-                yield return null;
-                for (float i = 0; i < 1; i += Engine.RawDeltaTime / 0.5f)
-                {
-                    colorLerp = Calc.LerpClamp(0.7f, 1, Ease.SineInOut(i));
-                    yield return null;
-                }
-                colorLerp = 1;
-                yield return null;
-                for (float i = 0; i < 1; i += Engine.RawDeltaTime / duration)
-                {
-                    colorLerp = 1 - Ease.SineInOut(i);
-                    yield return null;
-                }
-                colorLerp = 0;
-                yield return null;
+                yield return PianoUtils.LerpYoyo(Ease.SineInOut, 0.5f, f => colorLerp = 1 - 0.3f * f, delegate { colorLerp = 0.7f; });
+                yield return PianoUtils.Lerp(Ease.SineInOut, duration, f => colorLerp = 1 - 0.7f * f, true);
+                yield return PianoUtils.Lerp(Ease.SineInOut, duration, f => colorLerp = 0.3f + 0.7f * f, true);
             }
+
         }
-        private IEnumerator FlashRoutine()
+        [Command("change_fill_speed", "")]
+        public static void ChangeFillSpeed(float speed = 15f)
         {
-            Activated = true;
-            for (float i = 0; i < 1; i += Engine.RawDeltaTime)
-            {
-                flashLerp = Calc.LerpClamp(0, 1, i);
-                yield return null;
-            }
-            yield return 0.4f;
-            for (float i = 0; i < 1; i += Engine.RawDeltaTime)
-            {
-                flashLerp = Calc.LerpClamp(1, 0, i);
-                yield return null;
-            }
-            yield return null;
+            FillIncrement = speed;
         }
-        public void SetToActive(bool inLevel)
+        [Command("disable_minigen", "disables the nearest mini generator")]
+        public static void DisableNearest()
         {
-            SymbolDefaultColor = StreakDefaultColor = Color.White;
-            Activated = true;
-            UpdateRegistry(true); //set dictionary value to true
-            Add(new Coroutine(ColorLerp()) { UseRawDeltaTime = true });
-            if (inLevel)
+            if (Engine.Scene is Level level && level.GetPlayer() is Player player)
             {
-                Add(new Coroutine(FlashRoutine()) { UseRawDeltaTime = true });
-                Amount = 1;
-            }
-        }
-        public DotX3 Talk;
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            if (!Registered)
-            {
-                Register();
-            }
-            else if (RegistryState)
-            {
-                SetToActive(false);
-            }
-            Add(Talk = new DotX3(Collider, Interact));
-            Talk.PlayerMustBeFacing = false;
-        }
-        public void Interact(Player player)
-        {
-            //todo: swap this out with an actual mechanic to activate these
-            IEnumerator cutscene()
-            {
-                player.DisableMovement();
-                yield return PianoUtils.Lerp(Ease.SineIn, duration, f => Amount = f, true);
-                SetToActive(true);
-                player.EnableMovement();
-            }
-            Add(new Coroutine(cutscene()));
-        }
-        public override void Update()
-        {
-            base.Update();
-            StreakColor = Color.Lerp(Color.Lerp(StreakDefaultColor, StreakActiveColor, colorLerp), FlashColor, flashLerp);
-            SymbolColor = Color.Lerp(Color.Lerp(SymbolDefaultColor, SymbolActiveColor, colorLerp), FlashColor, flashLerp);
-            Talk.Enabled = !Activated;
-/*            if (!Activated)
-            {
-                if (OnStandby && CollideCheck<Player>())
+                if (level.Tracker.GetNearestEntity<MiniGenerator>(player.Center) is var gen)
                 {
-                    timer += Engine.RawDeltaTime;
+                    gen.Deactivate();
                 }
-                else
-                {
-                    timer = Calc.Max(0, timer - Engine.RawDeltaTime / 2);
-                }
-                Amount = Calc.Clamp(timer / duration, 0, 1);
-                if (Amount >= 1)
-                {
-                    SetToActive(true);
-                }
-            }*/
+            }
         }
     }
 }

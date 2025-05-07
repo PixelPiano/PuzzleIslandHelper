@@ -31,10 +31,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool usesTextures;
         private string texturePath;
         public Model3D Model;
-        private VirtualRenderTarget target;
         public PowerLine(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
-            target = VirtualContent.CreateRenderTarget("stkjghfkdsgjhs", 320, 180);
             flagData = data.Flag("flag", "inverted");
             nodes = data.NodesWithPosition(offset - Position);
             Depth = data.Int("depth", 2);
@@ -48,6 +46,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             texturePath = data.Attr("texturePath");
             usesTextures = !string.IsNullOrEmpty(texturePath) && GFX.Game.Has(texturePath);
             removeRedundantNodes();
+            if (data.Bool("backwards"))
+            {
+                nodes = [.. nodes.Reverse()];
+            }
             /*            if (usesTextures)
                         {
                             createTextures();
@@ -65,8 +67,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
-            target?.Dispose();
-            target = null;
         }
         private void createTextures()
         {

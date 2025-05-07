@@ -60,21 +60,6 @@ interfaceNoFloppy=There's nothing on the screen.
 elevatorRocks=
 A cluster of rocks is embeded in the main control panel.
 
-findFloppy=
-[Madeline left sad]
-Hm? There's something in that slot.
-[Madeline left normal]
-Oh, it's... it's...
-[Madeline left distracted]
-...uhhhhhhhhhh...
-[Madeline left normal]
-...a floppy disk!
-I can't remember the last time I saw one of those!
-...
-[Madeline left distracted]
-How long has this place been here?
-
-
 wtc1=
 	[Madeline left panic]
 	*cough* *cough*
@@ -92,158 +77,187 @@ wtc1=
 	{trigger 1 wait for pan}
 	[Madeline left sad]
 	{~}Whoaaaaa.{/~}
-fountainHint0=[Paper left normal]{# 000000}0 prefers sitting at the start{#}
-fountainHint1=[Paper left normal]{# 000000}1 feels safest next to 3{#}
-fountainHint2=[Paper left normal]{# 000000}2 feels threatened by 3 and prefers to not sit next to them{#}
-fountainHint3=[Paper left normal]{# 000000}3 must sit in the fourth or fifth seat{#}
-fountainHint4=[Paper left normal]{# 000000}4 only-
+
+fountainHint0beta=[Paper left normal]{# 000000}0 prefers sitting at the start{#}
+fountainHint1beta=[Paper left normal]{# 000000}1 feels safest next to 3{#}
+fountainHint2beta=[Paper left normal]{# 000000}2 feels threatened by 3 and prefers to not sit next to them{#}
+fountainHint3beta=[Paper left normal]{# 000000}3 must sit in the fourth or fifth seat{#}
+fountainHint4beta=[Paper left normal]{# 000000}4 only-
 (The rest of the writing is illegible){#}
-fountainHint5=[Paper left normal]{# 000000}5 won't sit next to 4 or 6 and must be the sum of its neighbors{#}
-fountainHint6=[Paper left normal]{# 000000}6 must be the sum of its neighbors{#}
-fountainHint7=[Paper left normal]{# 000000}7 should-
+fountainHint5beta=[Paper left normal]{# 000000}5 won't sit next to 4 or 6 and must be the sum of its neighbors{#}
+fountainHint6beta=[Paper left normal]{# 000000}6 must be the sum of its neighbors{#}
+fountainHint7beta=[Paper left normal]{# 000000}7 should-
 (The rest of the writing has been scribbled out too many times to read){#}
 
+fountainHint0=[Paper left normal]{# 000000}0 = (1){#}
+fountainHint1=[Paper left normal]{# 000000}1 <3 3{#}
+fountainHint2=[Paper left normal]{# 000000}2 </3 3{#}
+fountainHint3=[Paper left normal]{# 000000}3 = (4)or(5){#}
+fountainHint4=[Paper left normal]{# 000000}4
+(The rest of the writing is illegible){#}
+fountainHint5a=[Paper left normal]{# 000000} 4 </3 5 </3 6{#}
+fountainHint5b=[Paper left normal]{# 000000}<(5) + (5)> = 5{#}
+fountainHint6=[Paper left normal]{# 000000}<(6) + (6)> = 6{#}
+fountainHint7=[Paper left normal]{# 000000}7
+(The rest has been scribbled out too much to read){#}
+
+#0 4 1 3 5 2 6 7
 fountainHintA=
-	[Paper left normal]
-	{# 000000}Hey, what was the fountain code again? Is it written down somewhere?{#}
+[Paper left normal]
+{# 000000}Hey, what was the fountain code again? Is it written down somewhere?{#}
 
 fountainHintB=
-	[Paper left normal]
-	{# 000000}No, why would it be written down? That's just asking for someone to break in.
-	We've hidden it in fragments across the lab. I know you're forgettful, but please try to keep up.{#}
+[Paper left normal]
+{# 000000}No, why would it be written down? That's just asking for someone to break in.
+We've hidden it in fragments across the lab. I know you're forgettful, but please try to keep up.{#}
 
 fountainHintC=
-	[Paper left normal]
-	{# 000000}Oh, are you talking about the ------?{#}
-	{# 222222}(the last word has been scratched out){#}
+[Paper left normal]
+{# 000000}Oh, are you talking about the ------?{#}
+{# 222222}(the last word has been scratched out){#}
 
 fountainHintD=
-	[Paper left normal]
-	{# 000000}YES. I AM. You're hopeless. Just ask me in person...{#}
+[Paper left normal]
+{# 000000}YES. I AM. Just talk to me in person...{#}
 
 capsuleDocumentA=
-	[Paper left normal]
-	{# 000000} One day I woke up to find blueprints I had not made. 
-	I figured I must have written them in the middle of the night and forgotten.
-	As the days went by they evolved from vague sketches and scribbles to detailed diagrams and instructions on how to build a strange machine.
-	I decided to build it, of course.
-	This is the result. I've named it "W.A.R.P".
-	...I haven't figured out the accronym yet.{#}
-
+[Paper left normal]
+{# 000000}This morning I woke to find blueprints I had not made. 
+I must have written them in the middle of the night and forgotten.{#}
 capsuleDocumentB=
-	[Paper left normal]
-	{# 000000} Building it felt so... natural. Like I had been made to do it.
-	You know when you get an idea for something and it just... fills your entire soul?
-	You have to let it free into the world. If you don't, it'll rip you to shreds.
-	It was like that, but... I never had the idea. I know that some ideas "just come to you", but...
-	I've double-checked the security footage.
-	So why were the blueprints in my handwriting?{#}
+[Paper left normal]
+{# 000000}Those strange blueprints changed again.
+Much of the original markings have been covered by frantic scribbles.
+I'm going to start recording my nights.{#}
+
+capsuleDocumentC=
+{# 000000} As the days went by they evolved from vague sketches and scribbles to detailed diagrams and instructions on how to build a strange machine.
+My options run thin, I decided to build it. Obviously.
+This is the result. I've named it "W.A.R.P".
+...I haven't figured out the accronym yet.{#}
+
+capsuleDocumentD=
+[Paper left normal]
+{# 000000} Building it felt so... natural. Like I had been made to do it.
+You know when you get an idea for something and it just... fills your entire soul?
+You have to let it free into the world. If you don't, it'll rip you to shreds.
+It was like that, but... I never had the idea. I know that some ideas "just come to you", but...
+I've double-checked the security footage.
+So why were the blueprints in my handwriting?{#}
+
 codeResearchA=
-	[Paper left normal]
-	{# 000000}We've begun research into a strange phenomena.
-	The villagers have on occasion reported strange floating objects that seem to appear under certain conditions.
-	Goals: 1. Research how a "floating object anomaly" (FOA) is created. 
-	2. Determine how an FOA affects it's environment.
-	3. Determine how to predict when one will appear next.{#}
+[Paper left normal]
+{# 000000}We've begun research into a strange phenomena.
+The villagers have on occasion reported strange floating objects that seem to appear under certain conditions.
+Goals:  
+1. Research how a "floating object anomaly" (FOA) is created.
+2. Determine how an FOA affects it's environment.
+3. Determine how to predict when one will appear next.{#}
 
 codeResearchB=
-	[Paper left normal]
-	{# 000000}The info we have aquired about FOAs is limited, but patterns have begun to emerge.
-	Each FOA seems to require a key in the form of a code.
-	Furthermore, the area in the direct vicinity of an FOA will shift to reflect its code.
-	This is usually where the patterns stop.{#}
+[Paper left normal]
+{# 000000}The info we have aquired about FOAs is limited, but patterns have begun to emerge.
+Each FOA seems to require a key in the form of a code.
+Furthermore, the area in the direct vicinity of an FOA will shift to reflect its code.
+This is usually where the patterns stop.{#}
 
 codeResearchC=
-	[Paper left normal]
-	{# 000000}The logic and reasoning behind a code seems to vary per FOA, but they all share one similarity:
-	Directions.
-	Each code is a combination of the 8 cardinal directions.
-	Up, Down, Left, Right, Up-left, Down-left, Up-right, Down-right.
-	They seem to gravitate towards themes, the codes we've managed to decipher tend to reflect the general area as a whole.
-	For example: We recently encountered an FOA down in Pipeworks.
-	Near the area of the FOA was a long winding pipe, no intersections.
-	Quite odd, considering most of the pipes in Pipeworks are an interconnected mess.
-	Starting from the bottom left of the pipe and working our way up led us to the code.{#}
+[Paper left normal]
+{# 000000}The logic and reasoning behind a code seems to vary per FOA, but they all share one similarity:
+Directions.
+Each code is a combination of the 8 cardinal directions.
+Up, Down, Left, Right, Up-left, Down-left, Up-right, Down-right.
+They seem to gravitate towards themes, the codes we've managed to decipher tend to reflect the general area as a whole.
+For example: We recently encountered an FOA down in Pipeworks.
+Near the area of the FOA was a long winding pipe, no intersections.
+Quite odd, considering most of the pipes in Pipeworks are an interconnected mess.
+Starting from the bottom left of the pipe and working our way up led us to the code.{#}
 
 codeResearchD=
-	[Paper left normal]
-	{# 000000}FOAs react to physical contact.
-	The reaction varies dramatically given the substance it contacts.{#}
+[Paper left normal]
+{# 000000}FOAs react to physical contact.
+The reaction varies dramatically given the substance it contacts.{#}
+
 codeResearchE=
-	[Paper left normal]
-	{# 000000}Recently we've been testing various substances on FOAs.
-	Water flows around it, like the FOA has a negative gravitational field. So far, no other substances act this way.
-	Small rocks bounce off at blinding speeds. Very dangerous.
-	Human flesh and clothing create a shockwave that propels anyone near it a decent distance.
-	We've yet to find a way to transport FOAs to another location.{#}
+[Paper left normal]
+{# 000000}Recently we've been testing various substances on FOAs.
+Water flows around it, like the FOA has a negative gravitational field. So far, no other substances act this way.
+Small rocks bounce off at blinding speeds. Very dangerous.
+Human flesh and clothing create a shockwave that propels anyone near it a decent distance.
+We've yet to find a way to transport FOAs to another location.{#}
+
 codeResearchF=
-	[Paper left normal]
-	{# 000000}Since we can't move an FOA with force, one of our members suggested the bold idea of creating one ourselves.
-	A bit risky, but nothing else has worked, so why not? Don't think the boss cares what we do as long as we're figuring stuff out.{#}
+[Paper left normal]
+{# 000000}Since we can't move an FOA with force, one of our members suggested the bold idea of creating one ourselves.
+A bit risky, but nothing else has worked, so why not? Don't think the boss cares what we do as long as we're figuring stuff out.{#}
 
 codeResearchG=
-	[Paper left normal]
-	{# 000000}FOA creation attempt 1: Failure.
-	We set up a board with arrows in a sequence: 
-	Up, Left, Right, Down.
-	We tried pointing in the directions, interpretive dance, even made a handheld controller with directional inputs, but nothing happened.
-	Was it too simple? Was it because it wasn't themed? Was it too on the nose?{#}
+[Paper left normal]
+{# 000000}FOA creation attempt 1: Failure.
+We set up a board with arrows in a sequence: 
+Up, Left, Right, Down.
+We tried pointing in the directions, interpretive dance, even made a handheld controller with directional inputs, but nothing happened.
+Was it too simple? Was it because it wasn't themed? Was it too on the nose?{#}
 
 codeResearchH=
-	[Paper left normal]
-	{# 000000}FOA creation attempt 2: Failure.
-	We tried arranging arrows using leaves, but that didn't work either.
-	Maybe... Only a representation of the code needs to be present for the FOA to appear?
-	The information required to solve one might not have the same area limitations...{#}
+[Paper left normal]
+{# 000000}FOA creation attempt 2: Failure.
+We tried arranging arrows using leaves, but that didn't work either.
+Maybe... Only a representation of the code needs to be present for the FOA to appear?
+The information required to solve one might not have the same area limitations...{#}
+
 codeResearchI=
-	[Paper left normal]
-	{# 000000}FOA creation attempt 3: Success!
-	We've set up a sort of scavenger hunt for this one.
-	We've realized that these codes only work if kept in secrecy.
-	The first subject was told everything. Once they found the correct sequence... nothing happened.
-	The second subject was only told to find a secret directional sequence. Still, nothing happened.
-	It seems if they feel they're being revealed too directly, they won't work.
-	So if you're reading this, boss, uhhhhhh... good luck! It's quite the sticky situation!{#}
+[Paper left normal]
+{# 000000}FOA creation attempt 3: Success!
+We've set up a sort of scavenger hunt for this one.
+We've realized that these codes only work if kept in secrecy.
+The first subject was told everything. Once they found the correct sequence... nothing happened.
+The second subject was only told to find a secret directional sequence. Still, nothing happened.
+It seems if they feel they're being revealed too directly, they won't work.
+So if you're reading this, boss, uhhhhhh... good luck! It's quite the sticky situation!{#}
+
 faceComplaint=
-	[Paper left normal]
-	{# 0000FF}Does ANYBODY know what's up with these... face things?!{#}
-	{# 0000FF}Why do they look like keyboard characters???{#}
-	{# 0000FF}How do these things exist, and why isn't anyone doing anything about it?!{#}
-	{# 0000FF}I spilled my coffee 4 times IN A ROW because one of those insufferable creatures kept drifting into me!{#}
-	{# FF0000}I'M SORRY WHAT YOU SPILLED IT 4 TIMES?? THAT'S ON YOU BUDDY BAHAHAHAHA{#}
+[Paper left normal]
+{# 0000FF}Does ANYBODY know what's up with these... face things?!{#}
+{# 0000FF}Why do they look like keyboard characters???{#}
+{# 0000FF}How do these things exist, and why isn't anyone doing anything about it?!{#}
+{# 0000FF}I spilled my coffee 4 times IN A ROW because one of those insufferable creatures kept drifting into me!{#}
+{# FF0000}I'M SORRY WHAT YOU SPILLED IT 4 TIMES?? THAT'S ON YOU BUDDY BAHAHAHAHA{#}
 
 refillNotesA=
-	[Paper left normal]
-	{# 000000}We've received reports sightings of floating objects seperate from the FOAs we've been monitoring recently.
-	These objects are diamond-shaped, glow a soft green and float gently up and down.
-	We should investigate. It could be a new material!{#}
+[Paper left normal]
+{# 000000}We've received reports sightings of floating objects seperate from the FOAs we've been monitoring recently.
+These objects are diamond-shaped, glow a soft green and float gently up and down.
+We should investigate. It could be a new material!{#}
+
 refillNotesB=
-	[Paper left normal]
-	{# 000000}Like FOAs, it is impossible to alter the location of these objects.
-	So, like FOAs, we're attempting to create one ourselves.
-	Progress has been... slow. We can recreate the shape and glow, but it's unstable.{#}
+[Paper left normal]
+{# 000000}Like FOAs, it is impossible to alter the location of these objects.
+So, like FOAs, we're attempting to create one ourselves.
+Progress has been... slow. We can recreate the shape and glow, but it's unstable.{#}
 
 refillNotesC=
-	[Paper left normal]
-	{# 000000}Observations:
-	Our prototype is unstable and cracks roughly 5-10 seconds after creation.
-	When it cracks, it loses its green glow and the frequency of its floating slows dramatically.{#}
+[Paper left normal]
+{# 000000}Observations:
+Our prototype is unstable and cracks roughly 5-10 seconds after creation.
+When it cracks, it loses its green glow and the frequency of its floating slows dramatically.{#}
+
 refillNotesD=
-	[Paper left normal]
-	{# 000000}Observations:
-	While in this state, it is very fragile, and will shatter at the slightest touch.
-	Subjects who shatter them report an instant feeling of fatigue and nausea.
-	We are unsure if this effect is natural or a result of instability.
-	Do the perfected versions of these grant some sort of health benefit?
-	For the time being, we've confined them inside these chambers.{#}
+[Paper left normal]
+{# 000000}Observations:
+While in this state, it is very fragile, and will shatter at the slightest touch.
+Subjects who shatter them report an instant feeling of fatigue and nausea.
+We are unsure if this effect is natural or a result of instability.
+Do the perfected versions of these grant some sort of health benefit?
+For the time being, we've confined them inside these chambers.{#}
 
 refillNotesE=
-	[Paper left normal]
-	{# 000000}We've successfully created a stable replication of the object! 
-	The glow, the shape, everything about it is perfect, a 1-to-1 copy!
-	...
-	We, uh. Can't interact with it.
-	What do we do?{#}
+[Paper left normal]
+{# 000000}We've successfully created a stable replication of the object! 
+The glow, the shape, everything about it is perfect, a 1-to-1 copy!
+...
+We, uh. Can't interact with it.
+What do we do?{#}
 
 #Washer Interact while off
 #attempt 1
@@ -273,128 +287,112 @@ Violence is always the answer.
 
 #Prologue
 prologueGondolaRide= 
-		[Madeline left normal]
-		hi hi ok i'm riding the gondola now this is fun memories
+[Madeline left normal]
+hi hi ok i'm riding the gondola now this is fun memories
 
 prologue=
-		[Madeline left sad]
-		Hm?
+[Madeline left sad]
+Hm?
+[Madeline left normal]
+Oh, it's a letter from {+THEO}!
+{trigger 0 Maddy reads letter}
+[Theo right normal]
+hey i tried climbing the mountain but i stopped when i got to that weird temple, yknow the one where i got trapped?
+but i didn't stop just cause i got trapped before. 
+It seemed stranger than last time. 
+Figured i should let you know since anyone else i told would have just thought i was crazy anyways peace yolo 
+{trigger 1 To Gondola}
 
-	     	[Madeline left normal]
-		Oh, it's a letter from {+THEO}!
-
-	     	{trigger 0 Maddy reads letter}
-
-		[Theo right normal]
-		hey i tried climbing the mountain but i stopped when i got to that weird temple, yknow the one where i got trapped?
-		but i didn't stop just cause i got trapped before. 
-		It seemed stranger than last time. 
-		Figured i should let you know since anyone else i told would have just thought i was crazy anyways peace yolo 
-
-		{trigger 1 To Gondola}
-
-prologueNope = [Madeline left surprised]
-		   ...Nope ok I'm going away now.
+prologueNope =
+[Madeline left surprised]
+...Nope ok I'm going away now.
 prologue2=
-		{trigger 0 To Boost}
-		
-		[Madeline left normal] 
-		Huh?
-		{trigger 1 Probe Glue}
-		What's this stuff in the mirror?
-		[Madeline left distracted]
-		It's... squishy. But firm.
-		[Madeline left sad]
-		Like glue.
-		{trigger 2 Stop Probing Glue}
-		[Madeline left distracted]
-		Was somebody trying to fix it?
-		[Madeline left normal]
-		Well, besides this, nothing strange about the temple.
-		[Madeline left upset]
-		Stranger than usual, at least.
-		[Madeline left normal]
-		I guess I should head back? 
-		I hope {+THEO} isn't worrying too much. I'll call him once I'm out of here.
-		{trigger 3 Mirror Flash}
+{trigger 0 To Boost}
+[Madeline left normal] 
+Huh?
+{trigger 1 Probe Glue}
+What's this stuff in the mirror?
+[Madeline left distracted]
+It's... squishy. But firm.
+[Madeline left sad]
+Like glue.
+{trigger 2 Stop Probing Glue}
+[Madeline left distracted]
+Was somebody trying to fix it?
+[Madeline left normal]
+Well, besides this, nothing strange about the temple.
+[Madeline left upset]
+Stranger than usual, at least.
+[Madeline left normal]
+I guess I should head back? 
+I hope {+THEO} isn't worrying too much. I'll call him once I'm out of here.
+{trigger 3 Mirror Flash}
+{trigger 4 Blocks Appear}
+[Madeline left panic]
+Wah! Wh-What the...?
+Uh...
+..!
 
- 		{trigger 4 Blocks Appear}
-
-		[Madeline left panic]
-		Wah! Wh-What the...?
-		Uh...
-		..!
 prologue2a=
-		[Madeline right panic]
-		WHAT'S HAPPENING?!
+[Madeline right panic]
+WHAT'S HAPPENING?!
 prologue3a=	
-		[Madeline right surprised]
-		...{0.5}Go go go go go go go go go go go go go!
+[Madeline right surprised]
+...{0.5}Go go go go go go go go go go go go go!
 prologue3b=
-		[Madeline right angry] 
-		Come on, you stupid gondola! Work!!
+[Madeline right angry] 
+Come on, you stupid gondola! Work!!
 prologue3c=
-		[Madeline left surprised] 
-	 	...!
+[Madeline left surprised] 
+...!
 
 #------------------------
 #GrassShift
 #------------------------
 grassShift= 
-	{trigger 0 Zoom In}
+{trigger 0 Zoom In}
 
-	[Madeline left angry]
-	{>> 0.1}{~}Ughhhhhhhh{/~}{/>>}.
-	I had hoped that there would at least be {~}some{/~}{0.2}explanation for what's going on by now.
-	I feel like a rat in a maze.
+[Madeline left angry]
+{>> 0.1}{~}Ughhhhhhhh{/~}{/>>}.
+I had hoped that there would at least be {~}some{/~}{0.2}explanation for what's going on by now.
+I feel like a rat in a maze.
+{trigger 1 Face Left}
+[Madeline left sad] 
+But if I just stay put, I won't get anywhere.
+I need to keep going.
+I need to.
 
-	{trigger 1 Face Left}
+[Madeline left sadder]
+...I need to.
 
-	[Madeline left sad] 
-	But if I just stay put, I won't get anywhere.
-	I need to keep going.
-	I need to.
+{trigger 2 Temple Shake}
 
-      [Madeline left sadder]
-	...I need to.
+[Madeline left surprised]
+{>> 0.5}Huh?? What??{/>>}{0.5}
 
-	{trigger 2 Temple Shake}
-
-	[Madeline left surprised]
-	{>> 0.5}Huh?? What??{/>>}{0.5}
-
-	{trigger 3 Fall Down}
-	{trigger 4 World Distort}
+{trigger 3 Fall Down}
+{trigger 4 World Distort}
 
 grassShift2=
-	[Madeline left panic]
-	Wh-{0.5} What's happening...?
-
-	{trigger 0 Wait}
-
-	[Madeline left panic]
-	My head... Please...
-	{trigger 1 Wait again}
-	[Madeline left panic]
-	Stop it... Stop...
-	{trigger 1 Wait again}
-	{trigger 2 Settle}
-
-	[Madeline left panic]
-	Is... Is it over..?
-
-	{trigger 3 Get back up}
-	{trigger 1 Wait again}
-
-	[Madeline left sadder]
-	...
+[Madeline left panic]
+Wh-{0.5} What's happening...?
+{trigger 0 Wait}
+[Madeline left panic]
+My head... Please...
+{trigger 1 Wait again}
+{trigger 2 Settle}
+[Madeline left panic]
+Is it over..?
+{trigger 3 Get back up}
+{trigger 1 Wait again}
+[Madeline left sadder]
+...
 
 grassShiftAh=
-	[Madeline left surprised]
-		Ah..!
+[Madeline left surprised]
+Ah..!
 
 #Preset MiniLoader text
-
 miniLoader1= Loading configurations
 miniLoader2= Evaluating checksum
 miniLoader3= 
@@ -500,9 +498,7 @@ for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
 {n}
 for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
 {tab}PipeSystem.ActiveValves[i].NormalizePressure();{n}
-#------------------------
-#Cutscenes
-#------------------------
+
 
 GREENHEART=
 This is so stupid. So, so stupid.{n0}{mtRight}Yes, we are all very aware of this fact.{/mtRight}{n0}You, shut up. Only reason we're in this mess is because you rushed.{n0}{mtRight}If I remember correctly, we were all in agreement.{/mtRight}{n0}You left them behind! You pressured them!{n0}{mtRight}You're worried about Kos. I get it. However, we had all the time in the world. It was ultimately their decision.{/mtRight}
@@ -515,7 +511,7 @@ REDHEART= Lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem 
 DIGILORE1= XX/XX/XXXX{n0}
 Readings from observers have been getting more confusing each day.{n0}
 Some of them began acting erratically. Some would even refuse to start.{n0}
-I think my equipment is malfunctioning, too. Scanning the area showed duplicate signals for each observer.{n0}
+I think my other equipment is malfunctioning as well. Scanning the area showed duplicate signals for each observer.{n0}
 Slotting in repairs ASAP
 
 #Pipe Break sequence

@@ -193,8 +193,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             fountain = new Fountain(Position, Width);
             light = new Light(Position, Width);
             screen = new Screen(Position, Width);
-            Talk = new DotX3(fountain.Collider, new Vector2(fountain.Width / 2 - 3, -fountain.Height / 2), Interact);
+            Talk = new DotX3(fountain.Collider, Interact) { PlayerMustBeFacing = false };
+            Talk.DrawAt.X++;
             AddTag(Tags.TransitionUpdate);
+        }
+        [Command("reveal_fountain", "skips the fountain puzzle")]
+        public static void RevealFountain()
+        {
+            if (Engine.Scene is Level level)
+            {
+                foreach (FountainBlock b in level.Tracker.GetEntities<FountainBlock>())
+                {
+                    b.EnableScreen(true);
+                }
+            }
         }
         public class RevealScreenCutscene : CutsceneEntity
         {
@@ -299,6 +311,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public override void OnEnd(Level level)
             {
+                if (WasSkipped)
+                {
+                    screen.sprite.Play(generators >= GeneratorsRequired ? "off" : "idle");
+                    level.ResetZoom();
+                    screen.sprite.OnFinish = delegate { };
+                }
                 player.StateMachine.State = Player.StNormal;
                 if (generators >= GeneratorsRequired)
                 {
@@ -357,6 +375,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Add(Talk);
         }
+
         private void EnableScreen(bool instant)
         {
             State = FountainStates.Screen;

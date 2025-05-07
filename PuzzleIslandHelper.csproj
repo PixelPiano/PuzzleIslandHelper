@@ -92,6 +92,9 @@
       <Compile Update="Entities\InterfaceEntities\SegmentBox.cs">
         <SubType>Component</SubType>
       </Compile>
+      <Compile Update="Entities\InterfaceEntities\CharBox.cs">
+        <SubType>Component</SubType>
+      </Compile>
     </ItemGroup>
 
     <Target Name="CopyFiles" AfterTargets="Build" Inputs="$(OutputPath)\$(AssemblyName).dll;$(OutputPath)\$(AssemblyName).pdb" Outputs="..\bin\$(AssemblyName).dll;..\bin\$(AssemblyName).pdb">

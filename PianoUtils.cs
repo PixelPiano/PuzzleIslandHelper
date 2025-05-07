@@ -24,6 +24,7 @@ using static Celeste.Player;
 /// <summary>A collection of methods + extensions methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+
     public static Directions Direction(this Vector2 vector)
     {
         if (vector.X > 0) return Directions.Right;
@@ -1106,6 +1107,19 @@ public static class PianoUtils
         groundPosition = pos;
         return true;
     }
+    public static bool OnGround(this Entity entity, int downCheck = 1, bool ignoreJumpThrus = false)
+    {
+        if (!entity.CollideCheck<Solid>(entity.Position + Vector2.UnitY * downCheck))
+        {
+            if (!ignoreJumpThrus)
+            {
+                return entity.CollideCheckOutside<JumpThru>(entity.Position + Vector2.UnitY * downCheck);
+            }
+
+            return false;
+        }
+        return true;
+    }
     public static Vector2 GroundedPosition(this Entity entity)
     {
         Level level = entity.Scene as Level;
@@ -1143,7 +1157,10 @@ public static class PianoUtils
     {
         return texture.Texture.Collider();
     }
-
+    public static Hitbox Collider(this Sprite sprite)
+    {
+        return new Hitbox(sprite.Width, sprite.Height, sprite.X, sprite.Y);
+    }
     public static IEnumerator Lerp(this Ease.Easer ease, float time, Action<float> action, bool actionOnEnd = false)
     {
         ease ??= Ease.Linear;
@@ -1650,13 +1667,14 @@ public static class PianoUtils
         color = new Color(red, green, blue, alpha);
         return color;
     }
-    public static T Random<T>(this T[] array, int limit = -1)
+    public static T Random<T>(this T[] array, int limit = -1) => array.Random(Calc.Random, limit);
+    public static T Random<T>(this T[] array, Random random, int limit = -1)
     {
         if (limit < 0 || limit >= array.Length)
         {
             limit = array.Length;
         }
-        return array[Calc.Random.Range(0, limit)];
+        return array[random.Range(0, limit)];
     }
 
     public static string GetDescription<T>(this T enumerationValue) where T : struct
@@ -2166,18 +2184,8 @@ public static class PianoUtils
         };
     }
 
-    public static Player GetPlayer(this Level level)
-    {
-        if (level is null)
-        {
-            return null;
-        }
-        return level.Tracker.GetEntity<Player>();
-    }
-    public static Player GetPlayer(this Scene scene)
-    {
-        return (scene as Level).GetPlayer();
-    }
+    public static Player GetPlayer(this Level level) => level.Tracker.GetEntity<Player>();
+    public static Player GetPlayer(this Scene scene) => (scene as Level).GetPlayer();
 
     public static Vector2? DoRaycast(Scene scene, Vector2 start, Vector2 end)
     => DoRaycast(scene.Tracker.GetEntities<Solid>().Select(s => s.Collider), start, end);
