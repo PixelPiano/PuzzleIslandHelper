@@ -128,7 +128,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            player = SceneAs<Level>().Tracker.GetEntity<Player>();
+/*            player = SceneAs<Level>().Tracker.GetEntity<Player>();
             if (player is null || !State || SettingState)
             {
                 return;
@@ -191,7 +191,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     Flashing = false;
                 }
-            }
+            }*/
         }
     }
 }

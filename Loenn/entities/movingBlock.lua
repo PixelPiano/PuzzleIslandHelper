@@ -8,6 +8,8 @@ movingBlock.justification = { 0, 0 }
 movingBlock.name = "PuzzleIslandHelper/MovingBlock"
 movingBlock.minimumSize = {8,8}
 movingBlock.depth = 1
+movingBlock.nodeLimits = {1, 1}
+movingBlock.nodeLineRenderType = "line"
 local activationTypes = {"Always","Player Riding","Player Climbing","Player Riding or Climbing","Actor Riding","Flag","Dash Collide","Player Die","Player Respawn","Awake"}
 movingBlock.placements =
 {

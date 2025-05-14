@@ -21,7 +21,7 @@ using System.Linq;
 using System.Reflection;
 using static Celeste.Player;
 
-/// <summary>A collection of methods + extensions methods used primarily in PuzzleIslandHelper.</summary>
+/// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
 
@@ -51,6 +51,8 @@ public static class PianoUtils
         => (new FlagData(element.Attr(flagname), element.AttrBool(invertedname)));
     public static FlagData Flag(this EntityData data, string flagname = "flag", string invertedname = "inverted")
         => new FlagData(data.Attr(flagname), data.Bool(invertedname));
+        public static FlagData Flag(this EntityData data, string flagname, bool inverted)
+        => new FlagData(data.Attr(flagname), inverted);
     public static Vector2 Position(this BinaryPacker.Element element) => new Vector2(element.AttrFloat("x"), element.AttrFloat("y"));
     public static IEnumerator TextboxSayClean(string text, params Func<IEnumerator>[] events)
     {
@@ -293,13 +295,6 @@ public static class PianoUtils
                 Engine.Commands.Log(adding);
                 Engine.Commands.Log(added);*/
         return !failed;
-    }
-    public static void MakePersistent(this Entity entity)
-    {
-        if (!entity.TagCheck(Tags.Persistent))
-        {
-            entity.AddTag(Tags.Persistent);
-        }
     }
     public static int Sign(this Random random, bool allowZero = false)
     {
@@ -1976,18 +1971,6 @@ public static class PianoUtils
         return false;
     }
 
-    public static Entity MakeGlobal(this Entity entity)
-    {
-        entity.AddTag(Tags.Global);
-        entity.AddTag(Tags.Persistent);
-        return entity;
-    }
-    public static Entity MakeLocal(this Entity entity)
-    {
-        entity.RemoveTag(Tags.Global);
-        entity.RemoveTag(Tags.Persistent);
-        return entity;
-    }
     public static IEnumerator MultiRoutine(this Entity entity, params IEnumerator[] functionCalls)
     {
         Coroutine[] routines = new Coroutine[functionCalls.Length];

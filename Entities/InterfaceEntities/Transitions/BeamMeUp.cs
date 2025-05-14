@@ -141,8 +141,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions
             {
                 for (int i = 0; i < 2; i++)
                 {
-                    this.MakeGlobal();
-                    DuelView.MakeGlobal();
+/*                    this.MakeGlobal();
+                    DuelView.MakeGlobal();*/
                     InstantTeleportToSpawn(RoomName);
                 }
             }

@@ -83,8 +83,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                     }
                     );
                 });
-            chip.MakePersistent();
             level.Add(chip);
+            chip.MakePersistent();
             Chips.Add(chip);
             WaitTimer = Calc.Random.Range(minWait, maxWait);
         }

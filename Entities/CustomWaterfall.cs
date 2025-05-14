@@ -8,38 +8,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked(false)]
     public class CustomWaterfall : Entity
     {
-        private readonly string flag;
-
-        private readonly string state;
-
+        private readonly FlagData renderFlag;
+        private readonly FlagData displacementFlag;
+        private readonly FlagData audioFlag;
         private readonly bool passThrough;
-
-        private readonly string audio;
-
         private float height;
-
         private Water water;
-
         private Solid solid;
-
         private SoundSource loopingSfx;
-
         private SoundSource enteringSfx;
-
-        public CustomWaterfall(Vector2 position)
-            : base(position)
+        public CustomWaterfall(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Depth = -9999;
             Tag = Tags.TransitionUpdate;
-        }
-
-        public CustomWaterfall(EntityData data, Vector2 offset)
-            : this(data.Position + offset)
-        {
-            state = data.Attr("renderFlag");
+            renderFlag = data.Flag("renderFlag", "invertRenderFlag");
+            displacementFlag = data.Flag("displacementFlag", "invertDisplacementFlag");
+            audioFlag = data.Flag("audioFlag", "invertAudioFlag");
             passThrough = data.Bool("goesThroughSolids");
-            flag = data.Attr("displacementFlag");
-            audio = data.Attr("disableAudioFlag");
         }
 
         public override void Awake(Scene scene)
@@ -48,8 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Level level = Scene as Level;
             bool flag = false;
             height = 8f;
-            while (
-                    Y + height < level.Bounds.Bottom
+            while (Y + height < level.Bounds.Bottom
                  && (water = Scene.CollideFirst<Water>(new Rectangle((int)X, (int)(Y + height), 8, 8))) == null
                  && ((solid = Scene.CollideFirst<Solid>(new Rectangle((int)X, (int)(Y + height), 8, 8))) == null
                  || !solid.BlockWaterfalls
@@ -59,10 +43,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 height += 8f;
                 solid = null;
             }
-            if (water != null && !Scene.CollideCheck<Solid>(new Rectangle((int)X, (int)(Y + height), 8, 16)))
-            {
-                flag = true;
-            }
             Add(loopingSfx = new SoundSource());
             loopingSfx.Play("event:/env/local/waterfall_small_main");
             Add(enteringSfx = new SoundSource());
@@ -71,20 +51,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             loopingSfx.Pause();
             enteringSfx.Pause();
 
-            if (string.IsNullOrEmpty(audio) || !SceneAs<Level>().Session.GetFlag(audio))
+            if (audioFlag.GetState(scene))
             {
                 loopingSfx.Resume();
                 enteringSfx.Resume();
             }
-
             Add(new DisplacementRenderHook(RenderDisplacement));
         }
         public override void Update()
         {
             Vector2 position = (Scene as Level).Camera.Position;
-            if (string.IsNullOrEmpty(state) || SceneAs<Level>().Session.GetFlag(state))
+            if (renderFlag.GetState(Scene))
             {
-                if (string.IsNullOrEmpty(audio) || SceneAs<Level>().Session.GetFlag(audio))
+                if (audioFlag.GetState(Scene))
                 {
                     loopingSfx.Pause();
                     enteringSfx.Pause();
@@ -104,7 +83,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Vector2 position2 = new(X + 4f, Y + height + 2f);
                     (Scene as Level).ParticlesFG.Emit(Water.P_Splash, 1, position2, new Vector2(8f, 2f), new Vector2(0f, -1f).Angle());
                 }
-
             }
             else
             {
@@ -115,15 +93,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void RenderDisplacement()
         {
-
-            if ((string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag)) && (string.IsNullOrEmpty(state) || SceneAs<Level>().Session.GetFlag(state)))
+            if (displacementFlag.State && renderFlag.State)
             {
                 Draw.Rect(X, Y, 8f, height, new Color(0.5f, 0.5f, 0.8f, 1f));
             }
         }
         public override void Render()
         {
-            if (string.IsNullOrEmpty(state) || SceneAs<Level>().Session.GetFlag(state))
+            if (renderFlag.State)
             {
                 if (water == null || water.TopSurface == null)
                 {

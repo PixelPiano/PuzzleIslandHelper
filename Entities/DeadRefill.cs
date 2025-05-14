@@ -26,7 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             : base(data.Position + offset)
         {
             this.id = id;
-            
+
             Explosive = data.Bool("explosive");
             _position = Position;
             Add(sine = new SineWave(0.2f));
@@ -62,6 +62,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             Position.Y = _position.Y + sine.Value * 2;
+            if (Collidable && CollideFirst<Stool>() is Stool stool && !stool.Dead && !stool.DeadRefillImmunity)
+            {
+                OnStool(stool);
+            }
         }
         public override void Render()
         {
@@ -97,7 +101,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void DrainPlayer(Player player)
         {
-            if(player.StateMachine.State == Player.StStarFly)
+            if (player.StateMachine.State == Player.StStarFly)
             {
                 player.StateMachine.State = Player.StNormal;
             }
@@ -106,6 +110,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 player.Dashes--;
             }
             player.Stamina = 0;
+        }
+        private void DrainStool(Stool stool)
+        {
+            stool.Die();
         }
         public void OnPlayer(Player player)
         {
@@ -123,8 +131,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Collidable = false;
                 Add(new Coroutine(RefillRoutine(player)));
             }
-
         }
+        public void OnStool(Stool stool)
+        {
+            DrainStool(stool);
+            Audio.Play("event:/game/general/diamond_touch", Position);
+            Input.Rumble(RumbleStrength.Light, RumbleLength.Short);
+            Collidable = false;
+            Add(new Coroutine(RefillRoutine(stool)));
+        }
+
         public IEnumerator ExplodeRoutine(Player player)
         {
             Celeste.Freeze(0.05f);
@@ -174,7 +190,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return null;
         }
 
-        public IEnumerator RefillRoutine(Player player)
+        public IEnumerator RefillRoutine(Entity collided)
         {
             Celeste.Freeze(0.05f);
             yield return null;
@@ -182,7 +198,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             sprite.Visible = false;
             Depth = 8999;
             yield return 0.05f;
-            float num = player.Speed.Angle();
+            float num;
+            if (collided is Player player) num = player.Speed.Angle();
+            else if (collided is Stool stool)
+            {
+                num = stool.Speed.Angle();
+            }
+            else num = 0;
             level.ParticlesFG.Emit(p_shatter, 5, Position, Vector2.One * 4f, Color.White, num - (float)Math.PI / 2f);
             level.ParticlesFG.Emit(p_shatter, 5, Position, Vector2.One * 4f, Color.Gray, num + (float)Math.PI / 2f);
             SlashFx.Burst(Position, num);

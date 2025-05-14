@@ -407,6 +407,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             ParsePhrase(Phrase, boxSize, color, alpha, out Bins, out ChipWords);
             CreateCollider();
         }
+        public void MakePersistent()
+        {
+            Tag |= Tags.Persistent;
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
