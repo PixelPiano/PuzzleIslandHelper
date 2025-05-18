@@ -1848,9 +1848,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
                 Calidus = calidus;
                 Tag |= Tags.Persistent | Tags.TransitionUpdate;
             }
-            public override void ApplyParameters()
+            public override void ApplyParameters(Level level)
             {
-                base.ApplyParameters();
+                base.ApplyParameters(level);
                 Effect.Parameters["PlayerCenter"]?.SetValue(Calidus.Center + Vector2.UnitY * Calidus.Glow.FloatOffset);
             }
 

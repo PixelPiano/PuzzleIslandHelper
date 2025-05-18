@@ -64,9 +64,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
 
         }
-        public virtual void ApplyParameters()
+        private bool TryApplyParameters()
         {
-            if (Scene is not Level level || Effect is null || Effect.Parameters is null) return;
+            if(Scene is not Level level || Effect is null || Effect.Parameters == null) return false;
+            else ApplyParameters(level);
+            level.Render();
+            return true;
+        }
+        public void ApplyParameters()
+        {
+            ApplyParameters(SceneAs<Level>());
+        }
+        public virtual void ApplyParameters(Level level)
+        {
             if (UseRawDeltaTime)
             {
                 dummyTimer += Engine.RawDeltaTime;
@@ -131,11 +141,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Action MaskRender;
         public static void Apply(VirtualRenderTarget source, VirtualRenderTarget target, ShaderOverlay overlay = null, bool clear = false, float alpha = 1)
         {
-            if (source is null || target is null)
+            if (source is null || target is null || !overlay.TryApplyParameters())
             {
                 return;
             }
-            overlay?.ApplyParameters();
 
             VirtualRenderTarget tempA = GameplayBuffers.TempA;
             Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
@@ -158,11 +167,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public static void Apply(VirtualRenderTarget source, VirtualRenderTarget target, Rectangle destinationRectangle, ShaderOverlay overlay = null, bool clear = false, float alpha = 1)
         {
-            if (source is null || target is null)
+            if (source is null || target is null || !overlay.TryApplyParameters())
             {
                 return;
             }
-            overlay?.ApplyParameters();
             VirtualRenderTarget tempA = GameplayBuffers.TempA;
             Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);
@@ -182,11 +190,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static void Apply(VirtualRenderTarget source, VirtualRenderTarget target, Rectangle destinationRectangle, Rectangle? sourceRectangle, ShaderOverlay overlay = null, bool clear = false, float alpha = 1)
         {
-            if (source is null || target is null)
+            if (source is null || target is null || !overlay.TryApplyParameters())
             {
                 return;
             }
-            overlay?.ApplyParameters();
             VirtualRenderTarget tempA = GameplayBuffers.TempA;
             Engine.Instance.GraphicsDevice.SetRenderTarget(tempA);
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone, null, Matrix.Identity);

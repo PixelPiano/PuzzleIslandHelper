@@ -53,9 +53,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Amplitude = 1;
                 }
             }
-            public override void ApplyParameters()
+            public override void ApplyParameters(Level level)
             {
-                base.ApplyParameters();
+                base.ApplyParameters(level);
                 Effect.Parameters["MaxWidth"]?.SetValue(SignalWidth);
                 Effect.Parameters["MaxHeight"]?.SetValue(SignalHeight);
                 Effect.Parameters["Center"]?.SetValue(SignalCenter);

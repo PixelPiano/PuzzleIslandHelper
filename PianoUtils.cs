@@ -24,7 +24,32 @@ using static Celeste.Player;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
-
+    public static List<Rectangle> Split(this Rectangle rect, int chunkWidth, int chunkHeight, int skipX = 0, int skipY = 0)
+    {
+        List<Rectangle> list = [];
+        int startX = 0;
+        int startY = 0;
+        while (true)
+        {
+            int w = Math.Clamp(chunkWidth, 0, Math.Max(0, rect.Width - startX));
+            int h = Math.Clamp(chunkHeight, 0, Math.Max(0, rect.Height - startY));
+            if (w == 0)
+            {
+                if (h == 0)
+                {
+                    break;
+                }
+                else
+                {
+                    startX = 0;
+                    startY += h + skipY;
+                }
+            }
+            list.Add(new Rectangle(startX, startY, w, h));
+            startX += w + skipX;
+        }
+        return list;
+    }
     public static Directions Direction(this Vector2 vector)
     {
         if (vector.X > 0) return Directions.Right;
@@ -51,8 +76,8 @@ public static class PianoUtils
         => (new FlagData(element.Attr(flagname), element.AttrBool(invertedname)));
     public static FlagData Flag(this EntityData data, string flagname = "flag", string invertedname = "inverted")
         => new FlagData(data.Attr(flagname), data.Bool(invertedname));
-        public static FlagData Flag(this EntityData data, string flagname, bool inverted)
-        => new FlagData(data.Attr(flagname), inverted);
+    public static FlagData Flag(this EntityData data, string flagname, bool inverted)
+    => new FlagData(data.Attr(flagname), inverted);
     public static Vector2 Position(this BinaryPacker.Element element) => new Vector2(element.AttrFloat("x"), element.AttrFloat("y"));
     public static IEnumerator TextboxSayClean(string text, params Func<IEnumerator>[] events)
     {

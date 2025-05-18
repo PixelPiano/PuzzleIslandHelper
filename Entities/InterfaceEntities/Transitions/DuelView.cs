@@ -51,10 +51,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions
             if (Scene is not Level level) return Vector2.Zero;
             return uv * Effect.Parameters["Dimensions"].GetValueVector2() + level.Camera.Position;
         }
-        public override void ApplyParameters()
+        public override void ApplyParameters(Level level)
         {
-            base.ApplyParameters();
-            if (Scene is not Level level) return;
+            base.ApplyParameters(level);
             Effect.Parameters["BoxCenter"]?.SetValue(GlobalBoxCenter);
             Effect.Parameters["StartSize"]?.SetValue(StartSize);
             Effect.Parameters["MaxSize"]?.SetValue(MaxSize);

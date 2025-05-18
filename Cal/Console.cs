@@ -13,7 +13,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cal
     /// <summary>
     /// Interactable entity for booting up CalJr.
     /// </summary>
-    [CustomEntity("PuzzleIslandHelper/WipEntity")]
+    //[CustomEntity("PuzzleIslandHelper/WipEntity")]
     [Tracked]
     public class CalConsole : Entity
     {

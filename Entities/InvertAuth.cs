@@ -73,10 +73,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 player.Render();
                 Draw.SpriteBatch.End();
             }
-            public override void ApplyParameters()
+            public override void ApplyParameters(Level level)
             {
-                base.ApplyParameters();
-                if (Scene is not Level level || Effect is null || Effect.Parameters is null) return;
+                base.ApplyParameters(level);
                 Effect.Parameters["Size"]?.SetValue(0.005f);
                 Effect.Parameters["Center"]?.SetValue((Center - level.Camera.Position) / new Vector2(320, 180));
                 Effect.Parameters["Speed"]?.SetValue(Speed);

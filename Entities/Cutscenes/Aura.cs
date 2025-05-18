@@ -59,12 +59,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             }
         }
 
-        public override void ApplyParameters()
+        public override void ApplyParameters(Level level)
         {
-            base.ApplyParameters();
-            if (Scene is not Level level || player is null || Effect is null || Effect.Parameters is null) return;
+            base.ApplyParameters(level);
             Effect.Parameters["Strong"]?.SetValue(Strong);
-            Effect.Parameters["Center"]?.SetValue((player.Center - level.Camera.Position) / new Vector2(320, 180));
+            if (player != null)
+            {
+                Effect.Parameters["Center"]?.SetValue((player.Center - level.Camera.Position) / new Vector2(320, 180));
+            }
             Effect.Parameters["Size"]?.SetValue(0.01f);
             Effect.Parameters["Random"]?.SetValue(Calc.Random.Range(1, 100f));
         }
