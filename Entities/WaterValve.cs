@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.InvertAuth;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/WaterValve")]
@@ -29,11 +30,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Collider = new Hitbox(Wheel.Width, Wheel.Height, Wheel.X, Wheel.Y);
             Add(new PlayerCollider(OnPlayer));
         }
-        private void OnPlayer(Player player)
+        public void OnPlayer(Player player)
         {
-            if (Math.Abs(player.Speed.X) >= 160f && !InRoutine)
+            if (!InRoutine && player.DashAttacking && player.DashDir.X != 0)
             {
-                Add(new Coroutine(SpinWheel(Math.Sign(player.Speed.X))));
+                Add(new Coroutine(SpinWheel(Math.Sign(player.DashDir.X))));
             }
         }
         private void StartSpin(bool forwards)
@@ -76,13 +77,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
                 //TODO play sound here or something
             }
-            if (PianoModule.Session.GetPipeState() is > 1 and < 4)
+            /*            if (PianoModule.Session.GetPipeState() is > 1 and < 4)
+                        {*/
+            if (!string.IsNullOrEmpty(flag))
             {
-                if (!string.IsNullOrEmpty(flag))
-                {
-                    SceneAs<Level>().Session.SetFlag(flag);
-                }
+                SceneAs<Level>().Session.SetFlag(flag);
             }
+            //}
             yield return null;
             InRoutine = false;
         }

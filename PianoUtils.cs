@@ -5,6 +5,7 @@ using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.CommunalHelper.Utils;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
@@ -1330,6 +1331,7 @@ public static class PianoUtils
         {
             check = check.Pad(padding);
         }
+
         return check.Right > rect.Left && check.Bottom > rect.Top && check.Left < rect.Right && check.Top < rect.Bottom;
     }
     public static Vector2 HalfSize(this MTexture texture)

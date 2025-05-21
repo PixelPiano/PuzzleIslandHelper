@@ -98,7 +98,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Collider ConnectorBox;
 
         private float lightDim = 0.2f;
-        private LabGeneratorPuzzle puzzle;
 
 
         public LabGenerator(EntityData data, Vector2 offset) : base(data.Position + offset)
@@ -113,7 +112,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             Lights.Color = Color.Lerp(Color.White, Color.Black, lightDim);
-            if (puzzle.Completed.State && PianoModule.Session.HasFixedPipes && !PianoModule.Session.GeneratorStarted) //If fixed
+            if ("LabGeneratorPuzzleCompleted".GetFlag() && PianoModule.Session.PipesFixed && !PianoModule.Session.GeneratorStarted) //If fixed
             {
                 PianoModule.Session.GeneratorStarted = true;
                 Add(new Coroutine(StartSequenceOrSomething())); //activate machine
@@ -181,12 +180,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Glow.Visible = false;
             }
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            Level level = scene as Level;
-            puzzle = level.Tracker.GetEntity<LabGeneratorPuzzle>();
         }
         public override void Added(Scene scene)
         {

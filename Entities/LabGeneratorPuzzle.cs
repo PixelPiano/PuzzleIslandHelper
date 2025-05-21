@@ -58,7 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Completed.State = false;
             Reset = false;
             player.StateMachine.State = Player.StDummy;
-            SceneAs<Level>().Add(new PuzzleOverlay(SceneAs<Level>().Camera.Position));
+            SceneAs<Level>().Add(new PuzzleOverlay(this, SceneAs<Level>().Camera.Position));
             Add(new Coroutine(WaitForCompleteOrRemoved(player)));
         }
         private IEnumerator WaitForCompleteOrRemoved(Player player)
@@ -663,8 +663,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             private Counter Aba;
             public static readonly Color CellColor = Color.White * 0.4f;
             public enum Side { Right, Down, Left, Up }
-            public PuzzleOverlay(Vector2 Position) : base(Position)
+            public PuzzleOverlay(LabGeneratorPuzzle puzzle, Vector2 Position) : base(Position)
             {
+                Parent = puzzle;
                 Depth = BaseDepth;
                 Loading = true;
                 Collider = new Hitbox(320, 180);

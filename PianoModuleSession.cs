@@ -85,57 +85,51 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         #region Pipes
         public int PipeSwitchAttempts;
-        public enum PipeStates
-        {
-            Untouched,
-            Broken,
-            Fixable,
-            Fixed
-        }
         public bool PipeSwitched;
-        public bool HasFixedPipes;
-        public bool CanFixPipes;
-        public bool HasBrokenPipes;
+        public bool PipesFixed;
+        public bool PipesFixable;
+        public bool PipesBroken;
+        public bool PipesSafe => !PipesBroken || PipesFixed;
         public void SetPipeState(int state)
         {
             if (state > 3)
             {
-                HasBrokenPipes = true;
-                CanFixPipes = false;
-                HasFixedPipes = true;
+                PipesBroken = true;
+                PipesFixable = false;
+                PipesFixed = true;
 
             }
             else if (state > 2)
             {
-                HasBrokenPipes = true;
-                CanFixPipes = true;
-                HasFixedPipes = false;
+                PipesBroken = true;
+                PipesFixable = true;
+                PipesFixed = false;
             }
             else if (state > 1)
             {
-                HasBrokenPipes = true;
-                CanFixPipes = false;
-                HasFixedPipes = false;
+                PipesBroken = true;
+                PipesFixable = false;
+                PipesFixed = false;
             }
             else
             {
-                HasBrokenPipes = false;
-                CanFixPipes = false;
-                HasFixedPipes = false;
+                PipesBroken = false;
+                PipesFixable = false;
+                PipesFixed = false;
                 ResetPipeScrew();
             }
         }
         public int GetPipeState()
         {
-            if (HasFixedPipes)
+            if (PipesFixed)
             {
                 return 4;
             }
-            else if (CanFixPipes)
+            else if (PipesFixable)
             {
                 return 3;
             }
-            else if (HasBrokenPipes)
+            else if (PipesBroken)
             {
                 return 2;
             }
@@ -210,7 +204,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
 
         public ChargedWater CutsceneWater;
-        public List<PipeSpout> CutsceneSpouts = new List<PipeSpout>();
         public EntityID ActiveTransition { get; set; }
         public Interface Interface { get; set; }
         public BubbleParticleSystem BubbleSystem { get; set; }

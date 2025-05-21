@@ -60,12 +60,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float Angle => (float)Math.PI / -2f * (float)Direction;
 
         private float WaitTime;
-        public bool IsTimed;
+        public bool CanMove;
         public bool IsOn;
-        public bool inverted;
         private bool CanCollide;
         public bool RenderTextures = true;
 
+        public bool CutsceneStarted;
         public bool Enabled
         {
             get
@@ -74,51 +74,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     return true;
                 }
-                if (UseSaveData && (!PianoModule.Session.HasBrokenPipes || PianoModule.Session.HasFixedPipes))
+
+                if (UseSaveData && PianoModule.Session.PipesSafe)
                 {
-                    if (PianoModule.Session.CutsceneSpouts.Contains(this))
-                    {
-                        return FlagState;
-                    }
-                    return false;
+                    return CutsceneStarted && Flag.State;
                 }
-                if (PianoModule.Session.HasBrokenPipes)
-                {
-                    return FlagState;
-                }
-                return false;
+                return PianoModule.Session.PipesBroken && Flag.State;
             }
         }
-        public bool FlagState
-        {
-            get
-            {
-                Level level = Scene as Level;
-                if (level is null)
-                {
-                    return false;
-                }
-                if (string.IsNullOrEmpty(flag))
-                {
-                    return true;
-                }
-                if (inverted)
-                {
-                    return !level.Session.GetFlag(flag);
-                }
-                else
-                {
-                    return level.Session.GetFlag(flag);
-                }
-            }
-        }
+        public FlagData Flag;
         public bool WaitForRoutine;
         private bool Started;
-        public string flag;
         private Vector2 Scale = Vector2.One;
         private Vector2 hideOffset = Vector2.Zero;
         private float MoveTime;
-        private bool Moving;
         public bool OnlyMoveOnFlag;
 
         private enum Directions
@@ -141,9 +110,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Collider HurtBox;
         public Collider orig_Collider;
         public VirtualRenderTarget Target;
+        private float lerp = 0;
+        private bool addedToWreckage;
+        private float intervaloffset;
+        private bool playerNear;
+        private Coroutine coroutine;
         public PipeSpout(EntityData data, Vector2 offset, EntityID iD)
         : base(data.Position + offset)
         {
+            intervaloffset = Calc.Random.NextFloat();
             sfx = new SoundSource(Vector2.Zero, "event:/PianoBoy/env/local/pipes/water-stream-1");
             Add(sfx);
             Tag = Tags.TransitionUpdate;
@@ -151,9 +126,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             MoveTime = data.Float("moveDuration");
             HideMethod = data.Enum<VisibleTypes>("hideMethod");
             Direction = data.Enum<Directions>("direction");
-            flag = data.Attr("flag");
-            inverted = data.Bool("invertFlag");
-            IsTimed = data.Bool("isTimed");
+            Flag = data.Flag();
+            CanMove = data.Bool("isTimed");
             WaitTime = data.Float("waitTime");
             StartDelay = data.Float("startDelay");
             OnlyMoveOnFlag = data.Bool("onlyMoveOnFlag");
@@ -183,8 +157,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(new PlayerCollider(OnPlayer));
             SplashBox = Direction switch
             {
-                Directions.Right => SplashBox = new Hitbox(data.Width + 8, Splash.Height, 0, -(Splash.Height - data.Height) / 2),
-                Directions.Left => SplashBox = new Hitbox(data.Width + 8, Splash.Height, -8, -(Splash.Height - data.Height) / 2),
+                Directions.Right => new Hitbox(data.Width + 8, Splash.Height, 0, -(Splash.Height - data.Height) / 2),
+                Directions.Left => new Hitbox(data.Width + 8, Splash.Height, -8, -(Splash.Height - data.Height) / 2),
                 Directions.Up => new Hitbox(Splash.Height, data.Height + 8, -(Splash.Height - data.Width) / 2, -8),
                 Directions.Down => new Hitbox(Splash.Height, data.Height + 8, -(Splash.Height - data.Width) / 2, 0),
                 _ => null
@@ -212,23 +186,255 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Target = VirtualContent.CreateRenderTarget("Target", (int)SplashBox.Width, (int)SplashBox.Height);
             ClipRect = SplashBox.Bounds;
             Add(new BeforeRenderHook(BeforeRender));
+            Add(coroutine = new Coroutine(false));
             ID = iD;
         }
-        [OnLoadContent]
-        public static void OnLoadContent()
+        public bool InView()
         {
-            StreamSpritesheet = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streams"];
-            for (int i = 0; i < 4; i++)
+            float pad = 8;
+            Camera camera = (base.Scene as Level).Camera;
+            if (SplashBox.Right > camera.X - pad && SplashBox.Bottom > camera.Y - pad && SplashBox.Left < camera.X + 320f + pad)
             {
-                DissolveTextures[i] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve0" + i];
+                return SplashBox.Top < camera.Y + 180f + pad;
+            }
+            return false;
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            Player entity = scene.Tracker.GetEntity<Player>();
+            if (entity != null)
+            {
+                playerNear = Math.Abs(entity.X - X) < 128f && Math.Abs(entity.Y) < 128f;
+            }
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            Started = Enabled;
+            if (StartDelay == 0)
+            {
+                IsOn = true;
+            }
+            if (CanMove)
+            {
+                if (OnlyMoveOnFlag)
+                {
+                    coroutine.Replace(OnlyOnFlagRoutine());
+                }
+                else
+                {
+                    coroutine.Replace(Routine());
+                }
+            }
+            else
+            {
+                CanCollide = true;
+            }
+            coroutine.Active = false;
+        }
+        public override void Update()
+        {
+            coroutine.Update();
+            if (!Visible)
+            {
+                Collidable = false;
+                if (InView())
+                {
+                    Visible = true;
+                }
+            }
+            else
+            {
+                base.Update();
+                if (Scene.OnInterval(0.25f, intervaloffset) && !InView())
+                {
+                    Visible = false;
+                }
+
+                if (Scene.OnInterval(0.05f, intervaloffset))
+                {
+                    Player entity = Scene.Tracker.GetEntity<Player>();
+                    if (entity != null)
+                    {
+                        playerNear = Math.Abs(entity.X - X) < 128f && Math.Abs(entity.Y) < 128f;
+                    }
+                }
+                if (Flag.State)
+                {
+                    WasOn = true;
+                    if (!addedToWreckage)
+                    {
+                        PianoModule.Session.SpoutWreckage.Add(ID);
+                        addedToWreckage = true;
+                    }
+                }
+                Collidable = (!CanMove || IsOn) && CanCollide && Enabled;
+                //Collidable = playerNear && (!CanMove || IsOn) && CanCollide && Enabled;
+                HurtboxUpdate();
+            }
+            if (Scene.OnInterval(1 / 12f))
+            {
+                tvOffset = ++tvOffset % 3;
+            }
+        }
+        private void BeforeRender()
+        {
+            if (Scene is not Level level || !Visible) return;
+            Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
+            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+            Draw.SpriteBatch.Begin();
+            DrawTextures(Position - SplashBox.Position, Color.White);
+            Draw.SpriteBatch.End();
+        }
+        public override void Render()
+        {
+            base.Render();
+            if (Scene is not Level level) return;
+            if (RenderTextures && (OnlyMoveOnFlag || Enabled))
+            {
+                Draw.SpriteBatch.Draw(Target, SplashBox.Position, Color.White);
+            }
+            Hole.Rotation = Angle;
+            if ((PianoModule.Session.PipesBroken || Broken) && (WasOn || addedToWreckage) || PianoModule.Session.GetPipeState() > 3)
+            {
+                Hole.Render();
+            }
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            /*            Collider prev = Collider;
+                        Collider = HurtBox;
+                        Draw.HollowRect(Collider, Color.Green);
+                        Collider = prev;
+                        Draw.HollowRect(SplashBox, Color.Yellow);*/
+        }
+        public override void SceneEnd(Scene scene)
+        {
+            base.SceneEnd(scene);
+            Target?.Dispose();
+            Target = null;
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            Target?.Dispose();
+            Target = null;
+        }
+        public void DrawTextures(Vector2 pos, Color color)
+        {
+            Vector2 retreatOffset = HideMethod == VisibleTypes.Grow || InBreakRoutine ? hideOffset : Vector2.Zero;
+            Vector2 DrawPosition = pos + offset + retreatOffset;
+
+            int Length = Vertical ? (int)orig_Collider.Height : (int)orig_Collider.Width;
+            float rotation = Angle;
+            float width = StreamSpritesheet.Width;
+            Vector2 origin = originThingy * Scale;
+            int i = 0;
+            Texture2D texture = StreamSpritesheet.Texture.Texture_Safe;
+            if (UseDissolveTexture && HideMethod == VisibleTypes.Dissolve)
+            {
+                texture = DissolveTextures[dtIndex].Texture.Texture_Safe;
+            }
+            Splash.RenderPosition = Direction switch
+            {
+                Directions.Up => new Vector2(orig_Collider.Width / 2, 8),
+                Directions.Left => new Vector2(8, orig_Collider.Height / 2),
+                Directions.Down => new Vector2(orig_Collider.Width / 2, orig_Collider.Height - 8),
+                Directions.Right => new Vector2(orig_Collider.Width - 8, orig_Collider.Height / 2),
+                _ => Vector2.Zero
+            };
+            Splash.Scale = Scale;
+            Splash.RenderPosition += pos + retreatOffset;
+            Splash.Rotation = rotation;
+            for (; i < Length - width; i += (int)width)
+            {
+                Draw.SpriteBatch.Draw
+                        (
+                            color: color, rotation: rotation, origin: origin, scale: Scale, effects: 0, layerDepth: 0f,
+                            texture: texture, position: DrawPosition + new Vector2(i, 0).Rotate(rotation),
+                            sourceRectangle: new Rectangle(0, 6 * tvOffset, (int)width, 6)
+                        );
+            }
+            Draw.SpriteBatch.Draw
+                    (
+                        color: color, rotation: rotation, origin: origin, scale: Scale, effects: 0, layerDepth: 0f,
+                        texture: texture,
+                        position: DrawPosition + new Vector2(i, 0).Rotate(rotation),
+                        sourceRectangle: new Rectangle(0, 6 * tvOffset, Length - i, 6)
+                    );
+            Splash.Render();
+        }
+        private void OnPlayer(Player player)
+        {
+            player.Die(Vector2.Zero);
+        }
+        private void HurtboxUpdate()
+        {
+            if (HideMethod == VisibleTypes.Grow || ForceEnable)
+            {
+                HurtBox.Width = orig_Collider.Width - Math.Abs(hideOffset.X);
+                HurtBox.Height = orig_Collider.Height - Math.Abs(hideOffset.Y);
+                if (Direction == Directions.Up)
+                {
+                    HurtBox.Position.Y = Math.Abs(hideOffset.Y);
+                }
+                if (Direction == Directions.Left)
+                {
+                    HurtBox.Position.X = Math.Abs(hideOffset.X);
+                }
+            }
+        }
+        private void PickDissolveTexture(float lerp, float time)
+        {
+            if (lerp < time / 3 * 3)
+            {
+                if (lerp < time / 3 * 2)
+                {
+                    if (lerp < time / 3)
+                    {
+                        dtIndex = 0;
+                    }
+                    else
+                    {
+                        dtIndex = 1;
+                    }
+                }
+                else
+                {
+                    dtIndex = 2;
+                }
+            }
+            else
+            {
+                dtIndex = 3;
+            }
+        }
+        public void AdjustHideOffset(float lerp)
+        {
+            switch (Direction)
+            {
+                case Directions.Right:
+                    hideOffset.X = Calc.LerpClamp(0, -orig_Collider.Width, lerp);
+                    break;
+                case Directions.Up:
+                    hideOffset.Y = Calc.LerpClamp(0, orig_Collider.Height, lerp);
+                    break;
+                case Directions.Left:
+                    hideOffset.X = Calc.LerpClamp(0, orig_Collider.Width, lerp);
+                    break;
+                case Directions.Down:
+                    hideOffset.Y = Calc.LerpClamp(0, -orig_Collider.Height, lerp);
+                    break;
             }
         }
         public void EmitShards()
         {
             Vector2 direction = Direction switch
             {
-                Directions.Left => Vector2.UnitX,
-                Directions.Right => -Vector2.UnitX,
+                Directions.Left => -Vector2.UnitX,
+                Directions.Right => Vector2.UnitX,
                 Directions.Up => -Vector2.UnitY,
                 Directions.Down => Vector2.UnitY,
                 _ => Vector2.Zero
@@ -236,6 +442,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             ParticleSystem system = SceneAs<Level>().ParticlesFG;
             system.Emit(PipeShard, 4, Hole.RenderPosition, Vector2.Zero, direction.Angle());
 
+        }
+        public void GrowBreak(bool waitUntilOnScreen = false)
+        {
+            Add(new Coroutine(BreakRoutine(waitUntilOnScreen)));
         }
         private IEnumerator Routine()
         {
@@ -248,7 +458,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
                 if (!Enabled) continue;
                 #region Grow
-                Moving = true;
                 RenderTextures = true;
                 CanCollide = true;
                 //Start
@@ -259,7 +468,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         IsOn = true;
                         break;
                     case VisibleTypes.Dissolve:
-                        if (IsTimed)
+                        if (CanMove)
                         {
                             Splash.Play("undissolve");
                             UseDissolveTexture = true;
@@ -310,13 +519,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     IsOn = true;
                 }
                 yield return null;
-                Moving = false;
                 #endregion
                 if (!Enabled) continue;
                 yield return WaitTime;
                 if (!Enabled) continue;
                 #region Shrink
-                Moving = true;
                 AdjustHideOffset(0);
                 switch (HideMethod)
                 {
@@ -324,7 +531,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         break;
                     case VisibleTypes.Dissolve:
                         IsOn = false;
-                        if (IsTimed)
+                        if (CanMove)
                         {
                             UseDissolveTexture = true;
                             Splash.Play("dissolve");
@@ -356,19 +563,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Scale.Y = MinScale;
                     IsOn = false;
                 }
-                Moving = false;
                 #endregion
                 if (!Enabled) continue;
                 yield return WaitTime;
                 if (!Enabled) continue;
             }
         }
-
         public IEnumerator BreakRoutine(bool waitUntilOnScreen = false)
         {
             //ForceEnable = true;
             if (Scene is not Level level) yield break;
-            PianoModule.Session.CutsceneSpouts.Add(this);
+            CutsceneStarted = true;
             Visible = false;
             if (waitUntilOnScreen)
             {
@@ -402,16 +607,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Scale.Y = 1;
             Started = true;
             IsOn = true;
-            PianoModule.Session.HasBrokenPipes = true;
+            PianoModule.Session.PipesBroken = true;
             yield return null;
             CanCollide = true;
-            Moving = false;
             #endregion
             yield return null;
-        }
-        public void GrowBreak(bool waitUntilOnScreen = false)
-        {
-            Add(new Coroutine(BreakRoutine(waitUntilOnScreen)));
         }
         private IEnumerator WaitForEnabled()
         {
@@ -422,7 +622,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator OnlyOnFlagRoutine()
         {
-            float lerp = Enabled ? 0 : 1;
+            lerp = Enabled ? 0 : 1;
             while (true)
             {
                 RenderTextures = lerp < 1;
@@ -432,230 +632,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 CanCollide = true;
             }
         }
-        public override void Added(Scene scene)
+        [OnLoadContent]
+        public static void OnLoadContent()
         {
-            base.Added(scene);
-            Started = Enabled;
-            if (StartDelay == 0)
+            StreamSpritesheet = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streams"];
+            for (int i = 0; i < 4; i++)
             {
-                IsOn = true;
+                DissolveTextures[i] = GFX.Game["objects/PuzzleIslandHelper/waterPipes/streamDissolve0" + i];
             }
-            if (IsTimed)
-            {
-                if (OnlyMoveOnFlag)
-                {
-                    Add(new Coroutine(OnlyOnFlagRoutine()));
-                }
-                else
-                {
-                    Add(new Coroutine(Routine()));
-                }
-
-            }
-            else
-            {
-                CanCollide = true;
-            }
-        }
-        public void DrawTextures(Vector2 pos, Color color)
-        {
-            Vector2 retreatOffset = HideMethod == VisibleTypes.Grow || InBreakRoutine ? hideOffset : Vector2.Zero;
-            Vector2 DrawPosition = pos + offset + retreatOffset;
-
-            int Length = Vertical ? (int)orig_Collider.Height : (int)orig_Collider.Width;
-            float rotation = Angle;
-            float width = StreamSpritesheet.Width;
-            Vector2 origin = originThingy * Scale;
-            int i = 0;
-            Texture2D texture = StreamSpritesheet.Texture.Texture_Safe;
-            if (UseDissolveTexture && HideMethod == VisibleTypes.Dissolve)
-            {
-                texture = DissolveTextures[dtIndex].Texture.Texture_Safe;
-            }
-            Splash.RenderPosition = Direction switch
-            {
-                Directions.Up => new Vector2(orig_Collider.Width / 2, 8),
-                Directions.Left => new Vector2(8, orig_Collider.Height / 2),
-                Directions.Down => new Vector2(orig_Collider.Width / 2, orig_Collider.Height - 8),
-                Directions.Right => new Vector2(orig_Collider.Width - 8, orig_Collider.Height / 2),
-                _ => Vector2.Zero
-            };
-            Splash.Scale = Scale;
-            Splash.RenderPosition += pos + retreatOffset;
-            Splash.Rotation = rotation;
-            for (; i < Length - width; i += (int)width)
-            {
-                Draw.SpriteBatch.Draw
-                        (
-                            color: color, rotation: rotation, origin: origin, scale: Scale, effects: 0, layerDepth: 0f,
-                            texture: texture, position: DrawPosition + new Vector2(i, 0).Rotate(rotation),
-                            sourceRectangle: new Rectangle(0, 6 * tvOffset, (int)width, 6)
-                        );
-            }
-            Draw.SpriteBatch.Draw
-                    (
-                        color: color, rotation: rotation, origin: origin, scale: Scale, effects: 0, layerDepth: 0f,
-                        texture: texture,
-                        position: DrawPosition + new Vector2(i, 0).Rotate(rotation),
-                        sourceRectangle: new Rectangle(0, 6 * tvOffset, Length - i, 6)
-                    );
-            Splash.Render();
-        }
-        private void OnPlayer(Player player)
-        {
-            player.Die(Vector2.Zero);
-        }
-
-        public override void Update()
-        {
-            base.Update();
-            if (FlagState)
-            {
-                WasOn = true;
-                if (!PianoModule.Session.SpoutWreckage.Contains(ID))
-                {
-                    PianoModule.Session.SpoutWreckage.Add(ID);
-                }
-            }
-            /*            if (!Enabled)
-                        {
-                            if (sfx.InstancePlaying)
-                            {
-                                sfx.Stop(true);
-                            }
-                        }
-                        else
-                        {
-                            if (!sfx.InstancePlaying)
-                            {
-                                sfx.PlayEvent(sfx.Text);
-                            }
-                        }*/
-            Collidable = (!IsTimed || IsOn) && CanCollide && Enabled;
-            if (Scene.OnInterval(1 / 12f))
-            {
-                tvOffset = ++tvOffset % 3;
-            }
-            RoutineUpdate();
-
-
-        }
-        private void RoutineUpdate()
-        {
-            if (HideMethod == VisibleTypes.Grow || ForceEnable)
-            {
-                HurtBox.Width = orig_Collider.Width - Math.Abs(hideOffset.X);
-                HurtBox.Height = orig_Collider.Height - Math.Abs(hideOffset.Y);
-                if (Direction == Directions.Up)
-                {
-                    HurtBox.Position.Y = Math.Abs(hideOffset.Y);
-                }
-                if (Direction == Directions.Left)
-                {
-                    HurtBox.Position.X = Math.Abs(hideOffset.X);
-                }
-            }
-        }
-        public override void SceneEnd(Scene scene)
-        {
-            base.SceneEnd(scene);
-            Target?.Dispose();
-            Target = null;
-        }
-        public override void Removed(Scene scene)
-        {
-            base.Removed(scene);
-            Target?.Dispose();
-            Target = null;
-        }
-        private void PickDissolveTexture(float lerp, float time)
-        {
-            if (lerp < time / 3 * 3)
-            {
-                if (lerp < time / 3 * 2)
-                {
-                    if (lerp < time / 3)
-                    {
-                        dtIndex = 0;
-                    }
-                    else
-                    {
-                        dtIndex = 1;
-                    }
-                }
-                else
-                {
-                    dtIndex = 2;
-                }
-            }
-            else
-            {
-                dtIndex = 3;
-            }
-        }
-
-
-        public void AdjustHideOffset(float lerp)
-        {
-            switch (Direction)
-            {
-                case Directions.Right:
-                    hideOffset.X = Calc.LerpClamp(0, -orig_Collider.Width, lerp);
-                    break;
-                case Directions.Up:
-                    hideOffset.Y = Calc.LerpClamp(0, orig_Collider.Height, lerp);
-                    break;
-                case Directions.Left:
-                    hideOffset.X = Calc.LerpClamp(0, orig_Collider.Width, lerp);
-                    break;
-                case Directions.Down:
-                    hideOffset.Y = Calc.LerpClamp(0, -orig_Collider.Height, lerp);
-                    break;
-            }
-        }
-        private void BeforeRender()
-        {
-            if (Scene is not Level level)
-            {
-                return;
-            }
-            if (!level.Camera.GetBounds().Intersects(SplashBox.Bounds))
-            {
-                return;
-            }
-            Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);
-            Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
-            Draw.SpriteBatch.Begin();
-            DrawTextures(Position - SplashBox.Position, Color.White);
-            Draw.SpriteBatch.End();
-
-        }
-        public override void Render()
-        {
-            base.Render();
-
-            if (Scene is not Level level)
-            {
-                return;
-            }
-            if (level.Camera.GetBounds().Intersects(SplashBox.Bounds))
-            {
-                if (RenderTextures && (OnlyMoveOnFlag || Enabled))
-                {
-
-                    Draw.SpriteBatch.Draw(Target, SplashBox.Position, Color.White);
-                }
-            }
-            Hole.Rotation = Angle;
-            if ((PianoModule.Session.HasBrokenPipes || Broken) && (WasOn || PianoModule.Session.SpoutWreckage.Contains(ID)) || PianoModule.Session.GetPipeState() > 3)
-            {
-                Hole.Render();
-            }
-        }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            Draw.HollowRect(HurtBox, Color.Green);
         }
     }
 }

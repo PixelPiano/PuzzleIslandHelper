@@ -346,7 +346,7 @@ public class PianoCommands
         {
             PianoModule.Session.ResetPipeScrew();
         }
-        PianoModule.Session.HasBrokenPipes = realNum > 2;
+        PianoModule.Session.PipesBroken = realNum > 2;
     }
     [Command("generator", "turns the generator on/off")]
     private static void Generator(bool state = true)

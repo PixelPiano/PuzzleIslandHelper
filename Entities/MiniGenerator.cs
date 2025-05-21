@@ -34,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Coroutine flashCoroutine, colorCoroutine;
         public MiniGenerator(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
-            Depth = 1;
+            Depth = 2;
             ID = id;
             Collider = new Hitbox(Machine.Width, Machine.Height);
             Add(colorCoroutine = new Coroutine(false));
@@ -106,9 +106,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void OnStoolRaised(Stool stool)
         {
-            if (FillAmount < 1 && stool.DashesHeld > 1 && CollideCheck(stool))
+            if (FillAmount < 1 && stool.DashesHeld > 0 && CollideCheck(stool))
             {
-                FillSpeed += FillIncrement * (stool.DashesHeld - 1);
+                FillSpeed += FillIncrement * stool.DashesHeld;
             }
         }
         public void Activate(bool flash)
@@ -117,11 +117,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             UpdateRegistry(true); //set dictionary value to true
             colorCoroutine.Replace(ColorLerp());
             colorLerp = 0;
-            flashLerp = 1;
             FillAmount = endFill;
             if (flash)
             {
+                flashLerp = 1;
                 flashCoroutine.Replace(FlashRoutine());
+                PulseEntity.Circle(Center, Depth - 1, Pulse.Fade.Linear, Pulse.Mode.Oneshot, 0, Width / 1.5f, 1, true, Color.White, Color.White, null, Ease.CubeIn);
             }
         }
         public void Deactivate()

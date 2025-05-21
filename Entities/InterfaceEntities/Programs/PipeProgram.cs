@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 {
     [TrackedAs(typeof(WindowContent))]
-    [CustomProgram("PipeProgram")]
+    [CustomProgram("Pipe")]
     public class PipeProgram : WindowContent
     {
         private string path => Flipped ? "01" : "00";
@@ -54,6 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 
             Interface.Buffering = false;
         }
+      
         private IEnumerator Routine(int i)
         {
             if (Scene is not Level level)
@@ -69,8 +70,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 yield break;
             }
             sfx.Position = player.Center;
-            Interface.Talk.Active = false;
-            Interface.Talk.Visible = false;
             Interface.Buffering = true;
             switch (i)
             {
@@ -110,7 +109,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                     PianoModule.Session.PipeSwitchAttempts = 2;
                     break;
                 case 2:
-                    PianoModule.Session.HasBrokenPipes = false;
+                    PianoModule.Session.PipesBroken = false;
                     yield return PlayAndWait(sfx, "event:/PianoBoy/env/local/pipes/metalsnap");
                     yield return Interface.ShutDown(true);
                     player.StateMachine.State = Player.StDummy;
@@ -124,8 +123,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                     break;
             }
             yield return 0.3f;
-            Interface.Talk.Visible = true;
-            Interface.Talk.Active = true;
             Interface.Buffering = false;
             InRoutine = false;
             yield return null;
@@ -133,12 +130,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         private IEnumerator PipeBreak()
         {
             PipeCutsceneStarted = true;
-
-            Level level = Scene as Level;
+            Level level = Interface.Scene as Level;
             Vector2 camPosition = level.Camera.Position;
             foreach (PipeSpout spout in level.Tracker.GetEntities<PipeSpout>())
             {
-                if (spout.FlagState)
+                if (spout.Flag.State)
                 {
                     spout.GrowBreak(!PianoModule.Session.DEBUG);
                 }
@@ -187,10 +183,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 switch (PipeState)
                 {
                     case 1:
-                        Add(new Coroutine(Routine(PianoModule.Session.PipeSwitchAttempts)));
+                        Interface.Add(new Coroutine(Routine(PianoModule.Session.PipeSwitchAttempts)));
                         break;
                     case 3:
-                        Add(new Coroutine(SwitchPipes()));
+                        Interface.Add(new Coroutine(SwitchPipes()));
                         break;
                 }
             }
@@ -210,7 +206,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         {
             base.Awake(scene);
             Flipped = (scene as Level).Session.GetFlag("pipesSwitched");
-            PianoModule.Session.CutsceneSpouts.Clear();
+            foreach(PipeSpout spout in scene.Tracker.GetEntities<PipeSpout>())
+            {
+                spout.CutsceneStarted = false;
+            }
         }
 
         public override void Update()

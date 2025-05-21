@@ -128,7 +128,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             if (!Stored && !AtNest && !FollowingPlayer && CanFollow)
             {
                 SceneAs<Level>().Session.DoNotLoad.Add(ID);
-                Pulse.Circle(Position + Offset, 0, 8, Pulse.FadeModes.Linear, Depth - 1, 0.8f, Color, Color.White, Ease.CubeIn, Ease.CubeIn);
+                Pulse.Circle(this, Pulse.Fade.Linear, Pulse.Mode.Oneshot, Offset, 0, 8, 0.8f, true, Color, Color.White, Ease.CubeIn, Ease.CubeIn);
                 if (FirfilsFollowing >= MaxFollowing)
                 {
                     Follower.PersistentFollow = false;
