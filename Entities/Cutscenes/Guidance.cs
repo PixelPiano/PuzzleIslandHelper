@@ -10,9 +10,9 @@ using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
 {
-    [CustomPassengerCutscene("BeginningTalk")]
+    [CustomPassengerCutscene("PassengerGuidance")]
     [Tracked]
-    public class BeginningTalkCutscene : PassengerCutscene
+    public class Guidance : PassengerCutscene
     {
         public VertexPassenger VertexPassenger;
         public Func<IEnumerator>[] Events =>
@@ -27,13 +27,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         {
             yield return null;
         }
-        public BeginningTalkCutscene(Passenger passenger, Player player) : base(passenger, player)
+        public Guidance(Passenger passenger, Player player) : base(passenger, player)
         {
             if (passenger is VertexPassenger)
             {
                 VertexPassenger = passenger as VertexPassenger;
             }
-            OncePerSession = true;
+            OncePerSession = false;
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+
         }
         public override void OnBegin(Level level)
         {
@@ -43,11 +48,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         public IEnumerator Cutscene()
         {
-            Player.ForceCameraUpdate = false;
-            Add(new Coroutine(Marker.ZoomTo("cam", 1.4f, 1)));
-            yield return Marker.WalkTo("playerWalkTo", Facings.Right);
-            yield return Textbox.Say("BeginningTalk", Events);
-            yield return Level.ZoomBack(1);
+            if (Level.Session.GetFlag("MemoryBoxFirstEncounter"))
+            {
+                yield return Textbox.Say("PassengerGuidanceDialog", Events);
+            }
+            else
+            {
+                yield return Textbox.Say("PassengerNothing");
+            }
             EndCutscene(Level);
         }
         public class ShineObject : Actor
@@ -126,14 +134,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         public override void OnEnd(Level level)
         {
-            if (VertexPassenger is TutorialPassenger t)
-            {
-                t.TurnOff();
-                t.Position.X = t.prevPosition;
-            }
-            level.ResetZoom();
             Player.EnableMovement();
-            level.Session.SetFlag("BeginningTalkCutsceneWatched");
+            if (level.Session.GetFlag("MemoryBoxFirstEncounter"))
+            {
+                level.Session.SetFlag("PassengerGuidanceWatched");
+            }
         }
     }
 }

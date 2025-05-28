@@ -117,7 +117,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             return list;
         }
-
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            BaseEntity.RemoveSelf();
+            NodeEntity.RemoveSelf();
+        }
         public override void Update()
         {
             base.Update();

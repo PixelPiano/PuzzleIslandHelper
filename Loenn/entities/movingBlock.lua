@@ -10,7 +10,7 @@ movingBlock.minimumSize = {8,8}
 movingBlock.depth = 1
 movingBlock.nodeLimits = {1, 1}
 movingBlock.nodeLineRenderType = "line"
-local activationTypes = {"Always","Player Riding","Player Climbing","Player Riding or Climbing","Actor Riding","Flag","Dash Collide","Player Die","Player Respawn","Awake"}
+local activationTypes = {"Never","Always","PlayerRiding","PlayerClimbing","PlayerRidingOrClimbing","ActorRiding","Flag","DashCollide","PlayerDie","PlayerRespawn","Awake"}
 movingBlock.placements =
 {
     name = "Moving Block",

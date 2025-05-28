@@ -37,7 +37,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return !dependsOnLabPower || PianoModule.Session.RestoredPower;
             }
         }
-
+        private bool mute;
         public LabDoor(EntityData data, Vector2 offset)
             : base(data.Position + offset, 8, 48, false)
         {
@@ -52,6 +52,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Tag |= Tags.TransitionUpdate;
             Detect = new Hitbox(Width + range * 2, Height + 16, Position.X - range, Position.Y - 8);
             Add(sfx = new SoundSource());
+            Add(new TransitionListener()
+            {
+                OnInBegin = () =>
+                {
+                    mute = true;
+                },
+                OnInEnd = () =>
+                {
+                    mute = false;
+                }
+            });
         }
         public override void Awake(Scene scene)
         {
@@ -64,12 +75,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             doorSprite.Add("closing", "close", 0.1f, "idle");
             doorSprite.Rate = 1.5f;
             player = Scene.Tracker.GetEntity<Player>();
-            bool flag = string.IsNullOrEmpty(this.flag) || SceneAs<Level>().Session.GetFlag(this.flag);
-            if (State != States.Open || !PowerState || !flag)
+            if (!PowerState || (!string.IsNullOrEmpty(this.flag) && !SceneAs<Level>().Session.GetFlag(this.flag)) || State != States.Open)
             {
                 InstantClose();
             }
-            else
+            else if(!automatic && (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag) || State == States.Open))
             {
                 InstantOpen();
             }
@@ -82,14 +92,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public void Open()
         {
             sfx.Stop();
-            sfx.Play("event:/PianoBoy/labDoorOpen");
+            if (!mute) sfx.Play("event:/PianoBoy/labDoorOpen");
             doorSprite.Play("opening");
             State = States.Opening;
         }
         public void Close()
         {
             sfx.Stop();
-            sfx.Play("event:/PianoBoy/labDoorClose");
+            if (!mute) sfx.Play("event:/PianoBoy/labDoorClose");
             doorSprite.Play("closing");
             State = States.Closing;
         }

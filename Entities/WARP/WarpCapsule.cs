@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public MTexture LonnTexture => GFX.Game[Path + "lonn"];
         public string Path = "objects/PuzzleIslandHelper/digiWarpReceiver/";
         public float DoorClosedPercent, DoorStallTimer, ShineAmount;
-        public bool InCutscene, Enabled = true, DoorsIdle = true, InvertFlag, Accessible, Blocked;
+        public bool InCutscene, CanEnter = true, DoorsIdle = true, InvertFlag, Accessible, Blocked;
         public string RoomName;
         public FlagData Flag;
         public EntityID ID;
@@ -59,7 +59,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             LeftDoor = new Door(Center, -1, WARPData.XOffset, Path);
             RightDoor = new Door(Center, 1, WARPData.XOffset, Path);
             scene.Add(Floor, LeftDoor, RightDoor);
-            if(WarpEnabled() && Flag.State)
+            if (WarpEnabled() && Flag.State)
             {
                 InstantOpenDoors();
             }
@@ -68,25 +68,52 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 InstantCloseDoors();
             }
         }
+        public bool Disabled;
+        public void Disable()
+        {
+            Floor.Collidable = false;
+            Floor.Visible = false;
+            LeftDoor.Visible = false;
+            RightDoor.Visible = false;
+            Visible = false;
+            Talk.Enabled = false;
+            Disabled = true;
+        }
+        public void Enable()
+        {
+            Floor.Collidable = true;
+            Floor.Visible = true;
+            LeftDoor.Visible = true;
+            RightDoor.Visible = true;
+            Visible = true;
+            Disabled = false;
+            Accessible = Flag.State;
+            Floor.Collidable = !Blocked;
+            Talk.Enabled = !InCutscene && CanEnter && Accessible && !Blocked;
+
+        }
         public override void Update()
         {
             base.Update();
-            DoorStallTimer = Calc.Approach(DoorStallTimer, 0, Engine.DeltaTime);
-            Accessible = Flag.State;
-            Floor.Collidable = !Blocked;
-            Talk.Enabled = !InCutscene && Enabled && Accessible && !Blocked;
-            UpdateScale(InCutscene ? WARPData.Scale : Vector2.One);
-            if (!InCutscene)
+            if (!Disabled)
             {
-                /*                if (!IsFirstTime)
-                                {*/
-                bool valid = WarpEnabled();
-                Enabled = valid;
-                if (DoorStallTimer <= 0)
+                DoorStallTimer = Calc.Approach(DoorStallTimer, 0, Engine.DeltaTime);
+                Accessible = Flag.State;
+                Floor.Collidable = !Blocked;
+                Talk.Enabled = !InCutscene && CanEnter && Accessible && !Blocked;
+                UpdateScale(InCutscene ? WARPData.Scale : Vector2.One);
+                if (!InCutscene)
                 {
-                    MoveAlongTowards(valid);
+                    /*                if (!IsFirstTime)
+                                    {*/
+                    bool valid = WarpEnabled();
+                    CanEnter = valid;
+                    if (DoorStallTimer <= 0)
+                    {
+                        MoveAlongTowards(valid);
+                    }
+                    // }
                 }
-                // }
             }
         }
         public abstract bool WarpEnabled();
@@ -136,22 +163,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void OpenDoors(float time)
         {
-            Enabled = true;
+            CanEnter = true;
             Add(new Coroutine(OpenDoorsRoutine(time)));
         }
         public void CloseDoors(float time)
         {
-            Enabled = false;
+            CanEnter = false;
             Add(new Coroutine(CloseDoorsRoutine(time)));
         }
         public void InstantOpenDoors()
         {
-            Enabled = true;
+            CanEnter = true;
             MoveAlong(0);
         }
         public void InstantCloseDoors()
         {
-            Enabled = false;
+            CanEnter = false;
             MoveAlong(1);
         }
         public void UpdateScale(Vector2 scale)
@@ -172,12 +199,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public IEnumerator CloseAndOpen(float closeTime, float openTime)
         {
-            Enabled = false;
+            CanEnter = false;
             yield return new SwapImmediately(CloseDoorsRoutine(closeTime));
             DoorsIdle = false;
             yield return 0.1f;
             yield return new SwapImmediately(OpenDoorsRoutine(openTime));
-            Enabled = true;
+            CanEnter = true;
         }
         public IEnumerator OpenDoorsRoutine(float openTime)
         {
@@ -197,7 +224,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             LeftDoor.MoveToBg();
             RightDoor.MoveToBg();
             DoorStallTimer = 0.5f;
-            Enabled = true;
+            CanEnter = true;
             player.StateMachine.State = Player.StNormal;
         }
         public IEnumerator SendPlayerRoutine(Player player, float time)

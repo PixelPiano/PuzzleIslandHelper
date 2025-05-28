@@ -95,7 +95,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if (!Unlocked && usesFlag && SceneAs<Level>().Session.GetFlag(flag) && !Unlocking)
+            if (!Unlocked && !Unlocking && usesFlag && SceneAs<Level>().Session.GetFlag(flag))
             {
                 Unlock();
             }

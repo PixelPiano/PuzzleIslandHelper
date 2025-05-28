@@ -7,6 +7,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
     [Tracked]
     public abstract class PassengerCutscene : CutsceneEntity
     {
+
         public Passenger Passenger;
         public Player Player;
         private Coroutine zoomRoutine;

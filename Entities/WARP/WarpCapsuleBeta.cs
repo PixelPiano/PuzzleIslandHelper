@@ -12,6 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     [Tracked]
     public class WarpCapsuleBeta : WarpCapsule
     {
+        public bool Used => PianoModule.Settings.HomeTransportMethod == PianoModuleSettings.HomeTransportMethods.Machine;
         public bool LockPlayerState;
         public WarpCapsuleBeta(EntityData data, Vector2 offset, EntityID id)
             : base(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"),
@@ -22,9 +23,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            //Add(new DebugComponent(Keys.H, delegate { PullInteract(Scene.GetPlayer()); }, true));
+            Add(new DebugComponent(Keys.H, delegate { PullInteract(Scene.GetPlayer()); }, true));
         }
-
+        public override void Update()
+        {
+            if (!Used)
+            {
+                if (!Disabled)
+                {
+                    Disable();
+                }
+            }
+            else if (Disabled)
+            {
+                Enable();
+            }
+            base.Update();
+        }
         public override void Interact(Player player)
         {
             Teleport(player, false, LockPlayerState);
@@ -35,11 +50,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void Teleport(Player player, bool fast, bool lockPlayer = false, Action onEnd = null)
         {
-            if (PianoMapDataProcessor.BetaWarpData.TryGetValue(Scene.GetAreaKey(), out var list))
+            if (!Disabled)
             {
-                if (list.Find(item => item.Room == RoomName) is var data)
+                if (PianoMapDataProcessor.BetaWarpData.TryGetValue(Scene.GetAreaKey(), out var list))
                 {
-                    Scene.Add(new WarpCutscene(this, data, player, fast, !lockPlayer, onEnd));
+                    if (list.Find(item => item.Room == RoomName) is var data)
+                    {
+                        Scene.Add(new WarpCutscene(this, data, player, fast, !lockPlayer, onEnd));
+                    }
                 }
             }
         }

@@ -54,6 +54,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             Add(Image);
             if (hasLock) LockPlate = new Lock(this);
         }
+        public override void Update()
+        {
+            base.Update();
+            if(LockPlate != null)
+            {
+                LockPlate.Visible = Visible;
+            }
+        }
         public override void Added(Scene scene)
         {
             base.Added(scene);

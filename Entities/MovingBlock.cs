@@ -4,7 +4,6 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using YamlDotNet.Core.Tokens;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/MovingBlock")]
@@ -93,10 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public MovingBlock(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset, data.Width, data.Height, true)
         {
-            if (Enum.TryParse<activationModes>(data.Attr("activationMode").Replace(" ", ""), ignoreCase: true, out var result))
-            {
-                mode = result;
-            }
+            mode = data.Enum<activationModes>("activationType");
             Shakes = data.Bool("shakes");
             Flag = data.Flag("flag", "inverted");
             tiletype = data.Char("tiletype", '3');

@@ -10,8 +10,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public InterfaceData InterfaceData;
         public int CalJrState { get; set; }
         public bool WarpLockedToLab { get; set; }
-        public WarpRune.RuneNodeInventory.ProgressionSets RuneProgression = WarpRune.RuneNodeInventory.ProgressionSets.Second;
-        public WarpRune.RuneNodeInventory RuneNodeInventory = new();
+        public WarpRune.RuneNodeInventory.ProgressionSets RuneProgression { get; set; } = WarpRune.RuneNodeInventory.ProgressionSets.Second;
+        public WarpRune.RuneNodeInventory RuneNodeInventory { get; set; } = WarpRune.RuneNodeInventory.Second;
         public List<WarpRune> VisitedRuneSites = new();
         public PlayerCalidus.CalidusInventory CalidusInventory { get; set; }
         public Dictionary<string, bool> Achievements = new();
@@ -36,14 +36,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 Achievements.Add(name, value);
             }
         }
+        //Subject to change
         public enum Endings
         {
-            Null,
-            Reset,
-            Recover,
-            Eject,
-            Duplicate,
-            Inject,
+            Null, //
+            Reset, //
+            Recover, //
+            Eject, //
+            Duplicate, //
+            Inject, //
         }
         public Dictionary<Endings, bool> EndingsSeen = new()
         {

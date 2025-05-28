@@ -15,13 +15,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public string Pattern;
         public class RuneNodeInventory
         {
+            public static RuneNodeInventory Second = new RuneNodeInventory(ProgressionSets.Second);
+            public static RuneNodeInventory First = new RuneNodeInventory(ProgressionSets.First);
+            public static RuneNodeInventory Default = new RuneNodeInventory(ProgressionSets.Default);
             public enum ProgressionSets
             {
                 //Default:
                 //  0   0   0
                 //0   1   1   0
                 //  0   0   0
-                FirstEver,
+                Default,
                 //After Tutorial:
                 //  0   1   0
                 //0   1   1   0
@@ -56,7 +59,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             public RuneNodeInventory()
             {
             }
-
+            public RuneNodeInventory(ProgressionSets set)
+            {
+                Set(set);
+            }
             public void Set(ProgressionSets set)
             {
                 for (int i = 0; i < IsObtained.Length; i++)
@@ -66,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 List<NodeTypes> types = [];
                 switch (set)
                 {
-                    case ProgressionSets.FirstEver:
+                    case ProgressionSets.Default:
                         types = [NodeTypes.ML, NodeTypes.MR];
                         break;
 

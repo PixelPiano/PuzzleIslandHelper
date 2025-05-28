@@ -499,11 +499,12 @@ for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
 for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
 {tab}PipeSystem.ActiveValves[i].NormalizePressure();{n}
 
-
 GREENHEART=
-This is so stupid. So, so stupid.{n0}{mtRight}Yes, we are all very aware of this fact.{/mtRight}{n0}You, shut up. Only reason we're in this mess is because you rushed.{n0}{mtRight}If I remember correctly, we were all in agreement.{/mtRight}{n0}You left them behind! You pressured them!{n0}{mtRight}You're worried about Kos. I get it. However, we had all the time in the world. It was ultimately their decision.{/mtRight}
+...yes, it was... strange. It had a certain aura to it.{n0}{mtRight}That's not a lot to go off of. Do you really think it could help us?{n0}{/mtRight}
+...Yes. I think it can.{n0}{mtRight}I thought you couldn't see it.{n0}{/mtRight}I didn't need to.
 
-BLUEHEART={mtRight}Are you alone?{/mtRight}{n0}Yeah... Where is everyone?{n0}{mtRight}I don't know... But if they went through, this just became a lot more difficult.{/mtRight}{n0}Tch. Traitors. Once I get out there I'm hunting each one of them down.{mtRight}{n0}No, don't. It's fine. We can't blame them for wanting to live. All that matters is that someone resolves this.{/mtRight}{n0}...And if y-{n0}{2}...What if we can't?
+
+BLUEHEART= wip dialogue
 
 REDHEART= Lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem ipsum quia la la la la la la la
 

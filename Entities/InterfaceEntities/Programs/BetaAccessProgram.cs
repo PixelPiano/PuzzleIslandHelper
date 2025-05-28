@@ -60,7 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             }
             private IEnumerator routine()
             {
-                yield return Program.AccessRoutine("digiCalidus1",true);
+                yield return Program.AccessRoutine("digiCalidus1", true);
                 EndCutscene(Level);
             }
             public override void OnEnd(Level level)
@@ -69,7 +69,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 {
                     Program.Interface.CloseInterface(true);
                     level.GetPlayer()?.EnableMovement();
-                    if(level.Tracker.GetEntity<WarpCapsuleBeta>() is var machine)
+                    if (level.Tracker.GetEntity<WarpCapsuleBeta>() is var machine)
                     {
                         machine.RoomName = "digiCalidus1";
                     }
@@ -109,18 +109,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public IEnumerator TransitionRoutine(string room, bool instant = false, bool buggy = false)
         {
             if (Engine.Scene is not Level level) yield break;
-            WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
-            if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
+            if (PianoModule.Settings.HomeTransportMethod == PianoModuleSettings.HomeTransportMethods.Screen)
             {
-                yield return PianoModule.Session.Interface.ShutDown(true, machine != null);
+                ScreenWarpCutscene.Create(Scene, room, level.GetPlayer(), true);
             }
-            if (machine != null)
+            else
             {
-                machine.LeftDoor.MoveToBg();
-                machine.RightDoor.MoveToBg();
-                machine.RoomName = room;
-                machine.LockPlayerState = true;
-                level.GetPlayer().StateMachine.State = Player.StNormal;
+                WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
+                if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
+                {
+                    yield return PianoModule.Session.Interface.ShutDown(true, machine != null);
+                }
+                if (machine != null)
+                {
+                    machine.LeftDoor.MoveToBg();
+                    machine.RightDoor.MoveToBg();
+                    machine.RoomName = room;
+                    machine.LockPlayerState = true;
+                    level.GetPlayer().StateMachine.State = Player.StNormal;
+                }
             }
         }
 
