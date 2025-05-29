@@ -439,7 +439,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private IEnumerator calidusStartPeek()
         {
             Calidus.Look(Calidus.Looking.Right);
-            yield return Calidus.FloatX(Trailer.Right - Calidus.Width / 2);
+            yield return Calidus.FloatToX(Trailer.Right - Calidus.Width / 2);
         }
         private bool peeking;
         private IEnumerator peekLoop()
@@ -465,7 +465,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private IEnumerator allLeaveTrailer()
         {
             Calidus.CanFloat = true;
-            yield return this.MultiRoutine(Player.DummyWalkTo(Trailer.Right + 8), Jaques.WalkToX(Trailer.Right + 20), Calidus.Float(new Vector2(Trailer.Right + 46, Calidus.Y + 4), 1));
+            yield return this.MultiRoutine(Player.DummyWalkTo(Trailer.Right + 8), Jaques.WalkToX(Trailer.Right + 20), Calidus.FloatTo(new Vector2(Trailer.Right + 46, Calidus.Y + 4), 1));
             yield return null;
         }
         private IEnumerator allLookLeft()
@@ -493,7 +493,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private IEnumerator calidusApproachJaques()
         {
             Calidus.LookAt(Jaques);
-            Add(new Coroutine(Calidus.FloatNaive(new Vector2(-8, 4))));
+            Add(new Coroutine(Calidus.FloatToNaive(new Vector2(-8, 4))));
             yield return null;
         }
         private IEnumerator calidusLookUpRight()
@@ -504,7 +504,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 
         private IEnumerator calidusMoveRight()
         {
-            Add(new Coroutine(Calidus.FloatNaive(Vector2.UnitX * 16)));
+            Add(new Coroutine(Calidus.FloatToNaive(Vector2.UnitX * 16)));
             yield return null;
         }
 
@@ -512,14 +512,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             Calidus.Emotion(Calidus.Mood.Surprised);
             Calidus.LookAt(Jaques);
-            Add(new Coroutine(Calidus.FloatXNaive(16, 1.4f)));
+            Add(new Coroutine(Calidus.FloatToXNaive(16, 1.4f)));
             Add(new Coroutine(Calidus.DelayedEmotion(Calidus.Mood.Normal, 0.5f)));
             yield return null;
 
         }
         private IEnumerator calidusBackUp()
         {
-            Add(new Coroutine(Calidus.FloatXNaive(16, 0.8f)));
+            Add(new Coroutine(Calidus.FloatToXNaive(16, 0.8f)));
             yield return null;
         }
         private bool jaquesScaredChecker;
@@ -561,7 +561,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Add(new Coroutine(Player.DummyWalkTo(Player.X + 16, true)));
             if (Calidus != null)
             {
-                Add(new Coroutine(Calidus.FloatX(Calidus.X + 16)));
+                Add(new Coroutine(Calidus.FloatToX(Calidus.X + 16)));
             }
             yield return null;
         }
@@ -673,7 +673,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             calidusGlitching = false;
             yield return 0.6f;
-            yield return Calidus?.FloatX(Player.Left - 8, 0.3f);
+            yield return Calidus?.FloatToX(Player.Left - 8, 0.3f);
             yield return 0.1f;
             Calidus.Drunk = false;
             Calidus.Stern();
@@ -775,7 +775,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 new(MoveActorToXAndJump(Jaques,x,Trailer.Width)),
                 new(MoveActorToXAndJump(Player,x + 16, Trailer.Width - 20)),
                 new(MoveActorToXAndJump(Randy, x + 32, Trailer.Width - 32)),
-                new(Calidus.FloatX(x + 46))
+                new(Calidus.FloatToX(x + 46))
             };
             Add(routines);
             foreach (var r in routines)
@@ -1010,7 +1010,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Calidus.LookAt(Ghost);
             yield return 0.1f;
             Calidus.LookSpeed = 1f;
-            yield return Calidus.FloatLerpX(Calidus.X + 16, 1.4f, Ease.SineInOut);
+            yield return Calidus.FloatToXLerp(Calidus.X + 16, 1.4f, Ease.SineInOut);
             yield return null;
 
         }
@@ -1026,7 +1026,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator calidusToJaques(Calidus.Looking endLook)
         {
-            yield return Calidus.FloatX(Jaques.Right + 3, 2);
+            yield return Calidus.FloatToX(Jaques.Right + 3, 2);
             Calidus.Look(endLook);
         }
         private IEnumerator getBehindJaques()

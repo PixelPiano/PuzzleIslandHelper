@@ -169,7 +169,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         private IEnumerator calidusStutter()
         {
             Calidus?.Look(Calidus.Looking.Left);
-            Add(new Coroutine(Calidus.FloatXNaive(-36, 1.3f)));
+            Add(new Coroutine(Calidus.FloatToXNaive(-36, 1.3f)));
             yield return null;
         }
         private IEnumerator awkwardPause()

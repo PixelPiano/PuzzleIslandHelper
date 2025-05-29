@@ -72,7 +72,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         private bool maddyWalking;
         private IEnumerator walkAway()
         {
-            Add(new Coroutine(Calidus.Float(Calidus.Position - Vector2.UnitX * 50)));
+            Add(new Coroutine(Calidus.FloatTo(Calidus.Position - Vector2.UnitX * 50)));
             float from = Player.X;
             float to = from - 40;
             Add(new Coroutine(Player.DummyWalkTo(to)));

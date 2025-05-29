@@ -12,6 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         private readonly List<(string, bool)> RequiredFlags;
         private readonly List<(string, bool)> StartFlags;
         private readonly List<(string, bool)> InvertFlags;
+
         private readonly bool oncePerLevel;
         private readonly bool oncePerSession;
         private EntityID ID;

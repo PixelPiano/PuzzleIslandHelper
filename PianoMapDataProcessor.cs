@@ -86,7 +86,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
     {
         public string Name;
         public bool Lab;
-        public Vector2 Position;
         public WarpRune Rune;
     }
     public class BetaWarpData : WarpData

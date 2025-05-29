@@ -101,7 +101,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
                 }
                 if (previousState != State)
                 {
-                    level.NextColorGrade(State ? "PianoBoy/Inverted" + (PianoModule.Settings.InvertEffectIntensity * 20) : "none", 10f);
+                    //level.NextColorGrade(State ? "PianoBoy/Inverted" + (PianoModule.Settings.InvertEffectIntensity * 20) : "none", 10f);
                     Engine.TimeRate = State ? OnTime : Engine.TimeRate;
                     if (State)
                     {

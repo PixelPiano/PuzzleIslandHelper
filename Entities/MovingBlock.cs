@@ -103,6 +103,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             this.id = id;
             moveLimit = data.Int("moveLimit", -1);
             collidable = data.Bool("collidable", true);
+            Permanent = data.Bool("permanent");
             Tag |= Tags.TransitionUpdate;
             Add(new Coroutine(Sequence()));
             OnDashCollide = DashCollision;
@@ -238,6 +239,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     Data.AtNode = next == start;
                 }
+                ImpactSfx();
                 yield return null;
                 if (Shakes)
                 {
@@ -290,7 +292,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             return mode switch
             {
-
                 activationModes.PlayerRiding => HasPlayerOnTop(),
                 activationModes.PlayerClimbing => HasPlayerClimbing(),
                 activationModes.PlayerClimbingOrRiding => HasPlayerRider(),

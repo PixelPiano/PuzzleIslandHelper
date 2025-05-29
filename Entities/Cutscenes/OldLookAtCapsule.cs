@@ -38,7 +38,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             {
                 c.StopFollowing();
                 c.LookAt(capsule.Center);
-                yield return new SwapImmediately(c.Float(position, speed));
+                yield return new SwapImmediately(c.FloatTo(position, speed));
             }
         }
         private IEnumerator calidusTo1a()

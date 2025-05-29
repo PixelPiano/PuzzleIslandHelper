@@ -109,25 +109,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         public IEnumerator TransitionRoutine(string room, bool instant = false, bool buggy = false)
         {
             if (Engine.Scene is not Level level) yield break;
-            if (PianoModule.Settings.HomeTransportMethod == PianoModuleSettings.HomeTransportMethods.Screen)
+            WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
+            if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
             {
-                ScreenWarpCutscene.Create(Scene, room, level.GetPlayer(), true);
+                yield return PianoModule.Session.Interface.ShutDown(true, machine != null);
             }
-            else
+            if (machine != null)
             {
-                WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
-                if (PianoModule.Session.Interface != null && PianoModule.Session.Interface.Interacting)
-                {
-                    yield return PianoModule.Session.Interface.ShutDown(true, machine != null);
-                }
-                if (machine != null)
-                {
-                    machine.LeftDoor.MoveToBg();
-                    machine.RightDoor.MoveToBg();
-                    machine.RoomName = room;
-                    machine.LockPlayerState = true;
-                    level.GetPlayer().StateMachine.State = Player.StNormal;
-                }
+                machine.LeftDoor.MoveToBg();
+                machine.RightDoor.MoveToBg();
+                machine.RoomName = room;
+                machine.LockPlayerStateOnReceived = true;
+                level.GetPlayer().StateMachine.State = Player.StNormal;
             }
         }
 

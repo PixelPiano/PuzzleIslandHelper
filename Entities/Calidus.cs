@@ -213,7 +213,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public void DrawOutline()
             {
-                DrawOutline(Color.Black * OutlineOpacity);
+                DrawOutline(Color.Black * OutlineOpacity, 1);
             }
             public void DrawOutline(Vector2 at)
             {
@@ -303,7 +303,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Calidus(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Bool("broken"), data.Bool("startFloating", true), data.Enum("looking", Looking.Center), data.Enum("mood", Mood.Normal), data.Bool("followPlayer"))
         {
         }
-        public Calidus(Vector2 Position, EntityID id, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal, bool startFollowingImmediately = false) : base(Position)
+
+        public Calidus(Vector2 position, bool broken = false, bool startFloating = true, Looking looking = Looking.Center, Mood mood = Mood.Normal, bool startFollowingImmediately = false)
+            : this(position, new EntityID(Guid.NewGuid().ToString(), 0), broken, startFloating, looking, mood, startFollowingImmediately) { }
+        public Calidus(Vector2 position, EntityID id, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal, bool startFollowingImmediately = false) : base(position)
         {
             Light = new VertexLight(Color.White, 1, 32, 64);
             Add(Light);
@@ -407,7 +410,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             (scene as Level).Add(system = new ParticleSystem(Depth + 1, 500));
 
             FollowTarget = PianoUtils.SeekController<CalidusFollowerTarget>(scene);
-            
+
             if (FollowTarget is null)
             {
                 scene.Add(FollowTarget = new CalidusFollowerTarget());
@@ -441,7 +444,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(Follower = new Follower());
                 Follower.FollowDelay = 0.2f;
                 Follower.MoveTowardsLeader = false;
-                if(FollowTarget.Leader == null)
+                if (FollowTarget.Leader == null)
                 {
                     FollowTarget.Add(FollowTarget.Leader = new CalidusFollowerTarget.CustomLeader());
                 }
@@ -604,7 +607,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public void Fixed()
         {
             bool fromBroken = BrokenParts.Visible;
-            Light.Alpha = 1;
+            Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineInOut, t => Light.Alpha = t.Eased, t => Light.Alpha = 1);
             BrokenParts.Visible = false;
             OrbSprite.Play("idle");
             EyeSprite.Play("neutral");
@@ -945,11 +948,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Position = position;
         }
-        public void FloatLerp(Vector2 position, float time, Ease.Easer ease = null)
+        public void FloatToLerp(Vector2 position, float time, Ease.Easer ease = null)
         {
-            Add(new Coroutine(FloatLerpRoutine(position, time, ease)));
+            Add(new Coroutine(FloatToLerp(position, time, ease, true, true)));
         }
-        public IEnumerator Float(Vector2 position, float speedmult = 1)
+        public IEnumerator RotateAround(Vector2 center, float radius, float startingAngle, float endingAngle, float time, Ease.Easer ease = null)
+        {
+            ease ??= Ease.Linear;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                float angle = Calc.AngleLerp(startingAngle, endingAngle, ease(i));
+                Vector2 offset = Calc.AngleToVector(angle, radius);
+                Position = center + offset;
+                yield return null;
+            }
+            Position = center + Calc.AngleToVector(endingAngle, radius);
+        }
+        public IEnumerator RotateAroundApproach(Vector2 center, float radius, float startingAngle, float endingAngle, float time, float speedMult = 1, Ease.Easer ease = null)
+        {
+            ease ??= Ease.Linear;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                float angle = Calc.AngleLerp(startingAngle, endingAngle, ease(i));
+                Vector2 offset = Calc.AngleToVector(angle, radius);
+                Position.X = Calc.Approach(Position.X, (center + offset).X, 90f * speedMult * Engine.DeltaTime);
+                Position.Y = Calc.Approach(Position.Y, (center + offset).Y, 90f * speedMult * Engine.DeltaTime);
+                yield return null;
+            }
+        }
+        public IEnumerator RotateAroundOffset(Vector2 center, float radius, float angleOffset, float time, float speedMult = 1, Ease.Easer ease = null)
+        {
+            float startingAngle = (center - Position).Angle();
+            float endingAngle = startingAngle + angleOffset;
+            yield return new SwapImmediately(RotateAround(center, radius, startingAngle, endingAngle, time, ease));
+        }
+        public IEnumerator RotateAroundApproachOffset(Vector2 center, float radius, float angleOffset, float time, float speedMult = 1, Ease.Easer ease = null)
+        {
+            float startingAngle = (center - Position).Angle();
+            float endingAngle = startingAngle + angleOffset;
+            yield return new SwapImmediately(RotateAroundApproach(center, radius, startingAngle, endingAngle, time, speedMult, ease));
+        }
+        public IEnumerator FloatTo(Vector2 position, float speedmult = 1)
         {
             while (Math.Abs(X - position.X) > 2 || Math.Abs(Y - position.Y) > 2)
             {
@@ -959,11 +998,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Position = position;
         }
-        public IEnumerator Float(float x, float y, float speedmult = 1)
+        public IEnumerator FloatTo(float x, float y, float speedmult = 1)
         {
-            yield return new SwapImmediately(Float(new Vector2(x, y), speedmult));
+            yield return new SwapImmediately(FloatTo(new Vector2(x, y), speedmult));
         }
-        public IEnumerator FloatX(float x, float speedmult = 1)
+        public IEnumerator FloatToX(float x, float speedmult = 1)
         {
             while (Math.Abs(X - x) > 2)
             {
@@ -972,7 +1011,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Position.X = x;
         }
-        public IEnumerator FloatY(float y, float speedmult = 1)
+        public IEnumerator FloatToY(float y, float speedmult = 1)
         {
             while (Math.Abs(Y - y) > 2)
             {
@@ -981,29 +1020,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Position.Y = y;
         }
-        public IEnumerator FloatXNaive(float x, float speedmult = 1)
+        public IEnumerator FloatToXNaive(float x, float speedmult = 1)
         {
-            yield return new SwapImmediately(FloatX(X + x, speedmult));
+            yield return new SwapImmediately(FloatToX(X + x, speedmult));
         }
-        public IEnumerator FloatYNaive(float y, float speedmult = 1)
+        public IEnumerator FloatToYNaive(float y, float speedmult = 1)
         {
-            yield return new SwapImmediately(FloatY(Y + y, speedmult));
+            yield return new SwapImmediately(FloatToY(Y + y, speedmult));
         }
-        public IEnumerator FloatNaive(Vector2 position, float speedmult = 1)
+        public IEnumerator FloatToNaive(Vector2 position, float speedmult = 1)
         {
-            yield return new SwapImmediately(Float(Position + position, speedmult));
+            yield return new SwapImmediately(FloatTo(Position + position, speedmult));
         }
-        public IEnumerator FloatNaive(float h, float v, float speedmult = 1)
+        public IEnumerator FloatToNaive(float h, float v, float speedmult = 1)
         {
-            yield return new SwapImmediately(Float(Position + new Vector2(h, v), speedmult));
+            yield return new SwapImmediately(FloatTo(Position + new Vector2(h, v), speedmult));
         }
-        public IEnumerator FloatLerpX(float x, float time, Ease.Easer ease)
+        public IEnumerator FloatToXLerp(float x, float time, Ease.Easer ease)
         {
-            yield return FloatLerpRoutine(Vector2.UnitX * x, time, ease, true, false);
+            yield return FloatToLerp(Vector2.UnitX * x, time, ease, true, false);
         }
-        public IEnumerator FloatLerpY(float y, float time, Ease.Easer ease)
+        public IEnumerator FloatToYLerp(float y, float time, Ease.Easer ease)
         {
-            yield return FloatLerpRoutine(Vector2.UnitY * y, time, ease, false, true);
+            yield return FloatToLerp(Vector2.UnitY * y, time, ease, false, true);
         }
 
         public override void DebugRender(Camera camera)
@@ -1453,7 +1492,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 time = 2;
             }
         }
-        public IEnumerator FloatLerpRoutine(Vector2 position, float time, Ease.Easer ease = null, bool x = true, bool y = true)
+        public IEnumerator FloatToLerp(Vector2 position, float time, Ease.Easer ease = null, bool x = true, bool y = true)
         {
             Vector2 from = Position;
             ease ??= Ease.Linear;
@@ -1466,7 +1505,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (x) Position.X = position.X;
             if (y) Position.Y = position.Y;
-
         }
         private IEnumerator ArmLoop()
         {

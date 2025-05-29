@@ -8,20 +8,23 @@
 Layouts:
   Default:
     Icons:
-      - ID: Camera
-        Tab: Security
-      - ID: Unknown
-        Tab: a
-      - ID: Text
-        Tab: aa
-        Window: TODO
-      - ID: Wave
-        Tab: Wave Program
-      - ID: Access
-        Tab: Access Program
-        Window: ACCESS
-      - ID: Fountain
-        Tab: fountain
+        - ID: Access
+          Tab: Prototype Test
+          Window: ACCESS
+      # - ID: Camera
+      #   Tab: Security
+      # - ID: Unknown
+      #   Tab: a
+      # - ID: Text
+      #   Tab: aa
+      #   Window: TODO
+      # - ID: Wave
+      #   Tab: Wave Program
+      # - ID: Access
+      #   Tab: Access Program
+      #   Window: ACCESS
+      # - ID: Fountain
+      #   Tab: fountain
   WorldShift:
     Icons:
       - ID: WorldShift
@@ -59,7 +62,7 @@ Layouts:
   Access:
     Icons:
       - ID: Access
-        Tab: Key Terminal.exe
+        Tab: Access Program
         Window: ACCESS
   Life:
     Icons:

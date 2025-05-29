@@ -11,12 +11,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
     [Tracked]
     public class CalidusCutsceneTrigger : Trigger
     {
-        public CalidusCutscene.Cutscenes Progress => PianoModule.Session.CalidusCutscene;
+
         private CutsceneEntity CutsceneEntity;
         public CalidusCutscene.Cutscenes Cutscene;
         private bool ActivateOnTransition;
         private bool InCutscene;
-        //private List<string> flags = new();
         private List<(string, bool)> flags = new();
         public bool FlagState => PianoUtils.CheckAll(flags);
         public CalidusCutsceneTrigger(EntityData data, Vector2 offset)
@@ -33,21 +32,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             base.Awake(scene);
             (scene as Level).InCutscene = false;
-            if (ActivateOnTransition && scene.GetPlayer() is Player player)
+            if (ActivateOnTransition && FlagState && scene.GetPlayer() is Player player)
             {
-                if (!FlagState)
-                {
-                    RemoveSelf();
-                }
-                else if (player is not null)
-                {
-                    OnEnter(player);
-                }
+                OnEnter(player);
             }
         }
         public override void OnEnter(Player player)
         {
-            if (Progress == Cutscene && !InCutscene && FlagState)
+            if (!InCutscene && FlagState)
             {
                 InCutscene = true;
                 SceneAs<Level>().Add(CutsceneEntity);

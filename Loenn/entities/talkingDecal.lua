@@ -14,12 +14,14 @@ function talkingDecal.ignoredFields(entity)
         "_id",
         "_name",
         "mode",
-        "cutscene",
+        "onCutscene",
+        "offCutscene",
         "room",
         "nearestSpawnX",
         "nearestSpawnY",
         "useNearestSpawn",
-        "dialog",
+        "onDialog",
+        "offDialog",
         "zoomUsage",
         "zoomMode",
         "zoomX",
@@ -54,7 +56,8 @@ function talkingDecal.ignoredFields(entity)
     local atype = entity.mode or "Dialog"
 
     if atype == "Dialog" then
-        doNotIgnore("dialog")
+        doNotIgnore("onDialog")
+        doNotIgnore("offDialog")
         doNotIgnore("zoomUsage")
         doNotIgnore("cameraUsage") 
         doNotIgnore("walkUsage")
@@ -73,7 +76,8 @@ function talkingDecal.ignoredFields(entity)
         doNotIgnore("walkIntoWalls")
         doNotIgnore("walkBackwards")
     elseif atype == "Cutscene" then
-        doNotIgnore("cutscene")
+        doNotIgnore("onCutscene")
+        doNotIgnore("offCutscene")
     else
         doNotIgnore("room")
         doNotIgnore("useNearestSpawn")
@@ -87,10 +91,11 @@ function talkingDecal.ignoredFields(entity)
 end
 talkingDecal.fieldOrder = {
     "x","y",
-    "decalPath","color", "depth","mode", "visibilityFlag", "talkEnabledFlag",
-    "cutscene",
+    "onDecalPath","offDecalPath","color", "depth","mode", "visibilityFlag", "talkEnabledFlag",
+    "onCutscene",
+    "offCutscene",
     "room","teleportMode","wipe","glitchAmount","nearestSpawnX","nearestSpawnY","useNearestSpawn",
-    "dialog", 
+    "onDialog","offDialog", 
     "zoomUsage","zoomMode","zoomX","zoomY","zoomAmount","zoomDuration",
     "cameraUsage", "camMode", "camX","camY","cameraDuration",
     "walkUsage","walkMode","walkToX","speedMult",
@@ -105,8 +110,10 @@ for _, type in ipairs(types) do
             outline = false,
             visibilityFlag = "",
             talkEnabledFlag = "",
-            cutscene = "",
-            dialog = "",
+            onCutscene = "",
+            offCutscene = "",
+            onDialog = "",
+            offDialog = "",
             room = "",
             useNearestSpawn = false,
             nearestSpawnX = 0,
@@ -129,7 +136,8 @@ for _, type in ipairs(types) do
             walkIntoWalls = false,
             walkBackwards = false,
             depth = 2,
-            decalPath = "1-forsakencity/flag",
+            onDecalPath = "1-forsakencity/flag",
+            offDecalPath = "1-forsakencity/flag",
             color = "FFFFFF",
             teleportMode = "Instant",
             glitchAmount = 1,
@@ -192,10 +200,10 @@ function talkingDecal.sprite(room, entity)
     return sprite
 end
 function getTex(entity)
-    if drawableSprite.fromTexture("decals/" .. entity.decalPath .. "00") ~= nil then
-        return "decals/" .. entity.decalPath .. "00"
+    if drawableSprite.fromTexture("decals/" .. entity.onDecalPath .. "00") ~= nil then
+        return "decals/" .. entity.onDecalPath .. "00"
     else
-        return "decals/" .. entity.decalPath
+        return "decals/" .. entity.onDecalPath
     end
 end
 

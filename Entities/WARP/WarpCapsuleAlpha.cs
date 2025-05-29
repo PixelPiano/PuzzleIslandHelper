@@ -86,7 +86,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             AlphaWarpData data = RuneData;
             if (data != null)
             {
-                Scene.Add(new WarpCutscene(this, data, player, data.Position));
+                Scene.Add(new WarpCutscene(this, data, player));
             }
 
         }

@@ -14,6 +14,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     [Tracked(true)]
     public abstract class WarpCapsule : Entity
     {
+        public bool LockPlayerStateOnReceived;
+        public bool JustTeleportedTo
+        {
+            get => justTeleportedToTimer > 0;
+            set => justTeleportedToTimer = 0.5f;
+        }
+        public enum DoorStates
+        {
+            Closing,
+            Opening,
+            Idle
+        }
+        public DoorStates DoorState
+        {
+            get
+            {
+                if (DoorClosedPercent == lastDoorPercent)
+                {
+                    return DoorStates.Idle;
+                }
+                if (DoorClosedPercent > lastDoorPercent)
+                {
+                    return DoorStates.Closing;
+                }
+                return DoorStates.Opening;
+            }
+        }
+        private float lastDoorPercent;
+        private float justTeleportedToTimer;
         public MTexture LonnTexture => GFX.Game[Path + "lonn"];
         public string Path = "objects/PuzzleIslandHelper/digiWarpReceiver/";
         public float DoorClosedPercent, DoorStallTimer, ShineAmount;
@@ -50,7 +79,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             Bg.Position += texoffset;
             Fg = new Image(GFX.Game[Path + "fg"]);
             Add(Talk = new DotX3(Collider, Interact));
+            Talk.PlayerMustBeFacing = false;
             Add(new BathroomStallComponent(null, Block, Unblock));
+            Add(new PostUpdateHook(delegate { lastDoorPercent = DoorClosedPercent; }));
         }
         public override void Awake(Scene scene)
         {
@@ -90,7 +121,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             Accessible = Flag.State;
             Floor.Collidable = !Blocked;
             Talk.Enabled = !InCutscene && CanEnter && Accessible && !Blocked;
-
         }
         public override void Update()
         {
@@ -149,10 +179,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 {
                     MoveAlong(Math.Min(DoorClosedPercent + Engine.DeltaTime, 1));
                 }
+                else
+                {
+                    MoveAlong(1);
+                }
             }
             else if (DoorClosedPercent > 0)
             {
                 MoveAlong(Math.Max(DoorClosedPercent - Engine.DeltaTime, 0));
+            }
+            else
+            {
+                MoveAlong(0);
             }
         }
         public void MoveAlong(float percent)
@@ -216,16 +254,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             float from = DoorClosedPercent;
             yield return new SwapImmediately(MoveTo(from, 1, closeTime, null));
         }
+        public PlayerShade Shade;
         public IEnumerator ReceivePlayerRoutine(Player player)
         {
+            if (Shade == null)
+            {
+                Scene.Add(Shade = new PlayerShade(0.5f));
+            }
+            LeftDoor.MoveToFg();
+            RightDoor.MoveToFg();
+            InstantCloseDoors();
             player.StateMachine.State = Player.StDummy;
             yield return 0.1f;
             yield return MoveTo(DoorClosedPercent, 0, 1.2f, Ease.BigBackIn);
+            Shade?.Fade(0, 0.7f, Ease.SineIn, true);
             LeftDoor.MoveToBg();
             RightDoor.MoveToBg();
             DoorStallTimer = 0.5f;
             CanEnter = true;
-            player.StateMachine.State = Player.StNormal;
+            if (!LockPlayerStateOnReceived) player.StateMachine.State = Player.StNormal;
         }
         public IEnumerator SendPlayerRoutine(Player player, float time)
         {

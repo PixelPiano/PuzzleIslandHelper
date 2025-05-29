@@ -12,8 +12,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     [Tracked]
     public class WarpCapsuleBeta : WarpCapsule
     {
-        public bool Used => PianoModule.Settings.HomeTransportMethod == PianoModuleSettings.HomeTransportMethods.Machine;
-        public bool LockPlayerState;
         public WarpCapsuleBeta(EntityData data, Vector2 offset, EntityID id)
             : base(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"),
                   "objects/PuzzleIslandHelper/protoWarpCapsule/")
@@ -25,28 +23,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             base.Awake(scene);
             Add(new DebugComponent(Keys.H, delegate { PullInteract(Scene.GetPlayer()); }, true));
         }
-        public override void Update()
-        {
-            if (!Used)
-            {
-                if (!Disabled)
-                {
-                    Disable();
-                }
-            }
-            else if (Disabled)
-            {
-                Enable();
-            }
-            base.Update();
-        }
         public override void Interact(Player player)
         {
-            Teleport(player, false, LockPlayerState);
+            Teleport(player, false, LockPlayerStateOnReceived);
         }
         public void PullInteract(Player player, Action onEnd = null)
         {
-            Teleport(player, true, LockPlayerState, onEnd);
+            Teleport(player, true, LockPlayerStateOnReceived, onEnd);
         }
         public void Teleport(Player player, bool fast, bool lockPlayer = false, Action onEnd = null)
         {

@@ -128,28 +128,57 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     }
                 }
             }
-            PianoModule.Session.CalidusCutscene = Cutscene switch
-            {
-                Cutscenes.FirstIntro => Cutscenes.First,
-                Cutscenes.First => WasSkipped ? Cutscenes.SecondIntro : Cutscenes.FirstOutro,
-                Cutscenes.FirstOutro => Cutscenes.SecondIntro,
-                Cutscenes.SecondIntro => Cutscenes.Second,
-                Cutscenes.Second => Cutscenes.SecondA,
-                _ => PianoModule.Session.CalidusCutscene
-            };
         }
+        private helper camHelper;
+        private class helper : Entity
+        {
+            public float Zoom;
+            public Vector2 Offset;
+            public helper() : base()
+            {
+                Tag |= Tags.HUD;
+                Depth = int.MinValue;
+                DebugComponent.ForScrollWheel(this, onScroll);
+                DebugComponent.ForMousePosition(this, onMouse);
+            }
+            private void onScroll(int value)
+            {
+                Zoom = value / 1020f;
+            }
+            private void onMouse(Vector2 position)
+            {
+                Offset = position / 6f;
+            }
+            public override void Render()
+            {
+                base.Render();
+                ActiveFont.Draw(string.Format("Camera Offset = X: {0}, Y: {1}", Offset.X, Offset.Y), Vector2.Zero, Color.Yellow);
+                ActiveFont.Draw(string.Format("Zoom: {0}", Zoom), Vector2.UnitY * ActiveFont.LineHeight, Color.Magenta);
+            }
+        }
+
         private IEnumerator FirstIntro(Player player, Level level)
         {
-            WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
             player.StateMachine.State = Player.StDummy;
-            Vector2 zoomPosition = player.Center - Level.Camera.Position - Vector2.UnitY * 24;
-            level.ZoomSnap(zoomPosition, 1.7f);
-            while (machine.DoorClosedPercent > 0)
+            WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
+            if (machine != null)
             {
-                player.StateMachine.State = Player.StDummy;
-                yield return null;
+                Vector2 zoomPosition = (machine.Center - Level.Camera.Position) + new Vector2(1.5f, 3);
+                level.ZoomSnap(zoomPosition, 7.4f);
+                player.BottomCenter = machine.Floor.TopCenter;
+                player.Facing = Facings.Right;
+                machine.LockPlayerStateOnReceived = true;
+                if (!machine.InCutscene)
+                {
+                    machine.Add(new Coroutine(machine.ReceivePlayerRoutine(player)));
+                }
+                while (machine.DoorState == WarpCapsule.DoorStates.Opening)
+                {
+                    player.StateMachine.State = Player.StDummy;
+                    yield return null;
+                }
+                yield return 0.1f;
             }
-            Add(new Coroutine(player.DummyWalkTo(player.Right + 24)));
             yield return Textbox.Say("wtc1", PanOut, WaitForPanOut);
             yield return Level.ZoomBack(0.8f);
             EndCutscene(Level);
@@ -159,10 +188,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Coroutine lookAroundCoroutine = new Coroutine(false);
             Add(lookAroundCoroutine);
             level.InCutscene = true;
-            Vector2 zoomPosition = new Vector2(113, player.Position.Y - level.LevelOffset.Y - 40);
+            Vector2 zoomPosition = new Vector2(145, player.Position.Y - level.LevelOffset.Y - 40);
             zoomPosition.X = Math.Max(0, zoomPosition.X);
-            Coroutine zoomIn = new Coroutine(ScreenZoom(new Vector2(113, player.Position.Y - level.LevelOffset.Y - 40), 1.5f, 2));
-            Coroutine walkTo = new Coroutine(player.DummyWalkTo(113 + level.Bounds.X));
+            Coroutine zoomIn = new Coroutine(ScreenZoom(new Vector2(145, player.Position.Y - level.LevelOffset.Y - 40), 1.5f, 2));
+            Coroutine walkTo = new Coroutine(player.DummyWalkTo(145 + level.Bounds.X));
             Coroutine cameraTo = new Coroutine(CameraTo(level.LevelOffset + Vector2.UnitY * 8, 2, Ease.SineInOut));
             Add(zoomIn, walkTo, cameraTo);
             while (zoomIn.Active || walkTo.Active || cameraTo.Active)
@@ -186,8 +215,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             IEnumerator zoomAcross()
             {
-                ScreenZoomAcrossRoutine = new Coroutine(SceneAs<Level>().ZoomAcross(zoomPosition + Vector2.UnitX * 32, 1.5f, 7));
-                Add(ScreenZoomAcrossRoutine);
+                if (Level.Tracker.GetEntity<WarpCapsuleBeta>() is var machine)
+                {
+                    Vector2 focusPoint = new Vector2(machine.CenterX - Level.Camera.X, zoomPosition.Y);
+                    ScreenZoomAcrossRoutine = new Coroutine(Level.ZoomAcross(focusPoint, 1.5f, 7));
+                    Add(ScreenZoomAcrossRoutine);
+                }
                 yield return null;
             }
             IEnumerator stopLookingSideToSide()
@@ -278,17 +311,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             IEnumerator warp()
             {
+                lookAroundCoroutine.Cancel();
+                Calidus.Look(Calidus.Looking.Left);
+                void onEnd()
+                {
+                    level.Remove(Calidus);
+                    level.Session.SetFlag("calidusOutroOneReady");
+                }
                 WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
                 if (machine != null)
                 {
                     machine.RoomName = "0-lcomp";
-                    void onEnd()
-                    {
-                        level.Remove(Calidus);
-                    }
-                    machine.LockPlayerState = true;
-                    lookAroundCoroutine.Cancel();
-                    Calidus.Look(Calidus.Looking.Left);
+                    machine.LockPlayerStateOnReceived = true;
                     machine.PullInteract(player, onEnd);
                     yield return 0.1f;
                 }
@@ -518,7 +552,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator CaliDramaticFloatAway()
         {
-            Calidus.FloatLerp(Calidus.Position + Vector2.UnitX * 24, 2, Ease.SineInOut);
+            Calidus.FloatToLerp(Calidus.Position + Vector2.UnitX * 24, 2, Ease.SineInOut);
             yield return null;
         }
         private IEnumerator Happy()
@@ -633,21 +667,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator CaliStopBeingDramatic()
         {
-            Calidus.FloatLerp(Calidus.Position + Vector2.UnitX * -24, 1, Ease.SineInOut);
+            Calidus.FloatToLerp(Calidus.Position + Vector2.UnitX * -24, 1, Ease.SineInOut);
             Calidus.LookDir = Calidus.Looking.Left;
             yield return null;
         }
         private IEnumerator CaliTurnRight()
         {
             Calidus.LookDir = Calidus.Looking.Right;
-            Calidus.FloatLerp(Calidus.Position + Vector2.UnitX * 16, 1, Ease.SineInOut);
+            Calidus.FloatToLerp(Calidus.Position + Vector2.UnitX * 16, 1, Ease.SineInOut);
             yield return null;
         }
         private IEnumerator CaliMoveCloser()
         {
             if (Level.GetPlayer() is Player player)
             {
-                Calidus.FloatLerp(player.Center + (Calidus.Position - player.Center) * 0.7f, 0.5f);
+                Calidus.FloatToLerp(player.Center + (Calidus.Position - player.Center) * 0.7f, 0.5f, null);
             }
             yield return null;
         }
@@ -655,7 +689,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             if (caliMoveBackPosition != Vector2.Zero)
             {
-                Calidus.FloatLerp(Calidus.OrigPosition, 1, Ease.SineOut);
+                Calidus.FloatToLerp(Calidus.OrigPosition, 1, Ease.SineOut);
             }
             yield return null;
         }
@@ -724,7 +758,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 Level.shakeTimer = Engine.DeltaTime;
             }
-            //AuraAmount = (float)Math.Sin(Scene.TimeActive);
         }
         private IEnumerator Walk(float x, bool backwards = false, float speedmult = 1, bool intoWalls = false)
         {

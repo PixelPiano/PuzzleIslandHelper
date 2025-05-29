@@ -134,12 +134,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Length = Math.Max(16, length);
             Depth = -1;
+            Add(new Coroutine(randomFlickerRoutine(), false));
         }
 
 
         public LabHangingLamp(EntityData data, Vector2 offset, EntityID id)
             : this(data.Position + offset, Math.Max(16, data.Height), id, data)
         {
+        }
+        private bool randomFlicker;
+        private IEnumerator randomFlickerRoutine()
+        {
+            while (true)
+            {
+                if (!Falling && !Broken && !PianoModule.Session.RestoredPower && SceneAs<Level>().Session.GetFlag("calidusOutroOneReady"))
+                {
+                    yield return Calc.Random.Range(0.3f, 3f);
+                    randomFlicker = true;
+                    yield return Calc.Random.Range(Engine.DeltaTime, Engine.DeltaTime * 9);
+                    randomFlicker = false;
+                }
+                randomFlicker = false;
+            }
         }
         private IEnumerator Flicker(float delay)
         {
@@ -228,14 +244,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 LampSpeed.Y = 1;
             }
         }
+        private MTexture onTexture => GFX.Game["objects/PuzzleIslandHelper/hangingLamp"];
+        private MTexture brokenTexture => GFX.Game["objects/PuzzleIslandHelper/hangingLampBroken"];
+        private MTexture flickerTexture => GFX.Game["objects/PuzzleIslandHelper/hangingLampFlicker"];
         public override void Update()
         {
             base.Update();
             updateLight();
             if (Broken)
             {
-                Lamp.Texture = GFX.Game["objects/PuzzleIslandHelper/hangingLampBroken"];
+                Lamp.Texture = brokenTexture;
                 Lamp.Position = Head.Position - Position + new Vector2(4, 6);
+            }
+            else
+            {
+                Lamp.Texture = randomFlicker ? flickerTexture : onTexture;
             }
             if (!Falling && !Broken)
             {
@@ -327,13 +350,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             sfx.Position = vector;
 
-            if (!PianoModule.Session.RestoredPower)
+            if (!PianoModule.Session.RestoredPower && !randomFlicker)
             {
+                light.Visible = true;
+                bloom.Visible = true;
                 HandleVertices();
             }
             else
             {
                 bloom.Visible = false;
+                light.Visible = false;
             }
         }
         private void updateLight()
@@ -354,13 +380,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
-/*            foreach (var v in vertices)
-            {
-                Draw.Rect(v.Position.XY() - Vector2.One, 3, 3, Color.Blue);
-                Draw.Point(v.Position.XY(), Color.Orange);
-                Draw.Line(v.Position.XY(), v.Position.XY() + (Vector2.UnitX * 80).Rotate(Lamp.Rotation + MathHelper.PiOver2), Color.Magenta);
-                Draw.Line(v.Position.XY(), v.Position.XY() + (Vector2.UnitX * 80).Rotate(Lamp.Rotation - MathHelper.PiOver2), Color.Cyan);
-            }*/
+            /*            foreach (var v in vertices)
+                        {
+                            Draw.Rect(v.Position.XY() - Vector2.One, 3, 3, Color.Blue);
+                            Draw.Point(v.Position.XY(), Color.Orange);
+                            Draw.Line(v.Position.XY(), v.Position.XY() + (Vector2.UnitX * 80).Rotate(Lamp.Rotation + MathHelper.PiOver2), Color.Magenta);
+                            Draw.Line(v.Position.XY(), v.Position.XY() + (Vector2.UnitX * 80).Rotate(Lamp.Rotation - MathHelper.PiOver2), Color.Cyan);
+                        }*/
         }
         private void HandleVertices()
         {
@@ -386,7 +412,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     image.DrawOutline();
                 }
             }
-            if (!Broken && !NormalLight && Scene is Level level)
+            if (!randomFlicker && !Broken && !NormalLight && Scene is Level level)
             {
                 Draw.SpriteBatch.End();
                 vertices[0].Color = Color.LightYellow * Opacity * FlickerScalar;

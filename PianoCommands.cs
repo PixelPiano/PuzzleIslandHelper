@@ -20,10 +20,11 @@ using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.Playe
 
 public class PianoCommands
 {
-    [Command("pi_debug", "toggle Puzzle Island debug mode")]
-    public static void ToggleDebug(bool? state = null)
+
+    [Command("swapstoolpersistence", "")]
+    public static void SwapStoolPersistence()
     {
-        PianoModule.Session.DEBUG = state ?? !PianoModule.Session.DEBUG;
+        Stool.AlwaysPersistent = !Stool.AlwaysPersistent;
     }
     [Command("get_counter", "returns the counter value of the specified string")]
     public static void GetCounter(string value)

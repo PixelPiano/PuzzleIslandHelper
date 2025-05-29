@@ -6,18 +6,18 @@ namespace Celeste.Mod.PuzzleIslandHelper
     [SettingName("modoptions_PuzzleIslandHelperModule")]
     public class PianoModuleSettings : EverestModuleSettings
     {
-        public enum HomeTransportMethods
-        {
-            Screen,
-            Machine
-        }
         public enum StickyHoldMode
         {
             Click,
             Hold
         }
+/*        public enum HomeTransportMethods
+        {
+            Screen,
+            Machine
+        }
         [SettingName("modoptions_PuzzleIslandHelperModule_TransportMethod")]
-        public HomeTransportMethods HomeTransportMethod {get; set; } = HomeTransportMethods.Screen;
+        public HomeTransportMethods HomeTransportMethod {get; set; } = HomeTransportMethods.Machine;*/
         [SettingName("modoptions_PuzzleIslandHelperModule_DigitalHair")]
         public bool RenderDigitalHair { get; set; } = true;
         [SettingName("modoptions_PuzzleIslandHelperModule_HideCollectableIndicators")]

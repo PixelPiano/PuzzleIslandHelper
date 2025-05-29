@@ -26,16 +26,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         }
     }
-    [Tracked]
-    public class StackComponent : Component
-    {
-        public List<Entity> Stack = [];
-        public StackComponent() : base(true, true)
-        {
-
-        }
-    }
-
     [CustomEntity("PuzzleIslandHelper/Stool")]
     [Tracked]
     public class Stool : Actor
@@ -525,12 +515,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return null;
         }
-        public static bool AlwaysPersistent;
-        [Command("swapstoolpersistence", "")]
-        public static void SwapStoolPersistence()
-        {
-            Stool.AlwaysPersistent = !Stool.AlwaysPersistent;
-        }
+        public static bool AlwaysPersistent = true;
         public void VanillaMoveChecks()
         {
             Level level = Scene as Level;

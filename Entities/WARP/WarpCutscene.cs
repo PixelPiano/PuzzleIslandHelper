@@ -124,10 +124,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public bool Fast;
         private Action onEnd;
         private bool setNormalState;
-        public WarpCutscene(WarpCapsule parent, WarpData data, Player player, Vector2 newposition, bool fast = false, bool setPlayerState = true, Action onEnd = null) : this(parent, data, player, fast,setPlayerState, onEnd)
+/*        public WarpCutscene(WarpCapsule parent, WarpData data, Player player, Vector2 newposition, bool fast = false, bool setPlayerState = true, Action onEnd = null) : this(parent, data, player, fast, setPlayerState, onEnd)
         {
             NewPosition = newposition;
-        }
+        }*/
         public WarpCutscene(WarpCapsule parent, WarpData data, Player player, bool fast = false, bool setPlayerState = true, Action onEnd = null) : base()
         {
             Data = data;
@@ -178,7 +178,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 Parent.LeftDoor.MoveToBg();
                 Parent.RightDoor.MoveToBg();
             }
-            if(setNormalState) player.StateMachine.State = Player.StNormal;
+            if (setNormalState) player.StateMachine.State = Player.StNormal;
 
         }
         private void TeleportCleanUp(Level level, Player player)
@@ -186,12 +186,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             Teleported = true;
             Level = Engine.Scene as Level;
             Player = Level.GetPlayer();
-            Parent = Level.Tracker.GetEntity<WarpCapsule>();
             if (Parent != null)
             {
                 Player.StateMachine.State = Player.StDummy;
                 Player.Position = Parent.Position + PlayerPosSave;
                 Player.ForceCameraUpdate = true;
+                Parent.JustTeleportedTo = true;
             }
             Level.Camera.Position = Player.CameraTarget;
             Level.Camera.Position.Clamp(Level.Bounds);
@@ -227,7 +227,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 FirfilStorage.Release(false);
                 Vector2 levelOffset = level.LevelOffset;
                 Vector2 playerPosInLevel = player.Position - level.LevelOffset;
-                Vector2 camPos = level.Camera.Position - NewPosition;
+                Vector2 camPos = level.Camera.Position;
                 float flash = level.flash;
                 Color flashColor = level.flashColor;
                 bool flashDraw = level.flashDrawPlayer;
@@ -255,9 +255,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 level.flashColor = flashColor;
                 level.doFlash = doFlash;
                 level.flashDrawPlayer = flashDraw;
+
+                foreach (WarpCapsule capsule in level.Tracker.GetEntities<WarpCapsule>())
+                {
+                    if (Data is AlphaWarpData alphaData && capsule is WarpCapsuleAlpha alpha)
+                    {
+                        Parent = alpha;
+                        if (alphaData.Rune == alpha.RuneData.Rune)
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        Parent = capsule;
+                        break;
+                    }
+                }
                 player.Position = level.LevelOffset + playerPosInLevel;
-                level.Camera.Position = level.Tracker.GetEntity<WarpCapsule>() is WarpCapsule r ? r.Position + camPos : level.LevelOffset + camPos;
-                player.Facing = facing;
+                level.Camera.Position = Parent.Position + camPos;
                 player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
                 level.Wipe?.Cancel();
 
@@ -266,7 +282,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         private IEnumerator Routine(Player player)
         {
-
             Player = player;
             if (Fast)
             {
@@ -347,6 +362,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 yield return PianoUtils.Lerp(null, 0.4f, f => Parent.ShineAmount = 1 - f);
             }
             Parent.ShineAmount = 0;
+            Parent.LockPlayerStateOnReceived = !setNormalState;
             yield return Parent.ReceivePlayerRoutine(Player);
             CleanUp(Level, Player);
             EndCutscene(Level);

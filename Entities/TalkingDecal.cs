@@ -8,7 +8,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class TalkingDecal : Entity
     {
-        public Sprite sprite;
+        public Sprite onSprite;
         public Image image;
         public bool Outline;
 
@@ -48,17 +48,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Player.IntroTypes introType;
         public Vector2? NearestSpawn;
         public string String;
+        public string String2;
         public TalkComponent Talk;
         public string VisibleFlag;
         public bool InvertVisibleFlag;
         public string TalkFlag;
         public bool InvertTalkFlag;
         public bool IsVisible => FlagState(VisibleFlag) != InvertVisibleFlag;
-        public bool TalkEnabled => FlagState(TalkFlag) != InvertTalkFlag;
         public bool FlagState(string flag)
         {
             return string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag);
         }
+        private Sprite offSprite;
+        private VertexLight onLight;
+        private VertexLight offLight;
         public TalkingDecal(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
@@ -78,7 +81,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     break;
                 case TalkModes.Dialog:
-                    String = data.Attr("dialog");
+                    String = data.Attr("onDialog");
+                    String2 = data.Attr("offDialog");
                     ZoomUse = data.Enum<UseModes>("zoomUsage");
                     CameraUse = data.Enum<UseModes>("cameraUsage");
                     WalkUse = data.Enum<UseModes>("walkUsage");
@@ -96,24 +100,51 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     walkBackwards = data.Bool("walkBackwards");
                     break;
                 case TalkModes.Cutscene:
-                    String = data.Attr("cutscene");
+                    String = data.Attr("onCutscene");
+                    String = data.Attr("offCutscene");
                     break;
             }
             Outline = data.Bool("outline");
             Depth = data.Int("depth", 2);
-            sprite = new Sprite(GFX.Game, "decals/");
-            sprite.AddLoop("idle", data.Attr("decalPath"), 0.1f);
-            Add(sprite);
-            sprite.Color = data.HexColor("color");
-            sprite.CenterOrigin();
-            sprite.Position += new Vector2(sprite.Width / 2, sprite.Height / 2);
-            sprite.Visible = true;
-            Collider = new Hitbox(sprite.Width, sprite.Height);
+            if (!string.IsNullOrEmpty(data.Attr("onDecalPath")))
+            {
+                onSprite = new Sprite(GFX.Game, "decals/");
+                onSprite.AddLoop("idle", data.Attr("onDecalPath"), 0.1f);
+                onSprite.Color = data.HexColor("color");
+                onSprite.Play("idle");
+                onSprite.CenterOrigin();
+                onSprite.Position += onSprite.HalfSize();
+                Add(onSprite);
+            }
+            if (!string.IsNullOrEmpty(data.Attr("offDecalPath")))
+            {
+                offSprite = new Sprite(GFX.Game, "decals/");
+                offSprite.AddLoop("idle", data.Attr("offDecalPath"), 0.1f);
+                offSprite.Color = data.HexColor("color");
+                offSprite.CenterOrigin();
+                offSprite.Play("idle");
+                offSprite.Position += offSprite.HalfSize();
+                Add(offSprite);
+            }
+            if (onSprite != null)
+            {
+                Collider = new Hitbox(onSprite.Width, onSprite.Height);
+            }
             Tag |= Tags.TransitionUpdate;
 
             Talk = new TalkComponent(new Rectangle(0, 0, (int)Width, (int)Height), Vector2.UnitX * Width / 2, Interact);
             Talk.PlayerMustBeFacing = false;
             Add(Talk);
+/*            if (onSprite != null)
+            {
+                Add(onLight = new VertexLight(onSprite.Center, Color.White, 1, (int)onSprite.Width, (int)(onSprite.Width * 2f)));
+                onLight.Visible = false;
+            }
+            if (offSprite != null)
+            {
+                Add(offLight = new VertexLight(offSprite.Center, Color.White, 1, (int)offSprite.Width, (int)(offSprite.Width * 2f)));
+                offLight.Visible = false;
+            }*/
         }
         public static bool TriggerCustomEvent(Player player, string eventID)
         {
@@ -146,31 +177,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     break;
                 case TalkModes.Dialog:
-                    DialogCutscene cutscene = new()
+                    if (!string.IsNullOrEmpty(targetString))
                     {
-                        CameraUse = CameraUse,
-                        ZoomUse = ZoomUse,
-                        WalkUse = WalkUse,
-                        WalkBackwards = walkBackwards,
-                        KeepWalkingIntoWalls = walkIntoWalls,
-                        WalkSpeedMult = walkMult,
-                        Zoom = zoomAmount,
-                        ZoomDuration = zoomTime,
-                        ZoomTo = zoomTo,
-                        ZoomMode = ZoomMode,
-                        CamMode = CamMode,
-                        WalkMode = WalkMode,
-                        WalkToX = walkX,
-                        CameraToPosition = camTo,
-                        CameraToDuration = camTime,
-                        CameraDelay = cameraDelay,
-                        Player = player,
-                        Arg = String,
-                    };
-                    Scene.Add(cutscene);
+                        DialogCutscene cutscene = new()
+                        {
+                            CameraUse = CameraUse,
+                            ZoomUse = ZoomUse,
+                            WalkUse = WalkUse,
+                            WalkBackwards = walkBackwards,
+                            KeepWalkingIntoWalls = walkIntoWalls,
+                            WalkSpeedMult = walkMult,
+                            Zoom = zoomAmount,
+                            ZoomDuration = zoomTime,
+                            ZoomTo = zoomTo,
+                            ZoomMode = ZoomMode,
+                            CamMode = CamMode,
+                            WalkMode = WalkMode,
+                            WalkToX = walkX,
+                            CameraToPosition = camTo,
+                            CameraToDuration = camTime,
+                            CameraDelay = cameraDelay,
+                            Player = player,
+                            Arg = targetString,
+                        };
+                        Scene.Add(cutscene);
+                    }
+
                     break;
                 case TalkModes.Cutscene:
-                    TriggerCustomEvent(player, String);
+                    if (!string.IsNullOrEmpty(targetString))
+                    {
+                        TriggerCustomEvent(player, targetString);
+                    }
                     break;
             }
         }
@@ -242,22 +280,69 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 level.ResetZoom();
             }
         }
+        private bool hasFirstString => !string.IsNullOrEmpty(String);
+        private bool hasSecondString => !string.IsNullOrEmpty(String2);
+        private string targetString;
         public override void Update()
         {
             base.Update();
-            Talk.Enabled = TalkEnabled;
-        }
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            sprite.Play("idle");
+            bool flagstate = FlagState(TalkFlag) != InvertTalkFlag;
+            if (flagstate)
+            {
+                if (hasFirstString)
+                {
+                    targetString = String;
+                    Talk.Enabled = true;
+                }
+                else
+                {
+                    targetString = "";
+                    Talk.Enabled = false;
+                }
+            }
+            else
+            {
+                if (hasSecondString)
+                {
+                    targetString = String2;
+                    Talk.Enabled = true;
+                }
+                else
+                {
+                    targetString = "";
+                    Talk.Enabled = false;
+                }
+            }
+            if(onSprite != null)
+            {
+                onSprite.Visible = flagstate;
+                if(onLight != null)
+                {
+                    onLight.Visible = flagstate;
+                }
+            }
+            if(offSprite != null)
+            {
+                offSprite.Visible = !flagstate;
+                if(offLight != null)
+                {
+                    offLight.Visible = !flagstate;
+                }
+            }
         }
         public override void Render()
         {
             if (!IsVisible) return;
             if (Outline)
             {
-                sprite.DrawSimpleOutline();
+                if (onSprite != null && onSprite.Visible)
+                {
+                    onSprite.DrawSimpleOutline();
+                }
+                if (offSprite != null && offSprite.Visible)
+                {
+                    offSprite.DrawSimpleOutline();
+                }
             }
             base.Render();
 
