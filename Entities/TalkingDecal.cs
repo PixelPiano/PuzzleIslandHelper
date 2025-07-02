@@ -50,26 +50,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public string String;
         public string String2;
         public TalkComponent Talk;
-        public string VisibleFlag;
-        public bool InvertVisibleFlag;
-        public string TalkFlag;
-        public bool InvertTalkFlag;
-        public bool IsVisible => FlagState(VisibleFlag) != InvertVisibleFlag;
         public bool FlagState(string flag)
         {
             return string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag);
         }
+        public FlagList TalkFlagList;
+        public FlagList VisibleFlagList;
         private Sprite offSprite;
         private VertexLight onLight;
         private VertexLight offLight;
         public TalkingDecal(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
-            VisibleFlag = data.Attr("visibilityFlag");
-            InvertVisibleFlag = !string.IsNullOrEmpty(VisibleFlag) && VisibleFlag[0] == '!';
-            TalkFlag = data.Attr("talkEnabledFlag");
-            InvertTalkFlag = !string.IsNullOrEmpty(TalkFlag) && TalkFlag[0] == '!';
             TalkMode = data.Enum<TalkModes>("mode");
+            VisibleFlagList = new FlagList(data.Attr("visibilityFlag"));
+            TalkFlagList = new FlagList(data.Attr("talkEnabledFlag"));
 
             switch (TalkMode)
             {
@@ -286,7 +281,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            bool flagstate = FlagState(TalkFlag) != InvertTalkFlag;
+            bool flagstate = TalkFlagList;
             if (flagstate)
             {
                 if (hasFirstString)
@@ -332,7 +327,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void Render()
         {
-            if (!IsVisible) return;
+            if (!VisibleFlagList) return;
             if (Outline)
             {
                 if (onSprite != null && onSprite.Visible)

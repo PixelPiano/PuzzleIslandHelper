@@ -22,7 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public Vector2 HatR = new Vector2(19, 6);
         public Vector2 BodyConnectFoot => new Vector2(FootB.X, FootL.Y - 4);
         public Vector2 BodyConnectBody => new Vector2(HeadD.X, HeadD.Y + 6);
-        public Gardener(EntityData data, Vector2 offset) : base(data.Position + offset, 21, 29, data.Attr("cutsceneID"), new(1), new(-1, 1), 1.8f)
+        public Gardener(EntityData data, Vector2 offset) : base(data.Position + offset, 21, 29, data.Attr("cutsceneID"), data.Attr("dialog"), new(1), new(-1, 1), 1.8f)
         {
             MinWiggleTime = 1;
             MaxWiggleTime = 2.5f;

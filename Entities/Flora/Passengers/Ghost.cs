@@ -23,7 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             Add(new DebugComponent(Microsoft.Xna.Framework.Input.Keys.O, GlitchCalidus, true));
         }
-        public Ghost(Vector2 position, float width, float height, string cutscene, Vector2 scale, Vector2 breathDirection, float breathDuration) : base(position, width, height, cutscene, scale, breathDirection, breathDuration)
+        public Ghost(Vector2 position, float width, float height, string cutscene, Vector2 scale, Vector2 breathDirection, float breathDuration) : base(position, width, height, cutscene, null, scale, breathDirection, breathDuration)
         {
             MinWiggleTime = 1;
             MaxWiggleTime = 2.5f;

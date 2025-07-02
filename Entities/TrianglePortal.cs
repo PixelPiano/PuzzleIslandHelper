@@ -10,6 +10,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class TrianglePortal : Entity
     {
+        public enum Modes
+        {
+            Alpha,
+            Beta
+        }
+        public Modes Mode;
         private bool First;
         private float rectColorRate = 0;
         private float innerFlashRate = 0;
@@ -20,8 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private ParticleSystem system;
         private readonly bool linearDesign = true;
         private bool usesFlags = false;
-        private string[] lightFlags = new string[3];
-        private bool[] lightBools = new bool[3];
+        private FlagList lightFlags;
         public bool PortalState = false;
         private string flag;
 
@@ -113,8 +118,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float angle1;
         private float angle2;
         private float angle3;
-        private bool cutsceneAdded;
-        private string teleportTo;
 
         public override void Removed(Scene scene)
         {
@@ -131,11 +134,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Tag = Tags.TransitionUpdate;
             First = data.Bool("first");
-            for (int i = 0; i < 3; i++)
+            lightFlags = new FlagList()
             {
-                lightFlags[i] = data.Attr($"light{i + 1}flag");
-            }
-            teleportTo = data.Attr("room");
+                List = [data.Attr("lightFlag1"), data.Attr("lightFlag2"), data.Attr("lightFlag3")]
+            };
+            //teleportTo = data.Attr("room");
             Depth = 2;
             flag = data.Attr("flag");
             usesFlags = data.Bool("usesFlags", false);
@@ -185,16 +188,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Render()
         {
             base.Render();
-            player = Scene.Tracker.GetEntity<Player>();
-            if (player == null || Scene as Level == null || SceneAs<Level>().Session.GetFlag(flag))
+            if (Scene is not Level level || level.Session.GetFlag(flag))
             {
                 return;
             }
             l = Scene as Level;
             if (PortalState)
             {
-                Draw.SpriteBatch.Draw(ParticleObject, l.Camera.Position, Color.White);
-                Draw.SpriteBatch.Draw(PortalObject, l.Camera.Position, Color.White);
+                Draw.SpriteBatch.Draw(ParticleObject, level.Camera.Position, Color.White);
+                Draw.SpriteBatch.Draw(PortalObject, level.Camera.Position, Color.White);
                 float firstThick = 4;
                 float secondThick = 1.5f;
                 angle1 = Calc.Angle(lightRenderA, lightRenderB);
@@ -234,14 +236,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             nodes[2].Position += new Vector2(Width / 2 - nodes[2].Width / 2, -nodes[2].Height / 2 - 1);
             for (int i = 0; i < 3; i++)
             {
-                lightBools[i] = SceneAs<Level>().Session.GetFlag(lightFlags[i]);
-                if (!lightBools[i])
-                {
-                    lights[i].Visible = false;
-                }
+                lights[i].Visible = lightFlags[i];
                 lights[i].Position = nodes[i].Position + new Vector2(1, 0);
-                nodes[i].Play("idle");
                 lights[i].Play("idle");
+                nodes[i].Play("idle");
             }
             nodes[0].Position.Y += nodes[0].Height / 2 + 2;
             nodes[1].Position.Y = nodes[0].Position.Y;
@@ -296,7 +294,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Add(new Coroutine(RotationLerp(), false));
             }
-            AddNodePositions();
         }
         public override void Awake(Scene scene)
         {
@@ -305,13 +302,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             SceneAs<Level>().Session.SetFlag("GlitchCutsceneEnd", false);
             scene.Add(system = new ParticleSystem(Depth + 1, 1000));
         }
-        public void AddNodePositions()
-        {
-            PianoModule.Session.PortalNodePositions.Clear();
-            PianoModule.Session.PortalNodePositions.Add(lightFlags[0], nodes[0].RenderPosition + Vector2.One * 4);
-            PianoModule.Session.PortalNodePositions.Add(lightFlags[1], nodes[1].RenderPosition + Vector2.One * 4);
-            PianoModule.Session.PortalNodePositions.Add(lightFlags[2], nodes[2].RenderPosition + Vector2.One * 4);
-        }
+
         private void AppearParticles()
         {
             if (!PortalState)
@@ -393,15 +384,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (usesFlags)
                 {
-                    lightBools[i] = SceneAs<Level>().Session.GetFlag(lightFlags[i]);
-                    if (lightBools[i])
+                    PortalState = true;
+                    for(int j = 0; j<lightFlags.Count; j++)
                     {
-                        lights[i].Visible = true;
-                    }
-
-                    if (lightBools[0] && lightBools[1] && lightBools[2])
-                    {
-                        PortalState = true;
+                        bool data = lightFlags[i];
+                        lights[i].Visible = data;
+                        PortalState &= data;
                     }
                 }
                 else

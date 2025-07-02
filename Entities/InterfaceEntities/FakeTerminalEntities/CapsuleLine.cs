@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
     public class CapsuleLine : TextLine
     {
         public WarpProgram Program;
-        public AlphaWarpData Data => null;//PianoMapDataProcessor.WarpLinks[Text.Replace(" ", "").ToLower()];
+        public WarpData Data => null;//PianoMapDataProcessor.WarpLinks[Text.Replace(" ", "").ToLower()];
         public bool Unlocked => PianoModule.Session.LoggedCapsules[Text];
         public CapsuleLine(FakeTerminal terminal, WarpProgram program, string text) : base(terminal, text, PianoModule.Session.LoggedCapsules[text] ? Color.Lime : Color.Red)
         {

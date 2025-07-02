@@ -1,0 +1,6 @@
+﻿Test Calidus 1 Cutscenes (Skip + No Skip)
+Test Pipe Area Cutscenes (Skip + No Skip)
+Test Generator Puzzle
+Test Calidus 2 Cutscenes (Skip + No Skip)
+Test Warp Capsule (Alpha)
+Make Calidus Freed Cutscenes (Skip + No Skip)

@@ -8,7 +8,75 @@ using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Triggers
 {
-
+    public enum Easings
+    {
+        Linear,
+        SineIn,
+        SineOut,
+        SineInOut,
+        CubeIn,
+        CubeOut,
+        CubeInOut,
+        QuintIn,
+        QuintOut,
+        QuintInOut,
+        QuadIn,
+        QuadOut,
+        QuadInOut,
+        BounceIn,
+        BounceOut,
+        BounceInOut,
+        ElasticIn,
+        ElasticOut,
+        ElasticInOut,
+        BackIn,
+        BackOut,
+        BackInOut,
+        BigBackIn,
+        BigBackOut,
+        BigBackInOut,
+        ExpoIn,
+        ExpoOut,
+        ExpoInOut,
+    }
+    public static class EasingsExt
+    {
+        public static Ease.Easer ToEase(this Easings easing)
+        {
+            return easing switch
+            {
+                Easings.Linear => Ease.Linear,
+                Easings.SineIn => Ease.SineIn,
+                Easings.SineOut => Ease.SineOut,
+                Easings.SineInOut => Ease.SineInOut,
+                Easings.CubeIn => Ease.CubeIn,
+                Easings.CubeOut => Ease.CubeOut,
+                Easings.CubeInOut => Ease.CubeInOut,
+                Easings.QuintIn => Ease.QuintIn,
+                Easings.QuintOut => Ease.QuintOut,
+                Easings.QuintInOut => Ease.QuintInOut,
+                Easings.QuadIn => Ease.QuadIn,
+                Easings.QuadOut => Ease.QuadOut,
+                Easings.QuadInOut => Ease.QuadInOut,
+                Easings.BounceIn => Ease.BounceIn,
+                Easings.BounceOut => Ease.BounceOut,
+                Easings.BounceInOut => Ease.BounceInOut,
+                Easings.ElasticIn => Ease.ElasticIn,
+                Easings.ElasticOut => Ease.ElasticOut,
+                Easings.ElasticInOut => Ease.ElasticInOut,
+                Easings.BackIn => Ease.BackIn,
+                Easings.BackOut => Ease.BackOut,
+                Easings.BackInOut => Ease.BackInOut,
+                Easings.BigBackIn => Ease.BigBackIn,
+                Easings.BigBackOut => Ease.BigBackOut,
+                Easings.BigBackInOut => Ease.BigBackInOut,
+                Easings.ExpoIn => Ease.ExpoIn,
+                Easings.ExpoOut => Ease.ExpoOut,
+                Easings.ExpoInOut => Ease.ExpoInOut,
+                _ => Ease.Linear
+            };
+        }
+    }
     [CustomEntity("PuzzleIslandHelper/AdjustEffectParamTrigger")]
     [Tracked]
     public class AdjustEffectParamTrigger : Trigger
@@ -86,37 +154,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         private float time;
         private float delay;
         private bool allowFlagInterrupt;
-        public enum Easings
-        {
-            Linear,
-            SineIn,
-            SineOut,
-            SineInOut,
-            CubeIn,
-            CubeOut,
-            CubeInOut,
-            QuintIn,
-            QuintOut,
-            QuintInOut,
-            QuadIn,
-            QuadOut,
-            QuadInOut,
-            BounceIn,
-            BounceOut,
-            BounceInOut,
-            ElasticIn,
-            ElasticOut,
-            ElasticInOut,
-            BackIn,
-            BackOut,
-            BackInOut,
-            BigBackIn,
-            BigBackOut,
-            BigBackInOut,
-            ExpoIn,
-            ExpoOut,
-            ExpoInOut,
-        }
         private Easings Easing;
         private Ease.Easer Easer;
         private bool onlyOnce;
@@ -138,7 +175,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             To = Value;
             ID = data.Attr("effectID");
             flag = data.Attr("flag");
-            Easer = EnumToEase(Easing);
+            Easer = Easing.ToEase();
             onlyOnce = data.Bool("onlyOnce");
             persistUntilFinished = data.Bool("persistUntilComplete");
             allowFlagInterrupt = data.Bool("allowFlagCancel");
@@ -185,41 +222,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             inRoutine = false;
             yield return null;
         }
-        public Ease.Easer EnumToEase(Easings easing)
-        {
-            return easing switch
-            {
-                Easings.Linear => Ease.Linear,
-                Easings.SineIn => Ease.SineIn,
-                Easings.SineOut => Ease.SineOut,
-                Easings.SineInOut => Ease.SineInOut,
-                Easings.CubeIn => Ease.CubeIn,
-                Easings.CubeOut => Ease.CubeOut,
-                Easings.CubeInOut => Ease.CubeInOut,
-                Easings.QuintIn => Ease.QuintIn,
-                Easings.QuintOut => Ease.QuintOut,
-                Easings.QuintInOut => Ease.QuintInOut,
-                Easings.QuadIn => Ease.QuadIn,
-                Easings.QuadOut => Ease.QuadOut,
-                Easings.QuadInOut => Ease.QuadInOut,
-                Easings.BounceIn => Ease.BounceIn,
-                Easings.BounceOut => Ease.BounceOut,
-                Easings.BounceInOut => Ease.BounceInOut,
-                Easings.ElasticIn => Ease.ElasticIn,
-                Easings.ElasticOut => Ease.ElasticOut,
-                Easings.ElasticInOut => Ease.ElasticInOut,
-                Easings.BackIn => Ease.BackIn,
-                Easings.BackOut => Ease.BackOut,
-                Easings.BackInOut => Ease.BackInOut,
-                Easings.BigBackIn => Ease.BigBackIn,
-                Easings.BigBackOut => Ease.BigBackOut,
-                Easings.BigBackInOut => Ease.BigBackInOut,
-                Easings.ExpoIn => Ease.ExpoIn,
-                Easings.ExpoOut => Ease.ExpoOut,
-                Easings.ExpoInOut => Ease.ExpoInOut,
-                _ => Ease.Linear
-            };
-        }
         public override void OnEnter(Player player)
         {
             base.OnEnter(player);
@@ -251,7 +253,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         {
             foreach (AdjustEffectParamTrigger trigger in SceneAs<Level>().Tracker.GetEntities<AdjustEffectParamTrigger>())
             {
-                if(trigger == this) continue;
+                if (trigger == this) continue;
                 if (!trigger.ran || !trigger.inRoutine || trigger.Effect != Effect || trigger.Param != Param || trigger.ID != ID) continue;
                 trigger.Cancel();
             }

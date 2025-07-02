@@ -644,7 +644,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         {
             ResetButton();
             WarpRune rune = CreateRune();
-            if (WARPData.RuneExists(rune, out AlphaWarpData data))
+            if (RuneExists(rune, out WarpData data))
             {
                 if (PianoModule.SaveData.WarpLockedToLab && !data.Lab)
                 {
@@ -656,7 +656,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void SetRune(WarpRune rune)
         {
-            WARPData.ObtainedRunes.TryAdd(rune);
+            if(Parent.Data != null && Parent.Data.HasRune && Parent.Data.Rune.Match(rune))
+            {
+                return;
+            }
+            ObtainedRunes.Add(rune);
             ClearAll();
             FadeOut(true);
             Parent.WarpRune = rune;

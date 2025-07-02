@@ -21,6 +21,59 @@ using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.Playe
 public class PianoCommands
 {
 
+    [Command("flaglist","")]
+    public static void flaglist()
+    {
+        string flags = "hello,goodbye,,corrent, ,incorrent";
+        FlagList list = new FlagList(flags);
+        Engine.Commands.Log(list.ToString());
+    }
+    [Command("get_flag", "returns the value of a flag")]
+    public static void GetFlag(string flag)
+    {
+        if (string.IsNullOrEmpty(flag))
+        {
+            Engine.Commands.Log("No flag provided", Color.Red);
+        }
+        else if(Engine.Scene is not Level level)
+        {
+            Engine.Commands.Log("Current Scene is not a level",Color.Red);
+        }
+        else
+        {
+            Engine.Commands.Log(level.Session.GetFlag(flag),Color.Lime);
+        }
+    }
+    [Command("dummy", "dummies the player")]
+    public static void Dummy()
+    {
+        if (Engine.Scene.GetPlayer() is Player player)
+        {
+            if (player.StateMachine.State == Player.StDummy)
+            {
+                Engine.Commands.Log("The player is already dummy, dummy", Color.Magenta);
+            }
+            else
+            {
+                player.DisableMovement();
+            }
+        }
+    }
+    [Command("undummy", "undummies the player")]
+    public static void Undummy()
+    {
+        if (Engine.Scene.GetPlayer() is Player player)
+        {
+            if (player.StateMachine.State != Player.StDummy)
+            {
+                Engine.Commands.Log("The player is already not dummy, dummy", Color.Magenta);
+            }
+            else
+            {
+                player.EnableMovement();
+            }
+        }
+    }
     [Command("swapstoolpersistence", "")]
     public static void SwapStoolPersistence()
     {
@@ -367,9 +420,9 @@ public class PianoCommands
         }
     }
     [Command("labpower", "Sets the power state of the lab in Puzzle Island")]
-    private static void LabPower(bool state = true)
+    private static void LabPower(int state = 0)
     {
-        PianoModule.Session.RestoredPower = state;
+        PianoModule.Session.PowerState = (LabPowerState)state;
     }
     [Command("printcollect", "Displays how many Puzzle Island collectables the Player has")]
     private static void PrintCollectables()

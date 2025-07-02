@@ -49,13 +49,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public int Lines;
         public Facings Facing = Facings.Left;
         public static Effect Effect;
-        public VertexPassenger(Vector2 position, float width, float height, string cutscene, Vector2 scale) : base(position, width, height, cutscene)
+        public VertexPassenger(Vector2 position, float width, float height, string cutscene, string dialog, Vector2 scale) : base(position, width, height, cutscene, dialog)
         {
             Scale = scale;
             Position.Y -= (Height - 16);
 
         }
-        public VertexPassenger(Vector2 position, float width, float height, string cutscene, Vector2 scale, Vector2 breathDirection, float breathDuration) : this(position, width, height, cutscene, scale)
+        public VertexPassenger(Vector2 position, float width, float height, string cutscene, string dialog, Vector2 scale, Vector2 breathDirection, float breathDuration) : this(position, width, height, cutscene, dialog, scale)
         {
             BreathDirection = breathDirection;
             BreathDuration = breathDuration;

@@ -10,9 +10,18 @@ using Monocle;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
+using System;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
+    public enum LabPowerState
+    {
+        Backup,
+        Barely,
+        Restored
+    }
     public class PianoModuleSession : EverestModuleSession
     {
         public bool DEBUG { get; set; }
@@ -175,7 +184,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public ForkAmpBattery LastHeld;
         public bool HasInvert;
         public List<string> ChainedMonitorsActivated = new();
-        public bool GeneratorStarted;
         public bool GrassMazeFinished;
         public bool HasArtifact;
         public bool HasClearance;
@@ -211,24 +219,32 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public float MinDarkness = 0.05f;
         public bool ThisTimeForSure { get; set; }
         public int ButtonsPressed { get; set; }
-        public bool RestoredPower
+        public LabPowerState PowerState
         {
-            get
-            {
-                if (Engine.Scene is Level level)
-                {
-                    level.Session.SetFlag("RestoredPower", PianoModule.Session.GeneratorStarted);
-                }
-                return PianoModule.Session.GeneratorStarted;
-            }
+            get => actualPowerState;
             set
             {
-                if (Engine.Scene is Level level)
+                actualPowerState = value;
+                if (value is LabPowerState.Restored)
                 {
-                    level.Session.SetFlag("RestoredPower", value);
+                    TimesMetWithCalidus = Math.Min(1, TimesMetWithCalidus);
                 }
-                PianoModule.Session.GeneratorStarted = value;
+                UpdatePowerStateFlags(Engine.Scene);
             }
+        }
+        private LabPowerState actualPowerState;
+        public void UpdatePowerStateFlags(Scene scene)
+        {
+            foreach (LabPowerState state in Enum.GetValuesAsUnderlyingType<LabPowerState>())
+            {
+                (scene as Level).Session.SetFlag("Power:" + state.ToString(), actualPowerState == state); //store the state in a set of flags so it can be accessed anywhere
+            }
+
+        }
+        public bool RestoredPower
+        {
+            get => PowerState == LabPowerState.Restored;
+            set => PowerState = LabPowerState.Restored;
         }
         public Dictionary<EntityID, LHLData> BrokenLamps { get; set; } = new Dictionary<EntityID, LHLData>();
         public Effect MonitorShader { get; set; }

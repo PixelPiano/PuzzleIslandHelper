@@ -21,18 +21,17 @@ decalEffectTarget.placements = {
     }
 }
 function decalEffectTarget.sprite(room, entity)
-    local sprite = drawableSprite.fromTexture(getTex(entity), entity)
+    local path;
+    if drawableSprite.fromTexture("decals/" .. entity.decalPath .. "00") ~= nil then
+        path = "decals/" .. entity.decalPath .. "00"
+    else
+        path = "decals/" .. entity.decalPath
+    end
+    local sprite = drawableSprite.fromTexture(path, entity)
         sprite:setScale(entity.scaleX or 1, entity.scaleY or 1)
         sprite:setJustification(0.5, 0.5)
         sprite.rotation = math.rad(entity.rotation or 0)
     return sprite
-end
-function getTex(entity)
-    if drawableSprite.fromTexture("decals/" .. entity.decalPath .. "00") ~= nil then
-        return "decals/" .. entity.decalPath .. "00"
-    else
-        return "decals/" .. entity.decalPath
-    end
 end
 
 return decalEffectTarget

@@ -44,23 +44,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
         }
         public void OnClicked()
         {
+            placeholderButton.Disabled = true;
             Scene.Add(new cutscene(this));
         }
 
         private class cutscene : CutsceneEntity
         {
             public BetaAccessProgram Program;
+            private string warpID;
             public cutscene(BetaAccessProgram program) : base()
             {
                 Program = program;
             }
             public override void OnBegin(Level level)
             {
+                warpID = PianoModule.Session.PowerState switch
+                {
+                    LabPowerState.Backup => WarpCapsuleBeta.TransitID,
+                    LabPowerState.Restored => WarpCapsuleBeta.TransitID2,
+                    _ => null
+                };
+                if (string.IsNullOrEmpty(warpID))
+                {
+                    RemoveSelf();
+                    return;
+                }
                 Add(new Coroutine(routine()));
             }
             private IEnumerator routine()
             {
-                yield return Program.AccessRoutine("digiCalidus1", true);
+                yield return Program.AccessRoutine(warpID, true);
                 EndCutscene(Level);
             }
             public override void OnEnd(Level level)
@@ -69,10 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
                 {
                     Program.Interface.CloseInterface(true);
                     level.GetPlayer()?.EnableMovement();
-                    if (level.Tracker.GetEntity<WarpCapsuleBeta>() is var machine)
-                    {
-                        machine.RoomName = "digiCalidus1";
-                    }
+                    SceneAs<Level>().Session.SetFlag("LabBetaWarpEnabled");
                 }
             }
         }
@@ -86,7 +96,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             yield return time;
             Interface.Buffering = false;
         }
-        public IEnumerator AccessRoutine(string room, bool success)
+        public IEnumerator AccessRoutine(string warpID, bool success)
         {
             yield return WaitAnimation(Calc.Random.Range(1f, 3f));
             yield return 0.05f;
@@ -94,7 +104,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             {
                 yield break;
             }
-            yield return TransitionRoutine(room);
+            yield return TransitionRoutine(warpID);
         }
         public static IEnumerator ForceTransition(string room, bool instant = false, bool buggy = false)
         {
@@ -106,7 +116,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
 
             level.Add(new BeamMeUp(room, AccessTeleporting));
         }
-        public IEnumerator TransitionRoutine(string room, bool instant = false, bool buggy = false)
+        public IEnumerator TransitionRoutine(string warpID, bool instant = false, bool buggy = false)
         {
             if (Engine.Scene is not Level level) yield break;
             WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
@@ -118,8 +128,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
             {
                 machine.LeftDoor.MoveToBg();
                 machine.RightDoor.MoveToBg();
-                machine.RoomName = room;
-                machine.LockPlayerStateOnReceived = true;
+                machine.TargetID = warpID;
+                //machine.RoomName = room;
                 level.GetPlayer().StateMachine.State = Player.StNormal;
             }
         }

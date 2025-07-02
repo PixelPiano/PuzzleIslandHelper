@@ -12,7 +12,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
 {
     public class WarpRune
     {
-        public string Pattern;
         public class RuneNodeInventory
         {
             public static RuneNodeInventory Second = new RuneNodeInventory(ProgressionSets.Second);
@@ -187,10 +186,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public override string ToString()
         {
+            if(Segments == null || Segments.Count == 0) return "{}";
             return "{" + string.Join(' ', Segments.Select(item => item.Item1.ToString() + item.Item2.ToString())) + "}";
         }
         public bool Match(WarpRune rune)
         {
+            if(rune == null) return false;
             return rune.ToString() == ToString();
         }
         [OnUnload]

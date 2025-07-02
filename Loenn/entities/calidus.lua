@@ -22,16 +22,26 @@ function calidus.sprite(room,entity)
    return shapeSprite
 
 end
+local modes = {"CutsceneEntity","Dialog"}
 calidus.placements =
 {
     {
         name = "Calidus",
         data = 
         {
-            broken = false,
+            mood = "Normal",
             looking = "Center",
+            requiredCutscenes = "",
+            excludedCutscenes = "",
+            startCutsceneArgs = "",
+            endCutsceneArgs = "",
+            cutscene = "",
+            cutsceneType = "CutsceneEntity",
+            spawnFlag = "",
+            cutsceneFlag = "",
+            requireSpawnFlag = false,
             startFloating = true,
-            mood = "Normal"
+            broken = false,
         }
     }
 }
@@ -45,6 +55,10 @@ calidus.fieldInformation =
     mood = {
         editable = false,
         options = moods
+    },
+    cutsceneType = {
+        editable = false,
+        options = modes
     }
 }
 return calidus

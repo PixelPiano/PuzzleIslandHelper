@@ -11,7 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         private Collider playerBox;
         private float origBreathDuration;
         private float pantingDuration = 0.3f;
-        public DogPassenger(EntityData data, Vector2 offset) : base(data.Position + offset, 14, 10, data.Attr("cutsceneID"), new(14, 10), new(-1, 1), 0.7f)
+        public DogPassenger(EntityData data, Vector2 offset) : base(data.Position + offset, 14, 10, data.Attr("cutsceneID"), data.Attr("dialog"), new(14, 10), new(-1, 1), 0.7f)
         {
             origBreathDuration = 0.7f;
             MinWiggleTime = 0.7f;

@@ -499,6 +499,10 @@ for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
 for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
 {tab}PipeSystem.ActiveValves[i].NormalizePressure();{n}
 
+BETAWARP=
+huh?{n0}what is this?{n0}where am i?{n0}...where's my body?!{n0}it's so green.{n0}am i inside the computer?{n0}are these my thoughts?{n0}{mtRight}is anyone there?
+huh? that wasn't{cue cut}
+
 GREENHEART=
 ...yes, it was... strange. It had a certain aura to it.{n0}{mtRight}That's not a lot to go off of. Do you really think it could help us?{n0}{/mtRight}
 ...Yes. I think it can.{n0}{mtRight}I thought you couldn't see it.{n0}{/mtRight}I didn't need to.

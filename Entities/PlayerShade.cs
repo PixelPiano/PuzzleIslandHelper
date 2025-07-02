@@ -17,8 +17,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Alpha = alpha;
         }
-        public void Fade(float to, float time, Ease.Easer ease, bool removeSelfOnFinish = false)
+        public void Fade(float to, float time, Ease.Easer ease = null, bool removeSelfOnFinish = false)
         {
+            ease ??= Ease.Linear;
             tween?.RemoveSelf();
             float from = Alpha;
             tween = Tween.Set(this, Tween.TweenMode.Oneshot, time, ease, t => Alpha = Calc.LerpClamp(from, to, t.Eased), (t) =>
@@ -28,6 +29,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     RemoveSelf();
                 }
             });
+        }
+        public IEnumerator FadeRoutine(float to, float time, Ease.Easer ease = null, bool removeSelfOnFinish = false)
+        {
+            ease ??= Ease.Linear;
+            tween?.RemoveSelf();
+            float from = Alpha;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                Alpha = Calc.LerpClamp(from, to, ease(i));
+                yield return null;
+            }
+            if(removeSelfOnFinish) RemoveSelf();
         }
         [OnLoad]
         public static void Load()

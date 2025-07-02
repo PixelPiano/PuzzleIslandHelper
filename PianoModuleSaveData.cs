@@ -3,6 +3,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
 using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     public class PianoModuleSaveData : EverestModuleSaveData

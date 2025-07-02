@@ -1,6 +1,3 @@
-using Celeste.Mod.LuaCutscenes;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Microsoft.Xna.Framework;
@@ -8,75 +5,101 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 {
-    [Tracked]
-    public class CalidusCutscene : CutsceneEntity
+    public static class CalScene
     {
-        public static void MarkCutsceneAsWatched(Scene scene, Cutscenes cutscene)
+        public static bool GetCutsceneFlag(this CalCut cutscene)
         {
-            (scene as Level).Session.SetFlag("CalCut" + cutscene.ToString());
+            if (Engine.Scene is not Level level) return false;
+            return level.Session.GetFlag("CalCut" + cutscene.ToString());
         }
-        public static bool CutsceneWatched(Scene scene, Cutscenes cutscene)
+        public static void Register(this CalCut cutscene)
         {
-            return (scene as Level).Session.GetFlag("CalCut" + cutscene.ToString());
+            if (Engine.Scene is Level level)
+            {
+                level.Session.SetFlag("CalCut" + cutscene.ToString());
+            }
         }
-        public enum Cutscenes
-        {
-            FirstIntro,
-            First,
-            FirstOutro,
-            SecondIntro,
-            Second,
-            SecondA
-        }
-
-        public Cutscenes Cutscene;
+    }
+    public enum CalCut
+    {
+        FirstIntro,
+        First,
+        SecondIntro,
+        Second,
+        SecondTryWarp,
+        SecondTalkAboutWarp,
+        TalkAboutNote
+    }
+    [Tracked]
+    public class CalidusCutsceneAA : CutsceneEntity
+    {
+        private bool keepPlayerDummy;
+        public CalCut Cutscene;
         private Calidus Calidus;
         private Vector2 caliMoveBackPosition;
         private bool panningOut;
         private bool ShakeLevel;
         private bool LookingSideToSide = true;
         public Coroutine ScreenZoomAcrossRoutine;
-        public CalidusCutscene(Cutscenes cutscene)
+        public CalidusCutsceneAA(CalCut cutscene)
             : base()
         {
             Cutscene = cutscene;
         }
-
         public override void OnBegin(Level level)
         {
             Player player = level.GetPlayer();
+            Coroutine coroutine = null;
             switch (Cutscene)
             {
-                case Cutscenes.FirstIntro:
-                    Add(new Coroutine(FirstIntro(player, level)));
+                case CalCut.FirstIntro:
+                    player.StateMachine.State = Player.StDummy;
+                    player.StateMachine.Locked = true;
+                    coroutine = new Coroutine(FirstIntro(player, level));
                     break;
-                case Cutscenes.First:
+                case CalCut.First:
                     PianoModule.Session.TimesMetWithCalidus = 1;
-                    Add(new Coroutine(First(player, level)));
+                    CalCut.FirstIntro.Register();
+                    coroutine = new Coroutine(First(player, level));
                     break;
-                case Cutscenes.FirstOutro:
-                    PianoModule.Session.TimesMetWithCalidus = 1;
-                    Add(new Coroutine(FirstOutro(player, level)));
+                case CalCut.SecondIntro:
+                    player.StateMachine.State = Player.StDummy;
+                    player.StateMachine.Locked = true;
+                    CalCut.FirstIntro.Register();
+                    CalCut.First.Register();
+                    if (!CalCut.Second.GetCutsceneFlag()) coroutine = new Coroutine(SecondIntro(player, level));
                     break;
-                case Cutscenes.SecondIntro:
-                    Add(new Coroutine(SecondIntro(player, level)));
-                    break;
-                case Cutscenes.Second:
+                case CalCut.Second:
                     PianoModule.Session.TimesMetWithCalidus = 2;
-                    Add(new Coroutine(Second(player, level)));
+                    CalCut.FirstIntro.Register();
+                    CalCut.First.Register();
+                    CalCut.SecondIntro.Register();
+                    coroutine = new Coroutine(Second(player, level));
                     break;
-                case Cutscenes.SecondA:
+                case CalCut.SecondTalkAboutWarp:
                     PianoModule.Session.TimesMetWithCalidus = 2;
-                    Add(new Coroutine(SecondOptional(player, level)));
+                    break;
+                case CalCut.TalkAboutNote:
+                    PianoModule.Session.TimesMetWithCalidus = 2;
+                    coroutine = new Coroutine(SecondOptional(player, level));
                     break;
             }
+            if (coroutine != null)
+            {
+                Add(coroutine);
+            }
+        }
+        public IEnumerator TalkAboutWarp(Player player, Level level)
+        {
+            yield return Textbox.Say("CalidusLeftBehindB");
+            EndCutscene(level);
         }
         public override void OnEnd(Level level)
         {
+            Cutscene.Register();
             level.ResetZoom();
             Player player = Level.GetPlayer();
             Calidus calidus = Level.Tracker.GetEntity<Calidus>();
@@ -84,18 +107,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 switch (Cutscene)
                 {
-                    case Cutscenes.Second:
+                    case CalCut.Second or CalCut.SecondTalkAboutWarp:
                         calidus.Emotion(Calidus.Mood.Normal);
+                        calidus.StartFollowing(Calidus.Looking.Player);
+                        calidus.RemoveTag(Tags.Global);
                         break;
-                    case Cutscenes.SecondA:
+                    case CalCut.TalkAboutNote:
                         calidus.Emotion(Calidus.Mood.Normal);
                         calidus.Look(Calidus.Looking.DownRight);
                         break;
                 }
-
             }
-            if (player != null && (WasSkipped || (int)Cutscene < 5))
+            if (CalCut.Second.GetCutsceneFlag())
             {
+                SceneAs<Level>().Session.SetFlag("DigitalBetaWarpEnabled");
+            }
+            if (player != null)
+            {
+                player.StateMachine.Locked = false;
                 player.StateMachine.State = Player.StNormal;
             }
             if (WasSkipped)
@@ -110,14 +139,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 {
                     switch (Cutscene)
                     {
-                        case Cutscenes.First:
+                        case CalCut.First:
                             if (level.Session.Level != "0-lcomp")
                             {
                                 InstantTeleport(level, player, "0-lcomp", null);
+                                Running = false;
                                 level.InCutscene = false;
+                                WarpCapsuleBeta machine = Scene.Tracker.GetEntity<WarpCapsuleBeta>();
+                                if (machine != null && PianoModule.Session.PowerState != LabPowerState.Barely)
+                                {
+                                    PianoModule.Session.PowerState = LabPowerState.Barely;
+                                    machine.InCutscene = false;
+                                    machine.TimesTypeUsed++;
+                                }
                             }
                             break;
-                        case Cutscenes.Second:
+                        case CalCut.Second:
                             if (Calidus != null)
                             {
                                 Calidus.Look(Calidus.Looking.DownRight);
@@ -128,49 +165,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     }
                 }
             }
-        }
-        private helper camHelper;
-        private class helper : Entity
-        {
-            public float Zoom;
-            public Vector2 Offset;
-            public helper() : base()
-            {
-                Tag |= Tags.HUD;
-                Depth = int.MinValue;
-                DebugComponent.ForScrollWheel(this, onScroll);
-                DebugComponent.ForMousePosition(this, onMouse);
-            }
-            private void onScroll(int value)
-            {
-                Zoom = value / 1020f;
-            }
-            private void onMouse(Vector2 position)
-            {
-                Offset = position / 6f;
-            }
-            public override void Render()
-            {
-                base.Render();
-                ActiveFont.Draw(string.Format("Camera Offset = X: {0}, Y: {1}", Offset.X, Offset.Y), Vector2.Zero, Color.Yellow);
-                ActiveFont.Draw(string.Format("Zoom: {0}", Zoom), Vector2.UnitY * ActiveFont.LineHeight, Color.Magenta);
-            }
-        }
 
-        private IEnumerator FirstIntro(Player player, Level level)
+        }
+        private IEnumerator Events(params IEnumerator[] routines)
         {
-            player.StateMachine.State = Player.StDummy;
-            WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
+            foreach (IEnumerator o in routines)
+            {
+                yield return o;
+            }
+        }
+        private IEnumerator CapsuleIntro(Player player, Level level, WarpCapsuleBeta machine, float zoom, Facings facing, bool doGlitch = true)
+        {
             if (machine != null)
             {
-                Vector2 zoomPosition = (machine.Center - Level.Camera.Position) + new Vector2(1.5f, 3);
-                level.ZoomSnap(zoomPosition, 7.4f);
+                if (doGlitch) Add(new Coroutine(Events(GlitchOut(player, level), StutterGlitch(20))));
+                Vector2 zoomPosition = (machine.Center - level.Camera.Position) + new Vector2(1.5f, 3);
+                level.ZoomSnap(zoomPosition, zoom);
                 player.BottomCenter = machine.Floor.TopCenter;
-                player.Facing = Facings.Right;
-                machine.LockPlayerStateOnReceived = true;
+                player.Facing = facing;
                 if (!machine.InCutscene)
                 {
-                    machine.Add(new Coroutine(machine.ReceivePlayerRoutine(player)));
+                    machine.Add(new Coroutine(machine.ReceivePlayerRoutine(player, false)));
                 }
                 while (machine.DoorState == WarpCapsule.DoorStates.Opening)
                 {
@@ -179,6 +194,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 }
                 yield return 0.1f;
             }
+        }
+        private IEnumerator FirstIntro(Player player, Level level)
+        {
+            yield return CapsuleIntro(player, level, level.Tracker.GetEntity<WarpCapsuleBeta>(), 7.4f, Facings.Right);
             yield return Textbox.Say("wtc1", PanOut, WaitForPanOut);
             yield return Level.ZoomBack(0.8f);
             EndCutscene(Level);
@@ -188,39 +207,44 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Coroutine lookAroundCoroutine = new Coroutine(false);
             Add(lookAroundCoroutine);
             level.InCutscene = true;
+            while (!player.OnGround())
+            {
+                yield return null;
+            }
+            player.ForceCameraUpdate = false;
             Vector2 zoomPosition = new Vector2(145, player.Position.Y - level.LevelOffset.Y - 40);
             zoomPosition.X = Math.Max(0, zoomPosition.X);
             Coroutine zoomIn = new Coroutine(ScreenZoom(new Vector2(145, player.Position.Y - level.LevelOffset.Y - 40), 1.5f, 2));
-            Coroutine walkTo = new Coroutine(player.DummyWalkTo(145 + level.Bounds.X));
             Coroutine cameraTo = new Coroutine(CameraTo(level.LevelOffset + Vector2.UnitY * 8, 2, Ease.SineInOut));
-            Add(zoomIn, walkTo, cameraTo);
-            while (zoomIn.Active || walkTo.Active || cameraTo.Active)
+            Coroutine walk = new Coroutine(player.DummyWalkTo(145 + level.Bounds.X));
+            Add(zoomIn, cameraTo,walk);
+            while (zoomIn.Active || cameraTo.Active || walk.Active)
             {
                 yield return null;
             }
             yield return 0.2f;
-            yield return Walk(16);
+            yield return Walk(player, 16);
             yield return 1;
-            yield return Walk(-16);
+            yield return Walk(player, -16);
             yield return 1;
+            Vector2 focusPoint = Vector2.Zero;
+            IEnumerator zoomAcross()
+            {
+                if (Level.Tracker.GetEntity<WarpCapsuleBeta>() is var machine)
+                {
+                    focusPoint = new Vector2(machine.CenterX - Level.Camera.X + 16, zoomPosition.Y);
+                    ScreenZoomAcrossRoutine = new Coroutine(Level.ZoomAcross(focusPoint, 1.5f, 7));
+                    Add(ScreenZoomAcrossRoutine);
+                }
+                yield return null;
+            }
             yield return Textbox.Say("Calidus1", maddyStartle, zoomAcross, stopLookingSideToSide, waitZoom, calidusFix, wait1, wait3, quickLookRight, maddyWalkUp, glitch, warp, waithalfsecond);
-
             IEnumerator maddyStartle()
             {
                 Audio.PauseMusic = true;
                 yield return 0.1f;
                 player.Jump();
                 Add(new Coroutine(LookSideToSide(player)));
-                yield return null;
-            }
-            IEnumerator zoomAcross()
-            {
-                if (Level.Tracker.GetEntity<WarpCapsuleBeta>() is var machine)
-                {
-                    Vector2 focusPoint = new Vector2(machine.CenterX - Level.Camera.X, zoomPosition.Y);
-                    ScreenZoomAcrossRoutine = new Coroutine(Level.ZoomAcross(focusPoint, 1.5f, 7));
-                    Add(ScreenZoomAcrossRoutine);
-                }
                 yield return null;
             }
             IEnumerator stopLookingSideToSide()
@@ -235,9 +259,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 {
                     ScreenZoomAcrossRoutine.Cancel();
                     Remove(ScreenZoomAcrossRoutine);
-                    level.ZoomSnap(zoomPosition + Vector2.UnitX * 32, 1.5f);
+                    level.ZoomSnap(focusPoint, 1.5f);
                 }
-                Add(new Coroutine(PlayerZoomAcross(player, 2f, 2, 32, -32)));
+                Add(new Coroutine(PlayerZoomAcross(player, 2f, 2, 40, -32)));
             }
             IEnumerator calidusFix()
             {
@@ -252,7 +276,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 }
                 yield return null;
                 player.Facing = Facings.Right;
-                Add(new Coroutine(Events(Wait(0.5f), Walk(-16, true))));
+                Add(new Coroutine(Events(Wait(0.5f), Walk(player, -16, true))));
             }
             IEnumerator wait1()
             {
@@ -313,74 +337,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             {
                 lookAroundCoroutine.Cancel();
                 Calidus.Look(Calidus.Looking.Left);
-                void onEnd()
-                {
-                    level.Remove(Calidus);
-                    level.Session.SetFlag("calidusOutroOneReady");
-                }
                 WarpCapsuleBeta machine = level.Tracker.GetEntity<WarpCapsuleBeta>();
                 if (machine != null)
                 {
-                    machine.RoomName = "0-lcomp";
-                    machine.LockPlayerStateOnReceived = true;
-                    machine.PullInteract(player, onEnd);
+                    void onEnd()
+                    {
+                        level.Remove(Calidus);
+                        PianoModule.Session.PowerState = LabPowerState.Barely;
+                        machine.InCutscene = false;
+                        machine.TimesTypeUsed++;
+                    }
+                    machine.Teleport(player, WarpCapsuleBeta.LabID, true, onEnd);
                     yield return 0.1f;
                 }
                 level.Session.SetFlag("blockGlitch", false);
-                //todo: Move this textscene over to something on the Lab Computer. Maybe another message.
-                /* SingleTextscene text = new SingleTextscene("CaL1");
-                level.Add(text);
-                Level.StopShake();
-                while (text.InCutscene)
-                {
-                    yield return null;
-                }*/
-
-                /*                level.Remove(Calidus);
-                                InstantTeleport(level, player, "0-lcomp");*/
                 yield return null;
             }
-        }
-        private IEnumerator FirstOutro(Player player, Level level)
-        {
-            player.StateMachine.State = Player.StDummy;
-            IEnumerator waithalfsecond()
-            {
-                yield return 0.5f;
-            }
-            IEnumerator wait1()
-            {
-                yield return 1;
-            }
-            yield return Textbox.Say("Calidus1a", waithalfsecond, wait1);
-            yield return level.ZoomBack(1);
-            Audio.PauseMusic = false;
-            level.InCutscene = false;
-            player.StateMachine.State = Player.StNormal;
-            EndCutscene(level);
-        }
-        private IEnumerator Cutscene1NoWarp(Player player, Level level)
-        {
-            yield return null;
-            yield return Textbox.Say("Calidus1noWarp");
-            EndCutscene(level);
         }
         private IEnumerator SecondIntro(Player player, Level level)
         {
+            player.StateMachine.State = Player.StDummy;
             level.InCutscene = true;
-            Add(new Coroutine(Events(GlitchOut(player, level), StutterGlitch(20))));
-            Vector2 playerMarker = level.Marker("player");
-            Vector2 ZoomPosition = level.Marker("camera1") - level.LevelOffset;
-            Coroutine zoomIn = new Coroutine(ScreenZoom(ZoomPosition, 1.5f, 2));
-            Coroutine walkTo = new Coroutine(player.DummyWalkTo(playerMarker.X));
-            Add(zoomIn);
+            yield return CapsuleIntro(player, level, level.Tracker.GetEntity<WarpCapsuleBeta>(), 2, Facings.Right);
             yield return 1.3f;
-            Add(walkTo);
-            while (zoomIn.Active || walkTo.Active)
+            player.ForceCameraUpdate = false;
+            if (Marker.TryFind("player", out Vector2 playerMarker))
             {
-                yield return null;
+                yield return player.DummyWalkTo(playerMarker.X);
             }
-            yield return 0.3f;
+            yield return 1f;
             yield return Textbox.Say("Cb0", PlayerLookLeft, PlayerLookRight);
             yield return Level.ZoomBack(1.5f);
             EndCutscene(Level);
@@ -406,11 +391,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             base.Awake(scene);
             Calidus = scene.Tracker.GetEntity<Calidus>();
-            if (Cutscene == Cutscenes.Second)
+            if (Cutscene == CalCut.Second)
             {
                 Calidus.Stern();
             }
         }
+        //currently unused
         private IEnumerator askIfHasntDied()
         {
             if (!Level.Session.GetFlag("HasDiedInTransitLab"))
@@ -696,7 +682,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private IEnumerator GlitchOut(Player player, Level level)
         {
             player.StateMachine.State = Player.StDummy;
-            level.ZoomSnap(player.Center - Level.Camera.Position - Vector2.UnitY * 24, 1.7f);
+            level.ZoomSnap(player.Center - level.Camera.Position - Vector2.UnitY * 24, 1.7f);
             for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
             {
                 Glitch.Value = 1 - i;
@@ -751,34 +737,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return null;
         }
 
-        public override void Update()
+        private IEnumerator Walk(Player player, float x, bool backwards = false, float speedmult = 1, bool intoWalls = false)
         {
-            base.Update();
-            if (ShakeLevel)
-            {
-                Level.shakeTimer = Engine.DeltaTime;
-            }
+            float positionX = player.Position.X;
+            yield return player.DummyWalkTo(positionX + x, backwards, speedmult, intoWalls);
         }
-        private IEnumerator Walk(float x, bool backwards = false, float speedmult = 1, bool intoWalls = false)
-        {
-            Player player = SceneAs<Level>().Tracker.GetEntity<Player>();
-            if (player != null)
-            {
-                float positionX = player.Position.X;
-                yield return player.DummyWalkTo(positionX + x, backwards, speedmult, intoWalls);
-            }
-            else
-            {
-                yield break;
-            }
-        }
-        private IEnumerator Events(params IEnumerator[] functions)
-        {
-            foreach (IEnumerator o in functions)
-            {
-                yield return o;
-            }
-        }
+
         private IEnumerator Wait(float time)
         {
             yield return time;
@@ -809,6 +773,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator PlayerZoomAcross(Player player, float amount, float time, float xOffset, float yOffset)
         {
+            // position - level.Camera.Position
             Level level = SceneAs<Level>();
             yield return level.ZoomAcross(ScreenCoords(player.Position + new Vector2(xOffset, yOffset), level), amount, time);
         }
@@ -909,6 +874,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
 
                 onEnd?.Invoke(level);
             };
+        }
+        public override void Update()
+        {
+            base.Update();
+            if (ShakeLevel)
+            {
+                Level.shakeTimer = Engine.DeltaTime;
+            }
         }
     }
 }

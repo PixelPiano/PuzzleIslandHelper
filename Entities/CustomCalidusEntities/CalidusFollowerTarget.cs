@@ -69,15 +69,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         public Entity Follow;
         public CalidusFollowerTarget() : base()
         {
-            Tag |= Tags.TransitionUpdate | Tags.Persistent;
+            Tag |= Tags.TransitionUpdate | Tags.Persistent | Tags.Global;
         }
-        public void Initialize(Player player)
+        public void Initialize(Entity entity)
         {
-            if (Follow == null)
+            if (Follow == null && entity is Player)
             {
-                Offset.X = -(int)player.Facing * 10;
+                Offset.X = -(int)(entity as Player).Facing * 10;
             }
-            Follow = player;
+            Follow = entity;
             Offset.Y = -20f;
             if (Leader == null)
             {

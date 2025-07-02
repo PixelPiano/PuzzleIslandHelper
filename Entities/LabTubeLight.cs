@@ -20,7 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private static bool ModSpeed;
         private static Color? ShockedHairColor;
         private Coroutine PeriodicFlicker;
-        private bool RoutineAdded;
+
         private List<Image> images = new List<Image>();
         private SoundSource sfx;
         private BloomPoint bloom;
@@ -28,6 +28,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float DimAmount = 0.4f;
         private Color SpriteColor;
         public static float MultDecay = 0;
+        public bool TakeAwayDash = false;
         public bool Broken;
         public bool RestoredPower => PianoModule.Session.RestoredPower;
         private enum directions
@@ -112,10 +113,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             OnDashCollide = DashCollision;
             Add(new DashListener(OnDash));
         }
-        private bool givenDash;
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+        }
+        private bool usedDash;
         private void OnDash(Vector2 dir)
         {
-            DashAlarm?.Stop();
+            if (trackDash)
+            {
+                usedDash = true;
+            }
         }
         [OnLoad]
         public static void Load()
@@ -131,7 +139,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 self.Speed *= BounceMult;
                 ModSpeed = false;
-                
+
             }
         }
         public static Vector2 BounceMult = Vector2.One;
@@ -141,7 +149,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             On.Celeste.PlayerHair.Render -= RenderHook;
             On.Celeste.Player.ReflectBounce -= Player_ReflectBounce;
         }
-        public Alarm DashAlarm;
         private static void RenderHook(On.Celeste.PlayerHair.orig_Render orig, PlayerHair self)
         {
             Color prev = self.Color;
@@ -180,8 +187,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (direction.X != 0)
                 {
-                    BounceMult.X = 1.4f;
-                    BounceMult.Y = 1.2f;
+                    BounceMult.X = 1.7f;
+                    BounceMult.Y = 1.3f;
                 }
                 else
                 {
@@ -191,15 +198,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                BounceMult.X = 1.7f;
-                if (direction.Y > 0)
-                {
-                    BounceMult.Y = -1.4f;
-                }
-                else
-                {
-                    BounceMult.Y = 1.4f;
-                }
+                BounceMult.X = 1.6f;
+                BounceMult.Y = direction.Y > 0 ? -1.5f : 1.5f;
             }
             if (Broken)
             {
@@ -217,7 +217,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     AddShock(player, Calc.Random.Range(2, 5), Calc.Random.Range(3, 8), Calc.Random.Range(1, 3));
                 }
                 player.UseRefill(false);
-                Add(new Coroutine(HairColorFlash()));
+                Add(new Coroutine(HairColorFlash(player)));
                 Add(new Coroutine(FlickerShort()));
             }
             return DashCollisionResults.Bounce;
@@ -232,9 +232,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             RandomShock shock = new RandomShock(player.TopCenter, strands, generations, frames * Engine.DeltaTime, player, Calc.Random.Choose(Color.AliceBlue, Color.LightBlue, Color.White));
             Scene.Add(shock);
         }
-        private IEnumerator HairColorFlash()
+        private bool trackDash;
+        private IEnumerator HairColorFlash(Player player)
         {
-            int frames = 2;
+            trackDash = true;
+            int frames = 3;
             Color[] colors = [Color.White, Color.Yellow];
             for (int i = 0; i < 2; i++)
             {
@@ -246,18 +248,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     yield return Engine.DeltaTime * frames;
                 }
             }
-        }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            if (givenDash)
+            trackDash = false;
+            if (!usedDash && TakeAwayDash)
             {
-                Draw.Rect(Position, 4, 4, Color.Green);
+                player.Dashes = Math.Max(player.Dashes - 1, 0);  
             }
-            else
-            {
-                Draw.Rect(Position, 4, 4, Color.Red);
-            }
+            usedDash = false;
         }
         public override void Update()
         {

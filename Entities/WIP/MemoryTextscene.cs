@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -8,7 +9,7 @@ using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
-    [CustomEntity("PuzzleIslandHelper/MemoryTextscene")]
+    //[CustomEntity("PuzzleIslandHelper/MemoryTextscene")]
     [Tracked]
     public class MemoryTextscene : CutsceneEntity
     {
@@ -37,9 +38,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         private float _timer;
         private const float _timerLimit = 0.6f;
 
+        public virtual void OnCue(string[] args)
+        {
 
+        }
         private string[] DialogIDs;
-
         private bool Waiting;
         public bool InCutscene = true;
         private bool _visible;
@@ -117,6 +120,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 
                         FancyTextExt.Node Node = FText.Nodes[i];
                         CurrentNode = i + 1;
+                        if(Node is FancyTextExt.Cue cue)
+                        {
+                            OnCue(cue.args);
+                        }
                         if (Node is FancyTextExt.Char c)
                         {
                             if (c.Character != ' ')
@@ -137,10 +144,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                         if (Node is FancyTextExt.NewLine)
                         {
                             CurrentLine++;
-                        }
-                        if (Node is FancyTextExt.NewPage)
-                        {
-
                         }
                         if (Node is FancyTextExt.NewSegment ns)
                         {

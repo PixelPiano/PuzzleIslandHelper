@@ -62,11 +62,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 EmitPulse(i, Calc.LerpClamp(80, 40, i / dist), 16, 1.1f - (i / dist) * 0.5f);
             }
         }
-        public void EmitBeam(int beforeTeleportThickness, int afterTeleportThickness, WARP.WarpCutscene cutscene)
+        public void EmitBeam(int beforeTeleportThickness, int afterTeleportThickness, WARP.CapsuleWarpHandler cutscene)
         {
             Add(new Coroutine(Cutscene(beforeTeleportThickness, afterTeleportThickness, cutscene)));
         }
-        public IEnumerator Cutscene(int beforeTeleportThickness, int afterTeleportThickness, WARP.WarpCutscene cutscene)
+        public IEnumerator Cutscene(int beforeTeleportThickness, int afterTeleportThickness, WARP.CapsuleWarpHandler cutscene)
         {
             Thickness = beforeTeleportThickness;
             Glow.Visible = false;

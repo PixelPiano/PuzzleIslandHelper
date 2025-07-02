@@ -10,14 +10,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
     public class RoomLight : Trigger
     {
         public RoomLight(EntityData data, Vector2 offset)
-    : base(data, offset)
+        : base(data, offset)
         {
             Tag |= Tags.TransitionUpdate;
         }
         private void CheckLight()
         {
-            if(Scene is not Level level) return;
-            level.Session.SetFlag("RestoredPower", PianoModule.Session.RestoredPower);
+            if (Scene is not Level level) return;
+            PianoModule.Session.UpdatePowerStateFlags(level);
             float num = level.Session.LightingAlphaAdd = PianoModule.Session.RestoredPower ? PianoModule.Session.MinDarkness : PianoModule.Session.MaxDarkness;
             level.Lighting.Alpha = level.BaseLightingAlpha + num;
         }

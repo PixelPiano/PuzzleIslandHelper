@@ -8,13 +8,154 @@ using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+
+
     [CustomEntity("PuzzleIslandHelper/Calidus")]
     [Tracked]
     public class Calidus : Actor
     {
+        public class DialogCutsceneEntity : CutsceneEntity
+        {
+            public Calidus Calidus;
+            public Player Player;
+            public DialogCutsceneEntity(Calidus calidus, Player player) : base()
+            {
+                Calidus = calidus;
+                Player = player;
+            }
+            public override void OnBegin(Level level)
+            {
+                Calidus.OnCutsceneStart();
+                Player.StateMachine.State = Player.StDummy;
+                Add(new Coroutine(text()));
+            }
+            private IEnumerator text()
+            {
+                yield return Textbox.Say(Calidus.CutsceneID);
+                EndCutscene(Level);
+            }
+            public override void OnEnd(Level level)
+            {
+                level.ResetZoom();
+                Calidus.OnCutsceneEnd();
+                Player.StateMachine.State = Player.StNormal;
+            }
+        }
+        public Arguments StartArgs;
+        public Arguments EndArgs;
+        public string StartArgsString
+        {
+            get
+            {
+                string output = "";
+                foreach (Argument a in StartArgs.Args)
+                {
+                    output += '\n' + a.ToString();
+                }
+
+                return output;
+            }
+        }
+        public string RawStartArgs;
+        public string RawEndArgs;
+        public string EndArgsString
+        {
+            get
+            {
+                string output = "";
+                foreach (Argument a in EndArgs.Args)
+                {
+                    output += a.ToString() + '\n';
+                }
+                return output.Trim('\n');
+            }
+        }
+        public class Argument()
+        {
+            public string Name;
+            public string Content = "";
+            public override string ToString()
+            {
+                return $"{{{Name}:{Content}}}";
+            }
+        }
+        public class Arguments
+        {
+            public Argument[] Args;
+            public Arguments(params Argument[] args)
+            {
+                Args = args;
+            }
+        }
+        public void OnCutsceneStart()
+        {
+            ExecuteArgs(StartArgs);
+        }
+        public void OnCutsceneEnd()
+        {
+            //FlagOnCutsceneEnd.State = true;
+            ExecuteArgs(EndArgs);
+        }
+        public void ExecuteArgs(Arguments args)
+        {
+            if (args != null)
+            {
+
+                foreach (Argument s in args.Args)
+                {
+
+                    switch (s.Name)
+                    {
+                        case "follow":
+                            if (!string.IsNullOrEmpty(s.Content) && Enum.TryParse<Looking>(s.Content, out Looking looking))
+                            {
+                                StartFollowing(looking);
+                            }
+                            else
+                            {
+                                StartFollowing();
+                            }
+                            break;
+                        case "mood":
+                            if (!string.IsNullOrEmpty(s.Content) && Enum.TryParse<Mood>(s.Content, out Mood result))
+                            {
+                                Emotion(result);
+                            }
+                            break;
+                        case "stopfollowing":
+                            StopFollowing();
+                            break;
+                        case "flag":
+                            string[] array = s.Content.Split(',');
+                            if (array != null && array.Length > 0)
+                            {
+                                for (int i = 0; i < array.Length; i++)
+                                {
+                                    string flag = array[i];
+                                    if (!string.IsNullOrEmpty(flag))
+                                    {
+                                        flag = flag.Replace(" ", "");
+                                        bool inverted = false;
+                                        if (flag.Length > 1 && flag[0] == '!')
+                                        {
+                                            inverted = true;
+                                            flag = flag[1..];
+                                        }
+                                        SceneAs<Level>().Session.SetFlag(flag, !inverted);
+                                    }
+                                }
+                            }
+                            break;
+
+                    }
+                }
+            }
+        }
+
         public enum Mood
         {
             Happy,
@@ -87,7 +228,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private (float, float) ArmOffsets;
         public float FloatHeight = 6;
         public float LookSpeed = 1;
-
+        public List<CalCut> RequiredWatched = [];
+        public List<CalCut> ExcludedWatched = [];
         public bool Drunk;
         public bool AddBackToPlayerOnSpawn;
         public Part BrokenParts;
@@ -120,7 +262,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool RenderStar;
         public bool Broken;
         public bool Talkable;
-        public bool Following;
+        public bool Following
+        {
+            get => _following;
+            set
+            {
+
+                if (Scene is Level level)
+                {
+                    if (value)
+                    {
+                        level.Session.SetFlag("CalidusFollowing");
+                    }
+                    else if (Following)
+                    {
+                        foreach (Calidus c in level.Tracker.GetEntities<Calidus>())
+                        {
+                            if (c.Following && c != this)
+                            {
+                                _following = value;
+                                return;
+                            }
+                        }
+                        level.Session.SetFlag("CalidusFollowing", false);
+                    }
+                }
+                _following = value;
+            }
+        }
+        private bool _following;
         public bool ForceBlink;
         public bool Blinking;
         public bool FallenApart;
@@ -128,6 +298,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool Shaking => ForceShake || shakeTimer > 0;
         public bool StartFollowingImmediately;
         private float shakeTimer;
+        public string[] CutsceneArgs;
         public CalidusSprite Sprite;
         public Follower Follower;
 
@@ -138,6 +309,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Coroutine burstRoutine;
         public TextboxListener EmotionListener;
         public float Alpha = 1;
+        public FlagList SpawnData;
+        public FlagList CutsceneFlagData;
+        public string CutsceneID;
+        public bool RequireSpawnFlag;
+        public static HashSet<string> BannedCutsceneIDs = [];
+        public bool CutsceneIsDialog;
         private ParticleType HeeHee = new ParticleType
         {
             Source = GFX.Game["objects/PuzzleIslandHelper/particles/heehee00"],
@@ -286,6 +463,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Reset();
             }
         }
+        [OnUnload]
+        public static void Unload()
+        {
+            BannedCutsceneIDs.Clear();
+        }
         public static Calidus Create()
         {
             return Create(Vector2.Zero, false, true, Looking.Center, Mood.Normal);
@@ -300,14 +482,86 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Engine.Scene.Add(c);
             return c;
         }
-        public Calidus(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Bool("broken"), data.Bool("startFloating", true), data.Enum("looking", Looking.Center), data.Enum("mood", Mood.Normal), data.Bool("followPlayer"))
+        public Calidus(EntityData data, Vector2 offset, EntityID id)
+            : this(data.Position + offset, id, data.Bool("broken"), data.Bool("startFloating", true), data.Enum("looking", Looking.Center),
+                  data.Enum("mood", Mood.Normal), data.Bool("followPlayer"), data.Attr("requiredCutscenes"), data.Attr("excludedCutscenes"))
         {
+            RequireSpawnFlag = data.Bool("requireSpawnFlag");
+            SpawnData = new FlagList(data.Attr("spawnFlag"));
+            CutsceneFlagData = new FlagList(data.Attr("cutsceneFlag"));
+            CutsceneID = data.Attr("cutscene");
+            CutsceneIsDialog = data.Attr("cutsceneType") == "Dialog";
+            RawStartArgs = data.Attr("startCutsceneArgs");
+            RawEndArgs = data.Attr("endCutsceneArgs");
+            StartArgs = ParseArgs(RawStartArgs);
+            EndArgs = ParseArgs(RawEndArgs);
         }
-
+        public static Arguments ParseArgs(string args)
+        {
+            if (!string.IsNullOrEmpty(args))
+            {
+                List<Argument> finalArgs = [];
+                string toAdd = "";
+                bool open = false;
+                void add()
+                {
+                    if (!string.IsNullOrEmpty(toAdd))
+                    {
+                        Argument arg = new Argument();
+                        if (toAdd.Contains(':'))
+                        {
+                            string[] array = toAdd.Split(':');
+                            arg.Name = array[0];
+                            if (array.Length > 1) arg.Content = array[1];
+                        }
+                        else
+                        {
+                            arg.Name = toAdd;
+                        }
+                        finalArgs.Add(arg);
+                    }
+                    toAdd = "";
+                }
+                foreach (char c in args)
+                {
+                    switch (c)
+                    {
+                        case '{':
+                            open = true;
+                            toAdd = "";
+                            break;
+                        case '}':
+                            if (open) add();
+                            open = false;
+                            break;
+                        default:
+                            toAdd += c;
+                            break;
+                    }
+                }
+                if (!string.IsNullOrEmpty(toAdd)) add();
+                return new Arguments([.. finalArgs]);
+            }
+            return null;
+        }
         public Calidus(Vector2 position, bool broken = false, bool startFloating = true, Looking looking = Looking.Center, Mood mood = Mood.Normal, bool startFollowingImmediately = false)
             : this(position, new EntityID(Guid.NewGuid().ToString(), 0), broken, startFloating, looking, mood, startFollowingImmediately) { }
-        public Calidus(Vector2 position, EntityID id, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal, bool startFollowingImmediately = false) : base(position)
+        public Calidus(Vector2 position, EntityID id, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal, bool startFollowingImmediately = false, string requiredWatched = "", string excludeWatched = "") : base(position)
         {
+            foreach (string s in requiredWatched.Replace(" ", "").Split(','))
+            {
+                if (Enum.TryParse(s, true, out CalCut result))
+                {
+                    RequiredWatched.Add(result);
+                }
+            }
+            foreach (string s in excludeWatched.Replace(" ", "").Split(','))
+            {
+                if (Enum.TryParse(s, true, out CalCut result))
+                {
+                    ExcludedWatched.Add(result);
+                }
+            }
             Light = new VertexLight(Color.White, 1, 32, 64);
             Add(Light);
             if (broken)
@@ -392,36 +646,42 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            if (RequireSpawnFlag && !SpawnData)
+            {
+                RemoveSelf();
+                return;
+            }
             if (!Broken)
             {
-                Fixed();
+                FixSelf();
             }
             else
             {
                 BrokenParts.Play("broken");
-                Position -= new Vector2(BrokenParts.Width / 2, BrokenParts.Height / 2);
-                SpriteBox = new Hitbox(BrokenParts.Width / 2, BrokenParts.Height / 2);
+                Vector2 offset = new Vector2(BrokenParts.Width / 2, BrokenParts.Height / 2);
+                Position -= offset;
+                SpriteBox = new Hitbox(offset.X, offset.Y);
             }
             OrigPosition = Position;
-            if ((scene as Level).Session.Level == "digiRuinsLabB3")
-            {
-                Add(Talk = new TalkComponent(new Rectangle((int)Collider.Position.X, 0, (int)Width, (int)Height + 24), OrbSprite.Center.XComp(), Interact));
-            }
-            (scene as Level).Add(system = new ParticleSystem(Depth + 1, 500));
-
+            scene.Add(system = new ParticleSystem(Depth + 1, 500));
             FollowTarget = PianoUtils.SeekController<CalidusFollowerTarget>(scene);
-
             if (FollowTarget is null)
             {
                 scene.Add(FollowTarget = new CalidusFollowerTarget());
             }
-
         }
         public CalidusFollowerTarget FollowTarget;
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (scene is not Level level) return;
+            Collider collider = Collider ?? SpriteBox;
+            Rectangle talkRect = new Rectangle((int)collider.Position.X, 0, (int)Width, (int)Height + 24);
+            Vector2 drawAt = OrbSprite.Center.X * Vector2.UnitX;
+            Add(Talk = new TalkComponent(talkRect, drawAt, Interact)
+            {
+                Enabled = !CalCut.TalkAboutNote.GetCutsceneFlag() && CalCut.SecondTalkAboutWarp.GetCutsceneFlag()
+            });
+
             foreach (Part part in Components.GetAll<Part>())
             {
                 Parts.Add(part);
@@ -435,6 +695,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (StartFollowingImmediately)
             {
                 StartFollowing(Looking.Player);
+            }
+            foreach (CalCut c in RequiredWatched)
+            {
+                if (!c.GetCutsceneFlag())
+                {
+                    RemoveSelf();
+                    return;
+                }
+            }
+            foreach (CalCut c in ExcludedWatched)
+            {
+                if (c.GetCutsceneFlag())
+                {
+                    RemoveSelf();
+                    return;
+                }
             }
         }
         public void CreateFollower()
@@ -455,18 +731,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Position = FollowTarget.Position;
         }
+
         public override void Removed(Scene scene)
         {
+            // CatHelper.CatState(false);
             StopFollowing();
             base.Removed(scene);
-            FollowTarget?.Leader?.LoseFollower(Follower);
-            if (scene.Tracker.GetEntities<Calidus>().Count < 2)
+            if (FollowTarget != null)
             {
-                FollowTarget?.RemoveSelf();
+                if (FollowTarget.Leader != null && Follower != null)
+                {
+                    FollowTarget.Leader.LoseFollower(Follower);
+                }
+                if (scene.Tracker.GetEntities<Calidus>().Count < 2)
+                {
+                    FollowTarget.RemoveSelf();
+                }
             }
         }
         public override void Update()
         {
+            Talk.Enabled = CutsceneFlagData.State && !string.IsNullOrEmpty(CutsceneID) && !BannedCutsceneIDs.Contains(CutsceneID);
             if (Drunk)
             {
                 drunkTimer -= Engine.DeltaTime;
@@ -488,10 +773,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 ApproachScale = Calc.Approach(ApproachScale, Vector2.One, Engine.DeltaTime * 2);
             }
             sineY = Calc.Approach(sineY, sineYTarget, Engine.DeltaTime * 6);
-            if (Talk != null)
-            {
-                Talk.Enabled = CalidusCutscene.CutsceneWatched(Scene, CalidusCutscene.Cutscenes.Second) && !CalidusCutscene.CutsceneWatched(Scene, CalidusCutscene.Cutscenes.SecondA);
-            }
             if (Shaking)
             {
                 shakeTimer -= Engine.DeltaTime;
@@ -524,6 +805,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 EyeSprite.Color = Blinking || ForceBlink ? Color.Lerp(Color.White, Color.Black, 0.3f) : Color.White;
                 EyeSprite.RenderPosition = Calc.Approach(EyeSprite.RenderPosition, OrbSprite.RenderPosition + EyeOffset, LookSpeed);
+            }
+            if(Collider != null)
+            {
+                foreach(CalidusCollider c in Scene.Tracker.GetComponents<CalidusCollider>())
+                {
+                    if (c.Check(this)) break;
+                }
             }
         }
         public void AddAfterImage(float time = 1, float alpha = 0.8f)
@@ -573,9 +861,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Star.Draw(StarPos, Star.Center, Color.Yellow, Vector2.One, StarRotation);
             }
         }
+        public CalCut DialogCutscene = CalCut.TalkAboutNote;
+        private CutsceneEntity cutscene;
         public void Interact(Player player)
         {
-            Scene.Add(new CalidusCutscene(CalidusCutscene.Cutscenes.SecondA));
+            if (CutsceneIsDialog)
+            {
+                Scene.Add(new DialogCutsceneEntity(this, player));
+            }
+            if (EventTrigger.CutsceneLoaders.TryGetValue(CutsceneID, out EventTrigger.CutsceneLoader value))
+            {
+                Entity entity = value(null, player, CutsceneID);
+                if (entity is CutsceneEntity)
+                {
+                    cutscene = entity as CutsceneEntity;
+                }
+                Scene.Add(entity);
+            }
+            //Scene.Add(new CalidusCutscene(DialogCutscene));
         }
         private Vector2 GetLookOffset()
         {
@@ -604,7 +907,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 _ => Vector2.Zero
             };
         }
-        public void Fixed()
+        public void FixSelf()
         {
             bool fromBroken = BrokenParts.Visible;
             Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineInOut, t => Light.Alpha = t.Eased, t => Light.Alpha = 1);
@@ -686,7 +989,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (instant)
             {
-                Fixed();
+                FixSelf();
                 Position += new Vector2(BrokenParts.Width / 2, BrokenParts.Height / 2);
                 Broken = false;
                 LerpOutline(true);
@@ -710,7 +1013,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         {
                             if (s == "assemble")
                             {
-                                Fixed();
+                                FixSelf();
                                 Position += new Vector2(BrokenParts.Width / 2, BrokenParts.Height / 2);
                                 Broken = false;
                             }
@@ -924,8 +1227,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Following = true;
                 Follower.MoveTowardsLeader = true;
-                (Engine.Scene as Level).Session.DoNotLoad.Add(ID);
                 followLook = look;
+                (Engine.Scene as Level).Session.DoNotLoad.Add(ID);
                 AddTag(Tags.Persistent);
             }
         }
@@ -933,15 +1236,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             StartFollowing(Looking.None);
         }
-        public void StopFollowing()
+        public void StopFollowing(bool keepPersistent = false)
         {
             if (Following)
             {
                 Following = false;
                 Follower.MoveTowardsLeader = false;
                 followLook = Looking.None;
-                (Engine.Scene as Level).Session.DoNotLoad.Remove(ID);
-                RemoveTag(Tags.Persistent);
+                if (!keepPersistent)
+                {
+                    (Engine.Scene as Level).Session.DoNotLoad.Remove(ID);
+                    RemoveTag(Tags.Persistent);
+                }
             }
         }
         public void MoveTo(Vector2 position)
@@ -1542,7 +1848,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
             }
         }
-
+        public IEnumerator FloatHeightTo(float to, float time)
+        {
+            float from = FloatHeight;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                FloatHeight = Calc.LerpClamp(from, to, i);
+                yield return null;
+            }
+            FloatHeight = to;
+        }
         public void Hide(bool instant = false)
         {
             if (instant)

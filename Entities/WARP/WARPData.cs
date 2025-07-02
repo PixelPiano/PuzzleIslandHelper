@@ -9,20 +9,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     public static class WARPData
     {
         public static WarpRune.RuneNodeInventory Inv => PianoModule.SaveData.RuneNodeInventory;
-        public static List<WarpRune> AllRunes = [];
-        public static List<WarpRune> DefaultRunes = [];
-        public static List<WarpRune> ObtainedRunes = [];
+        public static HashSet<WarpRune>  AllRunes = [];
+        public static HashSet<WarpRune> DefaultRunes = [];
+        public static HashSet<WarpRune> ObtainedRunes = [];
         public const int XOffset = 10;
         public static string DefaultPath = "objects/PuzzleIslandHelper/digiWarpReceiver/";
-        public static Dictionary<string, RuneList> Data => PianoMapDataProcessor.WarpRunes;
-        public static bool RuneExists(WarpRune input, out AlphaWarpData warpData)
+        public static Dictionary<string, CapsuleList> Data => PianoMapDataProcessor.WarpCapsules;
+        public static bool RuneExists(WarpRune input, out WarpData warpData)
         {
             warpData = null;
             if (PianoUtils.TryGetAreaKey(out AreaKey key))
             {
-                if (Data.TryGetValue(key.GetFullID(), out RuneList list))
+                if (Data.TryGetValue(key.GetFullID(), out CapsuleList list))
                 {
-                    foreach (var a in list.All)
+                    foreach (var a in list.AllRunes)
                     {
                         if (input.Match(a.Rune))
                         {
@@ -37,7 +37,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public static bool RuneExists(WarpRune input) => RuneExists(input, out _);
 
-        public static AlphaWarpData GetWarpData(WarpRune rune) => rune == null || Engine.Scene is not Level level ? null : Data[level.GetAreaKey()].GetDataFromRune(rune);
+        public static WarpData GetWarpData(WarpRune rune) => rune == null || Engine.Scene is not Level level ? null : Data[level.GetAreaKey()].GetDataFromRune(rune);
         public static Vector2 TargetScale = new Vector2(0.4f, 2f);
         public static Vector2 Scale = Vector2.One;
         public enum NodeTypes

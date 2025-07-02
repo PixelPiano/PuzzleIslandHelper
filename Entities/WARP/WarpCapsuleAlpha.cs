@@ -19,7 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public Image ShineTex;
         private Entity Shine;
         public InputMachine Input;
-        public AlphaWarpData RuneData => WARPData.GetWarpData(WarpRune);
+        public WarpData RuneData => WARPData.GetWarpData(WarpRune);
         public string RuneString
         {
             get
@@ -31,13 +31,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             }
         }
         public WarpCapsuleAlpha(EntityData data, Vector2 offset, EntityID id)
-            : base(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"), null, true, true)
+            : base(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"), data.Attr("warpID"), null, true, true)
         {
             Input = new InputMachine(this, data.NodesOffset(offset)[0]);
             ShineTex = new Image(GFX.Game[Path + "shine"]);
             ShineTex.Color = Color.White * 0;
         }
-
+        public override WarpData RetrieveWarpData(CapsuleList list)
+        {
+            return list.GetDataFromRune(WarpRune);
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
@@ -46,7 +49,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             scene.Add(Shine, Input);
             if (PianoModule.Session.PersistentWarpLinks.TryGetValue(ID, out string value))
             {
-                RoomName = value;
+                TargetID = value;
             }
             else
             {
@@ -70,7 +73,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public override void Update()
         {
-            PianoModule.Session.PersistentWarpLinks[ID] = RoomName;
+            if(Data != null && !string.IsNullOrEmpty(Data.ID)) PianoModule.Session.PersistentWarpLinks[ID] = Data.ID;
             base.Update();
             ShineTex.Scale = Bg.Scale;
             ShineTex.Color = Color.White * ShineAmount;
@@ -83,10 +86,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public override void Interact(Player player)
         {
-            AlphaWarpData data = RuneData;
+            WarpData data = RuneData;
             if (data != null)
             {
-                Scene.Add(new WarpCutscene(this, data, player));
+                Scene.Add(new CapsuleWarpHandler(this, data, player));
             }
 
         }
@@ -97,7 +100,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public override bool WarpEnabled()
         {
-            return RuneData != null;
+            return RuneData != null && RuneData.HasRune && Data != null && Data.HasRune && !Data.Rune.Match(RuneData.Rune);
         }
     }
 }

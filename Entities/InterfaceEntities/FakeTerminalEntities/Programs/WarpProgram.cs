@@ -16,15 +16,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         {
             get
             {
-                return Parent.RoomName;
+                return Parent.TargetID;
             }
             set
             {
-                Parent.RoomName = value;
+                Parent.TargetID = value;
             }
         }
         //public WarpCapsuleData SelectedCapsule => WarpCapsule.GetCapsuleData(SelectedID);
-        public static Dictionary<string, AlphaWarpData> Data;
+        public static Dictionary<string, WarpData> Data;
         public WarpCapsuleAlpha Parent;
         public WarpProgram(WarpCapsuleAlpha parent, FakeTerminal terminal) : base(terminal, "Please enter the destination node ID.")
         {
@@ -36,7 +36,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         public void OnDebug(string input)
         {
             bool added = false;
-            foreach (KeyValuePair<string, AlphaWarpData> pair in Data)
+            foreach (KeyValuePair<string, WarpData> pair in Data)
             {
                 string text = pair.Key;
 /*                if (!string.IsNullOrEmpty(pair.Value.Password))
@@ -131,7 +131,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 Error("Error: Link ID cannot be identical {n}to the parent warp chamber's Link ID.");
                 yield break;
             }*/
-            AlphaWarpData data = Data[name];
+            WarpData data = Data[name];
 /*            if (!string.IsNullOrWhiteSpace(data.Password))
             {
                 string dataPass = data.Password.Replace(" ", "").ToLower();
@@ -154,7 +154,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                     yield break;
                 }
             }*/
-            SetTarget(name, data.Name);
+            SetTarget(name, data.ID);
             yield return 0.7f;
             AddText("To exit the console, use the \"exit\" command.");
         }
@@ -172,7 +172,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
         }
         public void SetTarget(string id, string realName = null)
         {
-            Parent.RoomName = id;
+            Parent.TargetID = id;
             SelectedID = id;
             AddText("Link established. Opening warp chamber.", Color.Lime);
             if (realName != null && !PianoModule.Session.LoggedCapsules.ContainsKey(realName))

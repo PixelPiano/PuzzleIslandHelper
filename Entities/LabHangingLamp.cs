@@ -92,6 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         public bool FixedOpacity;
         public float FlickerScalar = 1;
+        public float FlickerScalar2 = 1;
         private bool Collided;
         public float Opacity;
         public readonly int Length;
@@ -142,19 +143,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             : this(data.Position + offset, Math.Max(16, data.Height), id, data)
         {
         }
-        private bool randomFlicker;
+        private bool disableLight;
         private IEnumerator randomFlickerRoutine()
         {
+            NumRange shortRange = new NumRange(Engine.DeltaTime, 9 * Engine.DeltaTime);
+            NumRange longRange = new NumRange(0.3f, 3f);
             while (true)
             {
-                if (!Falling && !Broken && !PianoModule.Session.RestoredPower && SceneAs<Level>().Session.GetFlag("calidusOutroOneReady"))
+                if (!Falling && !Broken && PianoModule.Session.PowerState == LabPowerState.Barely)
                 {
-                    yield return Calc.Random.Range(0.3f, 3f);
-                    randomFlicker = true;
-                    yield return Calc.Random.Range(Engine.DeltaTime, Engine.DeltaTime * 9);
-                    randomFlicker = false;
+                    if (Calc.Random.Chance(0.1f))
+                    {
+                        disableLight = false;
+                        yield return Calc.Random.Choose(shortRange, longRange).Random();
+                        disableLight = true;
+                        yield return shortRange.Random();
+                    }
+                    else
+                    {
+                        FlickerScalar2 = 1;
+                        yield return Calc.Random.Choose(shortRange, longRange).Random();
+                        FlickerScalar2 = Calc.Random.Range(0.5f, 1);
+                        yield return shortRange.Random();
+                    }
                 }
-                randomFlicker = false;
+                else
+                {
+                    yield return null;
+                }
+                disableLight = false;
+                FlickerScalar2 = 1;
             }
         }
         private IEnumerator Flicker(float delay)
@@ -258,7 +276,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                Lamp.Texture = randomFlicker ? flickerTexture : onTexture;
+                Lamp.Texture = disableLight ? flickerTexture : onTexture;
             }
             if (!Falling && !Broken)
             {
@@ -350,7 +368,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             sfx.Position = vector;
 
-            if (!PianoModule.Session.RestoredPower && !randomFlicker)
+            if (!PianoModule.Session.RestoredPower && !disableLight)
             {
                 light.Visible = true;
                 bloom.Visible = true;
@@ -364,17 +382,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void updateLight()
         {
+            float scalar = FlickerScalar * FlickerScalar2;
             if (NormalLight)
             {
-                light.Alpha = 1;
-                light.StartRadius = 16;
-                light.EndRadius = 32;
+                light.Alpha = scalar * Opacity;
+                light.StartRadius = 16 * scalar;
+                light.EndRadius = 32 * scalar;
             }
             else
             {
-                light.Alpha = 0.5f * Opacity;
-                light.StartRadius = 10;
-                light.EndRadius = 20;
+                light.Alpha = 0.5f * Opacity * scalar;
+                light.StartRadius = 10 * scalar;
+                light.EndRadius = 20 * scalar;
             }
         }
         public override void DebugRender(Camera camera)
@@ -412,10 +431,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     image.DrawOutline();
                 }
             }
-            if (!randomFlicker && !Broken && !NormalLight && Scene is Level level)
+            if (!PianoModule.Session.RestoredPower && !disableLight && !Broken && !NormalLight && Scene is Level level)
             {
                 Draw.SpriteBatch.End();
-                vertices[0].Color = Color.LightYellow * Opacity * FlickerScalar;
+                vertices[0].Color = Color.LightYellow * Opacity * FlickerScalar * FlickerScalar2;
                 GFX.DrawVertices(level.Camera.Matrix, vertices, vertices.Length, null, BlendState.Additive);
                 GameplayRenderer.Begin();
             }

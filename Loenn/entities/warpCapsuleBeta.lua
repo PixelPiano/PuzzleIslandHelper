@@ -8,9 +8,9 @@ warpCapsuleBeta.placements =
     {
         name = "Warp Capsule Beta",
         data = {
-            room = "",
             disableFlag = "",
             invertFlag = false,
+            warpID = ""
         }
     }
 }

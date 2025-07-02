@@ -10,6 +10,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 using static Celeste.Mod.PuzzleIslandHelper.Cutscenes.Gameshow;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.WARP.WarpCapsuleBeta;
+using System.Text;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -81,23 +83,41 @@ namespace Celeste.Mod.PuzzleIslandHelper
     public class WarpData
     {
         public string Room;
-    }
-    public class AlphaWarpData : WarpData
-    {
-        public string Name;
+        public string ID;
         public bool Lab;
         public WarpRune Rune;
+        public bool HasRune => Rune != null;
     }
-    public class BetaWarpData : WarpData
+    public class CapsuleList
     {
-    }
-    public class RuneList
-    {
-        public AlphaWarpData Default;
-        public List<AlphaWarpData> DefaultSet = [];
-        public List<AlphaWarpData> All = [];
-        public bool Contains(WarpRune rune) => GetDataFromRune(rune) != null;
-        public AlphaWarpData GetDataFromRune(WarpRune rune) => All.Find(item => item.Rune.Match(rune));
+        public WarpData DefaultRune;
+        public List<WarpData> DefaultRuneSet = [];
+        public List<WarpData> AllRunes = [];
+        public List<WarpData> All = [];
+        public bool ContainsRune(WarpRune rune) => GetDataFromRune(rune) != null;
+        public bool ContainsID(string id) => GetDataFromID(id) != null;
+        public WarpData GetDataFromRune(WarpRune rune)
+        {
+            foreach (var d in AllRunes)
+            {
+                if (d.Rune.Match(rune))
+                {
+                    return d;
+                }
+            }
+            return null;
+        }
+        public WarpData GetDataFromID(string id)
+        {
+            foreach (var d in All)
+            {
+                if (d.ID.Equals(id))
+                {
+                    return d;
+                }
+            }
+            return null;
+        }
     }
     public class PianoMapDataProcessor : EverestMapDataProcessor
     {
@@ -107,8 +127,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static readonly Dictionary<string, List<BitrailData>> Bitrails = [];
         public static readonly Dictionary<string, Dictionary<string, CalidusSpawnerData>> CalidusSpawners = [];
         public static readonly Dictionary<string, List<SecurityCamData>> SecurityCams = [];
-        public static readonly Dictionary<string, RuneList> WarpRunes = [];
-        public static readonly Dictionary<string, List<BetaWarpData>> BetaWarpData = [];
+        public static readonly Dictionary<string, CapsuleList> WarpCapsules = [];
         public static readonly Dictionary<string, Dictionary<string, List<SlotData>>> SlotData = [];
         public static readonly Dictionary<string, Dictionary<string, List<MarkerData>>> MarkerData = [];
         public static void Reset<T>(Dictionary<string, List<T>> dict, string key)
@@ -135,9 +154,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Reset(Bitrails, key);
             Reset(CalidusSpawners, key);
             Reset(SecurityCams, key);
-            Reset(WarpRunes, key, delegate { return new RuneList(); });
+            Reset(WarpCapsules, key, delegate { return new CapsuleList(); });
             Reset(MarkerData, key);
-            Reset(BetaWarpData, key);
         }
         [Command("print_markers", "")]
         public static void PrintMarkers()
@@ -266,47 +284,55 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 }
             };
 
-            Action<BinaryPacker.Element> accessWarpHandler = data =>
+            Action<BinaryPacker.Element, bool> accessWarpHandler = (data, hasRune) =>
             {
-                AlphaWarpData awData = default;
+                WarpData awData = null;
 
                 string id = data.Attr("warpID");
-
                 if (string.IsNullOrEmpty(id)) return;
-                WarpRune rune = new(id, data.Attr("rune"));
-                if (!string.IsNullOrEmpty(levelName) && rune != null && !WarpRunes[key].Contains(rune))
-                {
-                    awData = new()
-                    {
-                        Name = id,
-                        Room = levelName,
-                        Rune = rune,
-                        Lab = data.AttrBool("isLaboratory")
-                    };
-                    if (data.AttrBool("isDefaultRune"))
-                    {
-                        WarpRunes[key].Default = awData;
-                    }
-                    if (data.AttrBool("isPartOfFirstSet"))
-                    {
-                        WarpRunes[key].DefaultSet.Add(awData);
-                    }
-                    WarpRunes[key].All.Add(awData);
-                }
 
-            };
-            Action<BinaryPacker.Element> betaAccessWarpHandler = data =>
-            {
-                BetaWarpData bwData = default;
                 if (!string.IsNullOrEmpty(levelName))
                 {
-                    bwData = new()
+                    if (hasRune)
                     {
-                        Room = levelName
-                    };
-                    BetaWarpData[key].Add(bwData);
+                        WarpRune rune = null;
+                        if (!string.IsNullOrEmpty(data.Attr("rune")))
+                        {
+                            rune = new(id, data.Attr("rune"));
+                        }
+                        if (rune != null && !WarpCapsules[key].ContainsRune(rune))
+                        {
+                            awData = new()
+                            {
+                                ID = id,
+                                Room = levelName,
+                                Rune = rune,
+                                Lab = data.AttrBool("isLaboratory")
+                            };
+                            if (data.AttrBool("isDefaultRune"))
+                            {
+                                WarpCapsules[key].DefaultRune = awData;
+                            }
+                            if (data.AttrBool("isPartOfFirstSet"))
+                            {
+                                WarpCapsules[key].DefaultRuneSet.Add(awData);
+                            }
+                            WarpCapsules[key].AllRunes.Add(awData);
+                        }
+                    }
+                    else
+                    {
+                        awData = new()
+                        {
+                            ID = id,
+                            Room = levelName
+                        };
+                    }
+                    if (awData != null)
+                    {
+                        WarpCapsules[key].All.Add(awData);
+                    }
                 }
-
             };
             return new Dictionary<string, Action<BinaryPacker.Element>>
             {
@@ -365,13 +391,13 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 {
                     "entity:PuzzleIslandHelper/WarpCapsule", accessWarp =>
                     {
-                        accessWarpHandler(accessWarp);
+                        accessWarpHandler(accessWarp, true);
                     }
                 },
                 {
                     "entity:PuzzleIslandHelper/WarpCapsuleBeta", betaAccessWarp =>
                     {
-                        betaAccessWarpHandler(betaAccessWarp);
+                       accessWarpHandler(betaAccessWarp, false);
                     }
                 },
                 {

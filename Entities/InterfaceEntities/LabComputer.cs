@@ -9,7 +9,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     [TrackedAs(typeof(Machine))]
     public class LabComputer : Machine
     {
-        public static bool Debug;
         public const string ID = "LabComputer";
         public static bool Interacted
         {
@@ -22,39 +21,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
                 (ID + "Interacted").SetFlag();
             }
         }
-        [Command("computerdebug", "")]
-        public static void ComputerDebug(bool value = false)
-        {
-            Debug = value;
-        }
-        [OnLoad]
-        public static void Load()
-        {
-            Debug = false;
-        }
-        [OnUnload]
-        public static void Unload()
-        {
-            Debug = false;
-        }
         public LabComputer(EntityData data, Vector2 offset) : base(data.Position + offset, "objects/PuzzleIslandHelper/interface/keyboard", Color.Green)
         {
             UsesStartupMonitor = true;
         }
         public override IEnumerator OnBegin(Player player)
         {
-            //DEBUG
-            /*            if (Debug)
-            {
-                if (Scene.Tracker.GetEntity<ComputerMonitor>() is var monitor)
-                {
-                    monitor.Activate();
-                }
-                //Interface.StartWithPreset("Default");
-                yield break;
-            }*/
-            Level level = SceneAs<Level>();
-            //END DEBUG
             if (PianoModule.Session.RestoredPower)
             {
                 SetSessionInterface();
@@ -63,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             }
             else
             {
-                if (level.Tracker.GetEntity<ComputerMonitor>() is var monitor)
+                if (Scene.Tracker.GetEntity<ComputerMonitor>() is var monitor)
                 {
                     if (PianoModule.Session.TimesUsedCapsuleWarp == 0 && !TempStoryFlags.PowerLabFirstAndOneMeeting)
                     {

@@ -193,18 +193,17 @@ function talkingDecal.depth(room, entity)
     return entity.depth or 0
 end
 function talkingDecal.sprite(room, entity)
-    local sprite = drawableSprite.fromTexture(getTex(entity), entity)
+    local path;
+    if drawableSprite.fromTexture("decals/" .. entity.onDecalPath .. "00") ~= nil then
+        path = "decals/" .. entity.onDecalPath .. "00"
+    else
+        path = "decals/" .. entity.onDecalPath
+    end
+    local sprite = drawableSprite.fromTexture(path, entity)
         sprite:setScale(1,1)
         sprite:setJustification(0, 0)
         sprite.rotation = math.rad(0)
     return sprite
-end
-function getTex(entity)
-    if drawableSprite.fromTexture("decals/" .. entity.onDecalPath .. "00") ~= nil then
-        return "decals/" .. entity.onDecalPath .. "00"
-    else
-        return "decals/" .. entity.onDecalPath
-    end
 end
 
 return talkingDecal

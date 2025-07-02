@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using Celeste.Mod;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -133,6 +134,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 output += '}';
                 return output;
+            }
+        }
+        public class Cue : Node
+        {
+            public string[] args;
+            public Cue(string[] args)
+            {
+                this.args = args;
             }
         }
         public class Advance : Node
@@ -652,7 +661,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             inside += parts[j];
                         }
                     }
-                    if(inside == "break" || inside == "n")
+                    if (inside == "break" || inside == "n")
                     {
                         new_AddNewLine();
                     }
@@ -851,8 +860,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         }
                         continue;
                     }
+
                     switch (text)
                     {
+                        case "cue":
+                            if (Engine.Scene is Level level)
+                            {
+                                string[] array4 = [.. list];
+                                group.Nodes.Add(new Cue(array4));
+                            }
+                            break;
                         case "goto":
                             if (list.Count > 0 && Dialog.Has(list[0]))
                             {

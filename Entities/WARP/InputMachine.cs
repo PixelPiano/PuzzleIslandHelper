@@ -108,7 +108,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             }
             if (Parent.UsesRune)
             {
-                WARPData.ObtainedRunes.TryAdd(Parent.WarpRune, false);
+                WARPData.ObtainedRunes.Add(Parent.WarpRune);
             }
             player.EnableMovement();
         }

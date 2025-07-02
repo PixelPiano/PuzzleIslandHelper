@@ -48,9 +48,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public DialogMethods DialogMethod;
         public int DialogIndex;
+        public string DialogDebug
+        {
+            get
+            {
+                if (Dialogs == null) return "None";
+                string output = "";
+                foreach (string s in Dialogs)
+                {
+                    output += s + ",";
+                }
+                return output;
+            }
+        }
+        public string Debug2;
         public bool CanStartDialogCutscene => HasDialogCutscenes && DialogIndex < Dialogs.Length;
         public Passenger(Vector2 position, float width, float height, string cutscene, string dialog, DialogMethods dialogMethod, string flag = "") : base(position)
         {
+            Debug2 = dialog;
             ActiveFlag = flag;
             if (!string.IsNullOrWhiteSpace(dialog))
             {
@@ -69,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public Passenger(Vector2 position, float width, float height, string cutscene) : this(position, width, height, cutscene, null, DialogMethods.OnlyOnce)
         {
         }
-        public Passenger(EntityData data, Vector2 offset) : this(data.Position + offset, 16, 16, data.Attr("cutsceneID"), data.Attr("dialog"), data.Enum<DialogMethods>("dialogMethod"),data.Attr("flag"))
+        public Passenger(EntityData data, Vector2 offset) : this(data.Position + offset, 16, 16, data.Attr("cutsceneID"), data.Attr("dialog"), data.Enum<DialogMethods>("dialogMethod"), data.Attr("flag"))
         {
         }
         public override void Awake(Scene scene)
@@ -81,7 +96,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             base.Update();
             state = FlagState;
-            if(!state) return;
+            if (!state) return;
             if (!HasGravity)
             {
                 onGround = false;
@@ -146,9 +161,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public void UpdateDataTalk()
         {
-
             bool watched = CutsceneWatched;
-            if(!HasDataCutscene || (HasDialogCutscenes && watched && !CanStartDialogCutscene) || (watched && !HasDialogCutscenes))
+            if (HasDataCutscene)
+            {
+                dataTalk.Enabled = !CutsceneWatched;
+            }
+            else if (HasDialogCutscenes)
+            {
+                dataTalk.Enabled = CanStartDialogCutscene;
+            }
+            else
             {
                 dataTalk.Enabled = false;
             }

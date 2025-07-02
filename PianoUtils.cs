@@ -5,6 +5,7 @@ using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.CommunalHelper.Utils;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper;
+using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
@@ -23,6 +24,24 @@ using static Celeste.Player;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static List<Image> NineSlice(this MTexture texture, int width, int height, int segmentWidth = 8, int segmentHeight = 8)
+    {
+        List<Image> list = [];
+        if (width < segmentWidth || height < segmentHeight) return list;
+        for (int x = 0; x < width; x += segmentWidth)
+        {
+            for (int y = 0; y < height; y += segmentHeight)
+            {
+                int quadX = x < segmentWidth ? 0 : x >= width - segmentWidth ? width - segmentWidth : segmentWidth;
+                int quadY = y < segmentHeight ? 0 : y >= height - segmentHeight ? height - segmentHeight : segmentHeight;
+                Image image = new Image(texture.GetSubtexture(quadX, quadY, segmentWidth, segmentHeight));
+                image.Position = new Vector2(x, y);
+                list.Add(image);
+            }
+        }
+        return list;
+    }
+
     public static List<Rectangle> Split(this Rectangle rect, int chunkWidth, int chunkHeight, int skipX = 0, int skipY = 0)
     {
         List<Rectangle> list = [];
@@ -278,7 +297,7 @@ public static class PianoUtils
     /// <param name="list">The <see cref="List{}"/> to add the rune to.</param>
     /// <param name="rune">The <see cref="Rune"/> to check.</param>
     /// <returns> <see langword="true"/> if <paramref name="rune"/> was successfully added to <paramref name="list"/>.<para/> <see langword="false"/> if <paramref name="rune"/> matches another <see cref="Rune"/> in <paramref name="list"/>.</returns>
-    public static bool TryAddRune(this List<WarpRune> list, WarpRune rune)
+    public static bool TryAddRune(this HashSet<WarpRune> list, WarpRune rune)
     {
         foreach (WarpRune r in list)
         {
@@ -290,7 +309,7 @@ public static class PianoUtils
         list.Add(rune);
         return true;
     }
-    public static bool TryAddRuneRange(this List<WarpRune> list, List<WarpRune> runes)
+    public static bool TryAddRuneRange(this HashSet<WarpRune> list, IEnumerable<WarpRune> runes)
     {
         string current = "CURRENT RUNES IN LIST:\n";
         string adding = "RUNES TO BE CHECKED:\n";

@@ -39,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 }
             }
         }
-        public FormativeRival(EntityData data, Vector2 offset) : base(data.Position + offset, 15, 20, null, Vector2.One, new(-1, 1), 0.95f)
+        public FormativeRival(EntityData data, Vector2 offset) : base(data.Position + offset, 15, 20, null, data.Attr("dialog"), Vector2.One, new(-1, 1), 0.95f)
         {
             MinWiggleTime = 1;
             MaxWiggleTime = 2.5f;

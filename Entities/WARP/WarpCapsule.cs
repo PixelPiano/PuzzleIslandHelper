@@ -14,30 +14,53 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     [Tracked(true)]
     public abstract class WarpCapsule : Entity
     {
-        public bool LockPlayerStateOnReceived;
+        public string WarpID = "";
+        public string TargetID = "";
+        public bool WaitingForCutscene;
+        public int TimesTypeUsed
+        {
+            get
+            {
+                if (UsesRune)
+                {
+                    return PianoModule.Session.TimesUsedCapsuleWarpWithRunes;
+                }
+                return PianoModule.Session.TimesUsedCapsuleWarp;
+            }
+            set
+            {
+                if (UsesRune)
+                {
+                    PianoModule.Session.TimesUsedCapsuleWarpWithRunes = value;
+                }
+                else
+                {
+                    PianoModule.Session.TimesUsedCapsuleWarp = value;
+                }
+            }
+        }
         public bool JustTeleportedTo
         {
             get => justTeleportedToTimer > 0;
             set => justTeleportedToTimer = 0.5f;
         }
+
         public enum DoorStates
         {
+            Idle,
             Closing,
             Opening,
-            Idle
+            Closed,
+            Open
         }
         public DoorStates DoorState
         {
             get
             {
-                if (DoorClosedPercent == lastDoorPercent)
-                {
-                    return DoorStates.Idle;
-                }
-                if (DoorClosedPercent > lastDoorPercent)
-                {
-                    return DoorStates.Closing;
-                }
+                if (DoorClosedPercent >= 1) return DoorStates.Closed;
+                if (DoorClosedPercent <= 0) return DoorStates.Open;
+                if (DoorClosedPercent == lastDoorPercent) return DoorStates.Idle;
+                if (DoorClosedPercent > lastDoorPercent) return DoorStates.Closing;
                 return DoorStates.Opening;
             }
         }
@@ -47,7 +70,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public string Path = "objects/PuzzleIslandHelper/digiWarpReceiver/";
         public float DoorClosedPercent, DoorStallTimer, ShineAmount;
         public bool InCutscene, CanEnter = true, DoorsIdle = true, InvertFlag, Accessible, Blocked;
-        public string RoomName;
         public FlagData Flag;
         public EntityID ID;
         public Image Bg, Fg;
@@ -55,13 +77,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public SnapSolid Floor;
         public Door LeftDoor, RightDoor;
         public WarpRune WarpRune;
+        public WarpData Data;
         public bool UsesRune;
         public bool UsesBeam;
-        public WarpCapsule(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"), data.Attr("path"), false, false)
+        public WarpCapsule(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"), data.Attr("warpID"), data.Attr("path"), false, false)
         {
         }
-        public WarpCapsule(Vector2 position, EntityID id, FlagData flag, string path = null, bool usesRune = false, bool usesBeam = false) : base(position)
+        public WarpCapsule(Vector2 position, EntityID id, FlagData flag, string warpID, string path = null, bool usesRune = false, bool usesBeam = false) : base(position)
         {
+            WarpID = warpID;
             Tag |= Tags.TransitionUpdate;
             Depth = 10;
             ID = id;
@@ -83,6 +107,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             Add(new BathroomStallComponent(null, Block, Unblock));
             Add(new PostUpdateHook(delegate { lastDoorPercent = DoorClosedPercent; }));
         }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            if (PianoMapDataProcessor.WarpCapsules.TryGetValue(Scene.GetAreaKey(), out var list))
+            {
+                Data = RetrieveWarpData(list);
+            }
+        }
+        public abstract WarpData RetrieveWarpData(CapsuleList list);
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
@@ -134,15 +167,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 UpdateScale(InCutscene ? WARPData.Scale : Vector2.One);
                 if (!InCutscene)
                 {
-                    /*                if (!IsFirstTime)
-                                    {*/
                     bool valid = WarpEnabled();
                     CanEnter = valid;
                     if (DoorStallTimer <= 0)
                     {
                         MoveAlongTowards(valid);
                     }
-                    // }
                 }
             }
         }
@@ -255,7 +285,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             yield return new SwapImmediately(MoveTo(from, 1, closeTime, null));
         }
         public PlayerShade Shade;
-        public IEnumerator ReceivePlayerRoutine(Player player)
+        public virtual IEnumerator ReceivePlayerRoutine(Player player, bool? setPlayerStateToNormal)
         {
             if (Shade == null)
             {
@@ -272,9 +302,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             RightDoor.MoveToBg();
             DoorStallTimer = 0.5f;
             CanEnter = true;
-            if (!LockPlayerStateOnReceived) player.StateMachine.State = Player.StNormal;
+            ValidateStatusAfterWarp(Scene);
+            if (setPlayerStateToNormal.HasValue && setPlayerStateToNormal.Value) player.StateMachine.State = Player.StNormal;
         }
-        public IEnumerator SendPlayerRoutine(Player player, float time)
+        public virtual void ValidateStatusAfterWarp(Scene scene)
+        {
+
+        }
+        public virtual IEnumerator PrepareToSend(Player player, float time)
         {
             player.StateMachine.State = Player.StDummy;
             InstantOpenDoors();
@@ -296,6 +331,5 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 yield return null;
             }
         }
-
     }
 }

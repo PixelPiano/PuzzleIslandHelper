@@ -1,4 +1,5 @@
 ﻿using Monocle;
+using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -24,11 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public float Random()
         {
-            if (Min == Max)
-            {
-                return Min;
-            }
-            return Calc.Random.Range(Min, Max);
+            return Min == Max ? Min : Calc.Random.Range(Min, Max);
         }
     }
 }

@@ -2,7 +2,6 @@ local calidusCutscene = {}
 
 calidusCutscene.name = "PuzzleIslandHelper/CalidusCutsceneTrigger"
 
-local cutscenes = {"FirstIntro","First", "FirstOutro","SecondIntro","Second"}
 calidusCutscene.placements =
 {
     {
@@ -11,14 +10,12 @@ calidusCutscene.placements =
             cutscene = "FirstIntro",
             flag = "",
             activateOnTransition = false,
+            startArgs = "",
+            endArgs = "",
+            oncePerInstance = false,
+            oncePerSession = true
         }
     },
-}
-calidusCutscene.fieldInformation = {
-    cutscene = {
-        options = cutscenes,
-        editable = false
-    }
 }
 
 return calidusCutscene

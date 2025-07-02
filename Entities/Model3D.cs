@@ -25,8 +25,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Vector2 Scale = Vector2.One;
         public MTexture Texture;
         public VirtualRenderTarget testTarget;
-        private int aaaa;
-        private bool swap;
         public Model3D(string path, Vector2 position, MTexture texture)
             : this(path, position, texture, Vector2.One, 0, 0, 0) { }
         public Model3D(string path, Vector2 position, MTexture texture, Vector2 scale)
