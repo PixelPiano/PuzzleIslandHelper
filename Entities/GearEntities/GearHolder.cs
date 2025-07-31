@@ -15,22 +15,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
     [Tracked]
     public class GearHolder : Entity
     {
+
+        public const string Path = "objects/PuzzleIslandHelper/gear/";
+        public static MTexture MaskImage => GFX.Game[Path + "mask" + (RenderSmall ? "Small" : "")];
+        public static MTexture Insides => GFX.Game[Path + "inside" + (RenderSmall ? "Small" : "")];
+        //public static MTexture Stem => GFX.Game[Path + "center" + (RenderSmall ? "Small" : "")];
+        public static MTexture Outline => GFX.Game[Path + "outline" + (RenderSmall ? "Small" : "")];
+        public static Vector2 Origin => MaskImage.HalfSize();
+        public static Vector2 Offset => Vector2.One * 8;
+        public static bool RenderSmall = true;
         [Tracked]
         public class GearHolderRenderer : Entity
         {
-            public const string Path = "objects/PuzzleIslandHelper/gear/";
-            public MTexture MaskImage = GFX.Game[Path + "mask"];
-            public MTexture Insides = GFX.Game[Path + "inside"];
-            public MTexture Stem = GFX.Game[Path + "center"];
-            public MTexture Outline = GFX.Game[Path + "outline"];
-            public Vector2 Origin = Vector2.One * 12;
-            public Vector2 Offset = Vector2.One * 8;
             private bool noHolders;
             private static VirtualRenderTarget _Target;
             public static VirtualRenderTarget Target => _Target ??= VirtualContent.CreateRenderTarget("GearHolderRendererTarget", 320, 180);
             private static VirtualRenderTarget _Mask;
             public static VirtualRenderTarget Mask => _Mask ??= VirtualContent.CreateRenderTarget("GearHolderRendererMask", 320, 180);
-
             public GearHolderRenderer() : base(Vector2.Zero)
             {
                 Depth = 3;
@@ -50,18 +51,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                 base.Render();
                 if (Scene is not Level level || noHolders) return;
                 Draw.SpriteBatch.Draw(Target, level.Camera.Position.Floor(), Color.White);
+                var outline = Outline.Texture.Texture_Safe;
                 foreach (GearHolder holder in level.Tracker.GetEntities<GearHolder>())
                 {
-                    Draw.SpriteBatch.Draw(Outline.Texture.Texture_Safe, holder.RenderPosition + Offset, null, holder.BackColor, 0, Origin, 1, SpriteEffects.None, 0);
+                    Draw.SpriteBatch.Draw(outline, holder.RenderPosition + Offset, null, holder.BackColor, 0, Origin, 1, SpriteEffects.None, 0);
                 }
             }
 
             public void BeforeRender()
             {
                 if (Scene is not Level level) return;
+                Matrix m = Matrix.Identity;
+
                 noHolders = level.Tracker.GetEntities<GearHolder>().Count == 0;
                 if (noHolders) return;
-                Matrix m = Matrix.Identity;
                 Mask.DrawToObject(RenderMask, m, true);
                 GameplayBuffers.TempA.DrawToObject(RenderInsides, m, true);
                 GameplayBuffers.TempA.MaskToObject(Mask);
@@ -71,17 +74,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             private void RenderMask()
             {
                 if (Scene is not Level level) return;
+                var m = MaskImage.Texture.Texture_Safe;
                 foreach (GearHolder holder in level.Tracker.GetEntities<GearHolder>())
                 {
-                    Draw.SpriteBatch.Draw(MaskImage.Texture.Texture_Safe, holder.RenderPosition - level.Camera.Position + Offset, null, Color.White, 0, Origin, 1, SpriteEffects.None, 0);
+                    Draw.SpriteBatch.Draw(m, holder.RenderPosition - level.Camera.Position + Offset, null, Color.White, 0, Origin, 1, SpriteEffects.None, 0);
                 }
             }
             private void RenderInsides()
             {
                 if (Scene is not Level level) return;
+                var i = Insides.Texture.Texture_Safe;
                 foreach (GearHolder holder in level.Tracker.GetEntities<GearHolder>())
                 {
-                    Draw.SpriteBatch.Draw(Insides.Texture.Texture_Safe, holder.RenderPosition - level.Camera.Position + Offset, null, holder.BackColor, holder.Rotation.ToRad(), Origin, 1, SpriteEffects.None, 0);
+                    Draw.SpriteBatch.Draw(i, holder.RenderPosition - level.Camera.Position + Offset, null, holder.BackColor, holder.Rotation.ToRad(), Origin, 1, SpriteEffects.None, 0);
                 }
             }
             private void RenderImages()
@@ -115,7 +120,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public int SpinDirection = 1;
         public bool Spinning;
         public float SparkOffset = 3;
-
         private bool useFakeGearImage;
         public bool Fixed => useFakeGearImage;
         public bool Persistent;
@@ -125,7 +129,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public static List<EntityID> PersistentHolders = new();
         public VertexLight Light;
         public BloomPoint Bloom;
-        public MTexture Stem = GFX.Game["objects/PuzzleIslandHelper/gear/center"];
         public MTexture Middle = GFX.Game["objects/PuzzleIslandHelper/Gear/holder"];
         public MTexture FakeGear = GFX.Game["objects/PuzzleIslandHelper/Gear/fakeGear"];
         public float TimeLimit;
@@ -154,6 +157,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         private bool preventGrab;
         public Coroutine SlotCoroutine;
         public float targetRotateRate;
+        public bool SwitchesColors = true;
+        public Color GearColor = Color.White;
+        public bool Interruptable;
         public bool CanUseGear(Gear gear) => gear != null && !HasGear && !gear.Hold.IsHeld && (!OnlyOnce || !UsedOnce) && !preventGrab;
         public ParticleType GearSparks = new()
         {
@@ -169,9 +175,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             LifeMin = 0.7f,
             LifeMax = 1.8f
         };
-        public GearHolder(Vector2 position, bool onlyOnce, Color color, EntityID entityId, float rotateRate = 10f, int id = -1, string flag = "", float stopAfter = -1) : base(position)
+        public GearHolder(Vector2 position, bool onlyOnce, Color color, EntityID entityId, float rotateRate = 10f, int id = -1, bool playerCanInterrupt = true, string flag = "", float stopAfter = -1) : base(position)
         {
+            Interruptable = playerCanInterrupt;
             IsBaseHolder = !GetType().IsSubclassOf(typeof(GearHolder));
+            if (IsBaseHolder)
+            {
+                SwitchesColors = false;
+            }
             this.flag = flag;
             EntityID = entityId;
             TimeLimit = stopAfter;
@@ -186,12 +197,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             Sprite.Position += new Vector2(Sprite.Width / 2, Sprite.Height / 2);
             int offset = 2;
             Collider = new Hitbox(Sprite.Width - offset, Sprite.Height - offset, offset / 2, offset / 2);
-            Add(Light = new VertexLight(Color.White, 0.4f, 24, 40){Position = Vector2.One * 12});
+            Add(Light = new VertexLight(Color.White, 0.4f, 24, 40) { Position = Vector2.One * 12 });
             Add(Bloom = new BloomPoint(0.5f, 24) { Position = Vector2.One * 12 });
             Add(SlotCoroutine = new Coroutine(false));
         }
         public GearHolder(EntityData data, Vector2 offset, EntityID entityID)
-            : this(data.Position + offset - Vector2.One * 8, data.Bool("onlyOnce"), Color.White, entityID, 10, data.Int("holderId"), data.Attr("flagOnFinish"), 1)
+            : this(data.Position + offset - Vector2.One * 8, data.Bool("onlyOnce"), Color.White, entityID, 10, data.Int("holderId"), false, data.Attr("flagOnFinish"), 1)
         {
         }
         public void EmitSparks(float speed, int amount)
@@ -226,8 +237,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public override void Render()
         {
             base.Render();
-            Vector2 offset = -Vector2.One * 4;
-            Draw.SpriteBatch.Draw(Stem.Texture.Texture_Safe, RenderPosition + offset, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+            Vector2 offset = Vector2.Zero;
+            string path = Path + "center";
+            if (RenderSmall)
+            {
+                path += "Small";
+                if (!Interruptable)
+                {
+                    path += "NoGrab";
+                }
+            }
+            var s = GFX.Game[path].Texture.Texture_Safe;
+            Draw.SpriteBatch.Draw(s, RenderPosition + offset, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
             if (useFakeGearImage)
             {
                 Vector2 gearOffset = new Vector2(FakeGear.Width / 2, FakeGear.Height / 2).Floor();
@@ -290,6 +311,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         {
             gear?.OnEnterHolder();
             StartSpinning();
+            bool lockgear = IsBaseHolder && gear is not null && gear.InSlot && !UsedOnce;
+            if (lockgear)
+            {
+                gear.Hold.Active = false;
+                if (!(Scene is null || PianoModule.Session.GearData.HasHolder(EntityID)))
+                {
+                    PianoModule.Session.GearData.AddGear(gear);
+                    PianoModule.Session.ContinuousGearIDs.Remove(gear.ContinuityID);
+                    UsedOnce = true;
+                }
+            }
             Coroutine whileSpinning = new Coroutine(WhileSpinning(gear));
             if (!DropGear) Add(whileSpinning);
             float lerp = 0;
@@ -304,8 +336,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             if (!whileSpinning.Finished) whileSpinning.Cancel();
             gear.Sprite.Play("flash");
             Spinning = false;
-
-            yield return WindBack(gear, DropGear);
+            OnWindBack(gear, DropGear);
+            float time = 0.3f;
+            float from = gear is not null ? gear.Light.Alpha : 0;
+            yield return lockgear ?
+                PianoUtils.Lerp(Ease.SineOut, time, f => gear.Light.Alpha = Calc.LerpClamp(from, 0, f)) :
+                PianoUtils.Lerp(Ease.Linear, time, f => rate = targetRotateRate * (1 - f));
+            if (lockgear)
+            {
+                gear.RemoveSelf();
+                SwitchToFake();
+            }
+            else
+            {
+                rate = 0;
+                Add(new Coroutine(easeBack(1.4f, Ease.SineInOut)));
+                if (DropGear)
+                {
+                    PreventRegrab(WaitTime);
+                    if (gear is not null)
+                    {
+                        HasGear = false;
+                        gear.DropFromHolder();
+                        gear.Hold.Active = true;
+                        gear.InSlot = false;
+                    }
+                }
+            }
+            UsedOnce = true;
+            InGearRoutine = false;
+            if (!string.IsNullOrEmpty(flag))
+            {
+                SceneAs<Level>().Session.SetFlag(flag);
+            }
+            yield return null;
         }
         public virtual IEnumerator WhileSpinning(Gear gear)
         {
@@ -313,15 +377,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         }
         public virtual void OnShake(Vector2 amount)
         {
-        }
-        public void LockGear(Gear gear)
-        {
-            if (Scene is null || PianoModule.Session.GearData.HasHolder(EntityID)) return; //if holder already has a gear locked in place, return
-            PianoModule.Session.GearData.AddGear(gear);
-            PianoModule.Session.ContinuousGearIDs.Remove(gear.ContinuityID);
-            UsedOnce = true;
-            gear.RemoveSelf();
-            SwitchToFake();
         }
         public void SwitchToFake(bool constantSpinning = true)
         {
@@ -336,6 +391,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public void PreventRegrab(float time)
         {
             preventGrab = true;
+            if (time < 0)
+            {
+                preventGrab = true;
+                ForceCanHold = false;
+                return;
+            }
             bool cancelled = false;
             Tween.Set(this, Tween.TweenMode.Oneshot, time, Ease.Linear, t =>
             {
@@ -382,55 +443,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             }
             //Add(new Coroutine(SlotRoutine(gear)));
         }
-        public bool InReach(Gear gear, float distance)
-        {
-            float result = Vector2.Distance(Center, gear.Center);
-            return result <= distance;
-        }
-        public IEnumerator WindBack(Gear gear, bool drop)
-        {
-            OnWindBack(gear, drop);
-            float time = 0.3f;
-            bool lockgear = IsBaseHolder && gear is not null && gear.InSlot && !UsedOnce;
-            float from = gear is not null ? gear.Light.Alpha : 0;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
-            {
-                if (lockgear)
-                {
-                    gear.Light.Alpha = Calc.LerpClamp(from, 0, Ease.SineOut(i));
-                }
-                else
-                {
-                    rate = targetRotateRate * (1 - i);
-                }
-                yield return null;
-            }
-            if (lockgear)
-            {
-                LockGear(gear);
-            }
-            else
-            {
-                Add(new Coroutine(easeBack(1.4f, Ease.SineInOut)));
-                if (drop)
-                {
-                    PreventRegrab(WaitTime);
-                    if (gear is not null)
-                    {
-                        HasGear = false;
-                        gear.DropFromHolder();
-                        gear.InSlot = false;
-                    }
-                }
-            }
-            UsedOnce = true;
-            InGearRoutine = false;
-            if (!string.IsNullOrEmpty(flag))
-            {
-                SceneAs<Level>().Session.SetFlag(flag);
-            }
-            yield return null;
-        }
+        public bool InReach(Gear gear, float distance) => Vector2.Distance(Center, gear.Center) <= distance;
         private IEnumerator easeBack(float time, Ease.Easer ease)
         {
             float start = Rotation;

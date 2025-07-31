@@ -6,9 +6,95 @@ using System.Collections;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using System.Collections.Generic;
 using System.Linq;
+using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+    public static class StoolExt
+    {
+        public static ParticleType StoolSpawn = new ParticleType()
+        {
+            Color = Color.Cyan,
+            Color2 = Color.Magenta,
+            FadeMode = ParticleType.FadeModes.Linear,
+            ColorMode = ParticleType.ColorModes.Blink,
+            LifeMax = 1f,
+            LifeMin = 1f,
+            Size = 1,
+            SpeedMax = 10f,
+            SpeedMin = 10f
+        };
+        [Command("reset_stools", "resets all active stools to their default rooms and positions")]
+        public static void ResetAllStools()
+        {
+            if (Engine.Scene is Level level)
+            {
+                foreach (Stool stool in level.Tracker.GetEntities<Stool>())
+                {
+                    stool.Reset(level);
+                }
+            }
+        }
+        public static void Reset(this Stool stool, Level level)
+        {
+            bool fromMap = stool.FromMap;
+            if (fromMap) //only affect stools generated from the map data
+            {
+                //store held dashes to be loaded upon stool recreation
+                //dashes are set in stool.Awake
+                if (!PianoModule.Session.StoredStoolDashes.ContainsKey(stool.id))
+                {
+                    PianoModule.Session.StoredStoolDashes.Add(stool.id, stool.DashesHeld);
+                }
+                else
+                {
+                    PianoModule.Session.StoredStoolDashes[stool.id] = stool.DashesHeld;
+                }
+            }
+            stool.RemoveSelf();
+            //possible cryptic puzzle idea: dashes in stools are maintained through resets?
+            //
+            if (fromMap) //only affect stools generated from the map data
+            {
+                if (stool.LevelNameCheck(level, stool.OrigRoom))
+                {
+                    stool = new Stool(stool.OrigPosition, stool.Flag.Flag, stool.Flag.Inverted, stool.id);
+                    stool.FromMap = true;
+                    level.Add(stool);
+                    if (stool.Flag.GetState(level))
+                    {
+                        Vector2 position = stool.Center + Vector2.UnitX;
+                        float angleStep = (360f / 16).ToRad();
+                        for (int i = 0; i < 16; i++)
+                        {
+                            float angle = angleStep * i;
+                            level.ParticlesFG.Emit(StoolSpawn, position + Calc.AngleToVector(angle, 8), angleStep * i);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    [CustomEntity("PuzzleIslandHelper/StoolResetButton")]
+    public class ResetStoolsSwitch : Entity
+    {
+        public Sprite Sprite;
+        public ResetStoolsSwitch(EntityData data, Vector2 offset) : base(data.Position + offset)
+        {
+            Depth = 1;
+            Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/stool/"));
+            Sprite.AddLoop("idle", "resetButton", 0.1f, 0);
+            Sprite.Add("pressed", "resetButton", 0.5f, "idle", 1);
+            Sprite.Play("idle");
+            Collider = new Hitbox(Sprite.Width + 8, Sprite.Height + 8, -4);
+            Add(new DotX3(Collider, player =>
+            {
+                Sprite.Play("pressed");
+                Audio.Play("event:/PianoBoy/Machines/ButtonPressC", Center);
+                StoolExt.ResetAllStools();
+            }));
+        }
+    }
     [Tracked]
     public class StoolListener : Component
     {
@@ -30,17 +116,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class Stool : Actor
     {
-
         public const float LaunchYSpeed = -200f;
         private static Vector2 StoolJustify = new Vector2(0.5f, 1f);
         private int extraDashes;
-        public int DashesHeld;
+        public int DashesHeld
+        {
+            get => _dashesHeld;
+            set
+            {
+                _dashesHeld = value;
+                if (PianoModule.Session.StoredStoolDashes.ContainsKey(id))
+                {
+                    PianoModule.Session.StoredStoolDashes[id] = value;
+                }
+                else
+                {
+                    PianoModule.Session.StoredStoolDashes.Add(id, value);
+                }
+            }
+        }
+        private int _dashesHeld;
         private float boostGraceTimer, noGravityTimer, swatTimer, playerBoostGracePeriod, noLiftSpeedTimer, deadTimer, launchedTimer, hardVerticalHitSoundCooldown;
         private float PlatformYOffset;
         private float loweredOffset => sprite.Height - 9;
         private float raisedOffset = 1;
         private float gravityMult = 1;
-        public bool IsHeld => Hold.IsHeld;
+        public bool IsHeld => Hold != null && Hold.IsHeld;
         public bool JustLaunched => launchedTimer > 0;
         public bool Dead;
         public bool DeadRefillImmunity;
@@ -53,7 +154,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Vector2 Speed;
         public Vector2 PlatformPosition => Position + PlatformOffset;
         public Vector2 PlatformOffset => spriteOffset + new Vector2(1, PlatformYOffset);
-        private EntityID id;
+        public EntityID id;
         public FlagData Flag;
         private Color refillColor
         {
@@ -83,8 +184,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private StoolPlatform ridingOn;
         public Vector2 PrevPosition;
         public string OccupiedRoomName;
+        public string OrigRoom;
+        public Vector2 OrigPosition;
+        public bool FromMap;
         public Stool(Vector2 position, string flag, bool inverted, EntityID id) : base(position)
         {
+            OrigPosition = position;
             IgnoreJumpThrus = false;
             Depth = 1;
             this.id = id;
@@ -151,25 +256,53 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Stool(EntityData data, Vector2 offset, EntityID id)
         : this(data.Position + offset, data.Attr("flag"), data.Bool("inverted"), id)
         {
-
+            FromMap = true;
         }
-        public bool LevelCheck(Scene scene)
+        public override void Added(Scene scene)
         {
-            return (scene as Level).Session.Level == OccupiedRoomName;
+            base.Added(scene);
+            scene.Add(Platform = new StoolPlatform(this, PlatformPosition, (int)sprite.Width - 2, false));
+        }
+        private bool hasValue;
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            if (PianoModule.Session.StoredStoolDashes.ContainsKey(id))
+            {
+                _dashesHeld = PianoModule.Session.StoredStoolDashes[id];
+            }
+            else
+            {
+                PianoModule.Session.StoredStoolDashes.Add(id, 0);
+            }
+            OrigRoom = (scene as Level).Session.Level;
+            Platform.OnDashCollide = onDashed;
+            Visible = Platform.Visible = Collidable = Platform.Collidable = Hold.Visible = Flag.State;
+            OccupiedRoomName = (scene as Level).Session.Level;
+
+            if (AlwaysPersistent) MakePersistent(scene as Level);
+        }
+        public bool LevelNameCheck(Level level, string name)
+        {
+            return level.Session.Level == name;
         }
         public override void Update()
         {
             base.Update();
-            Level level = Scene as Level;
-            Player player = level.GetPlayer();
+            if (Scene is not Level level || level.GetPlayer() is not Player player) return;
             if (AlwaysPersistent)
             {
                 if (!TagCheck(Tags.Persistent))
                 {
                     MakePersistent(level);
                 }
-                OccupiedRoomName = level.Session.MapData.GetAt(Position).Name;
-                if (!IsHeld && !inHeldStack && Speed == Vector2.Zero && player.SceneAs<Level>().Session.Level != OccupiedRoomName)
+                if (level.Session.MapData.GetAt(Position) is LevelData data)
+                {
+                    OccupiedRoomName = data.Name;
+                }
+                if (!IsHeld && !inHeldStack &&
+                    Speed == Vector2.Zero &&
+                    !LevelNameCheck(player.Scene as Level, OccupiedRoomName))
                 {
                     //don't update stools outside of the room the player is in if they aren't moving
                     return;
@@ -425,10 +558,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         s.Position += Vector2.UnitY;
                     }
                 }
+
             }
             StoolsInStack.Clear();
         }
-
+        public override void Render()
+        {
+            base.Render();
+            if (hasValue)
+            {
+                Draw.Rect(Collider, Color.Magenta);
+            }
+        }
         public override void DebugRender(Camera camera)
         {
             Collider?.Render(camera, Collidable ? Color.Red : Color.Black);
@@ -453,10 +594,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void Removed(Scene scene)
         {
-            base.Removed(scene);
             Platform.RemoveSelf();
-            (scene as Level).Session.DoNotLoad.Remove(id);
+            if (FromMap)
+            {
+                (scene as Level).Session.DoNotLoad.Remove(id);
+                #if DEBUG
+                stoolIDs.Remove(id);
+                #endif
+            }
+            base.Removed(scene);
         }
+
         public void RestartDeadRefillImmunityTimer()
         {
             DeadRefillImmunity = true;
@@ -485,20 +633,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     boosted.Add(a);
                 }
             }
-        }
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            scene.Add(Platform = new StoolPlatform(this, PlatformPosition, (int)sprite.Width - 2, false));
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            Platform.OnDashCollide = onDashed;
-            Visible = Platform.Visible = Collidable = Platform.Collidable = Hold.Visible = Flag.State;
-            OccupiedRoomName = (scene as Level).Session.Level;
-
-            if(AlwaysPersistent) MakePersistent(scene as Level);
         }
         public override bool IsRiding(JumpThru jumpThru)
         {
@@ -562,7 +696,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void HorizontalDashExtendCheck(Player player)
         {
-            if (!IsHeld && !Raised && !coroutine.Active)
+            if (player != null && !IsHeld && !Raised && !coroutine.Active)
             {
                 bool swap = false;
                 if (player.DashAttacking && player.DashDir.X != 0 && player.DashDir.Y == 0 && player.CollideCheck(Platform) && MathHelper.Distance(player.Bottom, Platform.Top) > 4)
@@ -602,6 +736,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Platform.AddTag(Tags.Persistent);
             }
             level.Session.DoNotLoad.Add(id);
+            #if DEBUG
+            stoolIDs.Add(id);
+            #endif
         }
         public void MakeLocal(Level level)
         {
@@ -616,6 +753,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Platform.RemoveTag(Tags.Persistent);
                 }
                 level.Session.DoNotLoad.Remove(id);
+                #if DEBUG
+                stoolIDs.Remove(id);
+                #endif
             }
         }
         private IEnumerator stateRoutine(Player player)
@@ -681,10 +821,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void SwapState(Player player)
         {
-            Hold.gravityTimer = 0.3f;
-            playerBoostGracePeriod = 0;
-            coroutine.Replace(stateRoutine(player));
-            Audio.Play("event:/PianoBoy/stoolImpact", Position);
+            if (player != null)
+            {
+                Hold.gravityTimer = 0.3f;
+                playerBoostGracePeriod = 0;
+                coroutine.Replace(stateRoutine(player));
+                Audio.Play("event:/PianoBoy/stoolImpact", Position);
+            }
         }
         public void Die()
         {
@@ -709,7 +852,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float DebugTimer;
         public void RemoveLeftoverDashes(Player player)
         {
-            player.Dashes = Math.Max(0, player.Dashes - extraDashes);
+            if (player != null)
+            {
+                player.Dashes = Math.Max(0, player.Dashes - extraDashes);
+            }
         }
         private void givePlayerDashes(Player player)
         {
@@ -1002,12 +1148,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             On.Celeste.Refill.ctor_EntityData_Vector2 += OnRefillCtor;
             On.Celeste.Actor.OnGround_int += Actor_OnGround_int;
+#if DEBUG
+            On.Celeste.LevelLoader.ctor += LevelLoader_ctor;
+#endif
         }
+        private static HashSet<EntityID> stoolIDs = [];
+        private static void LevelLoader_ctor(On.Celeste.LevelLoader.orig_ctor orig, LevelLoader self, Session session, Vector2? startPosition)
+        {
+
+            if (session != null)
+            {
+                foreach (var id in stoolIDs)
+                {
+                    session.DoNotLoad.Remove(id);
+                }
+                stoolIDs.Clear();
+            }
+            orig(self, session, startPosition);
+        }
+
         [OnUnload]
         public static void Unload()
         {
             On.Celeste.Refill.ctor_EntityData_Vector2 -= OnRefillCtor;
             On.Celeste.Actor.OnGround_int -= Actor_OnGround_int;
+#if DEBUG
+            On.Celeste.LevelLoader.ctor -= LevelLoader_ctor;
+#endif
         }
         private static void OnRefillCtor(On.Celeste.Refill.orig_ctor_EntityData_Vector2 orig, Refill self, EntityData data, Vector2 offset)
         {

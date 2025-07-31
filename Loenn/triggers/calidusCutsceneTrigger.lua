@@ -13,7 +13,8 @@ calidusCutscene.placements =
             startArgs = "",
             endArgs = "",
             oncePerInstance = false,
-            oncePerSession = true
+            oncePerSession = true,
+            talker = false
         }
     },
 }

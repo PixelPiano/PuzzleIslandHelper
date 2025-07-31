@@ -182,12 +182,114 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 level.Session.SetFlag(CustomFlagOnCollected);
                 return;
             }
-            level.Add(heart = new Entity(level.LevelOffset + heartOffset));
             if (effectsAdded)
             {
-                Audio.Play(audio, heart.Position);
-                level.Flash(Color.White, drawPlayerOver: true);
+                Add(new Coroutine(routine(level)) { UseRawDeltaTime = true });
             }
+            else
+            {
+                AddHeart(level);
+            }
+        }
+        private float timeRate = 1;
+        private bool resetTimeRate;
+        private static float tiny = 0.00016666697f;
+        private bool holdTimeRate;
+        private class flash : Entity
+        {
+            public float alpha = 1;
+            public flash(float time) : base()
+            {
+                Depth = int.MinValue;
+                Tween t = Tween.Set(this, Tween.TweenMode.Oneshot, time, Ease.SineInOut, t => alpha = 1 - t.Eased, t => RemoveSelf());
+                t.UseRawDeltaTime = true;
+                Tag |= Tags.Persistent;
+            }
+            public override void Render()
+            {
+                base.Render();
+                Draw.Rect(SceneAs<Level>().Camera.Position, 320, 180, Color.Black * alpha);
+            }
+        }
+        private IEnumerator routine(Level level)
+        {
+            Player player = level.GetPlayer();
+            if (player == null) yield break;
+            player.DisableMovement();
+            player.ForceCameraUpdate = true;
+            ShaderOverlay overlay = new ShaderOverlay("collectableGet", "", false, 1, false);
+            overlay.UseRawDeltaTime = true;
+            overlay.Amplitude = 1;
+            level.Add(overlay);
+            flash f = new flash(1);
+            AddHeart(level);
+            heart.Visible = false;
+            heart.Active = false;
+            yield return null;
+            resetTimeRate = true;
+            timeRate = Engine.TimeRateB;
+            for (float i = 0; i < 1; i += Engine.RawDeltaTime * 1.2f)
+            {
+                Engine.TimeRateB = Calc.LerpClamp(timeRate, 0, Ease.SineInOut(i));
+                yield return null;
+            }
+            holdTimeRate = true;
+            yield return 1f;
+            overlay.ParamVector2("Position", (heart.Center - level.Camera.Position) / new Vector2(320, 180));
+            for (float i = 0; i < 1; i += Engine.RawDeltaTime)
+            {
+                overlay.Amplitude = Calc.Approach(overlay.Amplitude, tiny, Engine.RawDeltaTime);
+                yield return null;
+            }
+            overlay.Amplitude = tiny;
+            bool on = true;
+            for (float i = 0; i < 1; i += Engine.RawDeltaTime)
+            {
+                if (on)
+                {
+                    overlay.ParamFloat("Modifier",1);
+                }
+                else
+                {
+                    overlay.ParamFloat("Modifier",0);
+                }
+                on = !on;
+                yield return null;
+            }
+            level.Remove(overlay);
+            level.Flash(Color.White);
+            for(int i = 0; i<6; i++)
+            {
+                GravityParticle p = new GravityParticle(heart.Center + new Vector2(Calc.Random.Range(-3f, 3f),0),
+                    new Vector2(Calc.Random.Range(-20f, 20f),Calc.Random.Range(-50f, -10f)),Color.White);
+                level.Add(p);
+            }
+            heart.Visible = true;
+            heart.Active = true;
+            playSound(heart.Center);
+            holdTimeRate = false;
+            Engine.TimeRateB = timeRate;
+            timeRate = 1;
+            resetTimeRate = false;
+            player.EnableMovement();
+
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            if (resetTimeRate)
+            {
+                Engine.TimeRateB = timeRate;
+                scene.GetPlayer()?.EnableMovement();
+            }
+        }
+        private void playSound(Vector2 position)
+        {
+            Audio.Play(audio, position);
+        }
+        private void AddHeart(Level level)
+        {
+            level.Add(heart = new Entity(level.LevelOffset + heartOffset));
             heart.Add(sprite = new Sprite(GFX.Game, spriteName));
             sprite.AddLoop("idle", "", 0.08f);
             sprite.AddLoop("static", "", 1f, 0);
@@ -205,6 +307,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            if (holdTimeRate)
+            {
+                Engine.TimeRateB = 0;
+            }
             Spawned = SceneAs<Level>().Session.GetFlag(CollectableSpawnedFlag);
             Collected = SceneAs<Level>().Session.GetFlag(CollectableCollectedFlag);
             InArea = !usesBounds || CollideCheck<Player>();

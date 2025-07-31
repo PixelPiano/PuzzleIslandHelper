@@ -4,6 +4,9 @@ using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using System.Reflection;
 using Monocle;
 using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
+using System.Diagnostics;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -20,6 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static GameshowData GameshowData { get; set; }
         public static AccessData AccessData { get; set; }
         public static MazeData MazeData { get; set; }
+        public static string CalidusFreedFlag = "CalidusFreed";
         public static string MapName
         {
             get
@@ -54,6 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             context.Add<PianoMapDataProcessor>();
         }
 
+
         [OnLoadContent]
         public static void LoadCustomData()
         {
@@ -86,17 +91,37 @@ namespace Celeste.Mod.PuzzleIslandHelper
             InvokeAllWithAttribute(typeof(OnInitialize));
         }
 
-        public static void InvokeAllWithAttribute(Type attributeType)
+        public static void InvokeAllWithAttribute(Type attributeType, string logPrefix = null)
         {
+            bool usesLog = !string.IsNullOrEmpty(logPrefix);
             Type attributeType2 = attributeType;
             Type[] typesSafe = typeof(PianoModule).Assembly.GetTypesSafe();
-            for (int i = 0; i < typesSafe.Length; i++)
+            if (usesLog)
             {
-                checkType(typesSafe[i]);
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
+                for (int i = 0; i < typesSafe.Length; i++)
+                {
+                    Stopwatch localStopwatch = new Stopwatch();
+                    stopwatch.Start();
+                    checkType(typesSafe[i]);
+                    stopwatch.Stop();
+                    Logger.Info("PuzzleIslandHelper",$"{logPrefix} Type: {typesSafe[i].Name}, Time Elapsed: {localStopwatch.Elapsed}.");
+                }
+                stopwatch.Stop();
+                Logger.Info("PuzzleIslandHelper", logPrefix + " Time Elapsed: " + stopwatch.Elapsed.ToString());
             }
+            else
+            {
+                for (int i = 0; i < typesSafe.Length; i++)
+                {
+                    checkType(typesSafe[i]);
+                }
+            }
+
             void checkType(Type type)
             {
-                MethodInfo[] methods = type.GetMethods(BindingFlags.Static | BindingFlags.Public);
+                MethodInfo[] methods = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
                 foreach (MethodInfo method in methods)
                 {
                     foreach (CustomAttributeData customAttribute in method.CustomAttributes)

@@ -24,6 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         public string CutsceneID;
         private string flagID;
         public bool LockPlayerAtEnd;
+
         public CalidusCutscene(Player player = null, Calidus calidus = null, Arguments startArgs = null, Arguments endArgs = null) : base()
         {
             Player = player;
@@ -42,7 +43,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         public override void Update()
         {
             base.Update();
-            Engine.Commands.Log("I'M EXIST",Color.Magenta);
         }
         public virtual void Prepare(Level level)
         {

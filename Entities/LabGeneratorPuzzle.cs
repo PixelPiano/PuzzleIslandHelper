@@ -2,6 +2,7 @@ using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.PuzzleData;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections;
@@ -15,7 +16,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class LabGeneratorPuzzle : Entity
     {
         private Image Texture;
-        private LabGenerator generator;
         public const int BaseDepth = -13000;
         public static int PuzzlesCompleted
         {
@@ -28,7 +28,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 PianoModule.StageData.CurrentStage = value;
             }
         }
-        public FlagData Completed = new FlagData("LabGeneratorPuzzleCompleted");
+        public static FlagData Completed = new FlagData("LabGeneratorPuzzleCompleted");
+        public static FlagData Required = new FlagData("LabGeneratorPuzzleActive");
         public bool Reset;
         private CustomTalkComponent Talk;
         public LabGeneratorPuzzle(EntityData data, Vector2 offset) : base(data.Position + offset)
@@ -44,13 +45,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            generator = scene.Tracker.GetEntity<LabGenerator>();
-            Talk.Enabled = generator != null && !generator.Laser.State;
+            Talk.Enabled = Required && !Completed;
         }
         public override void Update()
         {
             base.Update();
-            Talk.Enabled = generator != null && (!generator.InSequence && !generator.Laser.State);
+            Talk.Enabled = Required && !Completed;
         }
         private void Interact(Player player)
         {
@@ -72,6 +72,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             public class Node : Entity
             {
+                public bool this[Side side]
+                {
+                    get => Sides != null && Sides.Contains(side);
+                    set => Sides?.Add(side);
+                }
                 public LabGeneratorPuzzle Parent;
                 public bool Lit;
                 public bool Lead;
@@ -128,7 +133,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 public bool Resetting;
                 public int SpecialNum;
                 public Image Number;
-
                 public Node(LabGeneratorPuzzle parent, Vector2 position, string type, Type nodeType) : base(position)
                 {
                     Parent = parent;
@@ -208,10 +212,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 public void Rotate(bool automatic = false)
                 {
-                    if (!automatic && NodeType == Type.Spin)
-                    {
-                        return;
-                    }
+                    if (!automatic && NodeType == Type.Spin) return;
                     if (NodeType != Type.Still)
                     {
                         for (int i = 0; i < Sides.Count; i++)
@@ -269,6 +270,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
 
                     base.Render();
+                }
+                public void Revert()
+                {
+                    Lit = false;
+                    Visited = false;
+                    Connections = 0;
                 }
             }
             public class Goal : Entity
@@ -630,7 +637,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 }
             }
-
+            public bool Debug;
             public const int Size = 24;
             private const float MoveDelay = 0.15f;
             private const float RotateDelay = 0.16f;
@@ -672,23 +679,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(Background = new Image(GFX.Game["objects/PuzzleIslandHelper/decisionMachine/puzzle/background"]));
                 Opacity = 0;
                 Add(new BeforeRenderHook(BeforeRender));
+                DebugComponent c = new DebugComponent(SwitchDebug, Keys.LeftControl, Keys.L)
+                {
+                    KeyCheckMode = DebugComponent.KeyCheckModes.All
+                };
+                Add(c);
             }
-            public GeneratorStage GetStage(string stageName)
+            public void SwitchDebug()
             {
-                return PianoModule.StageData.Stages.TryGetValue(stageName, out GeneratorStage stage) ? stage : null;
+                Debug = !Debug;
             }
-            public GeneratorStage GetStage(int index)
-            {
-                StageData data = PianoModule.StageData;
-                return data.Stages.TryGetValue(data.StageSequence[index], out GeneratorStage stage) ? stage : null;
-            }
-            public GeneratorStage GetCurrentStage()
-            {
-                StageData data = PianoModule.StageData;
-                return data.Stages.TryGetValue(data.StageSequence[data.CurrentStage], out GeneratorStage stage) ? stage : null;
-            }
-
-
             public override void Added(Scene scene)
             {
                 base.Added(scene);
@@ -697,7 +697,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     SavedAlpha = player.Light.Alpha;
                     Add(new Coroutine(LightAdjust(player)));
-                    player.Light.Alpha = 0;
+                    //player.Light.Alpha = 0;
                 }
 
 
@@ -726,6 +726,254 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
 
                 Add(new Coroutine(Setup()));
+            }
+            public override void Update()
+            {
+                base.Update();
+                Aba.Opacity = BackgroundOpacity;
+                Background.Color = Color.White * BackgroundOpacity;
+                if (Scene is not Level level || Resetting || Completed || Removing) return;
+                Position = level.Camera.Position;
+                if (Nodes[Battery.CatalystX, Battery.CatalystY].Lit && Nodes[Battery.CatalystX, Battery.CatalystY].Sides.Contains(Battery.Opposite))
+                {
+                    Battery.Percent += Engine.DeltaTime / Battery.FillTime;
+                }
+                else
+                {
+                    Battery.Percent = 0;
+                }
+
+                if (Battery.Percent >= 1)
+                {
+                    OnClear();
+                }
+                CheckInputs();
+                UpdateConnections();
+
+            }
+            public override void DebugRender(Camera camera)
+            {
+                base.DebugRender(camera);
+                Draw.Circle(Center, 10, Color.Red, 20);
+            }
+            public override void Removed(Scene scene)
+            {
+                Player player = scene.Tracker.GetEntity<Player>();
+                if (player != null)
+                {
+                    player.Light.Alpha = SavedAlpha;
+                }
+                foreach (Node node in Nodes)
+                {
+                    if (node is not null)
+                    {
+                        scene.Remove(node);
+                    }
+                }
+                if (Aba is not null)
+                {
+                    scene.Remove(Aba);
+                }
+                if (Battery is not null)
+                {
+                    scene.Remove(Battery);
+                }
+                base.Removed(scene);
+            }
+            private void Drawing()
+            {
+                foreach (Node node in Nodes) //DirectionCombos
+                {
+                    node.Render();
+                }
+                Battery.Render(); //Goal
+            }
+            public void BeforeRender()
+            {
+                Target.DrawToObject(Drawing, SceneAs<Level>().Camera.Matrix, true);
+            }
+            public override void Render()
+            {
+                base.Render();
+                Vector2 cam = SceneAs<Level>().Camera.Position;
+                Aba.Render();
+                Draw.SpriteBatch.Draw(Target, cam, Color.White * Opacity);
+                if (Debug)
+                {
+                    Draw.Rect(cam, 8, 8, Color.Red);
+                }
+            }
+            private IEnumerator SetupNextStage(GeneratorStage next)
+            {
+                Resetting = true;
+                for (float i = 1; i > 0; i -= Engine.DeltaTime)
+                {
+                    Opacity = i;
+                    yield return null;
+                }
+                Opacity = 0;
+                Level level = SceneAs<Level>();
+                foreach (Node node in Nodes)
+                {
+                    level.Remove(node);
+                }
+                level.Remove(Battery);
+                yield return null;
+
+                CreateNodesFromStageData(next);
+                yield return null;
+                Nodes[0, 0].Selected = true;
+                for (float i = 0; i < 1; i += Engine.DeltaTime)
+                {
+                    Opacity = i;
+                    yield return null;
+                }
+                Opacity = 1;
+                Resetting = false;
+            }
+            private void OnClear()
+            {
+                Battery.Percent = 1;
+                if (Completed || Resetting)
+                {
+                    return;
+                }
+                Aba.Increment();
+                if (!PianoModule.StageData.Completed && PianoModule.StageData.GetNextStage(out GeneratorStage stage))
+                {
+                    Add(new Coroutine(SetupNextStage(stage)));
+                }
+                else
+                {
+                    Completed = true;
+                    Add(new Coroutine(EndRoutine(true)));
+                }
+            }
+
+            private void CheckInputs()
+            {
+                if (Loading) return;
+                if (!Debug && Input.Jump && !Resetting)
+                {
+                    ResetPuzzle(false);
+                    return;
+                }
+                MoveTimer += Engine.DeltaTime;
+                RotateTimer += Engine.DeltaTime;
+                int moveX = Input.MoveX.Value;
+                int moveY = Input.MoveY.Value;
+                bool dashed = Input.DashPressed;
+                bool jumped = Input.Jump;
+                if (dashed || jumped || moveX is not 0 || moveY is not 0)
+                {
+                    if (MoveTimer > MoveDelay)
+                    {
+                        MoveTimer = 0;
+                        if (moveX is not 0 || moveY is not 0)
+                        {
+                            CurrentCol = Calc.Clamp(CurrentCol + Input.MoveX.Value, 0, Columns - 1);
+                            CurrentRow = Calc.Clamp(CurrentRow + Input.MoveY.Value, 0, Rows - 1);
+                        }
+                    }
+                    for (int i = 0; i < Columns; i++)
+                    {
+                        for (int j = 0; j < Rows; j++)
+                        {
+                            bool selected = i == CurrentCol && j == CurrentRow;
+                            Nodes[i, j].Selected = selected;
+                            if (selected)
+                            {
+                                if (dashed && RotateTimer > RotateDelay)
+                                {
+                                    RotateTimer = 0;
+                                    Nodes[i, j].Rotate(1);
+                                    if (!Debug)
+                                    {
+                                        GraceMoves = InDanger ? GraceMoves + 1 : 0;
+                                        if (GraceMoves >= 3) ResetPuzzle(true);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            private void UpdateConnections()
+            {
+                //Clear lit & visited Flag of all lineColors
+                for (int x = 0; x < Columns; x++)
+                {
+                    for (int y = 0; y < Rows; y++)
+                    {
+                        Nodes[x, y].Revert();
+                    }
+                }
+                if (Resetting) return;
+                //Run a DFS (depth first search)
+                Stack<(int, int)> dfsStack = new Stack<(int, int)>();
+                dfsStack.Push((0, 0));
+                InDanger = false;
+                while (dfsStack.Count > 0)
+                {
+                    (int, int) nodeCoords = dfsStack.Pop();
+                    int x = nodeCoords.Item1, y = nodeCoords.Item2;
+
+                    //Check if this node has already been visited
+                    if (Nodes[x, y].Visited) continue;
+
+                    Nodes[x, y].Visited = Nodes[x, y].Lit = true;
+
+                    //Traverse all connections and push them onto the stack
+                    if (x > 0 && Nodes[x, y][Side.Left] && Nodes[x - 1, y][Side.Right])
+                    {
+                        Nodes[x, y].Connections++;
+                        if (Nodes[x - 1, y].NodeType == Node.Type.Danger)
+                        {
+                            InDanger = true;
+                        }
+                        dfsStack.Push((x - 1, y));
+                    }
+                    if (x < Columns - 1 && Nodes[x, y][Side.Right] && Nodes[x + 1, y][Side.Left])
+                    {
+                        Nodes[x, y].Connections++;
+                        if (Nodes[x + 1, y].NodeType == Node.Type.Danger)
+                        {
+                            InDanger = true;
+                        }
+                        dfsStack.Push((x + 1, y));
+                    }
+                    if (y > 0 && Nodes[x, y][Side.Up] && Nodes[x, y - 1][Side.Down])
+                    {
+                        Nodes[x, y].Connections++;
+                        if (Nodes[x, y - 1].NodeType == Node.Type.Danger)
+                        {
+                            InDanger = true;
+                        }
+                        dfsStack.Push((x, y - 1));
+                    }
+                    if (y < Rows - 1 && Nodes[x, y][Side.Down] && Nodes[x, y + 1][Side.Up])
+                    {
+                        Nodes[x, y].Connections++;
+                        if (Nodes[x, y + 1].NodeType == Node.Type.Danger)
+                        {
+                            InDanger = true;
+                        }
+                        dfsStack.Push((x, y + 1));
+                    }
+                }
+            }
+            private void ResetPuzzle(bool random)
+            {
+                GraceMoves = 0;
+                Resetting = true;
+                if (random)
+                {
+                    Add(new Coroutine(RandomReset()));
+                }
+                else
+                {
+                    Add(new Coroutine(EndRoutine(false)));
+                }
             }
             private void CreateNodesFromStageData(GeneratorStage data)
             {
@@ -777,6 +1025,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 GoalPosition = position - offset;
             }
 
+            private void CreateRandomizedNodes(Scene scene)
+            {
+                for (int i = 0; i < Columns; i++)
+                {
+                    for (int j = 0; j < Rows; j++)
+                    {
+                        scene.Add(Nodes[i, j] = CreateNode("r", i, j, -1));
+                    }
+                }
+                Nodes[0, 0].Lead = true;
+                GoalPosition = BottomRightNode().Position + new Vector2(-Size / 3, Size / 2 + NodeSpace);
+                scene.Add(Battery = new Goal(Parent, Columns - 1, Rows - 1, GoalPosition, Side.Up));
+
+            }
             private Node CreateNode(string type, int col, int row, int rotations, Node.Type nodeType = Node.Type.Default)
             {
                 string[] types = new string[] { "t", "l", "c" };
@@ -809,233 +1071,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return n;
 
             }
-            private void CreateRandomizedNodes(Scene scene)
-            {
-                for (int i = 0; i < Columns; i++)
-                {
-                    for (int j = 0; j < Rows; j++)
-                    {
-                        scene.Add(Nodes[i, j] = CreateNode("r", i, j, -1));
-                    }
-                }
-                Nodes[0, 0].Lead = true;
-                GoalPosition = BottomRightNode().Position + new Vector2(-Size / 3, Size / 2 + NodeSpace);
-                scene.Add(Battery = new Goal(Parent, Columns - 1, Rows - 1, GoalPosition, Side.Up));
-
-            }
             private Node BottomRightNode()
             {
                 return Nodes[Nodes.GetLength(0) - 1, Nodes.GetLength(1) - 1];
             }
-            public override void Update()
-            {
-                base.Update();
-                Aba.Opacity = BackgroundOpacity;
-                Background.Color = Color.White * BackgroundOpacity;
-                if (Scene is not Level level || Resetting || Completed || Removing) return;
-                Position = level.Camera.Position;
-                if (Nodes[Battery.CatalystX, Battery.CatalystY].Lit && Nodes[Battery.CatalystX, Battery.CatalystY].Sides.Contains(Battery.Opposite))
-                {
-                    Battery.Percent += Engine.DeltaTime / Battery.FillTime;
-                }
-                else
-                {
-                    Battery.Percent = 0;
-                }
-
-                if (Battery.Percent >= 1)
-                {
-                    OnClear();
-                }
-                CheckInputs();
-                UpdateConnections();
-
-            }
-            public override void DebugRender(Camera camera)
-            {
-                base.DebugRender(camera);
-                Draw.Circle(Center, 10, Color.Red, 20);
-            }
-
-            private IEnumerator SetupNextStage(GeneratorStage next)
-            {
-                Resetting = true;
-                for (float i = 1; i > 0; i -= Engine.DeltaTime)
-                {
-                    Opacity = i;
-                    yield return null;
-                }
-                Opacity = 0;
-                Level level = SceneAs<Level>();
-                foreach (Node node in Nodes)
-                {
-                    level.Remove(node);
-                }
-                level.Remove(Battery);
-                yield return null;
-
-                CreateNodesFromStageData(next);
-                yield return null;
-                Nodes[0, 0].Selected = true;
-                for (float i = 0; i < 1; i += Engine.DeltaTime)
-                {
-                    Opacity = i;
-                    yield return null;
-                }
-                Opacity = 1;
-                Resetting = false;
-            }
-            private void OnClear()
-            {
-                Battery.Percent = 1;
-                if (Completed || Resetting)
-                {
-                    return;
-                }
-                Aba.Increment();
-                if (!PianoModule.StageData.Completed && PianoModule.StageData.GetNextStage(out GeneratorStage stage))
-                {
-                    Add(new Coroutine(SetupNextStage(stage)));
-                }
-                else
-                {
-                    Completed = true;
-                    Add(new Coroutine(EndRoutine(true)));
-                }
-            }
-
-            private void CheckInputs()
-            {
-                if (Loading)
-                {
-                    return;
-                }
-                if (Input.Jump && !Resetting)
-                {
-                    ResetPuzzle(false);
-                    return;
-                }
-                MoveTimer += Engine.DeltaTime;
-                RotateTimer += Engine.DeltaTime;
-                if (Input.Jump || Input.Dash || Input.MoveX.Value != 0 || Input.MoveY.Value != 0)
-                {
-                    if (MoveTimer > MoveDelay)
-                    {
-                        MoveTimer = 0;
-                        if (Input.MoveX.Value != 0 || Input.MoveY.Value != 0)
-                        {
-                            CurrentCol = Calc.Clamp(CurrentCol + Input.MoveX.Value, 0, Columns - 1);
-                            CurrentRow = Calc.Clamp(CurrentRow + Input.MoveY.Value, 0, Rows - 1);
-                        }
-
-                    }
-                    UpdateSelected();
-                }
-            }
-            private void ResetPuzzle(bool random)
-            {
-                GraceMoves = 0;
-                Resetting = true;
-                if (random)
-                {
-                    Add(new Coroutine(RandomReset()));
-                }
-                else
-                {
-                    Add(new Coroutine(EndRoutine(false)));
-                }
-            }
-            private void UpdateSelected()
-            {
-                for (int i = 0; i < Columns; i++)
-                {
-                    for (int j = 0; j < Rows; j++)
-                    {
-                        bool selected = i == CurrentCol && j == CurrentRow;
-                        Nodes[i, j].Selected = selected;
-                        if (selected)
-                        {
-                            if (Input.Dash && RotateTimer > RotateDelay)
-                            {
-                                RotateTimer = 0;
-                                Nodes[i, j].Rotate(1);
-                                GraceMoves = InDanger ? GraceMoves + 1 : 0;
-                                if (GraceMoves >= 3) ResetPuzzle(true);
-                            }
-                        }
-                    }
-                }
-            }
-            private void UpdateConnections()
-            {//Clear lit & visited Flag of all lineColors
-                bool hitDanger = false;
-                for (int x = 0; x < Columns; x++)
-                {
-                    for (int y = 0; y < Rows; y++)
-                    {
-                        Nodes[x, y].Lit = false;
-                        Nodes[x, y].Visited = false;
-                        Nodes[x, y].Connections = 0;
-                    }
-                }
-                if (Resetting)
-                {
-                    return;
-                }
-                //Run a DFS (depth first search)
-                Stack<(int, int)> dfsStack = new Stack<(int, int)>();
-                dfsStack.Push((0, 0));
-                while (dfsStack.Count > 0)
-                {
-                    (int, int) nodeCoords = dfsStack.Pop();
-                    int x = nodeCoords.Item1, y = nodeCoords.Item2;
-
-                    //Check if this node has already been visited
-                    if (Nodes[x, y].Visited) continue;
-                    Nodes[x, y].Visited = true;
-                    Nodes[x, y].Lit = true;
-
-                    //Traverse all connections and push them onto the stack
-                    if (x > 0 && Nodes[x, y].Sides.Contains(Side.Left) && Nodes[x - 1, y].Sides.Contains(Side.Right))
-                    {
-                        Nodes[x, y].Connections++;
-                        if (Nodes[x - 1, y].NodeType == Node.Type.Danger)
-                        {
-                            hitDanger = true;
-                        }
-                        dfsStack.Push((x - 1, y));
-                    }
-                    if (x < Columns - 1 && Nodes[x, y].Sides.Contains(Side.Right) && Nodes[x + 1, y].Sides.Contains(Side.Left))
-                    {
-                        Nodes[x, y].Connections++;
-                        if (Nodes[x + 1, y].NodeType == Node.Type.Danger)
-                        {
-                            hitDanger = true;
-                        }
-                        dfsStack.Push((x + 1, y));
-                    }
-                    if (y > 0 && Nodes[x, y].Sides.Contains(Side.Up) && Nodes[x, y - 1].Sides.Contains(Side.Down))
-                    {
-                        Nodes[x, y].Connections++;
-                        if (Nodes[x, y - 1].NodeType == Node.Type.Danger)
-                        {
-                            hitDanger = true;
-                        }
-                        dfsStack.Push((x, y - 1));
-                    }
-                    if (y < Rows - 1 && Nodes[x, y].Sides.Contains(Side.Down) && Nodes[x, y + 1].Sides.Contains(Side.Up))
-                    {
-                        Nodes[x, y].Connections++;
-                        if (Nodes[x, y + 1].NodeType == Node.Type.Danger)
-                        {
-                            hitDanger = true;
-                        }
-                        dfsStack.Push((x, y + 1));
-                    }
-                    InDanger = hitDanger;
-                }
-            }
-
             #region Routines
             private IEnumerator EndRoutine(bool complete)
             {
@@ -1058,14 +1097,63 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 BackgroundOpacity = 0;
 
-                Parent.Completed.State = complete;
+                LabGeneratorPuzzle.Completed.State = complete;
+
                 if (!complete)
                 {
                     Parent.Reset = true;
                 }
+                else
+                {
+                    Scene.Add(new powerCutscene());
+                }
                 RemoveSelf();
             }
-
+            private class powerCutscene : CutsceneEntity
+            {
+                public override void OnBegin(Level level)
+                {
+                    Player player = level.GetPlayer();
+                    if (player != null)
+                    {
+                        player.DisableMovement();
+                        player.StateMachine.Locked = true;
+                    }
+                    Add(new Coroutine(routine()));
+                }
+                private IEnumerator routine()
+                {
+                    float offTime = 0.5f;
+                    yield return 1;
+                    for (int i = 0; i < 6; i++)
+                    {
+                        PianoModule.Session.RestoredPower = true;
+                        yield return Engine.DeltaTime * 2;
+                        PianoModule.Session.RestoredPower = false;
+                        yield return offTime;
+                        offTime *= 0.5f;
+                    }
+                    EndCutscene(Level);
+                }
+                public override void OnEnd(Level level)
+                {
+                    CleanUp(level);
+                }
+                public override void Removed(Scene scene)
+                {
+                    base.Removed(scene);
+                    CleanUp(scene);
+                }
+                public void CleanUp(Scene scene)
+                {
+                    if (scene.GetPlayer() is Player player)
+                    {
+                        player.StateMachine.Locked = false;
+                        player.EnableMovement();
+                    }
+                    PianoModule.Session.RestoredPower = true;
+                }
+            }
             private IEnumerator Setup()
             {
                 Loading = true;
@@ -1149,53 +1237,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 for (float i = 0; i < 1; i += Engine.DeltaTime)
                 {
-                    player.Light.Alpha = Calc.LerpClamp(1, 0, i);
+                    player.Light.Alpha = Calc.LerpClamp(SavedAlpha, 0, i);
                     yield return null;
                 }
                 yield return null;
             }
             #endregion
-            public override void Removed(Scene scene)
+            public GeneratorStage GetStage(string stageName)
             {
-                Player player = scene.Tracker.GetEntity<Player>();
-                if (player != null)
-                {
-                    player.Light.Alpha = SavedAlpha;
-                }
-                foreach (Node node in Nodes)
-                {
-                    if (node is not null)
-                    {
-                        scene.Remove(node);
-                    }
-                }
-                if (Aba is not null)
-                {
-                    scene.Remove(Aba);
-                }
-                if (Battery is not null)
-                {
-                    scene.Remove(Battery);
-                }
-                base.Removed(scene);
+                return PianoModule.StageData.Stages.TryGetValue(stageName, out GeneratorStage stage) ? stage : null;
             }
-            private void Drawing()
+            public GeneratorStage GetStage(int index)
             {
-                foreach (Node node in Nodes) //DirectionCombos
-                {
-                    node.Render();
-                }
-                Battery.Render(); //Goal
+                StageData data = PianoModule.StageData;
+                return data.Stages.TryGetValue(data.StageSequence[index], out GeneratorStage stage) ? stage : null;
             }
-            public void BeforeRender()
+            public GeneratorStage GetCurrentStage()
             {
-                Target.DrawToObject(Drawing, SceneAs<Level>().Camera.Matrix, true);
-            }
-            public override void Render()
-            {
-                base.Render();
-                Aba.Render();
-                Draw.SpriteBatch.Draw(Target, SceneAs<Level>().Camera.Position, Color.White * Opacity);
+                StageData data = PianoModule.StageData;
+                return data.Stages.TryGetValue(data.StageSequence[data.CurrentStage], out GeneratorStage stage) ? stage : null;
             }
         }
     }

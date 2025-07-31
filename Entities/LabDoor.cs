@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public int openRate = 7;
         public int openSpeed = 30;
         public int closeSpeed = 30;
-        private int height = 48;
+        private readonly int height = 48;
         private Player player;
         public enum States
         {
@@ -30,13 +30,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Collider Detect;
         private bool dependsOnLabPower;
         private SoundSource sfx;
-        public bool PowerState
-        {
-            get
-            {
-                return !dependsOnLabPower || PianoModule.Session.RestoredPower;
-            }
-        }
+        public bool PowerState => !dependsOnLabPower || PianoModule.Session.RestoredPower;
         private bool mute;
         public LabDoor(EntityData data, Vector2 offset)
             : base(data.Position + offset, 8, 48, false)
@@ -45,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             automatic = data.Bool("automatic");
             flag = data.Attr("flag");
             State = data.Bool("startState") ? States.Open : States.Closed;
-            Collider = new Hitbox(8, 48, 0, 0);
+            Collider = new Hitbox(6, 48, 2, 0);
             range = data.Float("range") * 8;
             Depth = -8500;
             Add(new LightOcclude());
@@ -79,7 +73,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 InstantClose();
             }
-            else if(!automatic && (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag) || State == States.Open))
+            else if (!automatic && (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag) || State == States.Open))
             {
                 InstantOpen();
             }
@@ -154,17 +148,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void InstantClose()
         {
-            Collider.Height = height;
-            closeSpeed = 30;
-            doorSprite.Play("closed");
-            State = States.Closed;
+            if (State != States.Closed)
+            {
+                Collider.Height = height;
+                closeSpeed = 30;
+                doorSprite.Play("closed");
+                State = States.Closed;
+
+            }
         }
         public void InstantOpen()
         {
-            Collider.Height = 0;
-            openSpeed = 30;
-            doorSprite.Play("open");
-            State = States.Open;
+            if (State != States.Open)
+            {
+                Collider.Height = 0;
+                openSpeed = 30;
+                doorSprite.Play("open");
+                State = States.Open;
+            }
         }
     }
 }

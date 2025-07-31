@@ -90,12 +90,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             }
         }
         [OnLoad]
-        internal static void Load()
+        public static void Load()
         {
             On.Celeste.LevelLoader.ctor += LevelLoader_ctor;
         }
         [OnUnload]
-        internal static void Unload()
+        public static void Unload()
         {
             On.Celeste.LevelLoader.ctor -= LevelLoader_ctor;
         }

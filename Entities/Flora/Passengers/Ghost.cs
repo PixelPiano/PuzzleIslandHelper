@@ -1,6 +1,7 @@
 ﻿using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System.Collections;
 
@@ -21,7 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public Ghost(Vector2 position) : this(position, 16, 16, null, Vector2.One, new(-1, 1), 1f)
         {
-            Add(new DebugComponent(Microsoft.Xna.Framework.Input.Keys.O, GlitchCalidus, true));
+            Add(new DebugComponent(GlitchCalidus, Keys.O));
         }
         public Ghost(Vector2 position, float width, float height, string cutscene, Vector2 scale, Vector2 breathDirection, float breathDuration) : base(position, width, height, cutscene, null, scale, breathDirection, breathDuration)
         {

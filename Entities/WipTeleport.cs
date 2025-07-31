@@ -58,8 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (Teleport.Flag.GetFlag())
                 {
                     Teleport.FlagOnUse.SetFlag(true);
-                    AddTag(Tags.Persistent);
-                    AddTag(Tags.TransitionUpdate);
+                    AddTag(Tags.Global);
                     yield return player.DummyWalkTo(Teleport.CenterX);
                     yield return 0.5f;
                     yield return PianoUtils.Lerp(Ease.CubeIn, 0.9f, f => Teleport.Alpha = f);
@@ -76,7 +75,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public void InstantTeleport(Scene scene)
             {
-                PianoUtils.InstantTeleportToMarker(scene, Teleport.Room, Teleport.MarkerID);
+                PianoUtils.InstantTeleportToMarker(scene, Teleport.Room, Teleport.MarkerID, teleportEnd);
+            }
+            private void teleportEnd(Level level, Player player)
+            {
+                level.Camera.Position = player.CameraTarget;
             }
             public override void OnEnd(Level level)
             {

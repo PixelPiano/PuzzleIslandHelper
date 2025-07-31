@@ -54,7 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         {
             yield return 0.8f;
             if (Level.Tracker.GetEntity<Calidus>() is not Calidus c || Level.Tracker.GetEntity<WarpCapsuleAlpha>() is not WarpCapsuleAlpha w) yield break;
-            Vector2 pos = w.Input.TopLeft + Vector2.One * 8;
+            Vector2 pos = w.InputMachine.TopLeft + Vector2.One * 8;
             Vector2 from = c.BottomRight;
             yield return PianoUtils.LerpYoyo(Ease.Linear, 0.1f, f => c.BottomRight = Vector2.Lerp(from, pos, f), delegate {/*todo: play sound of calidus ramming into screen*/});
         }

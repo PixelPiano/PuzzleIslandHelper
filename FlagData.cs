@@ -10,19 +10,25 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public string Flag = "";
         public bool Inverted;
         public bool Ignore;
+        public bool FalseIfEmpty;
+        public bool? ForcedValue;
         public readonly bool Empty => string.IsNullOrEmpty(Flag);
         public readonly bool State
         {
-            get => Ignore || Empty ? !Inverted : Engine.Scene is Level level && level.Session.GetFlag(Flag) != Inverted;
+            get => GetState(Engine.Scene);
             set => Flag.SetFlag(value);
+        }
+        public void SetState(bool value)
+        {
+            State = value;
         }
         public FlagData(string flag)
         {
-            if (flag != null)
+            if (!string.IsNullOrEmpty(flag))
             {
-                if (flag.Length > 1 && flag[0] == '!')
+                if (flag.StartsWith('!'))
                 {
-                    Inverted = true;
+                    Inverted = !Inverted;
                     Flag = flag[1..];
                 }
                 else
@@ -31,20 +37,22 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 }
             }
         }
-        public FlagData(string flag, bool inverted)
+        public FlagData(string flag, bool inverted) : this(flag)
         {
-            Flag = flag;
             Inverted = inverted;
         }
-        public FlagData(string flag, bool inverted, bool ignore)
+        public FlagData(string flag, bool inverted, bool ignore) : this(flag, inverted)
         {
-            Flag = flag;
-            Inverted = inverted;
             Ignore = ignore;
         }
-        public readonly bool GetState(Scene scene)
+        public override string ToString()
         {
-            return Ignore || Empty ? !Inverted : (scene as Level).Session.GetFlag(Flag) != Inverted;
+            return "{Flag:" + Flag + "=" + State + "}";
+        }
+        public readonly bool GetState(Scene scene) => scene != null && scene is Level level && GetState(level);
+        public readonly bool GetState(Level scene)
+        {
+            return ForcedValue ?? (Ignore || Empty ? !FalseIfEmpty && !Inverted : scene.Session.GetFlag(Flag) != Inverted);
         }
     }
 }

@@ -114,7 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             };
         public static WarpRune Default;
         public string ID;
-        public List<(int, int)> Segments = new();
+        public List<(int, int)> Segments = [];
         [Command("dr", "s")]
         public static void WriteDefaultRunes()
         {
@@ -186,13 +186,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public override string ToString()
         {
-            if(Segments == null || Segments.Count == 0) return "{}";
-            return "{" + string.Join(' ', Segments.Select(item => item.Item1.ToString() + item.Item2.ToString())) + "}";
+            return Segments.Count == 0
+                ? "{}"
+                : "{" + string.Join(' ', Segments.Select(item => item.Item1.ToString() + item.Item2.ToString())) + "}";
         }
-        public bool Match(WarpRune rune)
+        public bool Match(WarpRune rune, bool log = false)
         {
-            if(rune == null) return false;
-            return rune.ToString() == ToString();
+            if (rune == null)
+            {
+                if (log) Console.WriteLine("AAA Rune was null!");
+                return false;
+            }
+            string s = rune.ToString();
+            string ss = ToString();
+            if (log)
+            {
+                Console.WriteLine("AAA First Rune: " + s);
+                Console.WriteLine("AAA Second Rune: " + ss);
+            }
+            if (s == ss)
+            {
+                if(log) Console.WriteLine("AAA Runes match!");
+                return true;
+            }
+            if(log) Console.WriteLine("AAA Runes do not match!");
+            return false;
         }
         [OnUnload]
         public static void Unload()

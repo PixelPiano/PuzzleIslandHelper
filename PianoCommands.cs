@@ -10,6 +10,8 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.PuzzleIslandHelper.Helpers;
 using Celeste.Mod.PuzzleIslandHelper.Loaders;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 using MonoMod.Utils;
@@ -20,8 +22,47 @@ using static Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities.Playe
 
 public class PianoCommands
 {
+    [Command("tile_image", "")]
+    public static void GenerateTileImage(string tile, int tilesX, int tilesY, string name)
+    {
+        TileGrid grid = GFX.FGAutotiler.GenerateBox(tile[0], tilesX, tilesY).TileGrid;
+        VirtualRenderTarget target = VirtualContent.CreateRenderTarget("temptarget", tilesX * 8, tilesY * 8);
+        Engine.Scene.Add(new renderEntity(grid, target, name));
+    }
+    private class renderEntity : Entity
+    {
+        public TileGrid grid;
+        public VirtualRenderTarget target;
+        private bool rendered;
+        private bool createdFile;
+        private string name;
+        public renderEntity(TileGrid grid, VirtualRenderTarget target, string name)
+        {
+            this.name = name;
+            this.grid = grid;
+            Add(grid);
+            this.target = target;
+            Add(new BeforeRenderHook(() =>
+            {
+                target.SetAsTarget();
+                Draw.SpriteBatch.Begin();
+                Color color = Color.White;
+                for (int i = 0; i < grid.TilesX; i++)
+                {
+                    for (int j = 0; j < grid.TilesY; j++)
+                    {
+                        grid.Tiles[i, j]?.Draw(new Vector2(i * grid.TileWidth, j * grid.TileHeight), Vector2.Zero, color);
+                    }
+                }
+                Draw.SpriteBatch.End();
+                PianoUtils.SaveTargetAsPng((RenderTarget2D)target, "Screenshots/TileGrids/" + name, 0, 0, grid.TilesX * 8, grid.TilesY * 8);
+                target.Dispose();
+                RemoveSelf();
+            }));
+        }
+    }
 
-    [Command("flaglist","")]
+    [Command("flaglist", "")]
     public static void flaglist()
     {
         string flags = "hello,goodbye,,corrent, ,incorrent";
@@ -35,13 +76,13 @@ public class PianoCommands
         {
             Engine.Commands.Log("No flag provided", Color.Red);
         }
-        else if(Engine.Scene is not Level level)
+        else if (Engine.Scene is not Level level)
         {
-            Engine.Commands.Log("Current Scene is not a level",Color.Red);
+            Engine.Commands.Log("Current Scene is not a level", Color.Red);
         }
         else
         {
-            Engine.Commands.Log(level.Session.GetFlag(flag),Color.Lime);
+            Engine.Commands.Log(level.Session.GetFlag(flag), Color.Lime);
         }
     }
     [Command("dummy", "dummies the player")]
@@ -407,16 +448,13 @@ public class PianoCommands
     {
         if (Engine.Scene is Level level)
         {
-            if (level.Tracker.GetEntity<LabGeneratorPuzzle>() is var puzzle && level.Tracker.GetEntity<LabGenerator>() is var machine)
-            {
-                puzzle.Completed.State = state;
-                machine.Laser.State = state;
-            }
+            //LabGeneratorPuzzle.Completed.State = state;
+            //LabGenerator.Laser.State = state;
         }
         if (!state)
         {
-            LabGeneratorPuzzle.PuzzlesCompleted = 0;
-            PianoModule.StageData.Reset();
+            //LabGeneratorPuzzle.PuzzlesCompleted = 0;
+            //PianoModule.StageData.Reset();
         }
     }
     [Command("labpower", "Sets the power state of the lab in Puzzle Island")]

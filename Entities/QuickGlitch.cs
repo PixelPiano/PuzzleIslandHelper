@@ -25,12 +25,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public float Width;
             public float Height;
             private Rectangle Bounds;
-            public Color Color;
-            public Block(Vector2 position, float width, float height, Color color)
+            public Color Color = Color.White;
+            public Block(Vector2 position, float width, float height, Color? color = null)
             {
                 origPosition = Position = position;
                 Bounds = new Rectangle((int)position.X, (int)position.Y, (int)width, (int)height);
-                Color = color;
+                Color = color ?? Color.White;
             }
             public void Update()
             {

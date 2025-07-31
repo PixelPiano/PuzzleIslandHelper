@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using static MonoMod.InlineRT.MonoModRule;
 
 // PuzzleIslandHelper.LabDoor
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -15,71 +16,141 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class PowerLine : Entity
     {
-        private FlagData flagData;
+        private FlagList flagData;
         private bool prevFlagState;
-        private Vector2[] nodes;
-        private SnakeLine line;
-        private float lineLength;
-        private int lineSpeed;
+        public List<Vector2> Nodes;
+        public SnakeLine Line;
+        public float Length;
+        public int Speed;
+        public Color LineColorA
+        {
+            get => lineColorA;
+            set
+            {
+                lineColorA = value;
+                Line.ColorA = value;
+            }
+        }
+        public Color LineColorB
+        {
+            get => lineColorB;
+            set
+            {
+                lineColorB = value;
+                Line.ColorB = value;
+            }
+        }
+        public Color AltColorA
+        {
+            get => altA;
+            set
+            {
+                altA = value;
+                Line.AltColorA = value;
+            }
+        }
+        public Color AltColorB
+        {
+            get => altB;
+            set
+            {
+                altB = value;
+                Line.AltColorB = value;
+            }
+        }
         private Color lineColorA;
         private Color lineColorB;
+        private Color altA, altB;
+        private enum flagModes
+        {
+            Hide,
+            AlternateColor
+        }
+        private flagModes flagMode;
         private float lineStartFade;
         private float lineEndFade;
         private Tween lineTween;
-        private float stateChangeDuration = 1;
-        private List<Image> images = [];
-        private bool usesTextures;
-        private string texturePath;
-        public Model3D Model;
-        public PowerLine(EntityData data, Vector2 offset) : base(data.Position + offset)
+        private float tweenDuration = 1;
+        private bool connectEnds;
+        private bool setAllFlagsOnStateChange;
+        public float AlphaA = 1, AlphaB = 0;
+        public bool Backwards;
+        public bool ConnectEnds
         {
-            flagData = data.Flag("flag", "inverted");
-            nodes = data.NodesWithPosition(offset - Position);
-            Depth = data.Int("depth", 2);
-            lineStartFade = data.Float("lineStartFade", 10);
-            lineEndFade = data.Float("lineEndFade", 25);
-            lineLength = data.Float("lineLength", 50);
-            lineSpeed = data.Int("lineSpeed", 1);
-            lineColorA = data.HexColor("lineColorA", Color.Green);
-            lineColorB = data.HexColor("lineColorB", Color.Transparent);
-            stateChangeDuration = data.Float("stateChangeDuration", 1);
-            texturePath = data.Attr("texturePath");
-            usesTextures = !string.IsNullOrEmpty(texturePath) && GFX.Game.Has(texturePath);
-            removeRedundantNodes();
-            if (data.Bool("backwards"))
+            get => connectEnds;
+            set
             {
-                nodes = [.. nodes.Reverse()];
+                if (Nodes != null)
+                {
+                    if (!connectEnds && value)
+                    {
+                        Nodes.Add(Vector2.Zero);
+                    }
+                    else if (connectEnds && !value && Nodes.Count > 1)
+                    {
+                        Nodes.RemoveAt(Nodes.Count - 1);
+                    }
+                }
+                connectEnds = value;
             }
-            /*            if (usesTextures)
-                        {
-                            createTextures();
-                        }*/
-            Add(line = new SnakeLine(Vector2.Zero, nodes, 0, lineLength, lineStartFade, lineEndFade, 0, lineColorA, lineColorB)
-            {
-                Alpha = 0,
-                Active = false,
-                Visible = false,
-                WrapAround = true,
-                Size = 3
-            });
-            AddTag(Tags.TransitionUpdate);
+        }
+        public float Offset;
+        public PowerLine(Vector2 position, Vector2[] nodes, int depth = 2, string flag = "", bool invertFlag = false, float lineStartFade = 10, float lineEndFade = 25, float length = 50, int speed = 1,
+            Color colorA = default, Color colorB = default, float alphaA = 1, float alphaB = 0, bool backwards = false, float offset = 0, bool connectEnds = false) : base(position)
+        {
+            flagData = new FlagList(flag, invertFlag);
+            Nodes = [.. nodes];
+            Depth = depth;
+            this.lineStartFade = lineStartFade;
+            this.lineEndFade = lineEndFade;
+            Length = length;
+            Speed = speed;
+            lineColorA = colorA;
+            lineColorB = colorB;
+            AlphaA = alphaA;
+            AlphaB = alphaB;
+            Backwards = backwards;
+            Offset = offset;
+            Collider = new Hitbox(4, 4);
+            Tag |= Tags.TransitionUpdate;
+            removeRedundantNodes();
+            ConnectEnds = connectEnds;
+        }
+        public PowerLine(EntityData data, Vector2 offset) :
+            this(data.Position + offset, data.NodesWithPosition(offset - (data.Position + offset)), data.Int("depth", 2),
+                data.Attr("flags"), data.Bool("invertFlag"), data.Float("startFade", 10), data.Float("endFade", 25),
+                data.Float("length", 50), data.Int("speed", 1), data.HexColor("colorA"), data.HexColor("colorB"),
+                data.Float("alphaA"), data.Float("alphaB"), data.Bool("backwards"), data.Float("offset"), data.Bool("connectEnds"))
+        {
+            flagMode = data.Enum<flagModes>("flagMode");
+            setAllFlagsOnStateChange = data.Bool("changeFlags");
+            altA = data.HexColor("altColorA");
+            altB = data.HexColor("altColorB");
+            tweenDuration = data.Float("tweenDuration", 1);
+        }
+        public void Reverse()
+        {
+            Nodes.Reverse();
         }
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
         }
-        private void createTextures()
-        {
-            images = [.. SnakeTexture.Create(GFX.Game[texturePath], nodes)];
-            Add([.. images]);
-        }
         public override void Awake(Scene scene)
         {
-            if (nodes.Length < 2)
+            if (Nodes.Count < 2)
             {
                 RemoveSelf();
                 return;
             }
+            Add(Line = new SnakeLine(Vector2.Zero, Nodes, Offset, Length, lineStartFade, lineEndFade, 0, lineColorA, lineColorB, altA, altB)
+            {
+                WrapAround = true,
+                Size = 3,
+                Alpha = 1,
+                ColorAAlpha = AlphaA,
+                ColorBAlpha = AlphaB
+            });
             prevFlagState = flagData.State;
             if (prevFlagState)
             {
@@ -99,42 +170,51 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (state)
                 {
-                    Activate(stateChangeDuration <= Engine.DeltaTime);
+                    Activate(tweenDuration <= Engine.DeltaTime);
                 }
                 else
                 {
-                    Deactivate(stateChangeDuration <= Engine.DeltaTime);
+                    Deactivate(tweenDuration <= Engine.DeltaTime);
                 }
             }
-            prevFlagState = flagData.State;
+            prevFlagState = state;
         }
 
         public void SetFlagState(bool value)
         {
-            flagData.State = value;
+            if (setAllFlagsOnStateChange)
+            {
+                flagData.State = value;
+            }
         }
         public void Activate(bool instant)
         {
             SetFlagState(true);
-            line.Visible = true;
-            line.Active = true;
+            Line.Visible = true;
+            Line.Active = true;
             lineTween?.RemoveSelf();
             if (instant)
             {
-                line.Alpha = 1;
-                line.Speed = lineSpeed;
-                line.LineLength = lineLength;
+                Line.Alpha = 1;
+                Line.Speed = Speed;
+                Line.LineLength = Length;
+                if (flagMode == flagModes.AlternateColor)
+                {
+                    Line.ColorLerp = 0;
+                }
             }
             else
             {
-                float alphaFrom = line.Alpha;
-                float speedFrom = line.Speed;
-                float lengthFrom = line.LineLength;
-                lineTween = Tween.Set(this, Tween.TweenMode.Oneshot, stateChangeDuration, Ease.SineIn, t =>
+                float alphaFrom = Line.Alpha;
+                float speedFrom = Line.Speed;
+                float lengthFrom = Line.LineLength;
+                float colorLerpFrom = Line.ColorLerp;
+                lineTween = Tween.Set(this, Tween.TweenMode.Oneshot, tweenDuration, Ease.SineIn, t =>
                 {
-                    line.Alpha = Calc.LerpClamp(alphaFrom, 1, t.Eased);
-                    line.Speed = Calc.LerpClamp(speedFrom, lineSpeed, t.Eased);
-                    line.LineLength = Calc.LerpClamp(lengthFrom, lineLength, t.Eased);
+                    Line.Alpha = Calc.LerpClamp(alphaFrom, 1, t.Eased);
+                    Line.Speed = Calc.LerpClamp(speedFrom, Speed, t.Eased);
+                    Line.LineLength = Calc.LerpClamp(lengthFrom, Length, t.Eased);
+                    Line.ColorLerp = Calc.LerpClamp(colorLerpFrom, 0, t.Eased);
                 });
             }
         }
@@ -144,27 +224,52 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             lineTween?.RemoveSelf();
             if (instant)
             {
-                line.Visible = line.Active = false;
-                line.Alpha = 0;
-                line.Speed = 0;
-                line.LineLength = 0;
+                switch (flagMode)
+                {
+                    case flagModes.Hide:
+                        Line.Visible = Line.Active = false;
+                        Line.Alpha = 0;
+                        Line.LineLength = 0;
+                        Line.Speed = 0;
+                        break;
+                    case flagModes.AlternateColor:
+                        Line.ColorLerp = 0;
+                        break;
+                }
+
+
             }
             else
             {
-                float alphaFrom = line.Alpha;
-                float speedFrom = line.Speed;
-                float lengthFrom = line.LineLength;
-                lineTween = Tween.Set(this, Tween.TweenMode.Oneshot, stateChangeDuration, Ease.SineInOut, t =>
+                float alphaFrom = Line.Alpha;
+                float speedFrom = Line.Speed;
+                float lengthFrom = Line.LineLength;
+                float colorLerp = Line.ColorLerp;
+                lineTween = Tween.Set(this, Tween.TweenMode.Oneshot, tweenDuration, Ease.SineInOut, t =>
                 {
-                    line.Alpha = Calc.LerpClamp(alphaFrom, 0, t.Eased);
-                    line.Speed = Calc.LerpClamp(speedFrom, 0, t.Eased);
-                    line.LineLength = Calc.LerpClamp(lengthFrom, 0, t.Eased);
+                    if (flagMode == flagModes.Hide)
+                    {
+                        Line.Alpha = Calc.LerpClamp(alphaFrom, 0, t.Eased);
+                        Line.Speed = Calc.LerpClamp(speedFrom, 0, t.Eased);
+                        Line.LineLength = Calc.LerpClamp(lengthFrom, 0, t.Eased);
+                    }
+                    else
+                    {
+                        Line.ColorLerp = Calc.LerpClamp(colorLerp, 1, t.Eased);
+                    }
                 }, t =>
                 {
-                    line.Visible = line.Active = false;
-                    line.Alpha = 0;
-                    line.Speed = 0;
-                    line.LineLength = 0;
+                    if (flagMode == flagModes.Hide)
+                    {
+                        Line.Visible = Line.Active = false;
+                        Line.Alpha = 0;
+                        Line.Speed = 0;
+                        Line.LineLength = 0;
+                    }
+                    else
+                    {
+                        Line.ColorLerp = 1;
+                    }
                 });
             }
         }
@@ -174,7 +279,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Vector2 vector = Vector2.Zero;
             Vector2 vector2 = Vector2.Zero;
             bool flag = false;
-            Vector2[] array = nodes;
+            List<Vector2> array = Nodes;
             foreach (Vector2 vector3 in array)
             {
                 if (flag)
@@ -192,8 +297,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 vector = vector3;
             }
 
-            list.Add(nodes.Last());
-            nodes = [.. list];
+            list.Add(Nodes.Last());
+            Nodes = list;
         }
     }
 }

@@ -5,7 +5,6 @@ using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.CommunalHelper.Utils;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper;
-using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
@@ -20,6 +19,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.Pulse;
 using static Celeste.Player;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
@@ -88,6 +88,10 @@ public static class PianoUtils
             _ => Vector2.Zero,
         };
     }
+    public static void LogValue<T>(this Monocle.Commands commands, T value)
+    {
+        commands.Log($"{{{nameof(value)}:{value.ToString()}}}");
+    }
     public static Vector2 Size(this VirtualRenderTarget target) => new Vector2(target.Width, target.Height);
     public static Vector2 HalfSize(this VirtualRenderTarget target) => new Vector2(target.Width, target.Height) / 2f;
     public static FlagData GetFlagData(this BinaryPacker.Element element, string flagname = "flag", string invertedname = "inverted")
@@ -107,9 +111,9 @@ public static class PianoUtils
             yield return null;
         }
     }
-    public static string GetAreaKey(this Entity entity, bool includeMode = true) => GetAreaKey(entity.Scene, includeMode);
-    public static string GetAreaKey(this Scene scene, bool includeMode = true) => scene is Level level ? level.Session.Area.GetFullID(includeMode) : "";
-    public static string GetFullID(this AreaKey key, bool includeMode = true) => key.SID + key.Mode.ToString();
+    public static string GetAreaKey(this Entity entity) => GetAreaKey(entity.Scene);
+    public static string GetAreaKey(this Scene scene) => scene is Level level ? level.Session.Area.GetFullID() : "";
+    public static string GetFullID(this AreaKey key) => key.SID + key.Mode.ToString();
     public static TileGrid GetTileOverlayBox(Scene scene, float x, float y, float width, float height, char tile)
     {
         Level level = scene as Level; ;
@@ -239,6 +243,10 @@ public static class PianoUtils
     /// <param name="scale">The scale factor of the resulting png.</param>
     public static void SaveTargetAsPng(RenderTarget2D from, string path, int x, int y, int w, int h, int scale = 1)
     {
+        if (!path.EndsWith(".png"))
+        {
+            path += ".png";
+        }
         Rectangle value = new Rectangle(x, y, w, h);
         Color[] data = new Color[w * h];
         from.GetData(0, value, data, 0, w * h);
@@ -251,7 +259,7 @@ public static class PianoUtils
         Draw.SpriteBatch.Draw(texture2D, new Rectangle(0, 0, renderTarget2D.Width, renderTarget2D.Height), Color.White);
         Draw.SpriteBatch.End();
         Engine.Instance.GraphicsDevice.SetRenderTarget(null);
-        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
         using Stream stream = File.OpenWrite(path);
         renderTarget2D.SaveAsPng(stream, renderTarget2D.Width, renderTarget2D.Height);
     }
@@ -976,6 +984,22 @@ public static class PianoUtils
             block.Ground();
         }
     }
+    /// <summary>Wraps an integer to the bounds of min (inclusive) and max (inclusive)</summary>
+    public static int Wrap(this int i, int min, int max, int move)
+    {
+        int dir = Math.Sign(move);
+        for (int j = 0; j < Math.Abs(move); j++)
+        {
+            i += dir;
+            if (i < min) i = max;
+            if (i > max) i = min;
+        }
+        return i;
+    }
+    public static int Wrap<T>(this int i, T[] array, int move) => array == null ? i : i.Wrap(0, Math.Max(array.Length - 1, 0), move);
+    public static int Wrap<T>(this int i, ICollection<T> array, int move) => array == null ? i : i.Wrap(0, Math.Max(array.Count - 1, 0), move);
+    public static int Wrap<T>(this int i, ISet<T> array, int move) => array == null ? i : i.Wrap(0, Math.Max(array.Count - 1, 0), move);
+
     [Command("groundplayer", "")]
     public static void GroundPlayer(bool jumpthru = false, bool snapup = true)
     {
@@ -1867,7 +1891,7 @@ public static class PianoUtils
         {
             if (d.ID == markerName)
             {
-                Vector2 pos = d.RoomPosition + d.Offset + new Vector2(4, 5);
+                Vector2 pos = d.WorldPosition + new Vector2(4, 5);
                 InstantTeleport(scene, room, pos, onEnd);
                 return;
             }

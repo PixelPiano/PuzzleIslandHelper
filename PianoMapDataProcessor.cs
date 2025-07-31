@@ -27,9 +27,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
     }
     public struct MarkerData
     {
-        public Vector2 Offset;
-        public Vector2 RoomPosition;
         public string ID;
+        public Vector2 PositionInRoom;
+        public Vector2 RoomPosition;
+        public readonly Vector2 WorldPosition => RoomPosition + PositionInRoom;
     }
     public class SlotData
     {
@@ -130,6 +131,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static readonly Dictionary<string, CapsuleList> WarpCapsules = [];
         public static readonly Dictionary<string, Dictionary<string, List<SlotData>>> SlotData = [];
         public static readonly Dictionary<string, Dictionary<string, List<MarkerData>>> MarkerData = [];
+        public static readonly Dictionary<string, List<string>> CollectableData = [];
         public static void Reset<T>(Dictionary<string, List<T>> dict, string key)
         {
             dict.Remove(key);
@@ -156,6 +158,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Reset(SecurityCams, key);
             Reset(WarpCapsules, key, delegate { return new CapsuleList(); });
             Reset(MarkerData, key);
+            Reset(CollectableData, key);
         }
         [Command("print_markers", "")]
         public static void PrintMarkers()
@@ -171,11 +174,19 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
             string key = AreaKey.GetFullID();
+            Action<BinaryPacker.Element> collectableHandler = data =>
+            {
+                if (CollectableData[key] == null)
+                {
+                    CollectableData[key] = new List<string>();
+                }
+                CollectableData[key].Add(data.Attr("code").Replace(" ", ""));
+            };
             Action<BinaryPacker.Element> markerHandler = data =>
             {
                 MarkerData marker = default;
                 marker.ID = data.Attr("markerID");
-                marker.Offset = data.Position();
+                marker.PositionInRoom = data.Position();
                 if (MapData != null && MapData.Get(levelName) is LevelData leveldata)
                 {
                     marker.RoomPosition = leveldata.Position;
@@ -283,7 +294,14 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     IPAddressTeleports[key].Add(address, room);
                 }
             };
-
+            Action<BinaryPacker.Element> wipEntityHandler = (data) =>
+            {
+                string name = data.Attr("name");
+                if (!string.IsNullOrEmpty(name))
+                {
+                    data.Name = name;
+                }
+            };
             Action<BinaryPacker.Element, bool> accessWarpHandler = (data, hasRune) =>
             {
                 WarpData awData = null;
@@ -344,6 +362,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         if (levelName.StartsWith("lvl_")) {
                             levelName = levelName.Substring(4);
                         }
+                    }
+                },
+                {
+                    "entity:PuzzleIslandHelper/WipEntity", wip =>
+                    {
+                        wipEntityHandler(wip);
                     }
                 },
                 {

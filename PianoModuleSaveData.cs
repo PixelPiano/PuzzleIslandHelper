@@ -10,7 +10,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
     {
         public InterfaceData InterfaceData;
         public int CalJrState { get; set; }
-        public bool WarpLockedToLab { get; set; }
         public WarpRune.RuneNodeInventory.ProgressionSets RuneProgression { get; set; } = WarpRune.RuneNodeInventory.ProgressionSets.Second;
         public WarpRune.RuneNodeInventory RuneNodeInventory { get; set; } = WarpRune.RuneNodeInventory.Second;
         public List<WarpRune> VisitedRuneSites = new();

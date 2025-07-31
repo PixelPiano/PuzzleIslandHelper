@@ -10,11 +10,19 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/CutsceneHeart")]
-    [TrackedAs(typeof(HeartGem))]
     public class CutsceneHeart : Entity
     {
+        [TrackedAs(typeof(HeartGem))]
+        public class Heart : Model3D
+        {
+            public Heart(Vector2 position, MTexture texture) : base("Models/PuzzleIslandHelper/sigil", position)
+            {
+                Collider = new Hitbox(24, 24);
+                Texture = texture;
+            }
+        }
         public EntityID ID;
-        public Sprite Sprite;
+        //public Sprite Sprite;
         private string collectSound = "event:/game/07_summit/gem_get";
         private Vector2 moveWiggleDir;
         private string spriteName;
@@ -22,85 +30,55 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Wiggler scaleWiggler;
         private Wiggler moveWiggler;
         private EventInstance sfx;
-        private Player player;
         public string flag;
-        public Entity heart;
+        public Heart heart;
         private bool Collected;
         private string room;
         private string returnRoom;
         private bool TeleportsPlayer;
         private Cutscene cutscene;
-        public CutsceneHeart(Vector2 position, string sprite, string flag, bool teleportsPlayer, string room, string returnRoom, bool flipped, EntityID id) : base(position)
+        public CutsceneHeart(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
-            spriteName = sprite;
-            TeleportsPlayer = teleportsPlayer;
-            this.room = room;
-            this.returnRoom = returnRoom;
             ID = id;
-            this.flag = flag;
+            spriteName = data.Attr("sprite");
+            TeleportsPlayer = data.Bool("teleportsPlayer");
+            room = data.Attr("room");
+            returnRoom = data.Attr("returnRoom");
+            ID = id;
+            flag = data.Attr("flag");
             Tag = Tags.TransitionUpdate;
-            heart = new Entity(Position)
-            {
-                Collider = new Hitbox(12f, 12f, 4f, 4f)
-            };
-            Collider = new Hitbox(12f, 12f, 4f, 4f);
+            heart = new Heart(Position, GFX.Game["objects/PuzzleIslandHelper/white"]);
+            heart.Color = data.HexColor("color", Color.White);
+            /* 
             heart.Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/cutsceneHeart/"));
             Sprite.AddLoop("idle", spriteName, 0.08f);
             Sprite.AddLoop("static", spriteName, 1f, 0);
             Sprite.X = -(Sprite.Width - 12);
-            if (flipped)
+            if (data.Bool("flipped"))
             {
                 Sprite.CenterOrigin();
                 Sprite.Position += new Vector2(Sprite.Width / 2, Sprite.Height / 2);
                 Sprite.Scale = -Vector2.One;
-            }
+            }*/
             Add(scaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f)
             {
-                Sprite.Scale = Vector2.One * (1f + f * 0.3f);
+                heart.Scale = Vector3.One * (1f + f * 0.3f);
             }));
-            moveWiggler = Wiggler.Create(0.8f, 2f);
-            moveWiggler.StartZero = true;
-            heart.Add(moveWiggler);
-            heart.Add(new PlayerCollider(OnPlayer));
-            Sprite.Play("idle");
-        }
-        public CutsceneHeart(Vector2 position, string sprite, string flag, EntityID id) : base(position)
-        {
-            spriteName = sprite;
-            ID = id;
-            Tag = Tags.TransitionUpdate;
-            this.flag = flag;
-            heart = new Entity(Position)
+            heart.Add(moveWiggler = Wiggler.Create(0.8f, 2, delegate (float f)
             {
-                Collider = new Hitbox(12f, 12f, 4f, 4f)
-            };
-            Collider = new Hitbox(12f, 12f, 4f, 4f);
-            Collidable = false;
-            heart.Collidable = false;
-            heart.Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/cutsceneHeart/"));
-            Sprite.AddLoop("idle", spriteName, 0.08f);
-            Sprite.AddLoop("static", spriteName, 1f, 0);
-            Sprite.X = -(Sprite.Width - 12);
-            Sprite.Play("idle");
-        }
-        public CutsceneHeart(EntityData data, Vector2 offset, EntityID id)
-        : this(data.Position + offset, data.Attr("sprite"), data.Attr("flag"), data.Bool("teleportsPlayer"), data.Attr("room"), data.Attr("returnRoom"), data.Bool("flipped"), id)
-        {
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            player = scene.GetPlayer();
-
+                if (!Collected)
+                {
+                    heart.Position = Position + (moveWiggleDir * f * -8f);// - (Vector2.UnitX * 4);
+                }
+            }));
+            moveWiggler.StartZero = true;
+            heart.Add(new PlayerCollider(OnPlayer));
+            //Sprite.Play("idle");
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
             scene.Add(heart);
-        }
-        public override void Render()
-        {
-            base.Render();
         }
         private void OnPlayer(Player player)
         {
@@ -110,17 +88,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Add(new Coroutine(Collect(player, level)));
                 Collected = true;
-                return;
             }
-            player.PointBounce(heart.Center);
-            moveWiggler.Start();
-            scaleWiggler.Start();
-            moveWiggleDir = (heart.Center - player.Center).SafeNormalize(Vector2.UnitY);
-            Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
-            if (bounceSfxDelay <= 0f)
+            else
             {
-                Audio.Play("event:/game/general/crystalheart_bounce", heart.Position);
-                bounceSfxDelay = 0.1f;
+                player.PointBounce(heart.Center);
+                moveWiggler.Start();
+                scaleWiggler.Start();
+                moveWiggleDir = (heart.Center - player.Center).SafeNormalize(Vector2.UnitY);
+                Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
+                if (bounceSfxDelay <= 0f)
+                {
+                    Audio.Play("event:/game/general/crystalheart_bounce", heart.Position);
+                    bounceSfxDelay = 0.1f;
+                }
             }
         }
         public class Cutscene : MemoryTextscene
@@ -281,30 +261,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if (player == null)
-            {
-                return;
-            }
             if (!Collected)
             {
-                bounceSfxDelay -= Engine.DeltaTime;
-                if (moveWiggler != null)
-                {
-                    Sprite.Position = moveWiggleDir * moveWiggler.Value * -8f - (Vector2.UnitX * 4);
-                }
+                heart.Pitch += Engine.DeltaTime;
+                bounceSfxDelay = Math.Max(0, bounceSfxDelay - Engine.DeltaTime);
             }
         }
         public static void InstantTeleport(Scene scene, Player player, string room, bool same)
         {
-            Level level = scene as Level;
-            if (level == null)
-            {
-                return;
-            }
-            if (string.IsNullOrEmpty(room))
-            {
-                return;
-            }
+            if (scene is not Level level || string.IsNullOrEmpty(room)) return;
             level.OnEndOfFrame += delegate
             {
                 Vector2 levelOffset = level.LevelOffset;
@@ -322,7 +287,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
                 level.Session.FirstLevel = false;
                 level.LoadLevel(Player.IntroTypes.Transition);
-                //return;
 
                 level.Camera.Position = level.LevelOffset + val3;
                 level.Add(player);

@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float Amount;
         public SoundSource Sound;
 
-        public float SavedVolume;
+        public float? SavedVolume;
         private bool canInteract = true;
         private Sprite Screen;
         public ForkAmpSpeaker(EntityData data, Vector2 offset) : base(data.Position + offset)
@@ -78,17 +78,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public IEnumerator FadeMusicIn()
         {
-            Sound.instance.getVolume(out float volume, out _);
-            for (float i = 0; i < 1; i += Engine.DeltaTime)
+            if (SavedVolume.HasValue)
             {
-                Amount = 1 - i;
-                Audio.MusicVolume = Calc.LerpClamp(Audio.MusicVolume, SavedVolume, i);
-                Sound.instance.setVolume(Calc.LerpClamp(volume, 0, i));
-                yield return null;
+                Sound.instance.getVolume(out float volume, out _);
+                for (float i = 0; i < 1; i += Engine.DeltaTime)
+                {
+                    Amount = 1 - i;
+                    Audio.MusicVolume = Calc.LerpClamp(Audio.MusicVolume, SavedVolume.Value, i);
+                    Sound.instance.setVolume(Calc.LerpClamp(volume, 0, i));
+                    yield return null;
+                }
             }
             Amount = 0;
             Sound.Stop();
-            Audio.MusicVolume = SavedVolume;
+            if (SavedVolume.HasValue)
+            {
+                Audio.MusicVolume = SavedVolume.Value;
+                SavedVolume = null;
+            }
             canInteract = true;
         }
         public IEnumerator Routine(Player player)
@@ -111,7 +118,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private IEnumerator ActivateScreen()
         {
             Screen.Play("pushButton");
-            while(Screen.CurrentAnimationID != "idle")
+            while (Screen.CurrentAnimationID != "idle")
             {
                 yield return null;
             }
@@ -126,9 +133,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
-            if (PlayedOnce)
+            if (PlayedOnce && SavedVolume.HasValue)
             {
-                Audio.MusicVolume = SavedVolume;
+                Audio.MusicVolume = SavedVolume.Value;
+                SavedVolume = null;
             }
         }
 

@@ -11,6 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
     {
         public class Line
         {
+            public float ColorLerp;
             public Vector2 A
             {
                 get { return a; }
@@ -32,20 +33,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             private Vector2 a, b;
             public Vector2 LineStart;
             public Vector2 LineEnd;
-            public Color Color;
-            public bool Visible;
+            public Color ColorA
+            {
+                get
+                {
+                    return ColorLerp switch
+                    {
+                        0 => colora * Alpha,
+                        1 => AltColorA * Alpha,
+                        _ => Color.Lerp(colora, AltColorA, ColorLerp) * Alpha,
+                    };
+                }
+                set => colora = value;
+            }
+            public Color ColorB
+            {
+                get
+                {
+                    return ColorLerp switch
+                    {
+                        0 => colorb * Alpha,
+                        1 => AltColorB * Alpha,
+                        _ => Color.Lerp(colorb, AltColorB, ColorLerp) * Alpha,
+                    };
+                }
+                set => colorb = value;
+            }
+            private Color colora;
+            private Color colorb;
+            public Color AltColorA;
+            public Color AltColorB;
+            public float Alpha = 1;
+            public bool Visible = true;
             public float Length;
-            public Line(Vector2 start, Vector2 end, Color color)
+            public Line(Vector2 start, Vector2 end, Color colorA, Color? colorB = null, Color? altColorA = null, Color? altColorB = null)
             {
                 a = LineStart = LineEnd = start;
                 B = end;
-                Color = color;
-            }
-
-            public void Render()
-            {
-                if (LineEnd == A) return;
-                Draw.Line(LineStart, LineEnd, Color, 2);
+                ColorA = colorA;
+                ColorB = colorB ?? Color.Transparent;
+                AltColorA = altColorA ?? Color.Transparent;
+                AltColorB = altColorB ?? Color.Transparent;
             }
         }
         public List<Line> Lines = [];
@@ -54,8 +82,73 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public float LineLength;
         public float StartFade;
         public float EndFade;
-        public Color ColorA;
-        public Color? ColorB;
+        public Color ColorA
+        {
+            get => colora;
+            set
+            {
+                colora = value;
+                foreach (Line line in Lines)
+                {
+                    line.ColorA = value;
+                }
+            }
+        }
+        public float ColorLerp
+        {
+            get => _colorlerp;
+            set
+            {
+                _colorlerp = value;
+                foreach (Line line in Lines)
+                {
+                    line.ColorLerp = value;
+                }
+            }
+        }
+        private float _colorlerp;
+        public Color ColorB
+        {
+            get => colorb;
+            set
+            {
+                colorb = value;
+                foreach (Line line in Lines)
+                {
+                    line.ColorB = value;
+                }
+            }
+        }
+        private Color colora;
+        private Color colorb = Color.Transparent;
+        public Color AltColorA
+        {
+            get => altColorA;
+            set
+            {
+                altColorA = value;
+                foreach (Line line in Lines)
+                {
+                    line.AltColorA = value;
+                }
+            }
+        }
+        public Color AltColorB
+        {
+            get => altColorB;
+            set
+            {
+                altColorB = value;
+                foreach (Line line in Lines)
+                {
+                    line.AltColorB = value;
+                }
+            }
+        }
+        private Color altColorA;
+        private Color altColorB;
+        public float ColorAAlpha = 1;
+        public float ColorBAlpha = 1;
         private int closestIndex;
         public int Size = 1;
         public float LineStart
@@ -74,24 +167,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public bool WrapAround;
         public float Speed = 1;
         private float speedOffset;
-        public float Alpha = 1;
+        public float Alpha
+        {
+            get => _alpha;
+            set
+            {
+                _alpha = value;
+                foreach (Line line in Lines)
+                {
+                    line.Alpha = value;
+                }
+            }
+        }
+        private float _alpha = 1;
         public bool Debug;
-        public SnakeLine(Vector2 offset, Vector2[] nodes, float start, float length, float startFade, float endFade, float speed, Color color, Color? secondaryColor = null) : base(true)
+        public float LineOffset;
+        public SnakeLine(Vector2 offset, List<Vector2> nodes, float start, float length, float startFade, float endFade, float speed,
+            Color color, Color? colorB = null, Color? altColorA = null, Color? altColorB = null) : base(true)
         {
             Speed = speed;
             Position = offset;
             LineStart = start;
-            ColorA = color;
-            ColorB = secondaryColor;
+            colora = color;
+            colorb = colorB ?? Color.Transparent;
             LineLength = length;
             StartFade = startFade;
             EndFade = endFade;
-            Nodes = [.. nodes];
+            Nodes = nodes;
             Vector2 prev = Nodes[0];
             for (int i = 1; i < Nodes.Count; i++)
             {
                 Vector2 current = Nodes[i];
-                Lines.Add(new Line(prev, current, Color.White));
+                Line line = new Line(prev, current, color, colorB, altColorA, altColorB);
+                Lines.Add(line);
                 prev = current;
             }
             determineClosest();
@@ -100,25 +208,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public override void Render()
         {
             base.Render();
-            DrawLine(RenderPosition, ColorB.HasValue ? getFadeColor : getSingleColor);
-        }
-        public void SetLineColor(int index, Color color)
-        {
-            if (Lines.Count > index)
-            {
-                Lines[index].Color = color;
-            }
-        }
-        private Color getSingleColor(float position, Line currentLine)
-        {
-            return ColorA * Alpha;
+            if(Alpha <= 0 || (ColorAAlpha <= 0 && ColorBAlpha <= 0)) return;
+            DrawLine(RenderPosition, getFadeColor);
         }
         private Color getFadeColor(float position, Line currentLine)
         {
-            float r = position;
-            float d = MathHelper.Distance(r, LineLength / 2);
-            float fade = d / (LineLength / 2f);
-            return Color.Lerp(ColorA, ColorB.Value, fade) * Alpha;
+            float lineLength = LineLength / 2f;
+            float fade = MathHelper.Distance(position, lineLength) / lineLength;
+            return Color.Lerp(currentLine.ColorA * ColorAAlpha, currentLine.ColorB * ColorBAlpha, fade);
         }
         public override void DebugRender(Camera camera)
         {
@@ -139,9 +236,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             float halfSize = Size / 2;
             int i = closestIndex;
             Color prevA = ColorA;
-            Color? prevB = ColorB;
+            Color prevB = ColorB;
+            float prevF1 = ColorAAlpha;
+            float prevF2 = ColorBAlpha;
             if (Debug)
             {
+                ColorAAlpha = 1;
+                ColorBAlpha = 1;
                 ColorA = Color.Cyan;
                 ColorB = Color.Magenta;
             }
@@ -149,24 +250,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             {
                 while (p != currentLine.B && pos < LineLength)
                 {
-                    Color c = getColor(pos, currentLine);
-                    //testing size changes - currently looks bad
-                    /*  if (halfSize > 0)
-                      {
-                          Vector2 perp = Calc.Perpendicular(p - prev).FourWayNormal() * halfSize;
-                          Vector2 start = p + perp;
-                          Vector2 target = p - perp;
-                          while (start != target)
-                          {
-                              Draw.Point(start + position, c);
-                              start = Calc.Approach(start, target, 1);
-                          }
-                      }
-                      else
-                      {
-                          Draw.Point(p + position, c);
-                      }*/
-                    Draw.Point(p + position, c);
+                    if (currentLine.Visible)
+                    {
+                        Color c = getColor(pos, currentLine);
+                        if (c.A > 0)
+                        {
+                            //testing size changes - currently looks bad
+                            /*  if (halfSize > 0)
+                              {
+                                  Vector2 perp = Calc.Perpendicular(p - prev).FourWayNormal() * halfSize;
+                                  Vector2 start = p + perp;
+                                  Vector2 target = p - perp;
+                                  while (start != target)
+                                  {
+                                      Draw.Point(start + position, c);
+                                      start = Calc.Approach(start, target, 1);
+                                  }
+                              }
+                              else
+                              {
+                                  Draw.Point(p + position, c);
+                              }*/
+                            Draw.Point(p + position, c);
+                        }
+                    }
                     prev = p;
                     p = Calc.Approach(p, currentLine.B, 1);
                     pos = Calc.Approach(pos, LineLength, 1);
@@ -176,7 +283,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 i++;
                 if (i >= Lines.Count)
                 {
-                    if (!WrapAround) return;
+                    if (!WrapAround)
+                    {
+                        ColorA = prevA;
+                        ColorB = prevB;
+                        ColorAAlpha = prevF1;
+                        ColorBAlpha = prevF2;
+                        Debug = false;
+                        return;
+                    }
                     i %= Lines.Count;
                 }
                 currentLine = Lines[i];
@@ -184,6 +299,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             }
             ColorA = prevA;
             ColorB = prevB;
+            ColorAAlpha = prevF1;
+            ColorBAlpha = prevF2;
             Debug = false;
         }
         private void determineClosest()
@@ -197,7 +314,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 length += line.Length;
                 if (length > LineStart)
                 {
-
                     closestIndex = ii;
                     distanceFromClosestToStart = LineStart - (length - line.Length);
                     break;
@@ -210,7 +326,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             base.Update();
             determineClosest();
             float length = 0;
-            speedOffset += Speed;
+            speedOffset += Speed * Engine.DeltaTime;
+
             foreach (Line line in Lines)
             {
                 length += line.Length;
@@ -233,7 +350,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 if (Input.MoveX.PreviousValue == 0 && !AdjustingNode)
                 {
                     AdjustingNode = true;
-                    Lines.Add(new Line(Lines[^1].B, Lines[^1].B, Color.White));
+                    Lines.Add(new Line(Lines[^1].B, Lines[^1].B, Color.White, Color.White));
                 }
                 else if (AdjustingNode)
                 {
@@ -245,7 +362,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 if (Input.MoveY.PreviousValue == 0 && !AdjustingNode)
                 {
                     AdjustingNode = true;
-                    Lines.Add(new Line(Lines[^1].B, Lines[^1].B, Color.White));
+                    Lines.Add(new Line(Lines[^1].B, Lines[^1].B, Color.White, Color.White));
                 }
                 else if (AdjustingNode)
                 {

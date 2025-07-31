@@ -41,7 +41,8 @@ function talkingDecal.ignoredFields(entity)
         "walkBackwards",
         "teleportMode",
         "glitchAmount",
-        "wipe"
+        "wipe",
+        "markerID"
     }
 
     local function doNotIgnore(value)
@@ -79,6 +80,7 @@ function talkingDecal.ignoredFields(entity)
         doNotIgnore("onCutscene")
         doNotIgnore("offCutscene")
     else
+        doNotIgnore("markerID")
         doNotIgnore("room")
         doNotIgnore("useNearestSpawn")
         doNotIgnore("nearestSpawnX")
@@ -99,13 +101,17 @@ talkingDecal.fieldOrder = {
     "zoomUsage","zoomMode","zoomX","zoomY","zoomAmount","zoomDuration",
     "cameraUsage", "camMode", "camX","camY","cameraDuration",
     "walkUsage","walkMode","walkToX","speedMult",
-    "walkIntoWalls","walkBackwards","outline"
+    "walkIntoWalls","walkBackwards",
+    "upExtend","downExtend","leftExtend","rightExtend", 
+    "outline",
 }
 talkingDecal.placements = {}
 for _, type in ipairs(types) do
     local placement = {
         name = "Talking Decal ("..type..")",
         data = {
+            markerID = "",
+            flagsOnTalk = "",
             mode = type,
             outline = false,
             visibilityFlag = "",
@@ -141,12 +147,16 @@ for _, type in ipairs(types) do
             color = "FFFFFF",
             teleportMode = "Instant",
             glitchAmount = 1,
-            wipe = "Normal"
+            wipe = "Normal",
+            upExtend     = 0,
+            downExtend   = 0,
+            leftExtend   = 0,
+            rightExtend  = 0
         }
     }
     table.insert(talkingDecal.placements,placement)
 end
-local teleportModes = {"Instant","Glitch","Wipe"}
+local teleportModes = {"Instant","Wipe"}
 local wipes = {"Normal"}
 
 talkingDecal.fieldInformation =

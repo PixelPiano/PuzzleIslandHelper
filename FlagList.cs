@@ -16,6 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public string Flag;
         public bool Inverted;
         public bool Ignore;
+        public bool? ForcedValue;
         public readonly bool Empty => List == null || List.Count == 0;
         public static bool operator true(FlagList list)
         {
@@ -29,14 +30,14 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             return list.State;
         }
-        public FlagData this[int i]
+        public bool this[int i]
         {
             get => List.Count > i ? List[i] : default;
             set
             {
                 if (List.Count > i)
                 {
-                    List[i] = value;
+                    List[i].SetState(value);
                 }
             }
         }
@@ -44,6 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             get
             {
+                if(ForcedValue.HasValue) return ForcedValue.Value;
                 if (Ignore || Empty) return !Inverted;
                 else
                 {
@@ -62,13 +64,14 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 }
             }
         }
-        public readonly override string ToString()
+        public override string ToString()
         {
             string output = "";
             foreach (var item in List)
             {
-                output += "{Flag:" + item.Flag + "=" + item.State + "}\n";
+                output += item.ToString() + '\n';
             }
+            output += "Count: "+ Count;
             return output.TrimEnd('\n');
         }
 
@@ -86,7 +89,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Inverted = inverted;
             foreach (var item in flags)
             {
-                List.Add(item);
                 if (item[0] == '!' && item.Length > 1)
                 {
                     List.Add(new FlagData(item.Substring(1), true));
@@ -99,7 +101,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public static string[] format(string input)
         {
-            return input.Replace(" ", "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
         public FlagList(string flags, bool inverted = false) : this(format(flags),inverted)
         {

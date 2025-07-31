@@ -7,8 +7,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [TrackedAs(typeof(CodeDoor))]
     public class LabPoweredDoor : CodeDoor
     {
-        public LabPoweredDoor(EntityData data, Vector2 offset) : base(data.Position + offset, "", data.Bool("sideways"), false)
+        public bool Activated => PianoModule.Session.RestoredPower;
+        public LabPoweredDoor(EntityData data, Vector2 offset) : base(data, offset)
         {
+            Flag.ForcedValue = false;
         }
         public override void Added(Scene scene)
         {

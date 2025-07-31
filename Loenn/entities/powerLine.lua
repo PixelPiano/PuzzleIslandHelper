@@ -1,6 +1,16 @@
 local utils = require("utils")
 local drawableSprite = require("structs.drawable_sprite")
-
+local xnaColors = require("consts.xna_colors")
+local lightBlue = xnaColors.LightBlue
+local yellow = xnaColors.Yellow
+local white = xnaColors.White
+local black = xnaColors.Black
+local magenta = xnaColors.Magenta
+local drawableFunction = require("structs.drawable_function")
+local drawing = require("utils.drawing")
+local drawableRectangle = require("structs.drawable_rectangle")
+local drawableLine = require("structs.drawable_line")
+local logging = require("logging")
 local powerLine = {}
 
 powerLine.name = "PuzzleIslandHelper/PowerLine"
@@ -14,34 +24,59 @@ powerLine.depth = -11000
 powerLine.placements = {
     name = "Power Line",
     data = {
-        flag = "",
-        inverted = false,
-        texturePath = "",
+        flags = "",
         depth = 2,
-        lineStartFade = 10,
-        lineEndFade = 25,
-        lineLength = 50,
-        lineSpeed = 1,
-        lineColorA = "FFFFFF",
-        lineColorB = "FFFFFF",
-        stateChangeDuration = 1,
-        backwards = false
+        startFade = 10,
+        endFade = 25,
+        length = 50,
+        speed = 1,
+        colorA = "FFFFFF",
+        colorB = "FFFFFF",
+        altColorA = "FFFFFF",
+        altColorB = "FFFFFF",
+        alphaA = 1,
+        alphaB = 0,
+        tweenDuration = 1,
+        backwards = false,
+        connectEnds = false,
+        invertFlag = false,
+        offset = 0,
+        flagMode = "Hide",
+        changeFlags = false,
+        displayLengths = false
+
     }
 }
+powerLine.fieldOrder =
+{
+    "x","y","flags","flagMode","startFade","endFade","length","speed","alphaA","alphaB","tweenDuration","offset",
+    "colorA","colorB","altColorA","altColorB","depth","backwards","connectEnds","invertFlag","changeFlags","displayLengths"
+}
+local flagModes = {"Hide","AlternateColor"}
 powerLine.fieldInformation = 
 {
-    lineColorA =  {
+    colorA =  {
         fieldType = "color",
-        allowXNAColors = true,
-        useAlpha = true
+        allowXNAColors = true
     },
-    lineColorB = {
+    colorB = {
         fieldType = "color",
-        allowXNAColors = true,
-        useAlpha = true
+        allowXNAColors = true
+    },
+    altColorA = {
+        fieldType = "color",
+        allowXNAColors = true
+    },
+    altColorB = {
+        fieldType = "color",
+        allowXNAColors = true
     },
     depth = {
         fieldType = "integer"
+    },
+    flagMode = {
+        options = flagModes,
+        editable = false
     }
 }
 local cornerTextureQuads = {
@@ -228,11 +263,90 @@ local function addSprites(sprites, entity)
 
     return sprites
 end
-
-function powerLine.sprite(room, entity)
-    return addSprites({}, entity)
+function powerLine.depth(room,entity)
+return entity.depth
+end
+local function getLines(entity)
+    local color = {255,0,0,255}
+    local lines = {}
+    local n = entity.nodes
+    if n then
+        local p = {x = entity.x, y = entity.y}
+        table.insert(lines, getLine(p,n[1],color))
+        for i = 2, #n do
+            local p1 = n[i-1]
+            local p2 = n[i]
+            table.insert(lines,getLine(p1,p2,color))
+        end
+        if entity.connectEnds then
+            table.insert(lines,getLine(n[#n],p,color))
+        end
+    end
+    return lines
 end
 
+local function getLine(p1, p2, color)
+    local line =
+        drawableFunction.fromFunction(function()
+            drawing.callKeepOriginalColor(function()
+            love.graphics.setColor({color.r /255, color.g/255, color.b/255, color.a/255})
+            love.graphics.line({p1.x,p1.y, p2.x,p2.y})
+            end)
+        end)
+    return line
+end
+local function getDistanceText(a, b)
+    local length = math.sqrt((a.x-b.x)^2 + (a.y-b.y)^2)
+    local mp = {x = a.x + (b.x - a.x) / 2, y = a.y + (b.y - a.y) / 2}
+    return getText(length, mp, 8, 1000)
+end
+local function getColors(color, fillAmount, borderAmount, brighter)
+    local colors = {}
+    local addition = brighter and 0.2 or 0.0
+    local mults = {fillAmount + addition, borderAmount + addition}
+    local fill = {color[1] * mults[1], color[2] *mults[1], color[3] * mults[1], 0.6 + addition}
+    local border ={color[1] * mults[2], color[2] * mults[2], color[3] * mults[2], 0.8 + addition}
+    table.insert(colors, fill)
+    table.insert(colors, border)
+    return colors
+end
+local function getRectangle(room, entity, position, brighter, size, color)
+    local colors = getColors(color,0.3, 0.8, brighter)
+    local rectangle = utils.rectangle(position.x - size / 2, position.y - size / 2, size, size)
+    local rect = drawableRectangle.fromRectangle("bordered", rectangle, colors[1], colors[2])
+    return rect
+end
+function powerLine.sprite(room, entity)
+    local sprites = getLines(entity)
+    local p = {x = entity.x, y = entity.y}
+    table.insert(sprites, getRectangle(room,entity,p,true,5,magenta))
+    for j = 1, #entity.nodes do
+        local n = {x = entity.nodes[j].x,y = entity.nodes[j].y}
+        table.insert(sprites, getRectangle(room, entity, n, false, 3, black))
+    end
+    if entity.displayLengths and #entity.nodes > 0 then
+        local p2 = {x = entity.nodes[1].x,y= entity.nodes[1].y}
+        table.insert(sprites,getDistanceText(p, p2))
+        if #entity.nodes > 1 then
+            for i = 2, #entity.nodes do
+                p = {x = entity.nodes[i-1].x, y = entity.nodes[i-1].y}
+                p2 = {x = entity.nodes[i].x,y = entity.nodes[i].y}
+                table.insert(sprites,getDistanceText(p2,p))
+            end
+        end
+    end
+    return sprites
+end
+local function getText(text, position, width, height)
+    local result =
+            drawableFunction.fromFunction(function()
+                drawing.callKeepOriginalColor(function()
+                love.graphics.setColor({255 / 255, 255 / 255, 255 / 255})
+                drawing.printCenteredText(text, position.x, position.y, width, height, font, 1)
+                end)
+            end)
+    return result
+end
 function powerLine.selection(room, entity)
     local nodes = entity.nodes or {}
     local nodeRectangles = {}

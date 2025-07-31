@@ -26,7 +26,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                     {
                         if (input.Match(a.Rune))
                         {
-
                             warpData = a;
                             return true;
                         }

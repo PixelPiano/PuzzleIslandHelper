@@ -18,6 +18,7 @@ cutsceneHeart.placements =
             flag = "greenMiniHeart",
             teleportsPlayer=true,
             flipped = false,
+            color = "FFFFFF"
         }
     }
 }
@@ -27,6 +28,11 @@ cutsceneHeart.fieldInformation =
     {
         options = spriteNames,
         editable = false
+    },
+    color = 
+    {
+        fieldType = "color",
+        allowXNAColors = true
     }
 }
 function cutsceneHeart.texture(room, entity)

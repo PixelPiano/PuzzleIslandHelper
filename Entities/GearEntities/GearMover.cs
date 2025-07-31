@@ -16,13 +16,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         private Vector2 target;
         private float MaxSpeed;
         private float acceleration;
-        public GearMover(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset - new Vector2(8), data.Bool("onlyOnce"), Color.Blue, id)
+        private float speed;
+        private bool friction;
+        public GearMover(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset - new Vector2(8), data.Bool("onlyOnce"), Color.Blue, id, 10, -1, data.Bool("canInterrupt", false))
         {
             MaxSpeed = data.Float("maxSpeed", 50f);
             acceleration = data.Float("acceleration");
             start = Position;
             end = data.NodesWithPosition(offset)[1] - new Vector2(8);
             target = end;
+            GearColor = Color.Blue;
         }
         public override void DebugRender(Camera camera)
         {
@@ -41,21 +44,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             target = target == start ? end : start;
             SpinDirection = -SpinDirection;
         }
+        public override void Update()
+        {
+            base.Update();
+        }
         public override IEnumerator WhileSpinning(Gear gear)
         {
             float speedLerp = 0;
+            bool interrupted = false;
             while (Position != target)
             {
+                float prev = speedLerp;
                 if (!gear.InSlot)
                 {
+                    interrupted = true;
                     break;
                 }
                 Position = Calc.Approach(Position, target, MaxSpeed * Engine.DeltaTime * speedLerp);
                 speedLerp = Calc.Min(1, speedLerp + Engine.DeltaTime * acceleration);
                 yield return null;
             }
-            StopSpinning();
-            yield return base.WhileSpinning(gear);
+            StopSpinning(!interrupted);
         }
     }
 }

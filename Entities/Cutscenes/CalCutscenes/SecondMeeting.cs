@@ -28,20 +28,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         {
             level.Session.SetFlag("DigitalBetaWarpEnabled");
             base.OnEnd(level);
-            Calidus?.RemoveTag(Tags.Global);
+            Calidus.StartFollowing();
             if (WasSkipped)
             {
                 if (Calidus != null)
                 {
-                    Calidus.Look(Calidus.Looking.DownRight);
                     Calidus.CanFloat = true;
                     Calidus.Position = Calidus.OrigPosition;
                 }
             }
         }
+        private float camSaveX;
         public override IEnumerator Cutscene(Level level)
         {
-            Add(new Coroutine(Level.ZoomTo(level.Marker("camera1", true), 1.4f, 1)));
+            IEnumerator zoomRoutine()
+            {
+                camSaveX = level.Camera.Position.X;
+                Player.ForceCameraUpdate = true;
+                yield return Level.ZoomTo(level.Marker("camera1", true), 1.4f, 1);
+                Player.ForceCameraUpdate = false;
+            }
+            Add(new Coroutine(zoomRoutine()));
             yield return Player.DummyWalkTo(level.Marker("player1").X);
             yield return Textbox.Say("Calidus2",
                 Normal, Happy, Stern, Eugh, Surprised,//0 - 4
@@ -50,22 +57,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 LookPlayer, WaitForOne, WaitForTwo, CaliDramaticFloatAway, CaliStopBeingDramatic, //15 - 19
                 CaliTurnRight, CaliMoveCloser, CaliMoveBack, Closed, Nodders, //20 - 24
                 PlayerPoke, Reassemble, PlayerToMarker2, PlayerToMarker3, PlayerToMarker4,//25 - 29
-                PlayerToMarker5, PlayerToMarkerCalidus, PanToCalidus, PlayerToMarker6, PlayerLookLeft, PlayerLookRight, askIfHasntDied); //30 - 36
+                PlayerToMarker5, PlayerToMarkerCalidus, PanToCalidus, PlayerToMarker6, PlayerLookLeft, PlayerLookRight); //30 - 36
             yield return Level.ZoomBack(1);
             EndCutscene(Level);
         }
         //currently unused
-        private IEnumerator askIfHasntDied()
-        {
-            if (!Level.Session.GetFlag("HasDiedInTransitLab"))
-            {
-                yield return new SwapImmediately(Textbox.Say("howToLeaveTransitLab", WaitForOne));
-            }
-        }
         private IEnumerator PanToCalidus()
         {
-            float from = Level.Camera.Position.X;
-            float to = Level.Camera.Position.X + (Level.Marker("camera2") - Level.Marker("camera1")).X;
+            float from = Level.Camera.X;
+            float to = camSaveX + (Level.Marker("camera2") - Level.Marker("camera1")).X;
             for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
             {
                 Level.Camera.Position = new Vector2(Calc.LerpClamp(from, to, Ease.SineInOut(i)), Level.Camera.Position.Y);

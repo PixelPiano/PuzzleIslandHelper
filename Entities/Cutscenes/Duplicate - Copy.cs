@@ -81,7 +81,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     Rectangle rect = new Rectangle(160 - DuelView.MaxSize - (int)DuelView.Offset.X, (int)DuelView.Offset.Y, DuelView.MaxSize, DuelView.MaxSize);
                     Rectangle rect2 = new Rectangle((int)spawnx - DuelView.MaxSize / 2, (int)DuelView.Offset.Y, DuelView.MaxSize, DuelView.MaxSize);
 
-                    ShaderOverlay.Apply(GameplayBuffers.TempA, Target, rect, rect2, null, true);
+                    //ShaderOverlay.Apply(GameplayBuffers.TempA, Target, rect, rect2, null, true);
                 }
                 else
                 {

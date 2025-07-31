@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class CrystalElevator : Solid
     {
 
-        public static Dictionary<string, List<int>> DestroyedCustomSpinnerIDs => PianoModule.Session.DestroyedCustomSpinnerIDs;
+        public static Dictionary<string, HashSet<int>> DestroyedCustomSpinnerIDs => PianoModule.Session.DestroyedCustomSpinnerIDs;
         public class Roof : Solid
         {
             public CrystalElevator Parent;
@@ -39,13 +39,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Draw.HollowRect(Collider, Color.LightBlue);
                 Collider = prev;
             }
+            public bool ForceCheckSpinner(Entity spinner)
+            {
+                bool output = false;
+                Collider prev = Collider;
+                Collider = SpinnerCollider;
+                if (spinner != this && Collidable)
+                {
+                    output = spinner.Collider.Collide(this);
+                }
+                Collider = prev;
+                return output;
+            }
             public void CheckForSpinners(Level level, bool instant = false)
             {
                 Collider prev = Collider;
                 Collider = SpinnerCollider;
+                HashSet<int> list = [];
                 foreach (CustomSpinner spinner in level.Tracker.GetEntities<CustomSpinner>())
                 {
-                    if (CollideCheck(spinner))
+                    if (ForceCheckSpinner(spinner))
                     {
                         if (instant)
                         {
@@ -55,23 +68,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         {
                             spinner.Destroy();
                         }
-                        if (DestroyedCustomSpinnerIDs.TryGetValue(level.Session.Level, out var list))
-                        {
-                            if (!list.Contains(spinner.ID))
-                            {
-                                list.Add(spinner.ID);
-                            }
-                        }
-                        else
-                        {
-                            DestroyedCustomSpinnerIDs.Add(level.Session.Level, [spinner.ID]);
-                        }
+                        list.Add(spinner.ID);
                     }
                 }
-
+                if (DestroyedCustomSpinnerIDs.TryGetValue(level.Session.Level, out var list2))
+                {
+                    foreach (int i in list)
+                    {
+                        list2.Add(i);
+                    }
+                }
+                else
+                {
+                    DestroyedCustomSpinnerIDs.Add(level.Session.Level, list);
+                }
                 foreach (CrystalStaticSpinner spinner2 in level.Tracker.GetEntities<CrystalStaticSpinner>())
                 {
-                    if (CollideCheck(spinner2))
+                    if (ForceCheckSpinner(spinner2))
                     {
                         if (!instant)
                         {
@@ -158,7 +171,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public EntityID ID;
         public Vector2 OrigPosition;
         public string Flag;
-        public bool ControlsBlocked => string.IsNullOrEmpty(Flag) ? false : !SceneAs<Level>().Session.GetFlag(Flag);
+        public bool ControlsBlocked => string.IsNullOrEmpty(Flag) ? false : Scene is Level level && !level.Session.GetFlag(Flag);
         public CrystalElevator(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, data.Width, data.NodesWithPosition(offset), id, data.Attr("flag"))
         {
         }
@@ -177,7 +190,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             goUp.PlayerMustBeFacing = goDown.PlayerMustBeFacing = false;
             Add(Back, goUp, goDown, new LightOcclude());
-            AddTag(Tags.TransitionUpdate);
+            Tag |= Tags.TransitionUpdate;
             roof = new Roof(this, Front, Back.RenderPosition + Vector2.UnitY * 3, Back.Width, 3);
         }
         public override void Added(Scene scene)
@@ -230,7 +243,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Front.RenderPosition = Back.RenderPosition;
             base.Update();
-            Furthest[ID] = (int)Calc.Max(Furthest[ID], Floor);
+            if (Furthest.TryGetValue(ID, out int value))
+            {
+                Furthest[ID] = (int)Calc.Max(value, Floor);
+            }
+            else
+            {
+                Furthest.Add(ID, Floor);
+            }
             if (Moving)
             {
                 if (particleBuffer >= 4 && (int)(prevY - Position.Y) != 0)
@@ -243,7 +263,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     particleBuffer++;
                 }
             }
-            Rocks.Visible = !ControlsBlocked;
+            if (Rocks != null)
+            {
+                Rocks.Visible = !ControlsBlocked;
+            }
             prevY = Position.Y;
         }
         public override void Render()
@@ -290,6 +313,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             float y = GetFloorAt(floor).Y;
             MoveElevatorToY(y, collideSpinners, instant);
             Floor = floor;
+
         }
         public void MoveElevatorToY(float y, bool collideSpinners = true, bool instant = false)
         {

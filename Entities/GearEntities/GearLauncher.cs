@@ -20,6 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         }
         public GearLauncher(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset - Vector2.One * 8, data.Bool("onlyOnce"), Color.Orange, id)
         {
+            GearColor = Color.Orange;
             Force = data.Float("force", 50f);
             direction = data.Enum<Direction>("direction") switch
             {
@@ -70,7 +71,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             yield return Engine.DeltaTime * 2;
             Launch(gear);
             Rotation %= 360;
-            
+
             for (float i = 0; i < 1; i += Engine.DeltaTime / 3)
             {
                 rate = Calc.LerpClamp(rate, targetRotateRate, Ease.CubeOut(i));

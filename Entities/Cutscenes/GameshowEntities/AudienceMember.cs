@@ -62,7 +62,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             }
             if (AffectedByLevelLighting)
             {
-                Sprite.Color = Color.Lerp(Color.White, Color.Black, SceneAs<Level>().Lighting.Alpha);
+                if (Sprite != null && Scene is Level level && level.Lighting != null)
+                {
+                    Sprite.Color = Color.Lerp(Color.White, Color.Black, level.Lighting.Alpha);
+                }
             }
             base.Update();
             prevState = Flag.State;
@@ -97,12 +100,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
         }
         public void Cheer()
         {
-            Sprite.Play("cheer");
+            Sprite?.Play("cheer");
         }
         public void Idle()
         {
             Dead = false;
-            Sprite.Play("idle", false, true);
+            Sprite?.Play("idle", false, true);
         }
         public IEnumerator CheerRoutine(float duration)
         {

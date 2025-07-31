@@ -76,8 +76,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public DotX3 Talk;
         public SnapSolid Floor;
         public Door LeftDoor, RightDoor;
-        public WarpRune WarpRune;
-        public WarpData Data;
+        public WarpRune OwnWarpRune;
+        public WarpRune TargetWarpRune;
+        public WarpData OwnWarpData;
         public bool UsesRune;
         public bool UsesBeam;
         public WarpCapsule(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"), data.Attr("warpID"), data.Attr("path"), false, false)
@@ -112,7 +113,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             base.Added(scene);
             if (PianoMapDataProcessor.WarpCapsules.TryGetValue(Scene.GetAreaKey(), out var list))
             {
-                Data = RetrieveWarpData(list);
+                OwnWarpData = RetrieveWarpData(list);
             }
         }
         public abstract WarpData RetrieveWarpData(CapsuleList list);
@@ -289,8 +290,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         {
             if (Shade == null)
             {
-                Scene.Add(Shade = new PlayerShade(0.5f));
+                Engine.Scene.Add(Shade = new PlayerShade(0.5f));
             }
+            //(Engine.Scene as Level).Camera.Position = Position;
+            
             LeftDoor.MoveToFg();
             RightDoor.MoveToFg();
             InstantCloseDoors();
@@ -302,12 +305,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             RightDoor.MoveToBg();
             DoorStallTimer = 0.5f;
             CanEnter = true;
-            ValidateStatusAfterWarp(Scene);
             if (setPlayerStateToNormal.HasValue && setPlayerStateToNormal.Value) player.StateMachine.State = Player.StNormal;
-        }
-        public virtual void ValidateStatusAfterWarp(Scene scene)
-        {
-
         }
         public virtual IEnumerator PrepareToSend(Player player, float time)
         {

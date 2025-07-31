@@ -14,18 +14,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         public string ID;
         public Dictionary<string, string> Args = [];
+        public MarkerData? Data;
         public string ArgData;
         public string ArgInfo
         {
             get
             {
-                if(Args.Count == 0) return "No arguments passed in.";
+                if (Args.Count == 0) return "No arguments passed in.";
                 string output = "\n---MARKER ARGUMENTS---\n";
-                foreach(var pair in Args)
+                foreach (var pair in Args)
                 {
                     output += '\t';
                     string v = string.IsNullOrEmpty(pair.Value) ? "" : pair.Value;
-                    output += string.Format("({0}: {1})",pair.Key,v);
+                    output += string.Format("({0}: {1})", pair.Key, v);
                     output += '\n';
                 }
                 output += "----------------------";
@@ -43,15 +44,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            if (MarkerExt.TryGetData(ID, (scene as Level).Session.Level, scene, out var Data))
+            {
+                this.Data = Data;
+            }
             if (!string.IsNullOrEmpty(ArgData))
             {
                 foreach (string arg in ArgData.Split(','))
                 {
                     string key = arg;
                     string value = "";
-                    for(int i = 0; i<arg.Length; i++)
+                    for (int i = 0; i < arg.Length; i++)
                     {
-                        if(arg[i] == ':' || arg[i] == '=')
+                        if (arg[i] == ':' || arg[i] == '=')
                         {
                             key = arg.Substring(0, i);
                             value = arg.Substring(i + 1);
@@ -151,6 +156,58 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     }
     public static class MarkerExt
     {
+        [Command("list_marker_ids", "")]
+        public static void ListMarkerIDs(string room)
+        {
+            if (Engine.Scene is not null)
+            {
+                if (PianoMapDataProcessor.MarkerData.TryGetValue(Engine.Scene.GetAreaKey(), out var l))
+                {
+                    if (l.TryGetValue(room, out var l2))
+                    {
+                        foreach (var d in l2)
+                        {
+                            Engine.Commands.Log(d.ID);
+                        }
+                    }
+                }
+            }
+        }
+        public static List<MarkerData> RoomMarkers(string room)
+        {
+            if (Engine.Scene is not null)
+            {
+                if (PianoMapDataProcessor.MarkerData.TryGetValue(Engine.Scene.GetAreaKey(), out var l))
+                {
+                    if (l.TryGetValue(room, out var l2))
+                    {
+                        return l2;
+                    }
+                }
+            }
+            return [];
+        }
+        public static bool TryGetData(string id, string room, Scene scene, out MarkerData data)
+        {
+            data = default;
+            if (PianoMapDataProcessor.MarkerData.TryGetValue(scene.GetAreaKey(), out var l))
+            {
+                if (l.TryGetValue(room, out List<MarkerData> value))
+                {
+                    foreach (MarkerData d in value)
+                    {
+                        if (d.ID == id)
+                        {
+                            data = d;
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+
+        }
         public static void ToMarker(this Camera entity, string marker)
         {
             if (Marker.TryFind(marker, out Vector2 position))

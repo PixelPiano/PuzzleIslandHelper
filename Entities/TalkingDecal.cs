@@ -1,7 +1,10 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
+using System.Globalization;
+using System.Text.RegularExpressions;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/TalkingDecal")]
@@ -11,7 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Sprite onSprite;
         public Image image;
         public bool Outline;
-
+        public FlagList FlagsOnTalk;
         public enum TalkModes
         {
             Teleport,
@@ -37,11 +40,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             World, Naive
         }
+        public enum TeleportModes
+        {
+            Instant,
+            Glitch,
+            Wipe
+        }
+        public enum Wipes
+        {
+            None,
+            Angled,
+            Curtain,
+            Dream,
+            Drop,
+            Fade,
+            Fall,
+            Heart,
+            KeyDoor,
+            Mountain,
+            Screen,
+            Spotlight,
+            Starfield,
+            Wind
+        }
         public ZoomModes ZoomMode;
         public CameraModes CamMode;
         public WalkModes WalkMode;
         public UseModes ZoomUse, WalkUse, CameraUse;
+        public TeleportModes TeleportMode;
+        private float glitchValue;
+        private float glitchTime;
+        private Wipes Wipe;
         private float zoomTime, walkX, camTime, zoomAmount, walkMult, cameraDelay;
+        private float extendUp, extendDown, extendLeft, extendRight;
         private bool walkBackwards, walkIntoWalls;
         private Vector2 camTo, zoomTo;
         public TalkModes TalkMode;
@@ -49,6 +80,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Vector2? NearestSpawn;
         public string String;
         public string String2;
+        public string MarkerID;
         public TalkComponent Talk;
         public bool FlagState(string flag)
         {
@@ -59,9 +91,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Sprite offSprite;
         private VertexLight onLight;
         private VertexLight offLight;
+        private bool useNearestSpawn;
         public TalkingDecal(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
+            MarkerID = data.Attr("markerID");
+            FlagsOnTalk = new FlagList(data.Attr("flagsOnTalk"));
+            TeleportMode = data.Enum<TeleportModes>("teleportMode");
+            glitchValue = data.Float("glitchAmount");
+            glitchTime = data.Float("glitchDuration", 0.3f);
+            extendUp = data.Float("upExtend");
+            extendDown = data.Float("downExtend");
+            extendLeft = data.Float("leftExtend");
+            extendRight = data.Float("rightExtend");
             TalkMode = data.Enum<TalkModes>("mode");
             VisibleFlagList = new FlagList(data.Attr("visibilityFlag"));
             TalkFlagList = new FlagList(data.Attr("talkEnabledFlag"));
@@ -72,6 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     String = data.Attr("room");
                     if (data.Bool("useNearestSpawn"))
                     {
+                        useNearestSpawn = true;
                         NearestSpawn = new Vector2(data.Float("nearestSpawnX"), data.Float("nearestSpawnY"));
                     }
                     break;
@@ -121,25 +164,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 offSprite.Position += offSprite.HalfSize();
                 Add(offSprite);
             }
+            Tag |= Tags.TransitionUpdate;
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
             if (onSprite != null)
             {
                 Collider = new Hitbox(onSprite.Width, onSprite.Height);
             }
-            Tag |= Tags.TransitionUpdate;
+            int x = -(int)extendLeft;
+            int y = -(int)extendUp;
+            int width = (int)(Width + extendLeft + extendRight);
+            int height = (int)(Height + extendUp + extendDown);
+            Rectangle bounds = new Rectangle(x, y, width, height);
 
-            Talk = new TalkComponent(new Rectangle(0, 0, (int)Width, (int)Height), Vector2.UnitX * Width / 2, Interact);
+            Talk = new TalkComponent(bounds, Vector2.UnitX * bounds.Width / 2, Interact);
             Talk.PlayerMustBeFacing = false;
             Add(Talk);
-/*            if (onSprite != null)
-            {
-                Add(onLight = new VertexLight(onSprite.Center, Color.White, 1, (int)onSprite.Width, (int)(onSprite.Width * 2f)));
-                onLight.Visible = false;
-            }
-            if (offSprite != null)
-            {
-                Add(offLight = new VertexLight(offSprite.Center, Color.White, 1, (int)offSprite.Width, (int)(offSprite.Width * 2f)));
-                offLight.Visible = false;
-            }*/
         }
         public static bool TriggerCustomEvent(Player player, string eventID)
         {
@@ -156,6 +198,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void Interact(Player player)
         {
+            FlagsOnTalk.State = true;
             switch (TalkMode)
             {
                 case TalkModes.Teleport:
@@ -163,12 +206,51 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     if (data.Levels.Find(item => item.Name == String) != null)
                     {
                         Input.Dash.ConsumePress();
-                        SceneAs<Level>().OnEndOfFrame += delegate
+                        if (glitchValue > 0 && glitchTime > 0)
+                        {
+                            float prev = Glitch.Value;
+                            Entity glitchHelper = new Entity();
+                            glitchHelper.AddTag(Tags.Persistent | Tags.TransitionUpdate);
+                            Alarm.Set(glitchHelper, glitchTime, delegate { Glitch.Value = prev; RemoveSelf(); });
+                            Scene.Add(glitchHelper);
+                        }
+                        else if (glitchValue > 0)
+                        {
+                            Glitch.Value = glitchValue;
+                        }
+                        if (TeleportMode is TeleportModes.Wipe)
                         {
                             Input.Dash.ConsumePress();
-                            SceneAs<Level>().TeleportTo(player, String, introType, NearestSpawn);
+                            player.DisableMovement();
+                            new FadeWipe(Scene, false, () =>
+                            {
+                                Engine.Scene.OnEndOfFrame += () =>
+                                {
+                                    Level level = Engine.Scene as Level;
+                                    Vector2 respawnPosition = Vector2.Zero;
+                                    //CatHelper.Enabled = true;
+                                    //CatHelper.CatState(false);
+                                    if (NearestSpawn.HasValue)
+                                    {
+                                        respawnPosition = NearestSpawn.Value;
+                                    }
+                                    else if (!string.IsNullOrEmpty(MarkerID))
+                                    {
+                                        if (MarkerExt.TryGetData(MarkerID, String, Engine.Scene, out MarkerData data))
+                                        {
+                                            respawnPosition = data.PositionInRoom;
+                                            //CatHelper.CatState(true);
+                                        }
+                                    }
+                                    level.TeleportTo(player, String, introType, respawnPosition);
+                                    new FadeWipe(Engine.Scene, wipeIn: true, () =>
+                                    {
+                                        Engine.Scene.GetPlayer()?.EnableMovement();
+                                    });
+                                };
+                            });
+                        }
 
-                        };
                     }
                     break;
                 case TalkModes.Dialog:
@@ -195,6 +277,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             Player = player,
                             Arg = targetString,
                         };
+
                         Scene.Add(cutscene);
                     }
 
@@ -207,6 +290,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     break;
             }
         }
+
         public class DialogCutscene : CutsceneEntity
         {
             public string Arg;
@@ -308,18 +392,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Talk.Enabled = false;
                 }
             }
-            if(onSprite != null)
+            if (onSprite != null)
             {
                 onSprite.Visible = flagstate;
-                if(onLight != null)
+                if (onLight != null)
                 {
                     onLight.Visible = flagstate;
                 }
             }
-            if(offSprite != null)
+            if (offSprite != null)
             {
                 offSprite.Visible = !flagstate;
-                if(offLight != null)
+                if (offLight != null)
                 {
                     offLight.Visible = !flagstate;
                 }

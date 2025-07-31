@@ -5,6 +5,8 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Data;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -12,6 +14,227 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class FountainBlock : Entity
     {
+        public static class CodeRule
+        {
+            public static List<string> rules = ["0 = (1)", "1 <3 3", "2 </3 3", "3 = (4)|","3 = (5)|","4 </3 5 </3 6"
+                ,"<(5) + (5)> = 5","<(6) + (6)> = 11","0","1","2","3","4","5","6","7"];
+            private class number
+            {
+                private string value;
+                private int offset;
+                public number(string input)
+                {
+                    foreach (char c in input.Replace(" ", ""))
+                    {
+                        switch (c)
+                        {
+                            case '<':
+                                offset--;
+                                break;
+                            case '>':
+                                offset++;
+                                break;
+                            default:
+                                value += c;
+                                break;
+                        }
+                    }
+                }
+                public int? getValue(int[] array)
+                {
+                    if (array == null) return null;
+                    List<int?> output = [];
+                    int index = -1;
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        if (IsPosition(value, out int position))
+                        {
+                            index = position + offset;
+                        }
+                        else
+                        {
+                            if (int.TryParse(value, out int result))
+                            {
+                                for (int i = 0; i < array.Length; i++)
+                                {
+                                    if (array[i] == result)
+                                    {
+                                        index = i + offset;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (index >= 1 && index < array.Length + 1)
+                        {
+                            output.Add(array[index - 1]);
+                        }
+                    }
+                    return null;
+                }
+                public bool IsPosition(string input, out int result)
+                {
+                    result = 0;
+                    if (input.StartsWith('(') && input.EndsWith(')'))
+                    {
+                        string obj = input.Substring(1, input.Length - 2);
+                        if (!string.IsNullOrEmpty(obj))
+                        {
+                            return int.TryParse(obj, out result);
+                        }
+                    }
+                    return false;
+                }
+            }
+            public static bool? HasBeside(int[] array, int a, int b)
+            {
+                for (int i = 0; i < array.Length; i++)
+                {
+                    if (array[i] == a)
+                    {
+                        if (i - 1 >= 0)
+                        {
+                            if (array[i - 1] == b) return true;
+                        }
+                        if (i + 1 < array.Length)
+                        {
+                            if (array[i + 1] == b) return true;
+                        }
+                        return false;
+                    }
+                }
+                return null;
+            }
+            [Command("test_affinity", "")]
+            public static void ParseAffinityRule(string rule)
+            {
+                int[] testarray = [0, 1, 2, 3, 4, 5, 6, 7];
+                rule = "3 </3 4 <3 1 <3 2";
+                string[] array = rule.Split(' ');
+                for (int j = 2; j < array.Length; j += 2)
+                {
+                    if (int.TryParse(array[j], out int current))
+                    {
+                        if (int.TryParse(array[j - 2], out int last))
+                        {
+                            bool likesval = false;
+                            bool dislikesval = true;
+                            string likesymbol = "";
+                            if (array[j - 1] == "<3")
+                            {
+                                likesymbol = "<3";
+                                for (int i = 0; i < testarray.Length; i++)
+                                {
+                                    if (i == current)
+                                    {
+                                        if ((i - 1 >= 0 && testarray[i - 1] == last)
+                                         || (i + 1 < testarray.Length && testarray[i + 1] == last))
+                                        {
+                                            likesval = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            else if (array[j - 1] == "</3")
+                            {
+                                likesymbol = "</3";
+                                for (int i = 0; i < testarray.Length; i++)
+                                {
+                                    if (i == current)
+                                    {
+                                        if ((i - 1 >= 0 && testarray[i - 1] == last)
+                                         || (i + 1 < testarray.Length && testarray[i + 1] == last))
+                                        {
+                                            dislikesval = false;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(likesymbol))
+                            {
+                                Engine.Commands.Log($"{last} {likesymbol} {current}: {likesval && dislikesval}");
+                            }
+                        }
+                    }
+                }
+            }
+            [Command("test_rule", "")]
+            public static void ParseOffsetRule(string rule)
+            {
+                int[] testarray = [0, 1, 2, 3, 4, 5, 6, 7];
+                rule = "<(4) + (4)> = (7)";
+
+                List<object> leftSide = [];
+                number rightSide = null;
+                bool left = true;
+                foreach (string s in rule.Split(' '))
+                {
+                    if (s.Contains('(') || s.Contains(')') || s.Contains('<') || s.Contains('>') || int.TryParse(s, out _))
+                    {
+                        if (left)
+                        {
+                            leftSide.Add(new number(s));
+                        }
+                        else
+                        {
+                            rightSide = new number(s);
+                        }
+                    }
+                    else
+                    {
+                        if (s.Length == 1)
+                        {
+                            switch (s[0])
+                            {
+                                case '+':
+                                case '-':
+                                    leftSide.Add(s[0]);
+                                    break;
+                                case '=':
+                                    left = false;
+                                    break;
+                            }
+                        }
+                    }
+                }
+                string build = "";
+                List<string> builds = [];
+                foreach (object o in leftSide)
+                {
+                    if (o is string s)
+                    {
+                        build += s;
+                        build += ' ';
+                    }
+                    else if (o is char c)
+                    {
+                        build += c;
+                        build += ' ';
+                    }
+                    else if (o is number num)
+                    {
+                        build += num.getValue(testarray);
+                        build += ' ';
+                    }
+                }
+                double result = Convert.ToDouble(new DataTable().Compute(build, null));
+                build += '=';
+                int answer = -100;
+                if (rightSide != null)
+                {
+                    int? a = rightSide.getValue(testarray);
+                    if (a.HasValue)
+                    {
+                        answer = a.Value;
+                        build += " " + a.Value;
+                    }
+                }
+
+                Engine.Commands.Log($"{build}: {answer == result}");
+            }
+        }
         public const int GeneratorsRequired = 5;
         public class Screen : Entity
         {
@@ -410,7 +633,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 State = FountainStates.Inactive;
                 Add(DashCode = new DashCodeComponent(OnCode, true, "U, UR, UL, DL, DR, L, R, D"));
             }
-
         }
         public void ScreenState(int frame)
         {

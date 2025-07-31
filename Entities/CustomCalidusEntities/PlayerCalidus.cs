@@ -562,18 +562,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             }
             wasOnGround = onGround;
 
-/*            if (level != null)
-            {
-                if (level.CanPause && framesAlive < int.MaxValue)
-                {
-                    framesAlive++;
-                }
+            /*            if (level != null)
+                        {
+                            if (level.CanPause && framesAlive < int.MaxValue)
+                            {
+                                framesAlive++;
+                            }
 
-                if (framesAlive >= 8)
-                {
-                    diedInGBJ = 0;
-                }
-            }*/
+                            if (framesAlive >= 8)
+                            {
+                                diedInGBJ = 0;
+                            }
+                        }*/
             if (!Dead && State != RailState)
             {
                 Collider collider = Collider;
@@ -1573,26 +1573,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
 
         private static PlayerDeadBody Player_Die(On.Celeste.Player.orig_Die orig, Player self, Vector2 direction, bool evenIfInvincible, bool registerDeathInStats)
         {
-/*            if (self is PlayerCalidus pC)
-            {
-                Level level = self.Scene as Level;
-                CalidusDeadBody playerDeadBody = pC.neworig_Die(direction, evenIfInvincible, registerDeathInStats);
-                if (playerDeadBody != null)
-                {
-                    Everest.Events.Player.Die(self);
-                    if (pC.framesAlive < 6 && level != null)
-                    {
-                        diedInGBJ++;
-                        if (diedInGBJ != 0 && diedInGBJ % 2 == 0 && level.Session.Area.GetLevelSet() != "Celeste" && !CoreModule.Settings.DisableAntiSoftlock)
+            /*            if (self is PlayerCalidus pC)
                         {
-                            level.Pause();
-                            return null;
+                            Level level = self.Scene as Level;
+                            CalidusDeadBody playerDeadBody = pC.neworig_Die(direction, evenIfInvincible, registerDeathInStats);
+                            if (playerDeadBody != null)
+                            {
+                                Everest.Events.Player.Die(self);
+                                if (pC.framesAlive < 6 && level != null)
+                                {
+                                    diedInGBJ++;
+                                    if (diedInGBJ != 0 && diedInGBJ % 2 == 0 && level.Session.Area.GetLevelSet() != "Celeste" && !CoreModule.Settings.DisableAntiSoftlock)
+                                    {
+                                        level.Pause();
+                                        return null;
+                                    }
+                                }
+                            }
+                            return playerDeadBody;
                         }
-                    }
-                }
-                return playerDeadBody;
-            }
-            else*/ return orig(self, direction, evenIfInvincible, registerDeathInStats);
+                        else*/
+            return orig(self, direction, evenIfInvincible, registerDeathInStats);
         }
 
         private static bool Player_TransitionTo(On.Celeste.Player.orig_TransitionTo orig, Player self, Vector2 target, Vector2 direction)
@@ -1854,22 +1855,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
                 Effect.Parameters["PlayerCenter"]?.SetValue(Calidus.Center + Vector2.UnitY * Calidus.Glow.FloatOffset);
             }
 
-            public override bool ShouldRender()
-            {
-                return base.ShouldRender() && (!Calidus.CanSee || Amplitude > 0);
-            }
+            public override bool ShouldRender => base.ShouldRender && (!Calidus.CanSee || Amplitude > 0);
 
             public override void Update()
             {
                 base.Update();
-                if (Calidus.CanSee)
-                {
-                    Amplitude = Calc.Approach(Amplitude, 0, Engine.DeltaTime);
-                }
-                else
-                {
-                    Amplitude = 1;
-                }
+                Amplitude = Calidus.CanSee ? Calc.Approach(Amplitude, 0, Engine.DeltaTime) : 1;
             }
         }
         #region Inherited from Calidus.cs

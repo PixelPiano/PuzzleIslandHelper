@@ -134,6 +134,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void OnStool(Stool stool)
         {
+            return;
             DrainStool(stool);
             Audio.Play("event:/game/general/diamond_touch", Position);
             Input.Rumble(RumbleStrength.Light, RumbleLength.Short);

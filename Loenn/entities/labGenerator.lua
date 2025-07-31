@@ -13,6 +13,7 @@ labGenerator.placements =
         name = "Lab Generator",
         data = 
         {
+            flags = ""
         }
     }
 }

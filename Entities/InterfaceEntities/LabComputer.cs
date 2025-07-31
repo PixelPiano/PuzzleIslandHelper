@@ -37,24 +37,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             {
                 if (Scene.Tracker.GetEntity<ComputerMonitor>() is var monitor)
                 {
-                    if (PianoModule.Session.TimesUsedCapsuleWarp == 0 && !TempStoryFlags.PowerLabFirstAndOneMeeting)
-                    {
-                        SetSessionInterface();
-                        Interface.StartWithPreset("Default");
-                    }
-                    else if (Interacted || TempStoryFlags.PowerLabFirstAndOneMeeting)
-                    {
-                        Interface.StartWhirring();
-                        monitor.SmallLogo();
-                        monitor.EndlessFlicker(0.4f);
-                        yield return 1;
-                        monitor.StopFlickering(false);
-                        Interface.StopWhirring();
-                        yield return 0.2f;
-                        monitor.LowBattery();
-                        monitor.Icon.Visible = true;
-                        player.StateMachine.State = Player.StNormal;
-                    }
+                    /*  if (PianoModule.Session.TimesUsedCapsuleWarp == 0)
+                      {
+                          SetSessionInterface();
+                          Interface.StartWithPreset("Default");
+                      }
+                      else if (Interacted)
+                      {*/
+                    Interface.StartWhirring();
+                    monitor.SmallLogo();
+                    monitor.EndlessFlicker(0.4f);
+                    yield return 1;
+                    monitor.StopFlickering(false);
+                    Interface.StopWhirring();
+                    yield return 0.2f;
+                    monitor.LowBattery();
+                    monitor.Icon.Visible = true;
+                    player.StateMachine.State = Player.StNormal;
+                    //}
                 }
             }
             Interacted = true;

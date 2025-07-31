@@ -107,7 +107,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     level.Remove(Shader);
                 }
             }
-            if(WasSkipped || part == 2)
+            if (WasSkipped || part == 2)
             {
                 level.Session.SetFlag("GrassShiftCutsceneWatched");
             }

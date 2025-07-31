@@ -92,7 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Color Color = Color.Blue;
         private VertexLight Light;
         private BloomPoint Bloom;
-        public FlagData Laser = new FlagData("LabGeneratorLaser");
+        public FlagList Flag;
         public bool InSequence;
         public Collider LightBox;
         public Collider ConnectorBox;
@@ -102,6 +102,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public LabGenerator(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
+            Flag = new FlagList(data.Attr("flag"));
         }
 
         private void DrawBloom()
@@ -112,12 +113,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Update();
             Lights.Color = Color.Lerp(Color.White, Color.Black, lightDim);
-            if ("LabGeneratorPuzzleCompleted".GetFlag() && PianoModule.Session.PipesFixed && !PianoModule.Session.RestoredPower) //If fixed
+            if (Flag && !PianoModule.Session.RestoredPower) //If fixed
             {
                 PianoModule.Session.RestoredPower = true;
                 Add(new Coroutine(StartSequenceOrSomething())); //activate machine
             }
-
             MissingPartsUpdate();
             LaserUpdate();
         }
@@ -152,7 +152,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void LaserUpdate()
         {
-            if (Laser.State)
+            if (Flag.State)
             {
                 if (Scene.OnInterval(5f / 60f))
                 {
@@ -234,7 +234,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Glow.CenterOrigin();
             if (PianoModule.Session.RestoredPower)
             {
-                Laser.State = true;
+                Flag.State = true;
                 Lights.Play("onIdle");
             }
             else
@@ -257,12 +257,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             for (int i = 0; i < 3; i++)
             {
                 yield return Calc.Random.Range(0.05f, 0.2f);
-                Laser.State = true;
+                Flag.State = true;
                 yield return 0.1f;
-                Laser.State = false;
+                Flag.State = false;
             }
             InSequence = false;
-            Laser.State = true;
+            Flag.State = true;
             //todo: play machine sounds or something mechanical
 
         }
@@ -273,7 +273,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Inside.Draw(machinePosition, Vector2.Zero, Color.White);
             Dim.Draw(machinePosition, Vector2.Zero, Color.White * 0.4f);
             FrontLines.Draw(machinePosition, Vector2.Zero, Color.Lerp(Color.White, Color.Black, 0.1f) * 0.5f);
-            if (Laser.State)
+            if (Flag.State)
             {
                 for (int i = 0; i < DrawNumber; i++)
                 {

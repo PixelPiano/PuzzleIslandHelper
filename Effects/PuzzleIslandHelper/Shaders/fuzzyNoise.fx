@@ -18,9 +18,9 @@ float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 	float4 origColor = SAMPLE_TEXTURE(text, uv);
 	float time = Time + 2000;
     float2 offset1 = float2(sqrt(sin(pow(time/2 + uv.y * (5.0 % uv.x),2)) * 4) * Amplitude, 0);
-    float2 offset2 = float2(tan(time * 1 + uv.y * 15500000.0) * Amplitude, offset1.x * 1.5);
+    float2 offset2 = float2(tan(time * 1 + uv.y * 15500000.0) * Amplitude, offset1.x * 1.5) - Amplitude;
     float2 offset3 = float2(cos(time * offset2.x + (uv.y/uv.x)) * Amplitude,0);
-    float4 color = SAMPLE_TEXTURE(text, uv + (offset1 * 1.6 + offset2)/2 - offset3 - float2(Amplitude,0));
+    float4 color = SAMPLE_TEXTURE(text, uv + (offset1 * 1.6 * offset2)/2);
     
     return color;
 }

@@ -18,6 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         {
             spins = data.Float("spins", 1);
             DoorID = data.Attr("doorID");
+            GearColor = Color.Magenta;
         }
         public override void Awake(Scene scene)
         {

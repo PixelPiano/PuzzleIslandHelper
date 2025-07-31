@@ -25,7 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 Y = y;
                 Size = size;
                 Connections = new(parent.Connections.Nodes);
-                Connections.TransferFromSlot(this);
+                Connections.TransferFromRune(rune);
             }
             public bool OnScreen
             {
@@ -58,7 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                     Draw.HollowRect(p, Size, Size, Color);
                     foreach (UI.Connection c in Connections.Connections)
                     {
-                        c.RenderNodeLine(p, new Vector2(Size) / new Vector2(1920, 1080), 3);
+                        c.RenderNodeLine(p, new Vector2(Size) / new Vector2(1920, 1080), Color.White, 3);
                     }
                 }
             }
@@ -74,7 +74,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 Color = colliding && open ? Color.White : Color.Green;
                 if (colliding && mouse.JustLeftClicked && Inventory.State == States.Open)
                 {
-                    Inventory.Connections.TransferFromSlot(this);
+                    Inventory.Connections.TransferFromRune(Rune);
                 }
             }
             public bool Check(Vector2 pos)

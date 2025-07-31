@@ -8,6 +8,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
     [Tracked]
     public class MouseComponent : Component
     {
+        public bool MethodsEnabled = true;
         public Action OnLeftClick;
         public Action OnRightClick;
         public Action OnLeftRelease;
@@ -17,11 +18,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public Action OnLeftIdle;
         public Action OnRightIdle;
         private bool lastLeftClicked, lastRightClicked;
-        public bool LeftClicked, RightClicked;
-        public bool JustLeftClicked => LeftClicked && !lastLeftClicked;
-        public bool JustRightClicked => RightClicked && !lastRightClicked;
-        public bool JustLeftReleased => !LeftClicked && lastLeftClicked;
-        public bool JustRightReleased => !RightClicked && lastRightClicked;
+        public bool LeftClicked
+        {
+            get => Active && _leftClicked;
+            set => _leftClicked = value;
+        }
+        public bool RightClicked
+        {
+            get => Active && _rightClicked;
+            set => _rightClicked = value;
+        }
+
+        private bool _leftClicked;
+        private bool _rightClicked;
+        public bool JustLeftClicked => Active && LeftClicked && !lastLeftClicked;
+        public bool JustRightClicked => Active && RightClicked && !lastRightClicked;
+        public bool JustLeftReleased => Active && !LeftClicked && lastLeftClicked;
+        public bool JustRightReleased => Active && !RightClicked && lastRightClicked;
         public Vector2 WorldPosition
         {
             get
@@ -33,18 +46,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 return level.Camera.Position + MousePosition / 6;
             }
         }
-        public Vector2 MousePosition
+        public Vector2 MousePosition => clampPos(!Active ? previousState : State);
+        public Vector2 PrevMousePosition => clampPos(previousState);
+        private Vector2 clampPos(MouseState state)
         {
-            get
-            {
-                MouseState mouseState = State;
-                float mouseX = Calc.Clamp(mouseState.X, 0, Engine.ViewWidth);
-                float mouseY = Calc.Clamp(mouseState.Y, 0, Engine.ViewHeight);
-                float scale = (float)Engine.Width / Engine.ViewWidth;
-                Vector2 position = new Vector2(mouseX, mouseY) * scale;
-                return position;
-            }
+            float mouseX = Calc.Clamp(state.X, 0, Engine.ViewWidth);
+            float mouseY = Calc.Clamp(state.Y, 0, Engine.ViewHeight);
+            float scale = (float)Engine.Width / Engine.ViewWidth;
+            return new Vector2(mouseX, mouseY) * scale;
         }
+        public MouseState previousState;
         public MouseState State;
         public MouseComponent(bool active, bool visible) : base(active, visible)
         {
@@ -66,45 +77,50 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             base.Update();
             if (Engine.Instance.IsActive)
             {
+                previousState = State;
                 State = Mouse.GetState();
                 lastLeftClicked = LeftClicked;
                 lastRightClicked = RightClicked;
                 LeftClicked = State.LeftButton.Equals(ButtonState.Pressed);
                 RightClicked = State.RightButton.Equals(ButtonState.Pressed);
 
-                if (LeftClicked)
+                if (MethodsEnabled)
                 {
-                    if (!lastLeftClicked)
+                    if (LeftClicked)
                     {
-                        OnLeftClick?.Invoke();
+                        if (!lastLeftClicked)
+                        {
+                            OnLeftClick?.Invoke();
+                        }
+                        OnLeftHeld?.Invoke();
                     }
-                    OnLeftHeld?.Invoke();
-                }
-                else
-                {
-                    if (lastLeftClicked)
+                    else
                     {
-                        OnLeftRelease?.Invoke();
+                        if (lastLeftClicked)
+                        {
+                            OnLeftRelease?.Invoke();
+                        }
+                        OnLeftIdle?.Invoke();
                     }
-                    OnLeftIdle?.Invoke();
+
+                    if (RightClicked)
+                    {
+                        if (!lastRightClicked)
+                        {
+                            OnRightClick?.Invoke();
+                        }
+                        OnRightHeld?.Invoke();
+                    }
+                    else
+                    {
+                        if (lastRightClicked)
+                        {
+                            OnRightRelease?.Invoke();
+                        }
+                        OnRightIdle?.Invoke();
+                    }
                 }
 
-                if (RightClicked)
-                {
-                    if (!lastRightClicked)
-                    {
-                        OnRightClick?.Invoke();
-                    }
-                    OnRightHeld?.Invoke();
-                }
-                else
-                {
-                    if (lastRightClicked)
-                    {
-                        OnRightRelease?.Invoke();
-                    }
-                    OnRightIdle?.Invoke();
-                }
             }
         }
     }

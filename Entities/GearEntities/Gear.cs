@@ -11,6 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
     [Tracked]
     public class Gear : Actor
     {
+
         public Vector2 PrevPosition;
         public Vector2 AttractTo;
         public bool InSlot;
@@ -54,12 +55,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/Gear/"));
             Sprite.AddLoop("idle", "Gear", 0.1f, 0);
             Sprite.Add("flash", "flash", 0.1f, "idle");
+            Sprite.AddLoop("light", "lightGear", 0.1f);
+            Sprite.Add("flashToLight", "flash", 0.1f, "light");
             Sprite.Justify = Justify;
             Sprite.JustifyOrigin(Justify);
             Add(new PostUpdateHook(Post));
             //Tag |= Tags.TransitionUpdate;
             EntityID = entityID;
         }
+
         private void Post()
         {
             if (InSlot && InHolder && Holder.InGearRoutine)
@@ -111,7 +115,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                     }
                 }
             }
-
         }
         public void AddHoldable()
         {
@@ -206,6 +209,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         }
         private void OnPickup()
         {
+            Sprite.Play("idle");
             Collider = HoldingHitbox;
             if (WasNotLeader)
             {
@@ -243,6 +247,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public void UpdateGear(GearHolder holder)
         {
             if (holder is null) return;
+            if (!holder.Interruptable)
+            {
+                Hold.cannotHoldTimer = Math.Max(Hold.cannotHoldTimer, Engine.DeltaTime * 2);
+            }
             InSlot = true;
             Sprite.Rotation = holder.Rotation.ToRad();
             Center = holder.Center;
@@ -301,11 +309,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public void DropFromHolder()
         {
             if (Launching) return;
-
+            Sprite.Play("idle");
             ResetCollider();
             Speed = Vector2.Zero;
             Sprite.Rotation = 0;
             prevLiftSpeed = Vector2.Zero;
+            if (Holder != null)
+            {
+                Holder.HasGear = false;
+            }
             Holder = null;
             InSlot = false;
         }
@@ -313,7 +325,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         {
             ResetCollider();
             Speed = Vector2.Zero;
-            Sprite.Play("idle");
+            //Sprite.Play("idle");
+            Sprite.Play("flashToLight");
             Launching = false;
             launchDir = Vector2.Zero;
         }
@@ -324,13 +337,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public override void Render()
         {
             Vector2 prevPosition = Sprite.Position;
+            Color prevColor = Sprite.Color;
             if (InHolder)
             {
                 Sprite.Position += Holder.RealShakeAmount;
+                if (Sprite.CurrentAnimationID == "light" && Holder.SwitchesColors)
+                {
+                    Sprite.Color = Holder.GearColor;
+                }
             }
             Sprite.DrawSimpleOutline();
             base.Render();
             Sprite.Position = prevPosition;
+            Sprite.Color = prevColor;
 
         }
         public override void DebugRender(Camera camera)

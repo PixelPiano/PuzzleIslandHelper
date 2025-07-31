@@ -9,48 +9,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class CodeDoor : Solid
     {
-        public string flag;
-        private bool usesFlag;
+        public FlagList Flag;
         private Sprite doorSprite;
         private Vector2 orig_Position;
         private bool Unlocking;
         private bool Unlocked;
-        private Vector2 destination;
-        private bool Sideways;
-        public CodeDoor(Vector2 position, string flag, bool sideways, bool usesFlag = true) : base(position, 8, 48, false)
+        private readonly bool sideways;
+        public CodeDoor(EntityData data, Vector2 offset) : base(data.Position + offset, 8, 48, false)
         {
             Tag |= Tags.TransitionUpdate;
-            this.flag = flag;
-            Sideways = sideways;
+            Flag = new FlagList(data.Attr("flag"));
+            sideways = data.Bool("sideways");
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/machineDoor/"));
             doorSprite.AddLoop("idle", "codeIdle", 0.1f);
             doorSprite.AddLoop("unlocked", "codeUnlock", 0.1f, 10);
             doorSprite.Add("unlock", "codeUnlock", 0.1f, "unlocked");
             doorSprite.Rate = 1.5f;
-            if (Sideways)
+            if (sideways)
             {
                 doorSprite.CenterOrigin();
                 doorSprite.Position += new Vector2(doorSprite.Height / 2, doorSprite.Width / 2);
                 doorSprite.Rotation = 90f.ToRad();
             }
-            Collider = new Hitbox(Sideways ? doorSprite.Height : doorSprite.Width, Sideways ? doorSprite.Width : doorSprite.Height);
+            Collider = new Hitbox(sideways ? doorSprite.Height : doorSprite.Width, sideways ? doorSprite.Width : doorSprite.Height);
             Add(new LightOcclude());
             orig_Position = Position;
             Depth = -1;
             doorSprite.Play("idle");
-            destination = new Vector2(Sideways ? orig_Position.X - Width : Position.X, Sideways ? Position.Y : orig_Position.Y - Width);
-            this.usesFlag = usesFlag;
-        }
-        public CodeDoor(EntityData data, Vector2 offset)
-            : this(data.Position + offset, data.Attr("flag"), data.Bool("sideways"))
-        {
-
         }
         private IEnumerator UnlockRoutine()
         {
             Unlocked = true;
-            Vector2 orig = Position;
-            Vector2 shakeVector = Sideways ? Vector2.UnitX : Vector2.UnitY;
+            Vector2 orig = orig_Position;
+            Vector2 shakeVector = sideways ? Vector2.UnitX : Vector2.UnitY;
             for (int i = 0; i < 6; i++)
             {
                 Position = orig + shakeVector;
@@ -58,28 +49,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
             }
             Position = orig;
+            Vector2 offset = sideways ? Vector2.UnitX * -Width : Vector2.UnitY * -Height;
             for (float i = 0; i < 1; i += Engine.DeltaTime / 0.25f)
             {
-                Position = Vector2.Lerp(orig, destination, Ease.QuintIn(i));
+                Position = Vector2.Lerp(orig, orig + offset, Ease.QuintIn(i));
                 yield return null;
             }
-            Position = destination;
+            Position = orig + offset;
         }
 
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (usesFlag && (scene as Level).Session.GetFlag(flag))
+            if (Flag.State)
             {
                 Unlocking = true;
                 Unlocked = true;
                 doorSprite.Play("unlocked");
-                Position = destination;
+                Vector2 offset = sideways ? Vector2.UnitX * -Width : Vector2.UnitY * -Height;
+                Position = orig_Position + offset;
             }
         }
         public void Unlock()
         {
-            if(Unlocked || Unlocking) return;
+            if (Unlocked || Unlocking) return;
             Unlocking = true;
             Audio.Play("event:/game/09_core/frontdoor_heartfill", Position);
             doorSprite.Play("unlock");
@@ -95,7 +88,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if (!Unlocked && !Unlocking && usesFlag && SceneAs<Level>().Session.GetFlag(flag))
+            if (!Unlocked && !Unlocking && Flag.State)
             {
                 Unlock();
             }

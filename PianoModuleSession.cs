@@ -24,10 +24,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
     }
     public class PianoModuleSession : EverestModuleSession
     {
+        public bool RestorePowerFirst {get; set;}
         public bool DEBUG { get; set; }
         public bool HasPiano { get; set; }
+        public Dictionary<EntityID, int> StoredStoolDashes = [];
         public Dictionary<string, List<int>> DestroyedVanillaSpinnerIDs = [];
-        public Dictionary<string, List<int>> DestroyedCustomSpinnerIDs = [];
+        public Dictionary<string, HashSet<int>> DestroyedCustomSpinnerIDs = [];
         public Dictionary<EntityID, List<int>> TiletypePuzzleCache = new();
         public Dictionary<EntityID, int> CrystalElevatorFurthestLevelReached = new();
         public HeartInventory HeartInventory = new();
@@ -95,7 +97,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
         #region Pipes
         public int PipeSwitchAttempts;
         public bool PipeSwitched;
-        public bool PipesFixed;
+        public bool PipesFixed
+        {
+            get => "PipesFixed".GetFlag();
+            set => "PipesFixed".SetFlag(value);
+        }
         public bool PipesFixable;
         public bool PipesBroken;
         public bool PipesSafe => !PipesBroken || PipesFixed;

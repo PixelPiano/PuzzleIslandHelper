@@ -56,11 +56,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         public override IEnumerator Cutscene(Level level)
         {
+            //StoolPickupBarrier barrier = level.Tracker.GetEntity<StoolPickupBarrier>();
+            //Add(new Coroutine(Player.DummyWalkTo(barrier.X - 16)));
             yield return Textbox.Say("CalidusHitBarrier", PlayerLookRight, cNormal,startMoving,stopMoving);
         }
         private IEnumerator startMoving()
         {
             calidusMoving = true;
+            Calidus.StopFollowing();
             while (calidusMoving)
             {
                 Calidus.MoveH(-20 * Engine.DeltaTime);

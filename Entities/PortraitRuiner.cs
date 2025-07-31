@@ -96,7 +96,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
             ShaderOverlay shaderOverlay = enumerator.Current as ShaderOverlay;
-            if (shaderOverlay != null && shaderOverlay.ShouldRender())
+            if (shaderOverlay != null && shaderOverlay.ShouldRender)
             {
                 Apply(source, source, shaderOverlay, false);
             }

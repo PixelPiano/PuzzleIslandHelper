@@ -12,14 +12,11 @@
 # {anchor} controls the visual position of the textbox in-game
 
 modoptions_PuzzleIslandHelperModule=Puzzle Island Helper Settings
-modoptions_PuzzleIslandHelperModule_InvIntensity=Invert Effect Intensity
-modoptions_PuzzleIslandHelperModule_InvIntensity_desc=Changes the intensity of the invert effect. 1 is easiest on the eyes, 5 is the full effect.
-modoptions_PuzzleIslandHelperModule_InvToggle_desc=Hold: Ability only active when button is held down.
-Toggle: Ability toggles on/off everytime the button is pressed.
 
 
-modoptions_PuzzleIslandHelperModule_InvState=Invert Ability
-
+trollWip=
+im not finished yet.
+come back later when i might be finished.
 chatTest=
 This dialogue is for testing purposes.
 This should be a new line.
@@ -93,13 +90,14 @@ fountainHint0=[Paper left normal]{# 000000}0 = (1){#}
 fountainHint1=[Paper left normal]{# 000000}1 <3 3{#}
 fountainHint2=[Paper left normal]{# 000000}2 </3 3{#}
 fountainHint3=[Paper left normal]{# 000000}3 = (4)or(5){#}
-fountainHint4=[Paper left normal]{# 000000}4
-(The rest of the writing is illegible){#}
-fountainHint5a=[Paper left normal]{# 000000} 4 </3 5 </3 6{#}
+fountainHint5a=[Paper left normal]{# 000000}4 </3 5 </3 6{#}
 fountainHint5b=[Paper left normal]{# 000000}<(5) + (5)> = 5{#}
-fountainHint6=[Paper left normal]{# 000000}<(6) + (6)> = 6{#}
+#fountainHint6=[Paper left normal]{# 000000}<(6) + (6)> = 11{#}
 fountainHint7=[Paper left normal]{# 000000}7
 (The rest has been scribbled out too much to read){#}
+
+
+
 
 #0 4 1 3 5 2 6 7
 fountainHintA=
@@ -109,32 +107,50 @@ fountainHintA=
 fountainHintB=
 [Paper left normal]
 {# 000000}No, why would it be written down? That's just asking for someone to break in.
-We've hidden it in fragments across the lab. I know you're forgettful, but please try to keep up.{#}
+We've hidden it in fragments across the lab. I know you're forgetful, but please try to keep up.{#}
 
 fountainHintC=
 [Paper left normal]
-{# 000000}Oh, are you talking about the ------?{#}
+{# 000000}Oh, are you talking about the ------{#}
 {# 222222}(the last word has been scratched out){#}
 
 fountainHintD=
 [Paper left normal]
-{# 000000}YES. I AM. Just talk to me in person...{#}
+{# 000000}YES. I AM- We have the same shifts, just talk to me in person!{#}
+
+employeeLogA=
+{# 00FF00}
+=> Does anyone periodically check these logs? I think the system's bugged.
+=> What do you mean bugged? I can't help if you don't tell me what's wrong with it.
+=> I'm seeing impossible readings from the access tracker. Can we make sure it isn't storing data it scans? 
+=> I'll take a look later.{#}
+
+accessTrackerLogA=
+12.24.32: C enters experiment room
+15.45.01: C leaves experiment room
+15.46.48: C enters private quarters
+16.19.32: C leaves experiment room
+ERROR: New tracker detected. Aborting.
 
 capsuleDocumentA=
 [Paper left normal]
-{# 000000}This morning I woke to find blueprints I had not made. 
+{# 000000}I woke this morning to a set of blueprints.
+I wasn't working last evening, nor do I recall the subtle, near abstract designs laid across them.
 I must have written them in the middle of the night and forgotten.{#}
+
 capsuleDocumentB=
 [Paper left normal]
 {# 000000}Those strange blueprints changed again.
 Much of the original markings have been covered by frantic scribbles.
+Scribbles usually have a story behind them. I know this one all too well.
+It's the story of desperate recreation and innovation.
 I'm going to start recording my nights.{#}
 
 capsuleDocumentC=
-{# 000000} As the days went by they evolved from vague sketches and scribbles to detailed diagrams and instructions on how to build a strange machine.
+{# 000000} As the days went by they evolved from vague sketches and scribbles to detailed diagrams and instructions... of a strange machine.
 My options run thin, I decided to build it. Obviously.
-This is the result. I've named it "W.A.R.P".
-...I haven't figured out the accronym yet.{#}
+This is the result. The blueprints named it "W.A.R.P".
+...I haven't figured out what the accronym means yet.{#}
 
 capsuleDocumentD=
 [Paper left normal]
@@ -503,20 +519,19 @@ BETAWARP=
 huh?{n0}what is this?{n0}where am i?{n0}...where's my body?!{n0}it's so green.{n0}am i inside the computer?{n0}are these my thoughts?{n0}{mtRight}is anyone there?
 huh? that wasn't{cue cut}
 
-GREENHEART=
-...yes, it was... strange. It had a certain aura to it.{n0}{mtRight}That's not a lot to go off of. Do you really think it could help us?{n0}{/mtRight}
-...Yes. I think it can.{n0}{mtRight}I thought you couldn't see it.{n0}{/mtRight}I didn't need to.
+GREENHEART= wip dialogue (part one)
+#...yes, it was... strange. It had a certain aura to it.{n0}{mtRight}That's not #a lot to go off of. Do you really think it could help us?{n0}{/mtRight}...Yes. #I think it can.{n0}{mtRight}I thought you couldn't see it.{n0}{/mtRight}I #didn't need to.
 
 
-BLUEHEART= wip dialogue
+BLUEHEART= wip dialogue (part two)
 
-REDHEART= Lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem ipsum quia dolor sit amet lorem ipsum quia la la la la la la la
+REDHEART= If you're seeing this in-game - how
 
 
 DIGILORE1= XX/XX/XXXX{n0}
 Readings from observers have been getting more confusing each day.{n0}
 Some of them began acting erratically. Some would even refuse to start.{n0}
-I think my other equipment is malfunctioning as well. Scanning the area showed duplicate signals for each observer.{n0}
+I think my other equipment may be malfunctioning as well. Scanning the area showed duplicate signals for each observer.{n0}
 Slotting in repairs ASAP
 
 #Pipe Break sequence

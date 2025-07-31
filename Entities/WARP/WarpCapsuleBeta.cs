@@ -7,17 +7,19 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using static MonoMod.InlineRT.MonoModRule;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
 {
     [CustomEntity("PuzzleIslandHelper/WarpCapsuleBeta")]
+    [TrackedAs(typeof(WarpCapsule))]
     [Tracked]
     public class WarpCapsuleBeta : WarpCapsule
     {
         public const string LabID = "LabBetaCapsule";
         public const string TransitID = "TransitBetaCapsule";
         public const string TransitID2 = "TransitCapsule2";
-
+        public static bool AllowWarpingToSameCapsule = true;
         public WarpCapsuleBeta(EntityData data, Vector2 offset, EntityID id)
             : base(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"), data.Attr("warpID"),
                   "objects/PuzzleIslandHelper/protoWarpCapsule/")
@@ -34,19 +36,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void EvaluateOpenConditions()
         {
-            if (Data == null || string.IsNullOrEmpty(Data.ID))
+            if (OwnWarpData == null || string.IsNullOrEmpty(OwnWarpData.ID))
             {
                 TargetID = "";
                 return;
             }
-            if (Data.ID == TransitID2 && (CalCut.Second.GetCutsceneFlag() || (Scene.Tracker.GetEntity<Calidus>() is Calidus c && c.Following)))
+            if (OwnWarpData.ID == TransitID2 && (CalCut.Second.GetCutsceneFlag() || (Scene.Tracker.GetEntity<Calidus>() is Calidus c && c.Following)))
             {
                 CalCut.First.Register();
                 CalCut.FirstIntro.Register();
                 CalCut.Second.Register();
                 TargetID = LabID;
             }
-            else if (Data.ID == LabID && PianoModule.Session.RestoredPower)
+            else if (OwnWarpData.ID == LabID && PianoModule.Session.RestoredPower)
             {
                 CalCut.First.Register();
                 CalCut.FirstIntro.Register();
@@ -70,15 +72,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public override void Interact(Player player)
         {
-/*            string id = LabID;
-            if (CalCut.First.GetCutsceneFlag())
-            {
-                id = TransitID2;
-            }
-            else
-            {
-                id = TransitID;
-            }*/
             Teleport(player, TargetID);
         }
         public void Teleport(Player player, string id, bool pull = false, Action onEnd = null)
@@ -87,7 +80,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             {
                 if (PianoMapDataProcessor.WarpCapsules.TryGetValue(Scene.GetAreaKey(), out var list))
                 {
-                    if (list.GetDataFromID(id) is WarpData data && data != Data)
+                    if (list.GetDataFromID(id) is WarpData data && (AllowWarpingToSameCapsule || data != OwnWarpData))
                     {
                         Scene.Add(new CapsuleWarpHandler(this, data, player, onEnd, pull));
                     }
@@ -96,7 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public override bool WarpEnabled()
         {
-            return !string.IsNullOrEmpty(TargetID);
+            return !string.IsNullOrEmpty(TargetID) &&  (AllowWarpingToSameCapsule || TargetID != WarpID);
         }
         [Command("open_to", "")]
         public static void OpenTo(string id)

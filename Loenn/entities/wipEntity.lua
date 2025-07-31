@@ -20,7 +20,7 @@ wipEntity.placements =
             floatValue = 0,
             boolValue = false,
             stringValue = "",
-            name = "",
+            name = "PuzzleIslandHelper/WipEntity",
             indices = "02 23"
         }
     }

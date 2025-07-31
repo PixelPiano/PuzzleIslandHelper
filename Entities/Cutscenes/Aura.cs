@@ -45,10 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             player.Render();
             Draw.SpriteBatch.End();
         }
-        public override bool ShouldRender()
-        {
-            return Amplitude >= 0 && base.ShouldRender();
-        }
+        public override bool ShouldRender => Amplitude >= 0 && base.ShouldRender;
 
         public override void Removed(Scene scene)
         {

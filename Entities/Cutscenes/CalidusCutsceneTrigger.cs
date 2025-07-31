@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Loaders;
 using Microsoft.Xna.Framework;
@@ -25,6 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private bool oncePerInstance;
         private bool oncePerSession;
         private bool activated;
+        public bool Talker;
         public CalidusCutsceneTrigger(EntityData data, Vector2 offset, EntityID id)
             : base(data, offset)
         {
@@ -34,9 +36,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             endArgs = data.Attr("endArgs");
             FlagList = new FlagList(data.Attr("flag"));
             Tag |= Tags.TransitionUpdate;
+            Talker = data.Bool("talker");
             ActivateOnTransition = data.Bool("activateOnTransition");
             oncePerInstance = data.Bool("oncePerInstance");
             oncePerSession = data.Bool("oncePerSession");
+            if (Talker)
+            {
+                Add(new DotX3(Collider, (player) =>
+                {
+                    Activate(player);
+                }));
+            }
         }
         public override void Awake(Scene scene)
         {
@@ -63,6 +73,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public override void OnEnter(Player player)
         {
             base.OnEnter(player);
+            if (!Talker)
+            {
+                Activate(player);
+            }
+        }
+        public void Activate(Player player)
+        {
             if (!InCutscene && FlagList.State && !CutsceneEntity.GetFlag(Scene as Level))
             {
                 if ((oncePerSession || oncePerInstance) && activated) return;
@@ -75,11 +92,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     SceneAs<Level>().Session.DoNotLoad.Add(id);
                 }
                 activated = true;
-            }
-            else
-            {
-                Engine.Commands.Log("CutsceneEntity did not activate.");
-                Engine.Commands.Log("FlagState:" + (bool)FlagList);
             }
         }
     }

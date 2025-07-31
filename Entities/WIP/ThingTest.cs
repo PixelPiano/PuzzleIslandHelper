@@ -6,8 +6,13 @@ using System;
 using System.Collections;
 // PuzzleIslandHelper.BinarySwitch
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
+
 {
     [CustomEntity("PuzzleIslandHelper/WipEntity")]
+    public class dummyWipEntity : Entity
+    {
+    }
+
     public class ThingTest : Entity
     {
         public class Node : GraphicsComponent

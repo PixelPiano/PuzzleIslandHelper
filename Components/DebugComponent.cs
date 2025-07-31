@@ -3,21 +3,29 @@ using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {
     [Tracked]
     public class DebugComponent : Component
     {
-        private Action onPressed;
-        private Action onRelease;
-        private Action onHeld;
-        private Action<int> onScroll;
-        private Action<Vector2> onMouse;
-        private IEnumerator onPressedRoutine;
-        private bool isRoutine;
+        public Action OnPressed;
+        public Action OnRelease;
+        public Action OnHeld;
+        public Action<int> OnScroll;
+        public Action<Vector2> OnMouse;
+        public IEnumerator OnPressedRoutine;
+        private bool isRoutine => OnPressedRoutine != null;
         private Coroutine routine;
-        private Keys key;
+        private HashSet<Keys> Keys = [];
+        public enum KeyCheckModes
+        {
+            Any,
+            All
+        }
+        public KeyCheckModes KeyCheckMode;
         private enum inputType
         {
             mousePosition,
@@ -25,17 +33,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             key
         }
         private inputType type;
-        private bool onlyInRender;
-        public bool OncePerInput;
-        public bool InRoutine => isRoutine && onPressedRoutine != null && routine != null && routine.Finished;
-
+        public bool OnlyInRender;
+        public bool OncePerInput = true;
+        public bool InRoutine => isRoutine && routine != null && !routine.Finished;
+        private bool wasActive;
+        private bool isActive;
         public static DebugComponent ForMousePosition(Entity entity, Action<Vector2> onMove, bool onlyInRender = false)
         {
             DebugComponent dc = new()
             {
                 type = inputType.mousePosition,
-                onlyInRender = onlyInRender,
-                onMouse = onMove,
+                OnlyInRender = onlyInRender,
+                OnMouse = onMove,
                 OncePerInput = true,
             };
             entity?.Add(dc);
@@ -46,8 +55,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             DebugComponent dc = new()
             {
                 type = inputType.scrollWheel,
-                onlyInRender = onlyInRender,
-                onScroll = onScroll,
+                OnlyInRender = onlyInRender,
+                OnScroll = onScroll,
                 OncePerInput = true,
             };
             entity?.Add(dc);
@@ -58,11 +67,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             DebugComponent dc = new()
             {
                 type = inputType.key,
-                key = key,
-                onlyInRender = onlyInRender,
-                onPressed = onPressed,
-                onHeld = onHeld,
-                onRelease = onReleased,
+                Keys = [key],
+                OnlyInRender = onlyInRender,
+                OnPressed = onPressed,
+                OnHeld = onHeld,
+                OnRelease = onReleased,
                 OncePerInput = onHeld == null
             };
             entity?.Add(dc);
@@ -72,33 +81,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         {
 
         }
-        public DebugComponent(Keys key, Action onPressed, bool oncePerPress, bool onlyInRender = false) : base(true, true)
+        public DebugComponent(object function, params Keys[] keys) : base(true, true)
         {
             type = inputType.key;
-            this.onPressed = onPressed;
-            this.key = key;
-            this.onlyInRender = onlyInRender;
-            OncePerInput = oncePerPress;
+            Keys = [.. keys];
+            if (function is Action action)
+            {
+                OnPressed = action;
+            }
+            else if (function is IEnumerator enumerator)
+            {
+                routine = new Coroutine(OnPressedRoutine = enumerator, false);
+            }
         }
-        private bool wasActive;
-        private bool isActive;
-        public DebugComponent(Keys key, Action onHeld, Action onPressed, Action onReleased, bool onlyInRender = false) : base(true, true)
+        public DebugComponent(Action onHeld, Action onPressed, Action onReleased, params Keys[] keys) : base(true, true)
         {
             type = inputType.key;
-            this.onPressed = onPressed;
-            this.key = key;
-            this.onlyInRender = onlyInRender;
+            OnPressed = onPressed;
+            Keys = [.. keys];
             OncePerInput = false;
-            this.onPressed = onHeld;
-            this.onHeld = onPressed;
-            this.onRelease = onReleased;
-        }
-        public DebugComponent(Keys key, IEnumerator onPressed) : base(true, true)
-        {
-            type = inputType.key;
-            this.key = key;
-            routine = new Coroutine(onPressedRoutine = onPressed, false);
-            isRoutine = true;
+            OnPressed = onHeld;
+            OnHeld = onPressed;
+            OnRelease = onReleased;
         }
         private Vector2 prevPosition;
         private float prevScroll;
@@ -112,7 +116,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 case inputType.scrollWheel:
                     return mouse.ScrollWheelValue != prevScroll;
                 case inputType.key:
-                    return MInput.Keyboard.CurrentState.IsKeyDown(key);
+                    switch (KeyCheckMode)
+                    {
+                        case KeyCheckModes.Any:
+                            foreach (Keys k in Keys)
+                            {
+                                if (k != 0 && MInput.Keyboard.CurrentState.IsKeyDown(k))
+                                {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        case KeyCheckModes.All:
+                            foreach (Keys k in Keys)
+                            {
+                                if (k != 0 && !MInput.Keyboard.CurrentState.IsKeyDown(k))
+                                {
+                                    return false;
+                                }
+                            }
+                            return true;
+                    }
+                    break;
             }
             return false;
         }
@@ -125,14 +150,45 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 case inputType.scrollWheel:
                     return mouse.ScrollWheelValue != prevScroll;
                 case inputType.key:
-                    return MInput.Keyboard.Pressed(key);
+                    switch (KeyCheckMode)
+                    {
+                        case KeyCheckModes.Any:
+                            foreach (Keys k in Keys)
+                            {
+                                if (k != 0 && MInput.Keyboard.Pressed(k))
+                                {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        case KeyCheckModes.All:
+                            bool oneJustPressed = false;
+                            foreach (Keys k in Keys)
+                            {
+                                if (k != 0)
+                                {
+                                    if (MInput.Keyboard.Pressed(k))
+                                    {
+                                        oneJustPressed = true;
+                                        continue;
+                                    }
+                                    if (!MInput.Keyboard.CurrentState.IsKeyDown(k))
+                                    {
+                                        return false;
+                                    }
+                                }
+                            }
+                            return oneJustPressed;
+                    }
+                    break;
+
             }
             return false;
         }
         public bool GetState()
         {
             bool detected = (OncePerInput || isRoutine ? NewInputDetected() : InputDetected());
-            return detected && (type != inputType.key || key != 0);
+            return detected && (type != inputType.key || Keys.Any(item => item != 0));
         }
         public override void Added(Entity entity)
         {
@@ -148,7 +204,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
 
             wasActive = isActive;
             isActive = GetState();
-            if (!onlyInRender)
+            if (!OnlyInRender)
             {
                 DoActions();
             }
@@ -158,9 +214,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public void DoActions()
         {
             if (Entity is null || InRoutine) return;
-            if (isRoutine && !onlyInRender)
+            if (isRoutine && !OnlyInRender)
             {
-                routine.Replace(onPressedRoutine);
+                routine.Replace(OnPressedRoutine);
                 Entity.Add(routine);
             }
             else
@@ -169,28 +225,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 {
                     if (!wasActive && isActive)
                     {
-                        onHeld?.Invoke();
+                        OnHeld?.Invoke();
                     }
 
                     if (wasActive && !isActive)
                     {
-                        onRelease?.Invoke();
+                        OnRelease?.Invoke();
                         return;
                     }
                     if (isActive && !(OncePerInput && wasActive))
                     {
-                        onPressed?.Invoke();
+                        OnPressed?.Invoke();
                     }
                 }
                 else
                 {
                     if (type == inputType.mousePosition)
                     {
-                        onMouse.Invoke(new Vector2(mouse.X, mouse.Y));
+                        OnMouse.Invoke(new Vector2(mouse.X, mouse.Y));
                     }
                     else
                     {
-                        onScroll.Invoke(mouse.ScrollWheelValue);
+                        OnScroll.Invoke(mouse.ScrollWheelValue);
                     }
                 }
             }
@@ -198,7 +254,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public override void Render()
         {
             base.Render();
-            if (onlyInRender)
+            if (OnlyInRender)
             {
                 DoActions();
             }

@@ -148,8 +148,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public static Effect TryGetEffect(string id, bool fullPath = false)
         {
-            id = id.Replace('\\', '/');
-
+            id = id.Replace('\\', '/').Replace(".cso","");
             string name = fullPath ? $"Effects/{id}.cso" : $"Effects/PuzzleIslandHelper/Shaders/{id}.cso";
             if (Everest.Content.TryGet(name, out var effectAsset, true))
             {
