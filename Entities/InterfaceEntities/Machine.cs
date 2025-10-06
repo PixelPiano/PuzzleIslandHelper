@@ -16,6 +16,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public Color BackgroundColor;
         public bool UsesStartupMonitor;
         public bool UsesFloppyLoader;
+        public bool TalkEnabled = true;
         public void SetSessionInterface()
         {
             PianoModule.Session.Interface = Interface;
@@ -34,6 +35,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
             Sprite.Play("idle");
             Add(Talk = new DotX3(0, 0, Sprite.Width, Sprite.Height, new Vector2(Sprite.Width / 2, 0), Interact));
             Talk.PlayerMustBeFacing = false;
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            Talk.Enabled = TalkEnabled;
+        }
+        public override void Update()
+        {
+            base.Update();
+            Talk.Enabled = TalkEnabled;
         }
         public virtual void OnMonitorOff()
         {

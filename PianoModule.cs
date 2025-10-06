@@ -7,6 +7,9 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities;
 using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System.Collections.Generic;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -23,6 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static GameshowData GameshowData { get; set; }
         public static AccessData AccessData { get; set; }
         public static MazeData MazeData { get; set; }
+        public static Dictionary<string, MethodInfo> PassengerSetups = [];
         public static string CalidusFreedFlag = "CalidusFreed";
         public static string MapName
         {
@@ -57,7 +61,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
             base.PrepareMapDataProcessors(context);
             context.Add<PianoMapDataProcessor>();
         }
-
+        public override void DeserializeSession(int index, byte[] data)
+        {
+            base.DeserializeSession(index, data);
+           
+        }
 
         [OnLoadContent]
         public static void LoadCustomData()
@@ -74,24 +82,25 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override void LoadContent(bool firstLoad)
         {
             base.LoadContent(firstLoad);
-            InvokeAllWithAttribute(typeof(OnLoadContent));
+            InvokeAllWithAttribute(typeof(OnLoadContent), (c, m) => m.Invoke(null, null));
         }
         public override void Load()
         {
-            InvokeAllWithAttribute(typeof(OnLoad));
+            InvokeAllWithAttribute(typeof(OnLoad), (c, m) => m.Invoke(null, null));
         }
+
 
         public override void Unload()
         {
-            InvokeAllWithAttribute(typeof(OnUnload));
+            InvokeAllWithAttribute(typeof(OnUnload), (c, m) => m.Invoke(null, null));
         }
 
         public override void Initialize()
         {
-            InvokeAllWithAttribute(typeof(OnInitialize));
+            InvokeAllWithAttribute(typeof(OnInitialize), (c, m) => m.Invoke(null, null));
         }
 
-        public static void InvokeAllWithAttribute(Type attributeType, string logPrefix = null)
+        public static void InvokeAllWithAttribute(Type attributeType, Action<CustomAttributeData, MethodInfo> action, string logPrefix = null)
         {
             bool usesLog = !string.IsNullOrEmpty(logPrefix);
             Type attributeType2 = attributeType;
@@ -106,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     stopwatch.Start();
                     checkType(typesSafe[i]);
                     stopwatch.Stop();
-                    Logger.Info("PuzzleIslandHelper",$"{logPrefix} Type: {typesSafe[i].Name}, Time Elapsed: {localStopwatch.Elapsed}.");
+                    Logger.Info("PuzzleIslandHelper", $"{logPrefix} Type: {typesSafe[i].Name}, Time Elapsed: {localStopwatch.Elapsed}.");
                 }
                 stopwatch.Stop();
                 Logger.Info("PuzzleIslandHelper", logPrefix + " Time Elapsed: " + stopwatch.Elapsed.ToString());
@@ -128,7 +137,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     {
                         if (customAttribute.AttributeType == attributeType2)
                         {
-                            method.Invoke(null, null);
+                            action?.Invoke(customAttribute, method);
                             return;
                         }
                     }

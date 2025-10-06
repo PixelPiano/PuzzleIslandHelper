@@ -202,17 +202,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 Lines.Add(line);
                 prev = current;
             }
+            float total = 0;
+            for (int i = 1; i < nodes.Count; i++)
+            {
+                total += Vector2.Distance(nodes[i], nodes[i - 1]);
+            }
+            LineLength = Math.Min(LineLength, total);
             determineClosest();
         }
 
         public override void Render()
         {
             base.Render();
-            if(Alpha <= 0 || (ColorAAlpha <= 0 && ColorBAlpha <= 0)) return;
+            if (Alpha <= 0 || (ColorAAlpha <= 0 && ColorBAlpha <= 0)) return;
             DrawLine(RenderPosition, getFadeColor);
         }
         private Color getFadeColor(float position, Line currentLine)
         {
+            if (Solid) return Color.White;
             float lineLength = LineLength / 2f;
             float fade = MathHelper.Distance(position, lineLength) / lineLength;
             return Color.Lerp(currentLine.ColorA * ColorAAlpha, currentLine.ColorB * ColorBAlpha, fade);
@@ -227,80 +234,93 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 Draw.Line(p + line.A, p + line.B, Color.Orange);
             }
         }
+        public bool Solid;
         private void DrawLine(Vector2 position, Func<float, Line, Color> getColor)
         {
-            float pos = 0;
-            Line currentLine = Lines[closestIndex];
-            Vector2 p = Calc.Approach(currentLine.A, currentLine.B, distanceFromClosestToStart);
-            Vector2 prev = p;
-            float halfSize = Size / 2;
-            int i = closestIndex;
-            Color prevA = ColorA;
-            Color prevB = ColorB;
-            float prevF1 = ColorAAlpha;
-            float prevF2 = ColorBAlpha;
-            if (Debug)
+            if (Solid)
             {
-                ColorAAlpha = 1;
-                ColorBAlpha = 1;
-                ColorA = Color.Cyan;
-                ColorB = Color.Magenta;
-            }
-            while (pos < LineLength)
-            {
-                while (p != currentLine.B && pos < LineLength)
+                Vector2 o = RenderPosition;
+                foreach (Line line in Lines)
                 {
-                    if (currentLine.Visible)
+                    Draw.Line(o + line.A, o + line.B, line.ColorA);
+                }
+            }
+            else
+            {
+                float pos = 0;
+                Line currentLine = Lines[closestIndex];
+                Vector2 p = Calc.Approach(currentLine.A, currentLine.B, distanceFromClosestToStart);
+                Vector2 prev = p;
+                float halfSize = Size / 2;
+                int i = closestIndex;
+                Color prevA = ColorA;
+                Color prevB = ColorB;
+                float prevF1 = ColorAAlpha;
+                float prevF2 = ColorBAlpha;
+                if (Debug)
+                {
+                    ColorAAlpha = 1;
+                    ColorBAlpha = 1;
+                    ColorA = Color.Cyan;
+                    ColorB = Color.Magenta;
+                }
+                while (pos < LineLength)
+                {
+                    while (p != currentLine.B && pos < LineLength)
                     {
-                        Color c = getColor(pos, currentLine);
-                        if (c.A > 0)
+                        if (currentLine.Visible)
                         {
-                            //testing size changes - currently looks bad
-                            /*  if (halfSize > 0)
-                              {
-                                  Vector2 perp = Calc.Perpendicular(p - prev).FourWayNormal() * halfSize;
-                                  Vector2 start = p + perp;
-                                  Vector2 target = p - perp;
-                                  while (start != target)
+                            Color c = getColor(pos, currentLine);
+                            if (c.A > 0)
+                            {
+                                //testing size changes - currently looks bad
+                                /*  if (halfSize > 0)
                                   {
-                                      Draw.Point(start + position, c);
-                                      start = Calc.Approach(start, target, 1);
+                                      Vector2 perp = Calc.Perpendicular(p - prev).FourWayNormal() * halfSize;
+                                      Vector2 start = p + perp;
+                                      Vector2 target = p - perp;
+                                      while (start != target)
+                                      {
+                                          Draw.Point(start + position, c);
+                                          start = Calc.Approach(start, target, 1);
+                                      }
                                   }
-                              }
-                              else
-                              {
-                                  Draw.Point(p + position, c);
-                              }*/
-                            Draw.Point(p + position, c);
+                                  else
+                                  {
+                                      Draw.Point(p + position, c);
+                                  }*/
+                                Draw.Point(p + position, c);
+                            }
                         }
+                        prev = p;
+                        p = Calc.Approach(p, currentLine.B, 1);
+                        pos = Calc.Approach(pos, LineLength, 1);
+                        /* really cool effect - could be worth keeping around, don't delete!!!!
+                        Draw.Line(prev + position, p + position,getColor(pos, currentLine));*/
                     }
-                    prev = p;
-                    p = Calc.Approach(p, currentLine.B, 1);
-                    pos = Calc.Approach(pos, LineLength, 1);
-                    /* really cool effect - could be worth keeping around, don't delete!!!!
-                    Draw.Line(prev + position, p + position,getColor(pos, currentLine));*/
-                }
-                i++;
-                if (i >= Lines.Count)
-                {
-                    if (!WrapAround)
+                    i++;
+                    if (i >= Lines.Count)
                     {
-                        ColorA = prevA;
-                        ColorB = prevB;
-                        ColorAAlpha = prevF1;
-                        ColorBAlpha = prevF2;
-                        Debug = false;
-                        return;
+                        if (!WrapAround)
+                        {
+                            ColorA = prevA;
+                            ColorB = prevB;
+                            ColorAAlpha = prevF1;
+                            ColorBAlpha = prevF2;
+                            Debug = false;
+                            return;
+                        }
+                        i %= Lines.Count;
                     }
-                    i %= Lines.Count;
+                    currentLine = Lines[i];
+                    p = currentLine.A;
                 }
-                currentLine = Lines[i];
-                p = currentLine.A;
+                ColorA = prevA;
+                ColorB = prevB;
+                ColorAAlpha = prevF1;
+                ColorBAlpha = prevF2;
             }
-            ColorA = prevA;
-            ColorB = prevB;
-            ColorAAlpha = prevF1;
-            ColorBAlpha = prevF2;
+
             Debug = false;
         }
         private void determineClosest()

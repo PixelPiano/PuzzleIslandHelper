@@ -510,7 +510,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             for (float j = 0; j <= 360; j += 45)
             {
-                PianoModule.Session.BubbleSystem.Emit(P_Pop, 1, PianoUtils.RotatePoint(Center + Vector2.One * 6, Center, j), Vector2.One * 0.5f, BubbleColor, j.ToRad());
+                PianoModule.Session.BubbleSystem.Emit(P_Pop, 1, PianoUtils.RotateAroundDeg(Center + Vector2.One * 6, Center, j), Vector2.One * 0.5f, BubbleColor, j.ToRad());
             }
 
         }
@@ -653,6 +653,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (!player.DashAttacking)
                 {
                     SceneAs<Level>().Displacement.AddBurst(Center, 0.2f, 8f, 32f, 0.4f, Ease.QuadOut, Ease.QuadOut);
+                }
+                else
+                {
+                    SceneAs<Level>().Add(Engine.Pooler.Create<SpeedRing>().Init(player.Center, player.Speed.Angle(), Color.White));
                 }
             }
             P_Pop.Acceleration = AimSpeed * Engine.DeltaTime;

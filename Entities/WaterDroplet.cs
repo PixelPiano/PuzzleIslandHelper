@@ -181,7 +181,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (collidedWithWater || (!collidedWithWater && !collidedWithPlayer))
                 {
                     pos = End;
-                    Audio.Play("event:/PianoBoy/Droplets/drip", pos);
+                    var instance = Audio.Play("event:/PianoBoy/Droplets/drip", pos);
+                    if (collidedWithWater)
+                    {
+                        if(instance.getVolume(out float volume, out float finalvolume) == FMOD.RESULT.OK)
+                        {
+                            instance.setVolume(volume * 0.8f);
+                        }
+                    }
                     if (collidedWater is not null)
                     {
                         switch (MoveDirection)

@@ -5,7 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-// PuzzleIslandHelper.ArtifactSlot
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/Marker")]
@@ -44,7 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            if (MarkerExt.TryGetData(ID, (scene as Level).Session.Level, scene, out var Data))
+            if (MarkerExt.TryGetRoomData(ID, (scene as Level).Session.Level, scene, out var Data))
             {
                 this.Data = Data;
             }
@@ -145,7 +145,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 foreach (Marker marker in level.Tracker.GetEntities<Marker>())
                 {
-                    if (marker.ID.Equals(name, StringComparison.InvariantCultureIgnoreCase))
+                    if (marker.ID == name)
                     {
                         return marker;
                     }
@@ -187,7 +187,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return [];
         }
-        public static bool TryGetData(string id, string room, Scene scene, out MarkerData data)
+        public static bool TryGetRoomData(string id, string room, Scene scene, out MarkerData data)
         {
             data = default;
             if (PianoMapDataProcessor.MarkerData.TryGetValue(scene.GetAreaKey(), out var l))
@@ -204,9 +204,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                 }
             }
-
             return false;
-
+        }
+        public static bool TryGetData(string id, Scene scene, out MarkerData data)
+        {
+            data = default;
+            if (PianoMapDataProcessor.MarkerData.TryGetValue(scene.GetAreaKey(), out var l))
+            {
+                foreach (var p in l)
+                {
+                    foreach (MarkerData d in p.Value)
+                    {
+                        if (d.ID == id)
+                        {
+                            data = d;
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
         }
         public static void ToMarker(this Camera entity, string marker)
         {

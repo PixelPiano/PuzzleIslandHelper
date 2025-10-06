@@ -11,6 +11,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
     [Tracked]
     public class DebugComponent : Component
     {
+        public static DebugComponent Left(object function)
+        {
+            return new DebugComponent(function, Keys.Left);
+        }
+        public static DebugComponent Right(object function)
+        {
+            return new DebugComponent(function, Keys.Right);
+        }
+        public static DebugComponent Up(object function)
+        {
+            return new DebugComponent(function, Keys.Up);
+        }
+        public static DebugComponent Down(object function)
+        {
+            return new DebugComponent(function, Keys.Down);
+        }
         public Action OnPressed;
         public Action OnRelease;
         public Action OnHeld;
@@ -19,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public IEnumerator OnPressedRoutine;
         private bool isRoutine => OnPressedRoutine != null;
         private Coroutine routine;
-        private HashSet<Keys> Keys = [];
+        private HashSet<Keys> componentKeys = [];
         public enum KeyCheckModes
         {
             Any,
@@ -67,7 +83,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             DebugComponent dc = new()
             {
                 type = inputType.key,
-                Keys = [key],
+                componentKeys = [key],
                 OnlyInRender = onlyInRender,
                 OnPressed = onPressed,
                 OnHeld = onHeld,
@@ -84,7 +100,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public DebugComponent(object function, params Keys[] keys) : base(true, true)
         {
             type = inputType.key;
-            Keys = [.. keys];
+            componentKeys = [.. keys];
             if (function is Action action)
             {
                 OnPressed = action;
@@ -98,7 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         {
             type = inputType.key;
             OnPressed = onPressed;
-            Keys = [.. keys];
+            componentKeys = [.. keys];
             OncePerInput = false;
             OnPressed = onHeld;
             OnHeld = onPressed;
@@ -119,7 +135,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     switch (KeyCheckMode)
                     {
                         case KeyCheckModes.Any:
-                            foreach (Keys k in Keys)
+                            foreach (Keys k in componentKeys)
                             {
                                 if (k != 0 && MInput.Keyboard.CurrentState.IsKeyDown(k))
                                 {
@@ -128,7 +144,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                             }
                             return false;
                         case KeyCheckModes.All:
-                            foreach (Keys k in Keys)
+                            foreach (Keys k in componentKeys)
                             {
                                 if (k != 0 && !MInput.Keyboard.CurrentState.IsKeyDown(k))
                                 {
@@ -153,7 +169,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     switch (KeyCheckMode)
                     {
                         case KeyCheckModes.Any:
-                            foreach (Keys k in Keys)
+                            foreach (Keys k in componentKeys)
                             {
                                 if (k != 0 && MInput.Keyboard.Pressed(k))
                                 {
@@ -163,7 +179,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                             return false;
                         case KeyCheckModes.All:
                             bool oneJustPressed = false;
-                            foreach (Keys k in Keys)
+                            foreach (Keys k in componentKeys)
                             {
                                 if (k != 0)
                                 {
@@ -188,7 +204,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public bool GetState()
         {
             bool detected = (OncePerInput || isRoutine ? NewInputDetected() : InputDetected());
-            return detected && (type != inputType.key || Keys.Any(item => item != 0));
+            return detected && (type != inputType.key || componentKeys.Any(item => item != 0));
         }
         public override void Added(Entity entity)
         {

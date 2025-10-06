@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using System.Linq;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/ChainButtonModule")]
@@ -12,20 +13,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         public class ButtonNode : GraphicsComponent
         {
-            public bool On => Flag.GetFlag();
+            public bool On
+            {
+                get => Flag.GetFlag();
+                set => Flag.SetFlag(value);
+            }
             public string Flag;
-            public Color NodeColor => On ? Color.Red : Color.Lime;
+            public Color NodeColor => On ? Color.Lime : Color.Red;
             public MTexture Texture;
             public ButtonNode(Vector2 position, string flag) : base(true)
             {
                 Flag = flag;
                 Position = position;
                 Texture = GFX.Game["objects/PuzzleIslandHelper/puzzles/square"];
+
             }
             public override void Render()
             {
                 base.Render();
-                Texture.Draw(RenderPosition, Origin, NodeColor, Scale, Rotation, Effects);
+                Texture.Draw(RenderPosition + Texture.Size(), Origin, NodeColor, Scale, Rotation, Effects);
             }
 
         }
@@ -35,11 +41,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             get
             {
-                foreach(ButtonNode node in Nodes)
+                foreach (ButtonNode node in Nodes)
                 {
-                    if(!node.On) return false;
+                    if (!node.On) return false;
                 }
                 return true;
+            }
+        }
+        public FlagData Flag;
+        public override void Update()
+        {
+            base.Update();
+            foreach (var node in Nodes)
+            {
+                if (!node.On)
+                {
+                    Flag.State = false;
+                    return;
+                }
+            }
+            Flag.State = true;
+        }
+        [Command("button_module_state", "")]
+        public static void moduleState(bool state)
+        {
+            if (Engine.Scene is Level level && level.GetPlayer() is Player player)
+            {
+                foreach (ChainButtonModule m in level.Tracker.GetEntities<ChainButtonModule>())
+                {
+                    foreach (ButtonNode n in m.Nodes)
+                    {
+                        n.On = state;
+                    }
+                }
             }
         }
         public string Prefix;
@@ -47,7 +81,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public ChainButtonModule(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Prefix = data.Attr("buttonFlagPrefix");
+            Flag = new FlagData(Prefix + ":Active");
             Collider = new Hitbox(data.Width, data.Height);
+            Depth = 10;
             float ypad = 1;
             float xpad = 1;
             float h = (Width - xpad) / 5;
@@ -77,7 +113,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Draw.Rect(Collider, Color.Black);
             Draw.HollowRect(Position - Vector2.One, Width + 2, Height + 2, Color.White);
-            base.Render();
+            if (!Flag) base.Render();
         }
     }
 }

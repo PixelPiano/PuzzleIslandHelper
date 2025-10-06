@@ -41,6 +41,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         {
             base.Update();
         }
+        public override void OnGearRelease()
+        {
+            base.OnGearRelease();
+            LockedTimer = 0.8f;
+        }
         public void Launch(Gear gear)
         {
             gear?.Launch(direction, Force * 6);

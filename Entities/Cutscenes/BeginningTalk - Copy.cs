@@ -27,7 +27,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         {
             yield return null;
         }
-        public BeginningTalkCutscene(Passenger passenger, Player player) : base(passenger, player)
+        public BeginningTalkCutscene(Passenger passenger, Player player, params string[] args) : base(passenger, player, args)
         {
             if (passenger is VertexPassenger)
             {

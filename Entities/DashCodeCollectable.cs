@@ -216,15 +216,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Player player = level.GetPlayer();
             if (player == null) yield break;
             player.DisableMovement();
-            player.ForceCameraUpdate = true;
+            AddHeart(level);
+            heart.Visible = false;
+            heart.Active = false;
+
             ShaderOverlay overlay = new ShaderOverlay("collectableGet", "", false, 1, false);
             overlay.UseRawDeltaTime = true;
             overlay.Amplitude = 1;
             level.Add(overlay);
             flash f = new flash(1);
-            AddHeart(level);
-            heart.Visible = false;
-            heart.Active = false;
             yield return null;
             resetTimeRate = true;
             timeRate = Engine.TimeRateB;
@@ -234,7 +234,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 yield return null;
             }
             holdTimeRate = true;
-            yield return 1f;
+
+            yield return 0.5f;
+            Vector2 from = level.Camera.Position;
+            bool bringCameraBack = false;
+            if (!heart.Center.OnScreen())
+            {
+                bringCameraBack = true;
+                Vector2 to = heart.Center.Clamp(level.Bounds.Left, level.Bounds.Top, level.Bounds.Right - 320, level.Bounds.Bottom - 180);
+                for (float i = 0; i < 1; i += Engine.RawDeltaTime)
+                {
+                    level.Camera.Position = Vector2.Lerp(from, to, Ease.CubeOut(i));
+                    overlay.ParamVector2("Position", (heart.Center - level.Camera.Position) / new Vector2(320, 180));
+                    yield return null;
+                }
+                level.Camera.Position = to;
+                overlay.ParamVector2("Position", (heart.Center - level.Camera.Position) / new Vector2(320, 180));
+
+            }
+            yield return 0.5f;
             overlay.ParamVector2("Position", (heart.Center - level.Camera.Position) / new Vector2(320, 180));
             for (float i = 0; i < 1; i += Engine.RawDeltaTime)
             {
@@ -247,26 +265,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (on)
                 {
-                    overlay.ParamFloat("Modifier",1);
+                    overlay.ParamFloat("Modifier", 1);
                 }
                 else
                 {
-                    overlay.ParamFloat("Modifier",0);
+                    overlay.ParamFloat("Modifier", 0);
                 }
                 on = !on;
                 yield return null;
             }
             level.Remove(overlay);
             level.Flash(Color.White);
-            for(int i = 0; i<6; i++)
+            for (int i = 0; i < 6; i++)
             {
-                GravityParticle p = new GravityParticle(heart.Center + new Vector2(Calc.Random.Range(-3f, 3f),0),
-                    new Vector2(Calc.Random.Range(-20f, 20f),Calc.Random.Range(-50f, -10f)),Color.White);
+                GravityParticle p = new GravityParticle(heart.Center + new Vector2(Calc.Random.Range(-3f, 3f), 0),
+                    new Vector2(Calc.Random.Range(-20f, 20f), Calc.Random.Range(-50f, -10f)), Color.White);
                 level.Add(p);
             }
             heart.Visible = true;
             heart.Active = true;
             playSound(heart.Center);
+            if (bringCameraBack)
+            {
+                yield return 1f;
+                Vector2 from2 = level.Camera.Position;
+                for(float i = 0; i<1; i += Engine.RawDeltaTime)
+                {
+                    level.Camera.Position = Vector2.Lerp(from2, from, Ease.CubeOut(i));
+                    yield return null;
+                }
+            }
             holdTimeRate = false;
             Engine.TimeRateB = timeRate;
             timeRate = 1;

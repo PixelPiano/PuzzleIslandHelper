@@ -35,13 +35,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         public class Darkness : Entity
         {
-            public Ghost Ghost;
+            public GhostBeta Ghost;
             public Level Level;
             public static Effect Shader;
             public float Amplitude;
             public float Alpha = 1;
             public VirtualRenderTarget Buffer;
-            public Darkness(Level level, Ghost ghost) : base()
+            public Darkness(Level level, GhostBeta ghost) : base()
             {
                 Level = level;
                 Depth = -10000000;
@@ -103,7 +103,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         public Calidus Calidus;
         public FestivalJudge Judge;
         public FestivalTrailer Trailer;
-        public Ghost Ghost;
+        public GhostBeta Ghost;
         public Darkness Dark;
         public Types CutsceneType = Types.RivalsIntro;
         private cleanupStates cleanupState = cleanupStates.None;
@@ -135,7 +135,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             Calidus = level.Tracker.GetEntity<Calidus>();
             Judge = level.Tracker.GetEntity<FestivalJudge>();
             Trailer = level.Tracker.GetEntity<FestivalTrailer>();
-            Ghost = level.Tracker.GetEntity<Ghost>();
+            Ghost = level.Tracker.GetEntity<GhostBeta>();
         }
         public void DisableMovement(Player player)
         {
@@ -212,8 +212,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                     if (Jaques != null && Randy != null)
                     {
                         Level.Session.SetFlag("RivalsHaveEntered");
-                        Jaques.JumpLoop = false;
-                        Randy.JumpLoop = false;
+                        Jaques.EndlessJump = false;
+                        Randy.EndlessJump = false;
                         Jaques.Position = JaquesOrig;
                         Randy.Position = RandyOrig;
                         Jaques.Talk.Enabled = true;
@@ -675,7 +675,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return 0.6f;
             yield return Calidus?.FloatToX(Player.Left - 8, 0.3f);
             yield return 0.1f;
-            Calidus.Drunk = false;
+            Calidus.Dizzy = false;
             Calidus.Stern();
 
             yield return null;
@@ -683,7 +683,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private bool calidusGlitching;
         private IEnumerator calidusGlitchCoroutine()
         {
-            Calidus.Dizzy();
+            Calidus.DizzyEye();
             calidusGlitching = true;
             Vector2 start = Calidus.Center;
             while (calidusGlitching)
@@ -692,7 +692,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 yield return new SwapImmediately(burstCalidusWarp(target));
             }
             yield return new SwapImmediately(burstCalidusWarp(start));
-            Calidus.Drunk = true;
+            Calidus.Dizzy = true;
         }
         private IEnumerator calidusGlitch()
         {
@@ -803,7 +803,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 Level.Camera.X = pos.X - 160;
                 if (Ghost == null)
                 {
-                    Ghost = new Ghost(Level.Camera.Position);
+                    EntityData data = new EntityData()
+                    {
+                        Position = Level.Camera.Position
+                    };
+                    Ghost = new GhostBeta(data, Vector2.Zero, PianoUtils.GenerateRandomID());
                     Level.Add(Ghost);
                 }
             }
@@ -814,8 +818,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         }
         private IEnumerator bounce()
         {
-            Jaques.JumpLoop = true;
-            Randy.JumpLoop = true;
+            Jaques.EndlessJump = true;
+            Randy.EndlessJump = true;
             Randy.CannotJumpTimer = 0.1f;
             yield return null;
         }
@@ -1049,7 +1053,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             yield return PianoUtils.Lerp(Ease.SineInOut, 1, f => Level.Camera.X = Calc.LerpClamp(x, to, f));
             if (Marker.TryFind("ghostAppear", out Vector2 pos))
             {
-                Ghost = new Ghost(pos) { StartEmpty = true };
+                EntityData data = new EntityData()
+                {
+                    Position = pos,
+                };
+                Ghost = new GhostBeta(data, Vector2.Zero, PianoUtils.GenerateRandomID()) { StartEmpty = true };
                 Level.Add(Ghost);
                 Add(new Coroutine(reactToGhostAppear()));
             }

@@ -39,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 }
             }
         }
-        public FormativeRival(EntityData data, Vector2 offset) : base(data.Position + offset, 15, 20, null, data.Attr("dialog"), Vector2.One, new(-1, 1), 0.95f)
+        public FormativeRival(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id, 15, 20, Vector2.One, new(-1, 1), 0.95f)
         {
             MinWiggleTime = 1;
             MaxWiggleTime = 2.5f;
@@ -99,7 +99,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         private void OnWait(FancyText.Portrait portrait)
         {
-            Offsets[2] = Vector2.Zero;
+            VertexList[2].Offset = Vector2.Zero;
         }
 
         public override void Awake(Scene scene)
@@ -138,7 +138,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             base.Added(scene);
             Bake();
-            Offsets[2] = Vector2.UnitY;
+            VertexList[2].Offset = Vector2.UnitY;
         }
         public override void Update()
         {

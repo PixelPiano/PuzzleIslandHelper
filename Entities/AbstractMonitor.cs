@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using static Celeste.Overworld;
-// PuzzleIslandHelper.ArtifactSlot
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     public abstract class AbstractMonitor : Entity

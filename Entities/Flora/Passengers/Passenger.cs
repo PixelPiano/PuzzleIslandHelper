@@ -4,21 +4,21 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers.Passenger;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
 {
     [Tracked]
     public abstract class Passenger : Actor
     {
+        public bool CutsceneOnTransition;
+        public string[] CutsceneArgs;
         public string DataCutsceneID;
         public bool HasDataCutscene => !string.IsNullOrEmpty(DataCutsceneID);
-        private readonly DotX3 dataTalk;
+        private readonly DotX3 Talk;
         public bool CutsceneWatched
         {
-            get
-            {
-                return HasDataCutscene && SceneAs<Level>().Session.GetFlag(DataCutsceneID);
-            }
+            get => HasDataCutscene && SceneAs<Level>().Session.GetFlag(DataCutsceneID);
             set
             {
                 if (HasDataCutscene)
@@ -27,19 +27,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 }
             }
         }
-        public string ActiveFlag;
-        public bool FlagState => string.IsNullOrEmpty(ActiveFlag) || SceneAs<Level>().Session.GetFlag(ActiveFlag);
-        private bool state;
-        public Vector2 Speed;
-        public bool onGround;
-        public bool wasOnGround;
-        public bool JumpLoop;
-        public float CannotJumpTimer;
-        public float JumpHeight = 150f;
-        public bool HasGravity = true;
-        public float GravityMult = 1;
-        public string[] Dialogs;
-        public bool HasDialogCutscenes => Dialogs != null && Dialogs.Length > 0;
+        public string[] dataDialogs;
+        public bool HasDialogCutscenes => dataDialogs != null && dataDialogs.Length > 0;
         public enum DialogMethods
         {
             OnlyOnce,
@@ -52,77 +41,129 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             get
             {
-                if (Dialogs == null) return "None";
+                if (dataDialogs == null) return "None";
                 string output = "";
-                foreach (string s in Dialogs)
+                foreach (string s in dataDialogs)
                 {
                     output += s + ",";
                 }
                 return output;
             }
         }
+        public bool CanStartDialogCutscene => HasDialogCutscenes && DialogIndex < dataDialogs.Length && TalkFlag;
+        public FlagList ActiveFlag;
+        public FlagList TalkFlag;
+        public bool FlagState => ActiveFlag;
+        public Vector2 Speed;
+        public bool onGround;
+        public bool wasOnGround;
+        public bool EndlessJump;
+        public float CannotJumpTimer;
+        public float JumpHeight = 150f;
+        public bool HasGravity = true;
+        public float GravityMult = 1;
         public string Debug2;
-        public bool CanStartDialogCutscene => HasDialogCutscenes && DialogIndex < Dialogs.Length;
-        public Passenger(Vector2 position, float width, float height, string cutscene, string dialog, DialogMethods dialogMethod, string flag = "") : base(position)
+        public EntityID EID;
+
+        public string argsDebug;
+        public Passenger(EntityData data, Vector2 offset, EntityID id) : this(data, offset, id, 16, 16)
         {
-            Debug2 = dialog;
-            ActiveFlag = flag;
+        }
+        public Passenger(EntityData data, Vector2 offset, EntityID id, float width, float height) : base(data.Position + offset)
+        {
+            EID = id;
+            string dialog = Debug2 = data.Attr("dialog");
+            ActiveFlag = new FlagList(data.Attr("flag"));
+            TalkFlag = new FlagList(data.Attr("dialogFlags"));
             if (!string.IsNullOrWhiteSpace(dialog))
             {
-                Dialogs = dialog.Split(',');
+                dataDialogs = dialog.Split(',');
+            }
+            Depth = 5;
+            Collider = new Hitbox(width, height);
+            DataCutsceneID = data.Attr("cutsceneID");
+            Add(Talk = new DotX3(Collider, OnInteract));
+            Tag |= Tags.TransitionUpdate;
+            DialogMethod = data.Enum<DialogMethods>("dialogMethod");
+            CutsceneOnTransition = data.Bool("cutsceneOnTransition");
+            CutsceneArgs = data.Attr("cutsceneArgs").Split(',');
+        }
+        public Passenger(Vector2 position, EntityID id, float width, float height, string cutscene, string dialog, DialogMethods dialogMethod, string flag = "", bool cutsceneOnTransition = false, string cutsceneArgs = "") : base(position)
+        {
+            EID = id;
+            Debug2 = dialog;
+            ActiveFlag = new FlagList(flag);
+            if (!string.IsNullOrWhiteSpace(dialog))
+            {
+                dataDialogs = dialog.Split(',');
             }
             Depth = 1;
             Collider = new Hitbox(width, height);
             DataCutsceneID = cutscene;
-            Add(dataTalk = new DotX3(Collider, OnDataInteract));
+            Add(Talk = new DotX3(Collider, OnInteract));
             Tag |= Tags.TransitionUpdate;
             DialogMethod = dialogMethod;
+            CutsceneOnTransition = cutsceneOnTransition;
+            CutsceneArgs = cutsceneArgs.Split(',');
         }
-        public Passenger(Vector2 position, float width, float height, string cutscene, string dialog) : this(position, width, height, cutscene, dialog, DialogMethods.OnlyOnce)
+        public Passenger(Vector2 position, EntityID id, float width, float height, string cutscene, string dialog, string cutsceneArgs = "") : this(position, id, width, height, cutscene, dialog, DialogMethods.OnlyOnce, cutsceneArgs: cutsceneArgs)
         {
         }
-        public Passenger(Vector2 position, float width, float height, string cutscene) : this(position, width, height, cutscene, null, DialogMethods.OnlyOnce)
-        {
-        }
-        public Passenger(EntityData data, Vector2 offset) : this(data.Position + offset, 16, 16, data.Attr("cutsceneID"), data.Attr("dialog"), data.Enum<DialogMethods>("dialogMethod"), data.Attr("flag"))
+        public Passenger(Vector2 position, EntityID id, float width, float height, string cutscene, string cutsceneArgs = "") : this(position, id, width, height, cutscene, null, DialogMethods.OnlyOnce, cutsceneArgs: cutsceneArgs)
         {
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            UpdateDataTalk();
+            if (ActiveFlag)
+            {
+                if (CutsceneOnTransition && scene.GetPlayer() is Player player)
+                {
+                    OnInteract(player);
+                }
+                Talk.Enabled = HasDataCutscene ? !CutsceneWatched && TalkFlag : HasDialogCutscenes && CanStartDialogCutscene;
+            }
+            else
+            {
+                Talk.Enabled = false;
+            }
         }
         public override void Update()
         {
             base.Update();
-            state = FlagState;
-            if (!state) return;
-            if (!HasGravity)
+            if (ActiveFlag)
             {
-                onGround = false;
+                if (!HasGravity)
+                {
+                    onGround = false;
+                }
+                else
+                {
+                    onGround = OnGround();
+                    if (onGround)
+                    {
+                        if (!wasOnGround)
+                        {
+                            OnJumpLand();
+                        }
+                        if (EndlessJump)
+                        {
+                            Jump();
+                        }
+                    }
+                }
+                CannotJumpTimer = Math.Max(0, CannotJumpTimer - Engine.DeltaTime);
+                Talk.Enabled = HasDataCutscene ? !CutsceneWatched : HasDialogCutscenes && CanStartDialogCutscene;
+                MoveV(Speed.Y * Engine.DeltaTime, OnCollideV);
+                MoveH(Speed.X * Engine.DeltaTime, OnCollideH);
+                Speed.Y = Calc.Approach(Speed.Y, HasGravity ? 120f * GravityMult : 0, 900f * Engine.DeltaTime);
+                Speed.X = Calc.Approach(Speed.X, 0f, 200f * Engine.DeltaTime);
+                wasOnGround = onGround;
             }
             else
             {
-                onGround = OnGround();
-                if (onGround)
-                {
-                    if (!wasOnGround)
-                    {
-                        OnJumpLand();
-                    }
-                    if (JumpLoop)
-                    {
-                        Jump();
-                    }
-                }
+                Talk.Enabled = false;
             }
-            CannotJumpTimer = Math.Max(0, CannotJumpTimer - Engine.DeltaTime);
-            UpdateDataTalk();
-            MoveV(Speed.Y * Engine.DeltaTime, OnCollideV);
-            MoveH(Speed.X * Engine.DeltaTime, OnCollideH);
-            Speed.Y = Calc.Approach(Speed.Y, HasGravity ? 120f * GravityMult : 0, 900f * Engine.DeltaTime);
-            Speed.X = Calc.Approach(Speed.X, 0f, 200f * Engine.DeltaTime);
-            wasOnGround = onGround;
         }
         public void OnCollideV(CollisionData data)
         {
@@ -135,6 +176,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public virtual void OnJumpLand()
         {
+
         }
         public void OnCollideH(CollisionData data)
         {
@@ -159,36 +201,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             CutsceneWatched = true;
         }
-        public void UpdateDataTalk()
-        {
-            bool watched = CutsceneWatched;
-            if (HasDataCutscene)
-            {
-                dataTalk.Enabled = !CutsceneWatched;
-            }
-            else if (HasDialogCutscenes)
-            {
-                dataTalk.Enabled = CanStartDialogCutscene;
-            }
-            else
-            {
-                dataTalk.Enabled = false;
-            }
-        }
-        public virtual void OnDataInteract(Player player)
+        public virtual void OnInteract(Player player)
         {
             if (HasDataCutscene && !CutsceneWatched)
             {
-                PassengerCutsceneLoader.LoadCustomCutscene(DataCutsceneID, this, player, SceneAs<Level>());
+                PassengerCutsceneLoader.LoadCustomCutscene(DataCutsceneID, this, player, SceneAs<Level>(), CutsceneArgs);
             }
             else if (CanStartDialogCutscene)
             {
-                AddDialogCutscene(player, Dialogs[DialogIndex]);
+                AddDialogCutscene(player, dataDialogs[DialogIndex], CutsceneArgs);
             }
         }
-        public void AddDialogCutscene(Player player, string dialog)
+        public void AddDialogCutscene(Player player, string dialog, params string[] args)
         {
-            SceneAs<Level>().Add(new DialogPassengerCutscene(this, player, dialog));
+            SceneAs<Level>().Add(new DialogPassengerCutscene(this, player, dialog, args));
         }
     }
 }

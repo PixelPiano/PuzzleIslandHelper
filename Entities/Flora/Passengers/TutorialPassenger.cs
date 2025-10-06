@@ -22,7 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         private int lastDimmed = -1;
         private Coroutine multRoutine;
         public float prevPosition;
-        public TutorialPassenger(EntityData data, Vector2 offset) : base(data, offset)
+        public TutorialPassenger(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id)
         {
             prevPosition = Position.X;
             Outline = true;
@@ -41,9 +41,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             {
                 BreathDuration = SavedBreath * Calc.LerpClamp(breathFrom, breathTo, i);
                 float mult = Calc.LerpClamp(from, to, i);
-                foreach (ColorShifter cs in Shifters)
+                foreach (Vertex v in VertexList.Vertices)
                 {
-                    cs.Rate = cs.OriginalRate * mult;
+                    if (v.Shifter != null)
+                    {
+                        v.Shifter.Rate = v.Shifter.OriginalRate * mult;
+                    }
                 }
                 yield return null;
             }
@@ -92,9 +95,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                                 shifter.Active = false;
                             }
                         }*/
-            foreach (ColorShifter shifter in Shifters)
+            foreach (Vertex v in VertexList.Vertices)
             {
-                shifter.Active = false;
+                if (v.Shifter != null)
+                {
+                    v.Shifter.Active = false;
+                }
             }
             for (int i = 0; i < 3; i++)
             {
@@ -130,9 +136,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public bool TurningOn;
         public void TurnOn()
         {
-            foreach (ColorShifter shifter in Shifters)
+            foreach (Vertex v in VertexList.Vertices)
             {
-                shifter.Active = true;
+                if (v.Shifter != null)
+                {
+                    v.Shifter.Active = true;
+                }
             }
             TurnedOn = true;
             TurningOn = false;
@@ -148,9 +157,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public void TurnOff()
         {
-            foreach (ColorShifter shifter in Shifters)
+            foreach (Vertex v in VertexList.Vertices)
             {
-                shifter.Active = false;
+                if (v.Shifter != null)
+                {
+                    v.Shifter.Active = false;
+                }
             }
             TurnedOn = false;
             TurningOn = false;
@@ -167,9 +179,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             Breathes = true;
             TurningOn = true;
-            foreach (ColorShifter shifter in Shifters)
+            foreach (Vertex v in VertexList.Vertices)
             {
-                shifter.Active = true;
+                if (v.Shifter != null)
+                {
+                    v.Shifter.Active = true;
+                }
             }
             for (float i = 0; i < 1; i += Engine.DeltaTime / 1.6f)
             {
@@ -196,9 +211,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             Breathes = true;
             TurnedOn = false;
             TurningOn = true;
-            foreach (ColorShifter shifter in Shifters)
+           foreach(Vertex v in VertexList.Vertices)
             {
-                shifter.Active = true;
+                if(v.Shifter != null)
+                {
+                    v.Shifter.Active = true;
+                }
             }
             for (float i = 0; i < 1; i += Engine.DeltaTime / 1.6f)
             {
@@ -219,9 +237,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 BreathDuration = Calc.LerpClamp(NormalBreath * 0.8f, NormalBreath, Ease.SineInOut(1 - i));
                 yield return null;
             }
-            foreach (ColorShifter shifter in Shifters)
+            foreach (Vertex v in VertexList.Vertices)
             {
-                shifter.Active = false;
+                if (v.Shifter != null)
+                {
+                    v.Shifter.Active = false;
+                }
             }
             Breathes = false;
         }

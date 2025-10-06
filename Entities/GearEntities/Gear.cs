@@ -11,7 +11,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
     [Tracked]
     public class Gear : Actor
     {
-
         public Vector2 PrevPosition;
         public Vector2 AttractTo;
         public bool InSlot;
@@ -44,13 +43,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public string ContinuityID;
         public bool IsLeader;
         public string SubID;
-
-        public Gear(EntityData data, Vector2 offset, EntityID entityID) : base(data.Position + offset)
+        [Command("givegear", "gives the player a gear")]
+        public static void GiveGear()
         {
-            IsLeader = data.Bool("isLeader");
-            SubID = data.Attr("subId");
-            WasNotLeader = !IsLeader;
-            ContinuityID = data.Attr("continuityID");
+            if (Engine.Scene.GetPlayer() is Player player)
+            {
+                player.Scene.Add(new Gear(player.Position, new EntityID(Guid.NewGuid().ToString(), 0), true, "", ""));
+            }
+        }
+        public Gear(EntityData data, Vector2 offset, EntityID entityID) : this(data.Position + offset, entityID, data.Bool("isLeader"),
+            data.Attr("subId"), data.Attr("continuityID"))
+        {
+        }
+        public Gear(Vector2 position, EntityID id, bool isLeader, string subId, string continuityID) : base(position)
+        {
+            EntityID = id;
+            IsLeader = isLeader;
+            SubID = subId;
+            ContinuityID = continuityID;
+            WasNotLeader = !isLeader;
             Depth = 1;
             Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/Gear/"));
             Sprite.AddLoop("idle", "Gear", 0.1f, 0);
@@ -60,10 +71,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             Sprite.Justify = Justify;
             Sprite.JustifyOrigin(Justify);
             Add(new PostUpdateHook(Post));
-            //Tag |= Tags.TransitionUpdate;
-            EntityID = entityID;
         }
-
         private void Post()
         {
             if (InSlot && InHolder && Holder.InGearRoutine)
@@ -314,10 +322,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             Speed = Vector2.Zero;
             Sprite.Rotation = 0;
             prevLiftSpeed = Vector2.Zero;
-            if (Holder != null)
-            {
-                Holder.HasGear = false;
-            }
+            Holder?.OnGearRelease();
             Holder = null;
             InSlot = false;
         }

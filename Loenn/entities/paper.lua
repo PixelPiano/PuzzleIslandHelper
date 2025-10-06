@@ -3,7 +3,7 @@ local drawableSprite = require("structs.drawable_sprite")
 local paper = {}
 
 paper.name = "PuzzleIslandHelper/Paper"
-paper.depth = 1
+paper.depth = 9000
 paper.fillColor = {0.4, 0.4, 1.0, 0.4}
 paper.borderColor = {0.4, 0.4, 1.0, 1.0}
 paper.nodeLimits = {1, 1}

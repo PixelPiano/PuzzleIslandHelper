@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Mod.PuzzleIslandHelper.Triggers;
+using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections.Generic;
@@ -9,23 +10,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
     public class HoldableEntity : Actor
     {
         public string OrigRoom;
-        private float noGravityTimer;
-        private float swatTimer;
-        private float hardVerticalHitSoundCooldown;
-        private static Vector2 Justify = new Vector2(0.5f, 1f);
+        public float noGravityTimer;
+        public float swatTimer;
+        public float hardVerticalHitSoundCooldown;
+        public static Vector2 Justify = new Vector2(0.5f, 1f);
         public Vector2 Speed;
-        private Vector2 prevLiftSpeed;
+        public Vector2 prevLiftSpeed;
         public Sprite Sprite;
         public Holdable Hold;
         public HoldableCollider hitSeeker;
         public VertexLight Light;
-        private Collision onCollideV;
-        private Collision onCollideH;
+        public Collision onCollideV;
+        public Collision onCollideH;
         public EntityID EntityID;
         public bool WasNotLeader = true;
         public Collider HoldingHitbox;
         public Collider IdleHitbox;
         public bool UsesCheckpointSystem;
+        public bool ModifyPersistence = true;
         public float Rotation
         {
             get
@@ -45,7 +47,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public string SubID;
         public bool KillPlayerIfPit;
         public float TimePassed;
-        public HoldableEntity(Vector2 position, EntityID id, bool usesCheckpointSystem, bool isLeader, string subID, string groupID, string spritePath) : base(position)
+        public HoldableEntity(Vector2 position, EntityID id, string spritePath, string anim = "idle") : this(position, id, false, true, "", "", spritePath, anim) { }
+        public HoldableEntity(Vector2 position, EntityID id, bool usesCheckpointSystem, bool isLeader, string subID, string groupID, string spritePath, string anim = "idle") : base(position)
         {
             UsesCheckpointSystem = usesCheckpointSystem;
             IsLeader = isLeader;
@@ -55,7 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             Depth = 1;
             EntityID = id;
             Add(Sprite = new Sprite(GFX.Game, spritePath));
-            Sprite.AddLoop("idle", "idle", 0.1f);
+            Sprite.AddLoop("idle", anim, 0.1f);
             Sprite.Play("idle");
             Sprite.Justify = Justify;
             Sprite.JustifyOrigin(Justify);
@@ -81,25 +84,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         {
             Add(Hold = new Holdable(0.1f));
             Hold.PickupCollider = new Hitbox(Width, Height, Collider.Position.X, Collider.Position.Y);
-            Hold.SpeedSetter = delegate (Vector2 speed)
-            {
-                Speed = speed;
-            };
+            Hold.SpeedSetter = speed => Speed = speed;
+            Hold.SpeedGetter = () => Speed;
             Hold.SlowFall = false;
             Hold.SlowRun = false;
             Hold.OnPickup = OnPickup;
             Hold.OnRelease = OnRelease;
             Hold.OnHitSpring = HitSpring;
-            Hold.SpeedGetter = () => Speed;
             onCollideH = OnCollideH;
             onCollideV = OnCollideV;
             LiftSpeedGraceTime = 0.1f;
-        }
-
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-
         }
         public virtual void OnCollideV(CollisionData data)
         {
@@ -142,20 +136,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public virtual void OnPickup()
         {
             Collider = HoldingHitbox;
-            if (WasNotLeader)
+            if (UsesCheckpointSystem)
             {
-                IsLeader = true;
-            }
-            if (!string.IsNullOrEmpty(GroupID) && IsLeader)
-            {
-                if (!PianoModule.Session.HoldableGroupIDs.Contains(GroupID))
+                if (WasNotLeader)
+                {
+                    IsLeader = true;
+                }
+                if (!string.IsNullOrEmpty(GroupID) && IsLeader)
                 {
                     PianoModule.Session.HoldableGroupIDs.Add(GroupID);
                 }
             }
             Sprite.JustifyOrigin(Justify);
             Sprite.Position.Y = 0;
-            AddTag(Tags.Persistent);
+            if (ModifyPersistence) AddTag(Tags.Persistent);
         }
         public virtual bool HitSpring(Spring spring)
         {
@@ -189,7 +183,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         }
         public virtual void OnRelease(Vector2 force)
         {
-            if (WasNotLeader)
+            if (UsesCheckpointSystem && WasNotLeader)
             {
                 IsLeader = false;
             }
@@ -202,7 +196,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             {
                 noGravityTimer = 0.1f;
             }
-            RemoveTag(Tags.Persistent);
+            if (ModifyPersistence) RemoveTag(Tags.Persistent);
         }
         public void ResetCollider()
         {
@@ -215,7 +209,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
 
             TimePassed += Engine.DeltaTime;
             Hold.CheckAgainstColliders();
-
             if (swatTimer > 0f)
             {
                 swatTimer -= Engine.DeltaTime;
@@ -361,6 +354,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         }
         public HoldableData()
         {
+
         }
     }
 }

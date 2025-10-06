@@ -1,18 +1,40 @@
-﻿using Microsoft.Xna.Framework;
-using Monocle;
-using Celeste.Mod.Entities;
-using System;
-using System.Collections;
-using System.Linq;
-using System.Collections.Generic;
+﻿using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Monocle;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
-
+    [ConstantEntity("PuzzleIslandHelper/CalidusFollowingUpdater")]
+    public class CalidusFollowUpdater : Entity
+    {
+        public CalidusFollowUpdater() : base()
+        {
+            Tag |= Tags.Global | Tags.TransitionUpdate;
+        }
+        public override void Update()
+        {
+            base.Update();
+            foreach (Calidus c in SceneAs<Level>().Tracker.GetEntities<Calidus>())
+            {
+                if (c.Following)
+                {
+                    SceneAs<Level>().Session.SetFlag("CalidusFollowing");
+                    return;
+                }
+            }
+            SceneAs<Level>().Session.SetFlag("CalidusFollowing", false);
+        }
+    }
 
     [CustomEntity("PuzzleIslandHelper/Calidus")]
     [Tracked]
@@ -45,33 +67,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Player.StateMachine.State = Player.StNormal;
             }
         }
-        public Arguments StartArgs;
-        public Arguments EndArgs;
-        public string StartArgsString
+        private int calidi
         {
             get
             {
-                string output = "";
-                foreach (Argument a in StartArgs.Args)
-                {
-                    output += '\n' + a.ToString();
-                }
-
-                return output;
+                return SceneAs<Level>().Tracker.GetEntities<Calidus>().Count;
             }
         }
+        public Arguments StartArgs;
+        public Arguments EndArgs;
+        public Arguments AwakeArgs;
         public string RawStartArgs;
         public string RawEndArgs;
-        public string EndArgsString
+        public bool Persistent
         {
-            get
+            get => TagCheck(Tags.Persistent);
+            set
             {
-                string output = "";
-                foreach (Argument a in EndArgs.Args)
+                if (value)
                 {
-                    output += a.ToString() + '\n';
+                    AddTag(Tags.Persistent);
+                    if (Engine.Scene is Level level)
+                    {
+                        level.Session.DoNotLoad.Add(ID);
+                    }
                 }
-                return output.Trim('\n');
+                else
+                {
+                    RemoveTag(Tags.Persistent);
+                    if (Engine.Scene is Level level)
+                    {
+                        level.Session.DoNotLoad.Remove(ID);
+                    }
+                }
             }
         }
         public class Argument()
@@ -85,10 +113,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public class Arguments
         {
-            public Argument[] Args;
-            public Arguments(params Argument[] args)
+            public List<Argument> Args;
+            public Arguments(params List<Argument> args)
             {
                 Args = args;
+            }
+            public override string ToString()
+            {
+                string output = "";
+                foreach (Argument arg in Args)
+                {
+                    output += '\n' + arg.ToString();
+                }
+                return output;
             }
         }
         public void OnCutsceneStart()
@@ -104,10 +141,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (args != null)
             {
-
                 foreach (Argument s in args.Args)
                 {
-
                     switch (s.Name)
                     {
                         case "follow":
@@ -118,6 +153,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             else
                             {
                                 StartFollowing();
+                            }
+                            break;
+                        case "xoff" or "yoff" or "woff" or "hoff":
+                            if (!string.IsNullOrEmpty(s.Content) && Single.TryParse(s.Content, out Single extend))
+                            {
+                                switch (s.Name[0])
+                                {
+                                    case 'x':
+                                        Talk.Bounds.X += (int)extend;
+                                        break;
+                                    case 'y':
+                                        Talk.Bounds.Y += (int)extend;
+                                        break;
+                                    case 'w':
+                                        Talk.Bounds.Width += (int)extend;
+                                        break;
+                                    case 'h':
+                                        Talk.Bounds.Height += (int)extend;
+                                        break;
+                                }
                             }
                             break;
                         case "mood":
@@ -186,6 +241,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             DownLeft,
             Center,
             Player,
+            Dynamic,
             Target,
         }
         public enum EyeDepths
@@ -216,10 +272,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Looking LookOverride;
         private Looking followLook;
         private Looking look = Looking.Center;
-        public Mood CurrentMood = Mood.Normal;
-        public Vector2 drunkOffset;
-        private Vector2 drunkTarget;
-        private float drunkTimer;
+        public Mood CurrentMood
+        {
+            get => mood;
+            set
+            {
+                prevMood = mood;
+                mood = value;
+                if (value != prevMood)
+                {
+                    Emotion(value);
+                }
+            }
+        }
+        private Mood mood = Mood.Normal;
+        private Mood prevMood;
+        public Vector2 dizzyOffset;
+        private Vector2 dizzyTarget;
+        private float dizzyTimer;
         public Entity LookEntity;
         private int ColorTweenLoops = 2;
         private int ArmLoopCount;
@@ -230,7 +300,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float LookSpeed = 1;
         public List<CalCut> RequiredWatched = [];
         public List<CalCut> ExcludedWatched = [];
-        public bool Drunk;
+        public bool Dizzy;
         public bool AddBackToPlayerOnSpawn;
         public Part BrokenParts;
         public Part OrbSprite;
@@ -239,14 +309,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Part[] Arms = new Part[2];
         private ParticleSystem system;
         public VertexLight Light;
+        private Tween nudgeTween;
         public Vector2 OrigPosition;
+        public Vector2 NudgeOffset;
         public Vector2 Scale = Vector2.One;
         public Vector2 EyeScale = Vector2.One;
         public Vector2 ApproachScale = Vector2.One;
         public Vector2 LookTarget;
         public Vector2 EyeOffset;
         private Vector2 StarPos;
-        public Vector2 Offset => shakeVector + drunkOffset + Vector2.UnitY * sineY;
+        public Vector2 Offset => NudgeOffset + shakeVector + dizzyOffset + Vector2.UnitY * sineY;
         private EntityID ID;
         private Vector2 shakeVector;
         private float sineY;
@@ -254,7 +326,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float StarRotation;
         private float OutlineOpacity;
         public float FloatTarget;
-        public float FloatAmount;
+        public float FloatAmount
+        {
+            get => rawFloatAmount * floatMult;
+            set => rawFloatAmount = value;
+        }
+        private float rawFloatAmount;
+        private float floatMult = 1;
         public bool Continue;
         public bool EyeInstant;
         public bool CanFloat = true;
@@ -262,35 +340,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool RenderStar;
         public bool Broken;
         public bool Talkable;
-        public bool Following
-        {
-            get => _following;
-            set
-            {
-
-                if (Scene is Level level)
-                {
-                    if (value)
-                    {
-                        level.Session.SetFlag("CalidusFollowing");
-                    }
-                    else if (Following)
-                    {
-                        foreach (Calidus c in level.Tracker.GetEntities<Calidus>())
-                        {
-                            if (c.Following && c != this)
-                            {
-                                _following = value;
-                                return;
-                            }
-                        }
-                        level.Session.SetFlag("CalidusFollowing", false);
-                    }
-                }
-                _following = value;
-            }
-        }
-        private bool _following;
+        public bool Following;
         public bool ForceBlink;
         public bool Blinking;
         public bool FallenApart;
@@ -299,7 +349,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool StartFollowingImmediately;
         private float shakeTimer;
         public string[] CutsceneArgs;
-        public CalidusSprite Sprite;
         public Follower Follower;
 
         public Collider SpriteBox;
@@ -310,7 +359,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public TextboxListener EmotionListener;
         public float Alpha = 1;
         public FlagList SpawnData;
-        public FlagList CutsceneFlagData;
+        public FlagList TalkFlag;
         public string CutsceneID;
         public bool RequireSpawnFlag;
         public static HashSet<string> BannedCutsceneIDs = [];
@@ -339,6 +388,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public float FallSpeed;
             public float RotationRate;
             public Vector2 Offset;
+            public Vector2 VisualOffset;
+            public bool VisualOffsetApproachZero = true;
             public float OutlineOpacity = 1;
             public bool OnGround;
             public float FallOffset;
@@ -366,11 +417,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public override void Render()
             {
-                RenderAt(RenderPosition);
+                RenderAt(RenderPosition + VisualOffset);
             }
             public override void Update()
             {
                 base.Update();
+                if (VisualOffsetApproachZero && VisualOffset != Vector2.Zero)
+                {
+                    Vector2 prev = VisualOffset;
+                    VisualOffset -= VisualOffset * (1f - (float)Math.Pow(0.0099999997764825821, Engine.DeltaTime));
+                    if (Vector2.DistanceSquared(prev, VisualOffset) < 0.00001f)
+                    {
+                        VisualOffset = Vector2.Zero;
+                    }
+                }
             }
             public void Return(float speedMult = 1)
             {
@@ -519,65 +579,59 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Engine.Scene.Add(c);
             return c;
         }
+        public static string LastRegisteredRoom;
+        public static Vector2 LastRegisteredOffset;
+        public void RegisterLastPosition()
+        {
+            if (Scene is Level level)
+            {
+                LastRegisteredRoom = level.Session.Level;
+                LastRegisteredOffset = Position - level.LevelOffset;
+            }
+        }
         public Calidus(EntityData data, Vector2 offset, EntityID id)
             : this(data.Position + offset, id, data.Bool("broken"), data.Bool("startFloating", true), data.Enum("looking", Looking.Center),
                   data.Enum("mood", Mood.Normal), data.Bool("followPlayer"), data.Attr("requiredCutscenes"), data.Attr("excludedCutscenes"))
         {
             RequireSpawnFlag = data.Bool("requireSpawnFlag");
             SpawnData = new FlagList(data.Attr("spawnFlag"));
-            CutsceneFlagData = new FlagList(data.Attr("cutsceneFlag"));
+            TalkFlag = new FlagList(data.Attr("cutsceneFlag"));
             CutsceneID = data.Attr("cutscene");
             CutsceneIsDialog = data.Attr("cutsceneType") == "Dialog";
             RawStartArgs = data.Attr("startCutsceneArgs");
             RawEndArgs = data.Attr("endCutsceneArgs");
             StartArgs = ParseArgs(RawStartArgs);
             EndArgs = ParseArgs(RawEndArgs);
+            AwakeArgs = ParseArgs(data.Attr("awakeArgs"));
         }
         public static Arguments ParseArgs(string args)
         {
             if (!string.IsNullOrEmpty(args))
             {
                 List<Argument> finalArgs = [];
-                string toAdd = "";
-                bool open = false;
-                void add()
+                string[] array = args.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                foreach (string s in array)
                 {
-                    if (!string.IsNullOrEmpty(toAdd))
+                    Argument argument = new Argument();
+                    if (s.Contains(':'))
                     {
-                        Argument arg = new Argument();
-                        if (toAdd.Contains(':'))
+                        string[] array2 = s.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        if (array2.Length > 0)
                         {
-                            string[] array = toAdd.Split(':');
-                            arg.Name = array[0];
-                            if (array.Length > 1) arg.Content = array[1];
+                            argument.Name = array2[0];
+                            if (array2.Length > 1)
+                            {
+                                argument.Content = array2[1];
+                            }
                         }
-                        else
-                        {
-                            arg.Name = toAdd;
-                        }
-                        finalArgs.Add(arg);
                     }
-                    toAdd = "";
-                }
-                foreach (char c in args)
-                {
-                    switch (c)
+                    else
                     {
-                        case '{':
-                            open = true;
-                            toAdd = "";
-                            break;
-                        case '}':
-                            if (open) add();
-                            open = false;
-                            break;
-                        default:
-                            toAdd += c;
-                            break;
+                        argument.Name = s;
                     }
+                    finalArgs.Add(argument);
                 }
-                if (!string.IsNullOrEmpty(toAdd)) add();
-                return new Arguments([.. finalArgs]);
+                return new(finalArgs);
             }
             return null;
         }
@@ -585,6 +639,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             : this(position, new EntityID(Guid.NewGuid().ToString(), 0), broken, startFloating, looking, mood, startFollowingImmediately) { }
         public Calidus(Vector2 position, EntityID id, bool broken = false, bool startFloating = true, Looking look = Looking.Center, Mood mood = Mood.Normal, bool startFollowingImmediately = false, string requiredWatched = "", string excludeWatched = "") : base(position)
         {
+            Add(idleCoroutine = new Coroutine(false));
+            Add(idleEndRoutine = new Coroutine(false));
             foreach (string s in requiredWatched.Replace(" ", "").Split(','))
             {
                 if (Enum.TryParse(s, true, out CalCut result))
@@ -680,6 +736,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Emotion(mood);
             }
         }
+        public void Nudge(Vector2 offset, float duration, Ease.Easer ease, bool yoyo)
+        {
+            nudgeTween?.RemoveSelf();
+            NudgeOffset = Vector2.Zero;
+            nudgeTween = Tween.Set(this, yoyo ? Tween.TweenMode.YoyoOneshot : Tween.TweenMode.Oneshot, duration, ease, t =>
+            {
+                NudgeOffset = t.Eased * offset;
+            },
+            t =>
+            {
+                if (yoyo) NudgeOffset = Vector2.Zero;
+            });
+        }
         public override void Added(Scene scene)
         {
             base.Added(scene);
@@ -713,12 +782,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            RefreshIdleAnimationTimer();
             Collider collider = Collider ?? SpriteBox;
             Rectangle talkRect = new Rectangle((int)collider.Position.X, 0, (int)Width, (int)Height + 24);
             Vector2 drawAt = OrbSprite.Center.X * Vector2.UnitX;
             Add(Talk = new TalkComponent(talkRect, drawAt, Interact)
             {
-                Enabled = !CalCut.TalkAboutNote.GetCutsceneFlag() && CalCut.SecondTalkAboutWarp.GetCutsceneFlag()
+                Enabled = CanTalk
             });
 
             foreach (Part part in Components.GetAll<Part>())
@@ -733,7 +803,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             CreateFollower();
             if (StartFollowingImmediately)
             {
-                StartFollowing(Looking.Player);
+                StartFollowing(Looking.Dynamic);
             }
             foreach (CalCut c in RequiredWatched)
             {
@@ -755,19 +825,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 FallApart(true);
             }
+            ExecuteArgs(AwakeArgs);
         }
         public void CreateFollower()
         {
             if (Follower == null)
             {
-                Add(Follower = new Follower());
-                Follower.FollowDelay = 0.2f;
-                Follower.MoveTowardsLeader = false;
+                Add(Follower = new Follower()
+                {
+                    FollowDelay = 0.2f,
+                    MoveTowardsLeader = false,
+                    PersistentFollow = false
+                });
                 if (FollowTarget.Leader == null)
                 {
                     FollowTarget.Add(FollowTarget.Leader = new CalidusFollowerTarget.CustomLeader());
                 }
-                FollowTarget.Leader.GainFollower(Follower);
             }
         }
         public void SnapToLeader()
@@ -792,24 +865,210 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
+        private float dynamicLookMultX;
+        private float dynamicLookMultY;
+        private float dynamicLookHoldTimer;
+        public Vector2 IdleRoutineOffset;
+        private Coroutine idleCoroutine;
+        private Coroutine idleEndRoutine;
+        private int IdleIndex;
+        private Mood lastMood;
+        private IEnumerator idleRoutines()
+        {
+            lastMood = CurrentMood;
+            IdleIndex = 3;//Calc.Random.Range(0, 4);
+            switch (IdleIndex)
+            {
+                case 0:
+                    LookOverride = Looking.Left;
+                    yield return 1;
+                    LookOverride = Looking.Right;
+                    yield return 3;
+                    break;
+                case 1:
+                    LookOverride = Looking.Right;
+                    yield return 1;
+                    LookOverride = Looking.Left;
+                    yield return 3;
+                    break;
+                case 2:
+                    LookOverride = Looking.Player;
+                    yield return 3;
+                    if (CurrentMood == Mood.Normal && Calc.Random.Chance(0.3f))
+                    {
+                        CurrentMood = Mood.Happy;
+                        yield return 1f;
+                    }
+                    break;
+                case 3:
+                    float time = Scene.TimeActive;
+                    float xmult = 0;
+                    float ymult = 0;
+                    for (float i = 0; i < 1; i += Engine.DeltaTime / 1)
+                    {
+                        floatMult = Ease.SineInOut(1 - i);
+                        yield return null;
+                    }
+                    floatMult = 0;
+                    while (!CollideCheck<Solid>(Position + Vector2.UnitY * IdleRoutineOffset))
+                    {
+                        IdleRoutineOffset.X = (float)Math.Sin((Scene.TimeActive - time) * 3) * 8 * xmult;
+                        IdleRoutineOffset.Y += 10 * Engine.DeltaTime * ymult;
+                        ymult = Calc.Approach(ymult, 1, Engine.DeltaTime * 0.35f);
+                        xmult = Calc.Approach(xmult, 1, Engine.DeltaTime * 0.6f);
+                        yield return null;
+                    }
+                    yield return 1.4f;
+                    if (EyeOffset.X > 0)
+                    {
+                        LookOverride = Looking.DownRight;
+                    }
+                    else if (EyeOffset.X < 0)
+                    {
+                        LookOverride = Looking.DownLeft;
+                    }
+                    else
+                    {
+                        LookOverride = Looking.Down;
+                    }
+                    CurrentMood = Mood.Closed;
+                    yield return 1.3f;
+                    EyeSprite.VisualOffsetApproachZero = false;
+                    while (true)
+                    {
+                        for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
+                        {
+                            EyeSprite.VisualOffset.Y = Ease.SineIn(i) * -3f;
+                            yield return null;
+                        }
+                        yield return 0.5f;
+                        for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
+                        {
+                            EyeSprite.VisualOffset.Y = -3 + Ease.SineOut(i) * 3;
+                            yield return null;
+                        }
+                    }
+            }
+            StopIdleAnimation();
+        }
+
+        private IEnumerator idleAnimationEnd()
+        {
+            switch (IdleIndex)
+            {
+                case 3:
+                    Tween.Set(this, Tween.TweenMode.Oneshot, 0.4f, Ease.SineIn, t => floatMult = t.Eased);
+                    CurrentMood = Mood.Surprised;
+                    yield return 0.3f;
+                    EyeSprite.VisualOffsetApproachZero = true;
+
+                    break;
+            }
+            CurrentMood = lastMood;
+            LookOverride = Looking.None;
+            RefreshIdleAnimationTimer();
+            yield return null;
+        }
+        public void StopIdleAnimation()
+        {
+            if (idleCoroutine.Active)
+            {
+                idleEndRoutine.Replace(idleAnimationEnd());
+            }
+            idleCoroutine.Cancel();
+        }
+        public void DoRandomIdleAnimation()
+        {
+            if (idleCoroutine.Active) return;
+            if (idleEndRoutine.Active)
+            {
+                idleEndRoutine.Cancel();
+            }
+            idleCoroutine.Replace(idleRoutines());
+        }
+        public void RefreshIdleAnimationTimer()
+        {
+            dynamicLookHoldTimer = Calc.Random.Range(8, 15);
+        }
+        public bool CanTalk => TalkFlag.State && !string.IsNullOrEmpty(CutsceneID) && !BannedCutsceneIDs.Contains(CutsceneID);
         public override void Update()
         {
-            Talk.Enabled = CutsceneFlagData.State && !string.IsNullOrEmpty(CutsceneID) && !BannedCutsceneIDs.Contains(CutsceneID);
-            if (Drunk)
+            if (Following && Follower.Leader.Entity is CalidusFollowerTarget)
             {
-                drunkTimer -= Engine.DeltaTime;
-                if (drunkTimer <= 0)
+                if (Scene.GetPlayer() is Player player)
                 {
-                    drunkTimer = Calc.Random.Range(0.4f, 1.3f);
-                    drunkTarget = Calc.AngleToVector(Calc.Random.NextAngle(), Calc.Random.Range(2, 10));
+                    if (player.Speed.Y < 0 || player.Speed.X != 0 || !(player.StateMachine.State is Player.StNormal or Player.StDummy))
+                    {
+                        if (idleCoroutine.Active)
+                        {
+                            StopIdleAnimation();
+                        }
+                        RefreshIdleAnimationTimer();
+                    }
+                    if (player.StateMachine.State is not Player.StDummy)
+                    {
+                        Vector2 input = new Vector2(Input.MoveX, Input.MoveY);
+                        dynamicLookMultX = Calc.Approach(dynamicLookMultX, input.X == 0 ? 0f : 1, Engine.DeltaTime * 3);
+                        dynamicLookMultY = Calc.Approach(dynamicLookMultY, input.Y == 0 ? 0f : 1, Engine.DeltaTime * 3);
+                        if (player.DashAttacking)
+                        {
+                            dynamicLookMultX = dynamicLookMultY = 1;
+                            input = player.DashDir;
+                        }
+                        if (input != Vector2.Zero)
+                        {
+                            if (idleCoroutine.Active)
+                            {
+                                StopIdleAnimation();
+                            }
+                            //downwards movement isn't used enough to warrent Calidus looking that direction during normal gameplay - plus it makes wavedashing look weird
+                            float newY = Math.Min(0, input.Y);
+                            dynamicLookOffset.X = Calc.Approach(dynamicLookOffset.X, input.X * 4 * dynamicLookMultX, 100 * Engine.DeltaTime);
+                            dynamicLookOffset.Y = Calc.Approach(dynamicLookOffset.Y, newY * 4 * dynamicLookMultY, 100 * Engine.DeltaTime);
+
+                            RefreshIdleAnimationTimer();
+                        }
+                        else
+                        {
+                            if (dynamicLookHoldTimer > 0)
+                            {
+                                dynamicLookHoldTimer -= Engine.DeltaTime;
+                            }
+                            else if (!idleCoroutine.Active && !idleEndRoutine.Active)
+                            {
+                                DoRandomIdleAnimation();
+                            }
+                        }
+                    }
+
                 }
-                drunkOffset = Calc.Approach(drunkOffset, drunkTarget, Engine.DeltaTime * 10);
+
+            }
+            if (!idleCoroutine.Active && IdleRoutineOffset != Vector2.Zero)
+            {
+                Vector2 prevIdleOffset = IdleRoutineOffset;
+                IdleRoutineOffset -= IdleRoutineOffset * (1f - (float)Math.Pow(0.0099999997764825821, Engine.DeltaTime));
+                if (Vector2.DistanceSquared(prevIdleOffset, IdleRoutineOffset) < 0.00001f)
+                {
+                    IdleRoutineOffset = Vector2.Zero;
+                }
+            }
+            Talk.Enabled = CanTalk;
+            if (Dizzy)
+            {
+                dizzyTimer -= Engine.DeltaTime;
+                if (dizzyTimer <= 0)
+                {
+                    dizzyTimer = Calc.Random.Range(0.4f, 1.3f);
+                    dizzyTarget = Calc.AngleToVector(Calc.Random.NextAngle(), Calc.Random.Range(2, 10));
+                }
+                dizzyOffset = Calc.Approach(dizzyOffset, dizzyTarget, Engine.DeltaTime * 10);
                 sineYTarget = (float)Math.Sin(Scene.TimeActive * 7) * 16;
             }
             else
             {
                 sineYTarget = Calc.Approach(sineYTarget, 0, Engine.DeltaTime);
-                drunkOffset = Calc.Approach(drunkOffset, Vector2.Zero, Engine.DeltaTime);
+                dizzyOffset = Calc.Approach(dizzyOffset, Vector2.Zero, Engine.DeltaTime);
             }
             if (ApproachScale != Vector2.One)
             {
@@ -841,6 +1100,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Arms[0].Scale = Arms[1].Scale = OrbSprite.Scale = Scale;
             EyeSprite.Scale = EyeScale;
             Vector2 centerOffset = GetLookOffset();
+            if(LookDir is Looking.Down or Looking.DownRight or Looking.DownLeft && CurrentMood == Mood.Closed)
+            {
+                centerOffset.Y -= 2;
+            }
             if (!AutoSetEyeOffset)
             {
                 EyeOffset = !EyeInstant ? Calc.Approach(EyeOffset, centerOffset, LookSpeed) : centerOffset;
@@ -875,6 +1138,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void Render()
         {
+            Position += IdleRoutineOffset;
             foreach (Part p in Parts)
             {
                 if (p.Visible)
@@ -898,10 +1162,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             base.Render();
             EyeSprite.Visible = prev;
-            if (RenderStar)
-            {
-                Star.Draw(StarPos, Star.Center, Color.Yellow, Vector2.One, StarRotation);
-            }
+            /*            if (RenderStar)
+                        {
+                            Star.Draw(StarPos, Star.Center, Color.Yellow, Vector2.One, StarRotation);
+                        }*/
+            Position -= IdleRoutineOffset;
         }
         public CalCut DialogCutscene = CalCut.TalkAboutNote;
         private CutsceneEntity cutscene;
@@ -920,7 +1185,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 Scene.Add(entity);
             }
-            //Scene.Add(new CalidusCutscene(DialogCutscene));
         }
         private Vector2 GetLookOffset()
         {
@@ -944,11 +1208,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Looking.DownLeft => new Vector2(-4, 4),
                 Looking.DownRight => Vector2.One * 4,
                 Looking.Player => RotatePoint(OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, p).ToDeg()),
+                Looking.Dynamic => dynamicLookOffset,
                 Looking.Target => RotatePoint(OrbSprite.Center.XComp(), Vector2.Zero, Calc.Angle(Center, LookTarget).ToDeg()),
                 Looking.Center => Vector2.Zero,
                 _ => Vector2.Zero
             };
         }
+        private Vector2 dynamicLookOffset;
         private Tween lightTween;
         public void FadeLight(float to, float time = 1)
         {
@@ -1014,6 +1280,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             foreach (Part part in Parts)
             {
                 part.Return(speedMult);
+            }
+        }
+        public void ResetParts()
+        {
+            foreach (Part part in Parts)
+            {
+                part.Reset();
             }
         }
         public void LerpOutline(bool instant = false)
@@ -1110,6 +1383,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (EyeSprite.CurrentAnimationID != "stern") EyeSprite.Play("stern");
             Symbols.Visible = false;
             CurrentMood = Mood.Stern;
+
         }
         public void Normal()
         {
@@ -1142,7 +1416,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             CurrentMood = Mood.Laughing;
             Add(new Coroutine(LaughRoutine()));
         }
-        public void Dizzy()
+        public void DizzyEye()
         {
             CurrentMood = Mood.Dizzy;
             EyeSprite.Play("dizzy");
@@ -1191,11 +1465,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 (int)Mood.Eugh => Eugh,
                 _ => null
             };
-            if (Action is not null)
-            {
-                Action.Invoke();
-            }
+            Action?.Invoke();
         }
+        private bool ignoreRegularMoodSetters;
         public void Emotion(Mood mood)
         {
             Emotion((int)mood);
@@ -1235,7 +1507,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             return from switch
             {
-                Looking.None => Looking.None,
                 Looking.Left => Looking.Right,
                 Looking.Right => Looking.Left,
                 Looking.Up => Looking.Down,
@@ -1244,10 +1515,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Looking.UpLeft => Looking.DownRight,
                 Looking.DownRight => Looking.UpLeft,
                 Looking.DownLeft => Looking.UpRight,
-                Looking.Center => Looking.Center,
-                Looking.Player => Looking.Player,
-                Looking.Target => Looking.Target,
-                _ => Looking.None
+                _ => from
             };
         }
         public void Look(string direction)
@@ -1276,33 +1544,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             StopFollowing();
             if (!Following)
             {
+                FollowTarget.Leader.GainFollower(Follower);
+                FollowTarget.Leader.Snap(0.2f);
                 Following = true;
                 Follower.MoveTowardsLeader = true;
                 followLook = look;
-                (Engine.Scene as Level).Session.DoNotLoad.Add(ID);
-                AddTag(Tags.Persistent);
             }
+            Persistent = true;
         }
         public void StartFollowing()
         {
-            StartFollowing(Looking.Player);
+            StartFollowing(Looking.Dynamic);
         }
         public void StopFollowing(bool keepPersistent = false)
         {
             if (Following)
             {
                 Following = false;
-                Follower.MoveTowardsLeader = false;
+                FollowTarget.Leader.LoseFollower(Follower);
                 followLook = Looking.None;
-                if (!keepPersistent)
-                {
-                    (Engine.Scene as Level).Session.DoNotLoad.Remove(ID);
-                    RemoveTag(Tags.Persistent);
-                }
-                else
-                {
-                    AddTag(Tags.Persistent);
-                }
+            }
+            if (!keepPersistent)
+            {
+                Persistent = false;
             }
         }
         public void MoveTo(Vector2 position)
@@ -1409,7 +1673,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
-            Draw.Circle(Position, 3, Color.White, 10);
+            if (Persistent)
+            {
+                Draw.Circle(Position, 3, Color.White, 10);
+            }
         }
         public bool AllPartsFallen()
         {
@@ -1953,17 +2220,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Visible = true;
             }
-            Sprite.UpdateScale(hiding ? Vector2.One : Vector2.Zero);
+            UpdateScale(hiding ? Vector2.One : Vector2.Zero);
             for (float i = 0; i < 1; i += Engine.DeltaTime / burst.Duration)
             {
                 burst.Position = Center;
-                Sprite.UpdateScale(Vector2.One * Calc.LerpClamp(0, 1, ease(hiding ? 1 - i : i)));
+                UpdateScale(Vector2.One * Calc.LerpClamp(0, 1, ease(hiding ? 1 - i : i)));
                 yield return null;
             }
-            Sprite.UpdateScale(hiding ? Vector2.Zero : Vector2.One);
+            UpdateScale(hiding ? Vector2.Zero : Vector2.One);
             if (hiding)
             {
                 Visible = false;
+            }
+        }
+        public void UpdateScale(Vector2 scale)
+        {
+            Scale = scale;
+            foreach (Part p in Parts)
+            {
+                p.Scale = scale;
             }
         }
     }

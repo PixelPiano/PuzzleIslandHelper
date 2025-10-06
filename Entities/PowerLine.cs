@@ -95,7 +95,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
         public float Offset;
-        public PowerLine(Vector2 position, Vector2[] nodes, int depth = 2, string flag = "", bool invertFlag = false, float lineStartFade = 10, float lineEndFade = 25, float length = 50, int speed = 1,
+        public bool Solid;
+        public PowerLine(Vector2 position, Vector2[] nodes, bool solid = true, int depth = 2, string flag = "", bool invertFlag = false, float lineStartFade = 10, float lineEndFade = 25, float length = 50, int speed = 1,
             Color colorA = default, Color colorB = default, float alphaA = 1, float alphaB = 0, bool backwards = false, float offset = 0, bool connectEnds = false) : base(position)
         {
             flagData = new FlagList(flag, invertFlag);
@@ -115,9 +116,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Tag |= Tags.TransitionUpdate;
             removeRedundantNodes();
             ConnectEnds = connectEnds;
+            Solid = solid;
         }
         public PowerLine(EntityData data, Vector2 offset) :
-            this(data.Position + offset, data.NodesWithPosition(offset - (data.Position + offset)), data.Int("depth", 2),
+            this(data.Position + offset, data.NodesWithPosition(offset - (data.Position + offset)), data.Bool("solid", true), data.Int("depth", 2),
                 data.Attr("flags"), data.Bool("invertFlag"), data.Float("startFade", 10), data.Float("endFade", 25),
                 data.Float("length", 50), data.Int("speed", 1), data.HexColor("colorA"), data.HexColor("colorB"),
                 data.Float("alphaA"), data.Float("alphaB"), data.Bool("backwards"), data.Float("offset"), data.Bool("connectEnds"))
@@ -149,7 +151,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Size = 3,
                 Alpha = 1,
                 ColorAAlpha = AlphaA,
-                ColorBAlpha = AlphaB
+                ColorBAlpha = AlphaB,
+                Solid = Solid
             });
             prevFlagState = flagData.State;
             if (prevFlagState)

@@ -335,7 +335,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             SlotData data2 = slotPair.Value[i];
                             Vector2 position = mapdata.Get(data2.Room).Position + data2.Offset;
                             //spawn particles around the heart
-                            MemorySlotParticle p = new(heart.Center + PianoUtils.RotateAround(Vector2.UnitX * 4, Vector2.Zero, (360f / count) * i), data2, position, Color.LightBlue, Color.Blue);
+                            MemorySlotParticle p = new(heart.Center + PianoUtils.RotateAroundDeg(Vector2.UnitX * 4, Vector2.Zero, (360f / count) * i), data2, position, Color.LightBlue, Color.Blue);
                             Scene.Add(p);
                             value.Add(p);
                             yield return 0.1f;
@@ -702,7 +702,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            TileGrid grid = PianoUtils.GetTileBox(Width, Height, tileType);
+            TileGrid grid = PianoUtils.GetTileGridBox(Width, Height, tileType);
             Add(grid);
             Add(new TileInterceptor(grid, false));
             Add(new LightOcclude());
@@ -791,7 +791,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 for (int i = 0; i < 360; i += 360 / Flags.Length)
                 {
-                    positions.Add(PianoUtils.RotateAround(-Vector2.UnitY * Height / 4f, Vector2.Zero, i));
+                    positions.Add(PianoUtils.RotateAroundDeg(-Vector2.UnitY * Height / 4f, Vector2.Zero, i));
                 }
             }
             int count = 0;
@@ -946,7 +946,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                     SlotData data2 = slotPair.Value[i];
                                     Vector2 position = mapdata.Get(data2.Room).Position + data2.Offset;
                                     //spawn particles around the heart
-                                    MemorySlotParticle p = new(heart.Center + PianoUtils.RotateAround(Vector2.UnitX * 4, Vector2.Zero, (360f / count) * i), data2, position, Color.LightBlue, Color.Blue);
+                                    MemorySlotParticle p = new(heart.Center + PianoUtils.RotateAroundDeg(Vector2.UnitX * 4, Vector2.Zero, (360f / count) * i), data2, position, Color.LightBlue, Color.Blue);
                                     Scene.Add(p);
                                     value.Add(p);
                                     yield return 0.1f;

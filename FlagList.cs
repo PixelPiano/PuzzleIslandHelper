@@ -17,7 +17,20 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public bool Inverted;
         public bool Ignore;
         public bool? ForcedValue;
-        public readonly bool Empty => List == null || List.Count == 0;
+        public readonly bool Empty
+        {
+            get
+            {
+                if (!(List == null || List.Count == 0))
+                {
+                    foreach (var item in List)
+                    {
+                        if (!item.Empty) return false;
+                    }
+                }
+                return true;
+            }
+        }
         public static bool operator true(FlagList list)
         {
             return list.State;
@@ -37,7 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 if (List.Count > i)
                 {
-                    List[i].SetState(value);
+                    List[i].Set(value);
                 }
             }
         }
@@ -45,7 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             get
             {
-                if(ForcedValue.HasValue) return ForcedValue.Value;
+                if (ForcedValue.HasValue) return ForcedValue.Value;
                 if (Ignore || Empty) return !Inverted;
                 else
                 {
@@ -60,7 +73,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 foreach (FlagData data in List)
                 {
-                    data.State = data.Inverted != value;
+                    data.Set(data.Inverted != value);
                 }
             }
         }
@@ -71,13 +84,13 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 output += item.ToString() + '\n';
             }
-            output += "Count: "+ Count;
+            output += "Count: " + Count;
             return output.TrimEnd('\n');
         }
 
         public IEnumerator<FlagData> GetEnumerator()
         {
-            return (IEnumerator<FlagData>)List;
+            return List.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -103,7 +116,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             return input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
-        public FlagList(string flags, bool inverted = false) : this(format(flags),inverted)
+        public FlagList(string flags, bool inverted = false) : this(format(flags), inverted)
         {
         }
     }

@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
-// PuzzleIslandHelper.ArtifactSlot
+
 namespace Celeste.Mod.PuzzleIslandHelper.Beta
 {
     [CustomEntity("PuzzleIslandHelper/ArtifactSlot")]

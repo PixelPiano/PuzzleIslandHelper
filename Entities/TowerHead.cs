@@ -29,7 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public class OutsideLadder : Ladder
             {
                 public Outside Parent;
-                public OutsideLadder(Outside parent) : base(parent.Position + Vector2.UnitX * 40, (int)parent.Height, parent.Tower.LadderPath, true, parent.Depth - 1)
+                public OutsideLadder(Outside parent) : base(parent.Position + Vector2.UnitX * 40, (int)parent.Height, parent.Tower.LadderPath, true, parent.Depth - 1, default)
                 {
                     Parent = parent;
                 }

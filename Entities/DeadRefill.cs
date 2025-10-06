@@ -4,7 +4,7 @@ using Monocle;
 using System;
 using System.Collections;
 using static MonoMod.InlineRT.MonoModRule;
-// PuzzleIslandHelper.ArtifactSlot
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/DeadRefill")]

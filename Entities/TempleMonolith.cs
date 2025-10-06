@@ -34,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float FallDelay = 0;
         private EntityID ID;
         private int TimesHit;
-
+        private float shakeMult = 0.5f;
         private static int GetWidth()
         {
             return GFX.Game["objects/PuzzleIslandHelper/templeMonolith/bigMonolith00"].Width;
@@ -91,8 +91,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (TimesHit < 3)
                 {
-                    Add(new Coroutine(ShakeRoutine()));
+                    OnHit();
                     TimesHit++;
+                    shakeMult += 0.5f;
                 }
                 else
                 {
@@ -110,23 +111,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Audio.Play("event:/game/general/fallblock_shake", Center);
         }
-        public IEnumerator ShakeRoutine()
+        public void OnHit()
         {
             ShakeSfx();
-            StartShaking();
+            _startShaking(0.6f);
             Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
-
-            yield return 0.2f;
-            float timer = 0.4f;
-
-
-            while (timer > 0f)
-            {
-                yield return null;
-                timer -= Engine.DeltaTime;
-            }
-
-            StopShaking();
         }
         private IEnumerator HoldUp(float time)
         {
@@ -135,6 +124,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Input.MoveY.Value = -1;
                 yield return null;
             }
+        }
+        private void _startShaking(float time = 0f)
+        {
+            _shaking = true;
+            _shakeTimer = time;
         }
         public IEnumerator FallSequence()
         {
@@ -152,7 +146,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             while (true)
             {
                 ShakeSfx();
-                StartShaking();
+                _startShaking();
                 Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
 
                 yield return 0.2f;
@@ -176,7 +170,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 Add(new Coroutine(HoldUp(3.05f)));
                 yield return 2;
-                StopShaking();
+                _stopShaking();
                 yield return 1;
                 for (int i = 2; i < Width; i += 4)
                 {
@@ -214,10 +208,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
                 SceneAs<Level>().DirectionalShake(Vector2.UnitY, 0.3f);
 
-                StartShaking();
+                _startShaking();
                 LandParticles();
                 yield return 0.2f;
-                StopShaking();
+                _stopShaking();
                 if (CollideCheck<SolidTiles>(Position + new Vector2(0f, 1f)))
                 {
                     break;
@@ -248,12 +242,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.OnShake(amount);
             Monolith.Position += amount;
         }
+        private bool _shaking;
+        private Vector2 _shakeAmount;
+        private float _shakeTimer;
         public override void Update()
         {
             base.Update();
-            if (Scene is not Level level)
+            if (!_shaking)
             {
                 return;
+            }
+            if (base.Scene.OnInterval(0.04f))
+            {
+                Vector2 vector = _shakeAmount;
+                _shakeAmount = Calc.Random.ShakeVector() * shakeMult;
+                OnShake(_shakeAmount - vector);
+            }
+
+            if (_shakeTimer > 0f)
+            {
+                _shakeTimer -= Engine.DeltaTime;
+                if (_shakeTimer <= 0f)
+                {
+                    _shaking = false;
+                    _stopShaking();
+                }
+            }
+        }
+        private void _stopShaking()
+        {
+            _shaking = false;
+            if (_shakeAmount != Vector2.Zero)
+            {
+                OnShake(-_shakeAmount);
+                _shakeAmount = Vector2.Zero;
             }
         }
         public override void Render()

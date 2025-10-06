@@ -11,8 +11,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         private EntityID id;
         private char tileType;
-        private List<(string, bool)> collidableFlags = [];
-        private List<(string, bool)> fadeFlags = [];
+        private FlagList collidableFlags;
+        private FlagList fadeFlags;
         private bool invertCollision;
         private bool fadeWhenInside;
         private bool waiting;
@@ -24,9 +24,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             tileType = data.Char("tiletype", '3');
             fadeWhenInside = data.Bool("fadeWhenInside", true);
-            collidableFlags = PianoUtils.ParseFlagsFromString(data.Attr("collisionFlags"));
-            fadeFlags = PianoUtils.ParseFlagsFromString(data.Attr("fadeFlags"));
-
+            collidableFlags = data.FlagList("collisionFlags");
+            fadeFlags = data.FlagList("fadeFlags");
             invertCollision = data.Bool("invertCollision");
             blendIn = data.Bool("blendIn");
             Depth = -12999;
@@ -63,8 +62,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 waiting = true;
             }
         }
-        public bool FadeFlagsState => fadeFlags.CheckAll();
-        public bool CollisionFlagState => collidableFlags.CheckAll();
+        public bool FadeFlagsState => fadeFlags;
+        public bool CollisionFlagState => collidableFlags;
         public override void Update()
         {
             base.Update();

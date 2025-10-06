@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
@@ -15,22 +16,211 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
     [Tracked]
     public abstract class VertexPassenger : Passenger
     {
+        public class Vertex
+        {
+            public Color Color;
+            public Color DefaultColor;
+            public Group Group;
+            public Vector2 WorldPosition;
+            public Vector2 Position;
+            public Vector2 WiggleOffset;
+            public float RotationRate;
+            public float AngleOffset;
+            public Vector2 RotationOffset;
+            public Vector2 OgOffset;
+            public Tween Tween;
+            public Vector2 WiggleDirection;
+            public float WiggleMult = 1;
+            public Vector2 Offset;
+            public ColorShifter Shifter = null;
+            private bool baked;
 
+            public void Bake(Entity entity, float minWiggleTime, float maxWiggleTime)
+            {
+                baked = true;
+                Tween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.QuadInOut, Calc.Random.Range(minWiggleTime, maxWiggleTime), true);
+                Tween.Randomize();
+                entity.Add(Tween);
+                if (Shifter != null && !Shifter.HasBeenAdded)
+                {
+                    entity.Add(Shifter);
+
+                    Shifter.HasBeenAdded = true;
+                }
+            }
+            public override string ToString()
+            {
+                return string.Format("{0}, Group:{1}", Position, Group.ToString());
+            }
+        }
+        public class Group
+        {
+            public bool Visible = true;
+            private bool updated;
+            public Vector2 Center;
+            public bool AutoCalculateCenter = true;
+            public float RotationRate;
+            public float Angle;
+            public float Alpha
+            {
+                get => Visible ? alpha : 0;
+                set => alpha = value;
+            }
+            private float alpha = 1;
+            public Vector2 Scale = Vector2.One;
+            public bool ScaleApproachZero;
+            public Vector2 ScaleApproachMult = Vector2.One;
+            public Color Color;
+            public float ColorLerp;
+            public List<Vertex> Vertices = [];
+            public Func<Vertex, Color> ModifyColor = null;
+            public void RecalculateCenter()
+            {
+                Center = Vector2.Zero;
+                if (Vertices.Count > 0)
+                {
+                    foreach (Vertex v in Vertices)
+                    {
+                        Center += v.Position;
+                    }
+                    Center /= Vertices.Count;
+                }
+            }
+            public override string ToString()
+            {
+                return string.Format("Center: {0}, Alpha: {3}, RotationRate: {1}, Angle: {2}", Center, RotationRate, Angle, Alpha);
+            }
+            public void Update()
+            {
+                if (!updated)
+                {
+                    if (AutoCalculateCenter)
+                    {
+                        RecalculateCenter();
+                    }
+                    if (ScaleApproachZero)
+                    {
+                        Scale.X = Calc.Approach(Scale.X, 0, ScaleApproachMult.X * Engine.DeltaTime);
+                        Scale.Y = Calc.Approach(Scale.Y, 0, ScaleApproachMult.Y * Engine.DeltaTime);
+                    }
+                    Angle += RotationRate;
+                    Angle %= MathHelper.TwoPi;
+                    updated = true;
+                }
+            }
+            public void PostUpdate()
+            {
+                updated = false;
+            }
+        }
+        public class VertexGroupData
+        {
+            public int Count => Vertices.Count;
+            public List<Vertex> Vertices = [];
+            public Vertex this[int i]
+            {
+                get => Vertices[i];
+                set => Vertices[i] = value;
+            }
+            public override string ToString()
+            {
+                string output = "";
+                foreach (Vertex v in Vertices)
+                {
+                    output += "\n\t" + v.ToString();
+                }
+                return "{" + output + "\n}";
+            }
+            public void Bake(Entity entity, float minWiggleTime, float maxWiggleTime, out Vector2[] positions)
+            {
+                positions = [.. Vertices.Select(item => item.Position)];
+                foreach (Vertex v in Vertices)
+                {
+                    v.Bake(entity, minWiggleTime, maxWiggleTime);
+                }
+            }
+            public void AddGroup(params Vertex[] vertices) => AddGroup(null, vertices);
+            public void AddGroup(Group data, params Vertex[] vertices)
+            {
+                if (vertices != null && vertices.Length > 0)
+                {
+                    data ??= new Group()
+                    {
+                        Alpha = 1,
+                        Angle = 0,
+                        RotationRate = 0
+                    };
+                    foreach (Vertex v in vertices)
+                    {
+                        v.Group = data;
+                        data.Vertices.Add(v);
+                        Vertices.Add(v);
+                    }
+                }
+            }
+        }
+        public struct PointData
+        {
+            public static implicit operator Vector2(PointData data) => data.Point;
+            public static implicit operator PointData(Vector2 v) => new PointData(v);
+            public Vector2 Point;
+            public float WiggleMult = 1;
+            public Vector2 WiggleDir = Vector2.One;
+            public ColorShifter Shifter = null;
+            public Group Group = null;
+            public Color? DefaultColor = null;
+            public float X
+            {
+                get => Point.X;
+                set => Point.X = value;
+            }
+            public float Y
+            {
+                get => Point.Y;
+                set => Point.Y = value;
+            }
+            public PointData()
+            {
+
+            }
+            public PointData(Vector2 position)
+            {
+                Point = position;
+            }
+            public PointData(Vector2 position, Color defaultColor)
+            {
+                Point = position;
+                DefaultColor = defaultColor;
+            }
+        }
+
+        public Color DefaultColor = Color.Lime;
+        public VertexGroupData VertexList = new();
+        public int VertexCount => VertexList.Count;
+        public string VertexData => VertexList.ToString();
+        public string VerticeData
+        {
+            get
+            {
+                string output = "{";
+                foreach (var v in Vertices)
+                {
+                    output += "\n\t" + v.ToString();
+                }
+                return output + "\n}";
+            }
+        }
+        private float debugAngleOffset = 0;
+        public List<int> Indices = [];
         public bool Breathes = true;
-        public List<Vector2> Points = new();
-        public List<ColorShifter> Shifters = new();
-        public List<float> OffsetMults = new();
-        public List<int> Indices = new();
-        public List<Vector2> VerticeWiggleMults = new();
+        public int[] indices;
+        public VertexPositionColor[] Vertices;
+        public List<int> LineIndices = [];
+        public int[] lineIndices;
         public float MainWiggleMult = 1;
         public float MinWiggleTime = 0.8f;
         public float MaxWiggleTime = 2;
         public Vector2 Scale;
-        public int[] indices;
-        public Vector2[] OgOffsets;
-        public Vector2[] Offsets;
-        public VertexPositionColor[] Vertices;
-        private Tween[] tweens;
         public Vector2 ScaleOffset;
         private Vector2 BreathOffset;
         public Vector2 BreathDirection;
@@ -39,26 +229,73 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public bool Baked;
         public bool IsInView;
         public bool CanJump => HasGravity && onGround && CannotJumpTimer <= 0;
-        public int Primitives;
         public float Alpha = 1;
         public Color Color2;
         public float ColorMixLerp;
         public bool Outline = true;
-        public List<int> LineIndices = [];
-        public int[] lineIndices;
         public int Lines;
         public Facings Facing = Facings.Left;
         public static Effect Effect;
-        public VertexPassenger(Vector2 position, float width, float height, string cutscene, string dialog, Vector2 scale) : base(position, width, height, cutscene, dialog)
+        public bool DummyBreath;
+        public bool DummyGravity;
+        public VertexPassenger(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id)
         {
-            Scale = scale;
-            Position.Y -= (Height - 16);
 
         }
-        public VertexPassenger(Vector2 position, float width, float height, string cutscene, string dialog, Vector2 scale, Vector2 breathDirection, float breathDuration) : this(position, width, height, cutscene, dialog, scale)
+        public VertexPassenger(EntityData data, Vector2 offset, EntityID id, float width, float height) : base(data, offset, id, width, height)
+        {
+            Position.Y -= Height - 16;
+        }
+        public VertexPassenger(EntityData data, Vector2 offset, EntityID id, float width, float height, Vector2 scale) :
+            this(data, offset, id, width, height)
+        {
+            Scale = scale;
+        }
+        public VertexPassenger(EntityData data, Vector2 offset, EntityID id, float width, float height, Vector2 scale, Vector2 breathDirection, float breathDuration) :
+            this(data, offset, id, width, height, scale)
         {
             BreathDirection = breathDirection;
             BreathDuration = breathDuration;
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            foreach (string s in CutsceneArgs)
+            {
+                if (s.Contains(':'))
+                {
+                    string[] array = s.Split(':');
+                    if (array != null && array.Length > 1)
+                    {
+                        string text = array[0];
+                        switch (text.ToLower())
+                        {
+                            case "facing":
+                                string direction = array[1].ToLower();
+                                if (direction == "right")
+                                {
+                                    Facing = Facings.Right;
+                                }
+                                else if (direction == "left")
+                                {
+                                    Facing = Facings.Left;
+                                }
+                                break;
+                            case "flee":
+                                string direction2 = array[1].ToLower();
+                                if (direction2 == ">")
+                                {
+                                    Add(new Coroutine(fleeRoutine(1)));
+                                }
+                                else if (direction2 == "<")
+                                {
+                                    Add(new Coroutine(fleeRoutine(-1)));
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
         }
         public void Face(Entity entity)
         {
@@ -70,6 +307,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             {
                 Facing = Facings.Left;
             }
+        }
+        private IEnumerator fleeRoutine(int direction)
+        {
+            Player player = Scene.GetPlayer();
+            while (!this.OnScreen())
+            {
+                yield return null;
+            }
+
+            GravityMult = 3;
+            Jump();
+            while (!onGround || Speed.Y < 0)
+            {
+                yield return null;
+            }
+            float speedMult = 1;
+            Facing = (Facings)Math.Sign(direction);
+            X += Width / 2;
+            while (this.OnScreen())
+            {
+                float speed = Math.Max(40f, Math.Abs(player.Speed.X)) * direction * speedMult;
+                NaiveMove(Vector2.UnitX * speed * Engine.DeltaTime);
+                speedMult += Engine.DeltaTime * 3f;
+                while (CollideCheck<Solid>())
+                {
+                    NaiveMove(Vector2.UnitY * -8);
+                }
+                yield return null;
+            }
+
+            SceneAs<Level>().Session.DoNotLoad.Add(EID);
+            RemoveSelf();
         }
         public IEnumerator WalkX(float x, float speedMult = 1, bool walkBackwards = false)
         {
@@ -88,17 +357,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 yield return null;
             }
             Position.X = x;
-        }
-        private struct numSwap
-        {
-            public object A;
-            public object B;
-            public void Swap()
-            {
-                object temp = A;
-                A = B;
-                B = temp;
-            }
         }
         private IEnumerator breathRoutine()
         {
@@ -122,41 +380,181 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 swap();
             }
         }
-        public void AddQuad(Vector2 a, Vector2 b, Vector2 c, Vector2 d, float mult, Vector2 wiggleMult, ColorShifter shifter = null)
+        [Obsolete("Use PointData functions")]
+        protected void AddTriangle(Vector2 a, Vector2 b, Vector2 c, float multiplier, Vector2 wiggleMult, ColorShifter shifter = null, Group group = null, bool mergePoints = false)
         {
-            AddPoints(new Vector2[] { a, b, c }, mult, wiggleMult, shifter);
-            AddPoints(new Vector2[] { b, c, d }, mult, wiggleMult, null);
-        }
-        public void AddPoints(Vector2[] points, float mult, Vector2 wiggleMult, ColorShifter shifter)
-        {
-            int[] indices = new int[points.Length];
+            PointData[] data = new PointData[3];
+            Vector2[] points = [a, b, c];
             for (int i = 0; i < points.Length; i++)
             {
-                AddPoint(points[i], mult, wiggleMult, shifter);
-                indices[i] = Points.IndexOf(points[i]);
+                data[i] = new PointData()
+                {
+                    Point = points[i],
+                    WiggleMult = multiplier,
+                    WiggleDir = wiggleMult,
+                    Shifter = shifter,
+                    Group = group
+                };
             }
-            for (int i = 1; i < indices.Length; i++)
+            AddTriangle(data[0], data[1], data[2], mergePoints);
+        }
+        [Obsolete("Use PointData functions")]
+        public void AddQuad(Vector2 a, Vector2 b, Vector2 c, Vector2 d, float mult, Vector2 wiggleMult, ColorShifter shifter = null, Group groupA = null, Group groupB = null, bool mergePoints = true)
+        {
+            AddTriangle(a, b, c, mult, wiggleMult, shifter, groupA, mergePoints);
+            AddTriangle(b, c, d, mult, wiggleMult, shifter, groupB, mergePoints);
+        }
+        [Obsolete("Use PointData functions")]
+        protected void AddTriangle(float x1, float y1, float x2, float y2, float x3, float y3, float mult, Vector2 wiggleMult, ColorShifter shifter = null, Group group = null)
+          => AddTriangle(new(x1, y1), new(x2, y2), new(x3, y3), mult, wiggleMult, shifter, group);
+        public void AddQuad(PointData a, PointData b, PointData c, PointData d, bool mergePoints = true)
+        {
+            AddTriangle(a, b, c, mergePoints);
+            AddTriangle(b, c, d, mergePoints);
+        }
+        public void AddPoints(PointData[] data, bool mergePoints = false)
+        {
+            if (Baked || data == null || data.Length == 0) return;
+            int[] lines = new int[data.Length];
+            List<Vertex> vertices = [];
+            Dictionary<Group, List<Vertex>> uniqueGroups = [];
+            List<Vertex> ungrouped = [];
+            for (int i = 0; i < data.Length; i++)
             {
-                LineIndices.AddRange([indices[i - 1], indices[i]]);
+                TryCreateVertex(data[i], out Vertex vertex);
+                lines[i] = Indices[^1];
+                if (vertex == null) continue;
+                vertices.Add(vertex);
+
+                if (data[i].Group != null)
+                {
+                    if (!uniqueGroups.ContainsKey(data[i].Group))
+                    {
+                        uniqueGroups[data[i].Group] = [];
+                    }
+                    uniqueGroups[data[i].Group].Add(vertex);
+                }
+                else
+                {
+                    ungrouped.Add(vertex);
+                }
+
+            }
+            if (ungrouped.Count > 0)
+            {
+                VertexList.AddGroup([.. ungrouped]);
+            }
+            foreach (var pair in uniqueGroups)
+            {
+                VertexList.AddGroup(pair.Key, [.. pair.Value]);
+            }
+            //add line from last index to new index
+            for (int i = 1; i < lines.Length; i++)
+            {
+                LineIndices.AddRange([lines[i - 1], lines[i]]);
                 Lines++;
             }
-            if (indices.Length > 1)
+            //include line from start index to end index
+            if (lines.Length > 1)
             {
-                LineIndices.AddRange([indices[0], indices[^1]]);
+                LineIndices.AddRange([lines[0], lines[^1]]);
                 Lines++;
             }
         }
-        public void AddQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, float mult, Vector2 wiggleMult, ColorShifter shifter = null)
+        public void AddTriangle(PointData a, PointData b, PointData c, bool mergePoints = false)
+            => AddPoints([a, b, c], mergePoints);
+        public void AddCircle(PointData center, PointData[] corners, bool mergePoints = true)
         {
-            AddQuad(new(x1, y1), new(x2, y2), new(x3, y3), new(x4, y4), mult, wiggleMult, shifter);
+            for (int i = 1; i < corners.Length; i++)
+            {
+                AddTriangle(center, corners[i - 1], corners[i], mergePoints);
+            }
+            AddTriangle(center, corners[^1], corners[0], mergePoints);
         }
-        public void AddTriangle(Vector2 a, Vector2 b, Vector2 c, float multiplier, Vector2 wiggleMult, ColorShifter shifter = null)
+        public PointData[] AddEquilateral(PointData center, Vector2 radius, float angle)
         {
-            AddPoints([a, b, c], multiplier, wiggleMult, shifter);
+            PointData[] t = new PointData[3];
+            for (int i = 0; i < 3; i++)
+            {
+                t[i] = new PointData()
+                {
+                    X = center.X + radius.X * (float)Math.Cos(angle + i * (MathHelper.Pi / 3) * 2 - MathHelper.PiOver2),
+                    Y = center.Y + radius.Y * (float)Math.Sin(angle + i * (MathHelper.Pi / 3) * 2 - MathHelper.PiOver2),
+                    Group = center.Group,
+                    Shifter = center.Shifter,
+                    DefaultColor = center.DefaultColor,
+                    WiggleDir = center.WiggleDir,
+                    WiggleMult = center.WiggleMult
+                };
+            }
+            AddTriangle(t[0], t[1], t[2]);
+            return t;
         }
-        public void AddTriangle(float x1, float y1, float x2, float y2, float x3, float y3, float mult, Vector2 wiggleMult, ColorShifter shifter = null)
+        public PointData[] AddEquilateral(PointData center, float radius, float angle) => AddEquilateral(center, Vector2.One * radius, angle);
+        public PointData[] AddCircle(PointData center, float radius, float rotation, int resolution)
         {
-            AddTriangle(new(x1, y1), new(x2, y2), new(x3, y3), mult, wiggleMult, shifter);
+            PointData[] cornerData = new PointData[Math.Abs(resolution)];
+            for (int i = 0; i < Math.Abs(resolution); i++)
+            {
+                cornerData[i] = new()
+                {
+                    Point = center.Point + Calc.AngleToVector(i * (MathHelper.TwoPi / resolution) + rotation, radius),
+                    WiggleMult = center.WiggleMult,
+                    WiggleDir = center.WiggleDir,
+                    Shifter = center.Shifter,
+                    Group = center.Group
+                };
+            }
+            AddCircle(center, cornerData);
+            return [center, .. cornerData];
+        }
+
+        public Vector2[] GetEquilateral(Vector2 center, Vector2 radius, float angle)
+        {
+            Vector2[] t = new Vector2[3];
+            for (int i = 0; i < 3; i++)
+            {
+                t[i].X = center.X + radius.X * (float)Math.Cos(angle + i * (MathHelper.Pi / 3) * 2 - MathHelper.PiOver2);
+                t[i].Y = center.Y + radius.Y * (float)Math.Sin(angle + i * (MathHelper.Pi / 3) * 2 - MathHelper.PiOver2);
+            }
+            return t;
+        }
+        private List<Vertex> vertexList = [];
+        private bool TryCreateVertex(PointData data, out Vertex vertex, bool mergePoints = false)
+        {
+            vertex = null;
+            if (mergePoints)
+            {
+                for (int i = 0; i < vertexList.Count; i++)
+                {
+                    Vertex check = vertexList[i];
+                    if (check.Position == data.Point)
+                    {
+                        check.WiggleMult = Calc.Max(check.WiggleMult, data.WiggleMult);
+                        Indices.Add(i);
+                        return false;
+                    }
+                }
+            }
+            vertex = new();
+            vertex.Position = data.Point;
+            vertex.Shifter = data.Shifter;
+            if (data.Shifter == null)
+            {
+                foreach (Vertex v in vertexList)
+                {
+                    if (v.Shifter != null)
+                    {
+                        vertex.Shifter = v.Shifter;
+                    }
+                }
+            }
+            vertex.WiggleMult = data.WiggleMult;
+            vertex.WiggleDirection = data.WiggleDir;
+            vertex.DefaultColor = data.DefaultColor ?? DefaultColor;
+            Indices.Add(vertexList.Count);
+            vertexList.Add(vertex);
+            return true;
         }
         public override void Awake(Scene scene)
         {
@@ -171,6 +569,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public override void Update()
         {
+            foreach (Vertex v in VertexList.Vertices)
+            {
+                v.Group?.Update();
+            }
             IsInView = InView();
             if (ScaleApproach.X != 1)
             {
@@ -182,97 +584,100 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             }
             base.Update();
 
-            if (FlagState && IsInView)
+            if (ActiveFlag && IsInView)
             {
                 UpdateVertices();
             }
-        }
-
-        public void UpdateVertices()
-        {
-            if (!Baked) return;
-
-            for (int i = 0; i < Points.Count; i++)
+            foreach (Vertex v in VertexList.Vertices)
             {
-                Vector2 point = Points[i] - Collider.HalfSize;
-                point.X *= -(int)Facing;
-                Vector2 position = Center + (point * Scale * ScaleApproach);
-                Vector2 wiggleOffset = OgOffsets[i] * tweens[i].Eased * (VerticeWiggleMults[i] * MainWiggleMult) * OffsetMults[i];
-                Vector2 breath = BreathOffset;
-                Vertices[i].Position = new Vector3(position + (wiggleOffset + Offsets[i] + BreathOffset), 0);
-                if (Shifters[i] != null)
-                {
-                    Vertices[i].Color = Color.Lerp(Shifters[i][i % Shifters[i].Colors.Length], Color2, ColorMixLerp) * Alpha;
-                }
-                EditVertice(i);
+                v.Group?.PostUpdate();
             }
         }
         public virtual void EditVertice(int index)
         {
 
         }
-        public void AddPoint(Vector2 p, float mult, Vector2 wiggleMult, ColorShifter shifter = null)
+        public void UpdateVertices()
         {
-            if (Points.Contains(p))
+            if (Baked)
             {
-                int index = Points.IndexOf(p);
-                OffsetMults[index] = Calc.Max(OffsetMults[index], mult);
-                Indices.Add(index);
-            }
-            else
-            {
-                Indices.Add(Points.Count);
-                Points.Add(p);
-                if (shifter == null)
+                for (int i = 0; i < VertexList.Count; i++)
                 {
-                    if (Shifters.Count > 0)
+                    Vertex vertex = VertexList[i];
+                    Group group = vertex.Group;
+                    Vector2 point;
+                    if (group.Angle == 0)
                     {
-                        Shifters.Add(Shifters.Last());
+                        point = vertex.Position;
                     }
                     else
                     {
-                        Shifters.Add(null);
+                        point = PianoUtils.RotateAroundRad(vertex.Position, group.Center, group.Angle);
                     }
+                    point.X *= -(int)Facing;
+                    vertex.WiggleOffset = vertex.OgOffset * vertex.Tween.Eased * (vertex.WiggleDirection * MainWiggleMult) * vertex.WiggleMult;
+                    vertex.WorldPosition = Position + (point * Scale * ScaleApproach * group.Scale);
+                    if (Facing > 0)
+                    {
+                        vertex.WorldPosition.X += Width;
+                    }
+                    Vertices[i].Position = new Vector3(vertex.WorldPosition + vertex.WiggleOffset + vertex.Offset + BreathOffset, 0);
+                    if (vertex.Shifter != null)
+                    {
+                        vertex.Color = Color.Lerp(Color.Lerp(vertex.Shifter[i % vertex.Shifter.Colors.Length], Color2, ColorMixLerp), group.Color, group.ColorLerp) * group.Alpha * Alpha;
+                    }
+                    else
+                    {
+                        vertex.Color = vertex.DefaultColor;
+                    }
+                    Vertices[i].Color = group.ModifyColor != null ? group.ModifyColor.Invoke(vertex) : vertex.Color;
+                    EditVertice(i);
                 }
-                else
-                {
-                    Shifters.Add(shifter);
-                }
-                OffsetMults.Add(mult);
-                VerticeWiggleMults.Add(wiggleMult);
             }
         }
-        public void Bake()
+        public override void DebugRender(Camera camera)
         {
-            Vector2[] p = new Vector2[Points.Count];
-            tweens = new Tween[Points.Count];
-            OgOffsets = new Vector2[Points.Count];
-            Offsets = new Vector2[Points.Count];
-            for (int i = 0; i < Points.Count; i++)
+            base.DebugRender(camera);
+            if (Vertices.Length > 1)
             {
-                p[i] = Points[i];
-                Offsets[i] = Vector2.Zero;
-                OgOffsets[i] = Vector2.UnitY;// * Calc.Random.Choose(-1, 1);
-
-                Tween t = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.QuadInOut, Calc.Random.Range(MinWiggleTime, MaxWiggleTime), true);
-                t.Randomize();
-                Add(t);
-                tweens[i] = t;
-            }
-            for (int i = 0; i < Shifters.Count; i++)
-            {
-                if (Shifters[i] != null && !Shifters[i].HasBeenAdded)
+                for (int i = 1; i < indices.Length; i++)
                 {
-                    Add(Shifters[i]);
-                    Shifters[i].HasBeenAdded = true;
+                    int indexA = indices[i - 1];
+                    int indexB = indices[i];
+                    Draw.Line(Vertices[indexA].Position.XY(), Vertices[indexB].Position.XY(), Color.Magenta);
+                }
+                /*                for (int i = 1; i < Vertices.Length; i++)
+                                {
+                                    Draw.Line(Vertices[i - 1].Position.XY(), Vertices[i].Position.XY(), Color.Magenta);
+                                }
+                                Draw.Line(Vertices[0].Position.XY(), Vertices[^1].Position.XY(), Color.Magenta);*/
+                foreach (Vertex v in VertexList.Vertices)
+                {
+                    Draw.Line(Position + v.Group.Center * Scale * ScaleApproach * -(int)Facing, v.WorldPosition, Color.White);
                 }
             }
-            Vertices = p.CreateVertices(Scale, out indices, Color.Lime);
+        }
+        public void Bake(bool recreateHitbox = false)
+        {
+            VertexList.Bake(this, MinWiggleTime, MaxWiggleTime, out Vector2[] vertices);
+            Vertices = vertices.CreateVertices(Scale, out indices, Color.Lime);
             indices = [.. Indices];
             lineIndices = [.. LineIndices];
             Baked = true;
+            if (recreateHitbox)
+            {
+                float left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
+                for (int i = 0; i < VertexList.Vertices.Count; i++)
+                {
+                    Vector2 p2 = VertexList.Vertices[i].Position;
+                    left = Math.Min(left, p2.X);
+                    right = Math.Max(right, p2.X);
+                    top = Math.Min(top, p2.Y);
+                    bottom = Math.Max(bottom, p2.Y);
+                }
+                Collider = new Hitbox(right - left, bottom - top, left, top);
+            }
         }
-
         public bool InView()
         {
             Camera camera = (Scene as Level).Camera;
@@ -287,7 +692,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public override void Render()
         {
-            if (!FlagState) return;
+            if (!ActiveFlag) return;
             base.Render();
             if (!Baked || Scene is not Level level || !IsInView) return;
             Draw.SpriteBatch.End();
@@ -303,7 +708,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         {
             return effect;
         }
-
+        public string indiceData
+        {
+            get
+            {
+                string array = "{";
+                for (int i = 0; i < indices.Length; i++)
+                {
+                    array += indices[i].ToString() + ", ";
+                }
+                return array + "}";
+            }
+        }
         public virtual void DrawVertices(PrimitiveType type, Level level, Effect effect = null, BlendState blendState = null)
         {
             DrawIndexedVertices(type, level.Camera.Matrix, Vertices, Vertices.Length, indices, indices.Length / 3, null, effect, blendState);

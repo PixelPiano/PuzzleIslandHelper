@@ -9,7 +9,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
     public class GroupPassenger : VertexPassenger
     {
         private int boxes = 3;
-        public GroupPassenger(EntityData data, Vector2 offset) : base(data.Position + offset, (int)data.Float("groupWidth") * 3, 22, data.Attr("cutsceneID"), data.Attr("dialog"), Vector2.One, new(0, 1), 1f)
+        public GroupPassenger(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id, (int)data.Float("groupWidth") * 3, 22, Vector2.One, new(0, 1), 1f)
         {
             boxes = data.Int("groups");
             int boxWidth = (int)data.Float("groupWidth");

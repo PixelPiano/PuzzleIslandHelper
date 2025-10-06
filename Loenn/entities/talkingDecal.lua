@@ -2,7 +2,7 @@ local drawableSprite = require("structs.drawable_sprite")
 local talkingDecal = {}
 
 
-local types = {"Teleport","Dialog","Cutscene"}
+local types = {"Teleport","Dialog","Cutscene","Flag"}
 local usage = {"DontUse","Use","UseAndWaitFor"}
 local zoomModes = {"Screen","World"}
 local camModes = {"World","Naive"}
@@ -42,7 +42,11 @@ function talkingDecal.ignoredFields(entity)
         "teleportMode",
         "glitchAmount",
         "wipe",
-        "markerID"
+        "markerID",
+        "flag",
+        "disableIfTrue",
+        "disableIfFalse",
+        "flagMode",
     }
 
     local function doNotIgnore(value)
@@ -79,6 +83,11 @@ function talkingDecal.ignoredFields(entity)
     elseif atype == "Cutscene" then
         doNotIgnore("onCutscene")
         doNotIgnore("offCutscene")
+    elseif atype == "Flag" then
+        doNotIgnore("flag")
+        doNotIgnore("disableIfFalse")
+        doNotIgnore("disableIfTrue")
+        doNotIgnore("flagMode")
     else
         doNotIgnore("markerID")
         doNotIgnore("room")
@@ -93,25 +102,32 @@ function talkingDecal.ignoredFields(entity)
 end
 talkingDecal.fieldOrder = {
     "x","y",
-    "onDecalPath","offDecalPath","color", "depth","mode", "visibilityFlag", "talkEnabledFlag",
+    "onDecalPath","offDecalPath","color", "depth","mode", "talkEnabledFlag",
     "onCutscene",
     "offCutscene",
-    "room","teleportMode","wipe","glitchAmount","nearestSpawnX","nearestSpawnY","useNearestSpawn",
+    "room","teleportMode","wipe","glitchAmount","nearestSpawnX","nearestSpawnY",
     "onDialog","offDialog", 
     "zoomUsage","zoomMode","zoomX","zoomY","zoomAmount","zoomDuration",
     "cameraUsage", "camMode", "camX","camY","cameraDuration",
     "walkUsage","walkMode","walkToX","speedMult",
     "walkIntoWalls","walkBackwards",
     "upExtend","downExtend","leftExtend","rightExtend", 
-    "outline",
+    "outline","useNearestSpawn","flagsOnTalk","markerID",
+    "visibilityFlag","visibleMode",
+    "flag","flagMode","disableIfTrue","disableIfFalse"
 }
 talkingDecal.placements = {}
 for _, type in ipairs(types) do
     local placement = {
         name = "Talking Decal ("..type..")",
         data = {
+            flag = "",
+            disableIfTrue = false,
+            disableIfFalse = false,
+            flagMode = "SetTrue",
             markerID = "",
             flagsOnTalk = "",
+            visibleMode = "Use Visibility Flag",
             mode = type,
             outline = false,
             visibilityFlag = "",
@@ -158,9 +174,18 @@ for _, type in ipairs(types) do
 end
 local teleportModes = {"Instant","Wipe"}
 local wipes = {"Normal"}
-
+local visibleModes = {"Visible","Invisible","Use Visibility Flag"}
+local flagModes = {"Invert","SetTrue","SetFalse"}
 talkingDecal.fieldInformation =
 {
+    flagMode = {
+        options = flagModes,
+        editable = false
+    },
+    visibleMode = {
+        options = visibleModes,
+        editable = false
+    },
     zoomUsage= {
         options = usage,
         editable = false

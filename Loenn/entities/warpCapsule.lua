@@ -22,8 +22,7 @@ warpCapsule.placements =
             warpDelay = 0,
             disableMachineFlag = "",
             invertMachineFlag = false,
-            disableFlag = "",
-            invertFlag = false,
+            flag = "",
             rune = "",
             isDefaultRune = false,
             isPartOfFirstSet = false,
@@ -66,6 +65,16 @@ local function getIndexPositions(entity, width, height)
     end
     return result
 end
+local function getLine(p1, p2)
+    local line =
+    drawableFunction.fromFunction(function()
+        drawing.callKeepOriginalColor(function()
+        love.graphics.setColor({255, 0, 0})
+        love.graphics.line({p1.x, p1.y, p2.x, p2.y})
+        end)
+    end)
+    return line
+end
 local function getLineSprites(entity, width, height)
     local lines = {}
     local ind = getIndexPositions(entity, width, height)
@@ -82,17 +91,6 @@ local function getLineSprites(entity, width, height)
         end
     end
     return lines
-end
-
-function getLine(p1, p2)
-    local line =
-    drawableFunction.fromFunction(function()
-        drawing.callKeepOriginalColor(function()
-        love.graphics.setColor({255, 0, 0})
-        love.graphics.line({p1.x, p1.y, p2.x, p2.y})
-        end)
-    end)
-    return line
 end
 local function getFallbackLine(entity)
     local fallbackLine =

@@ -13,7 +13,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public PulseEntity()
         {
         }
-        private static PulseEntity create(Vector2 position, int depth, Shapes shape, Fade fadeMode, Mode pulseMode,  Vector2 to, float duration,
+        private static PulseEntity create(Vector2 position, int depth, Shapes shape, Fade fadeMode, Mode pulseMode, Vector2 to, float duration,
     float widthFrom, float widthTo, float heightFrom, float heightTo,
     bool start, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
         {
@@ -48,7 +48,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static PulseEntity Line(Vector2 from, Vector2 to, int depth, Fade fadeMode, Mode pulseMode, float duration = 1, bool start = true, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
         {
-            return create(from, depth, Shapes.Line, fadeMode, pulseMode,  to - from, duration, 0, 0, 0, 0, start, colorA, colorB, colorEase, sizeEase);
+            return create(from, depth, Shapes.Line, fadeMode, pulseMode, to - from, duration, 0, 0, 0, 0, start, colorA, colorB, colorEase, sizeEase);
         }
         public static PulseEntity Circle(Vector2 position, int depth, Fade fadeMode, Mode pulseMode, float radiusFrom, float radiusTo, float duration = 1, bool start = true, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
         {
@@ -56,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static PulseEntity Rect(Vector2 position, int depth, Fade fadeMode, Mode pulseMode, float widthFrom, float widthTo, float heightFrom, float heightTo, float duration = 1, bool start = true, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
         {
-            return create(position, depth, Shapes.Line, fadeMode, pulseMode,Vector2.Zero, duration, widthFrom, widthTo, heightFrom, heightTo, start, colorA, colorB, colorEase, sizeEase);
+            return create(position, depth, Shapes.Line, fadeMode, pulseMode, Vector2.Zero, duration, widthFrom, widthTo, heightFrom, heightTo, start, colorA, colorB, colorEase, sizeEase);
         }
         public static PulseEntity Diamond(Vector2 position, int depth, Fade fadeMode, Mode pulseMode, float radiusFrom, float radiusTo, float duration = 1, bool start = true, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
         {
@@ -78,6 +78,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Shapes Shape;
         public Color ColorB;
         public Color StartColor;
+        public float Alpha = 1;
         public Ease.Easer ColorEase;
         public Ease.Easer SizeEase;
         public float StartWidth;
@@ -86,6 +87,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float DestHeight;
         public float width, height;
         public float Percent;
+        public float SizePercent => SizeEase(Percent);
+        public float ColorPercent => ColorEase(Percent);
         private bool startInstant;
         public Vector2 to;
         public enum Fade
@@ -254,19 +257,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             switch (Shape)
             {
                 case Shapes.Rectangle:
-                    Draw.Rect(RenderPosition - size / 2, size.X, size.Y, Color);
+                    Draw.Rect(RenderPosition - size / 2, size.X, size.Y, Color * Alpha);
                     break;
                 case Shapes.Line:
                     Draw.Line(RenderPosition, to, Color);
                     break;
                 case Shapes.Circle:
-                    Draw.Circle(RenderPosition, Math.Max(size.X, size.Y), Color, 20);
+                    Draw.Circle(RenderPosition, Math.Max(size.X, size.Y), Color * Alpha, 20);
                     break;
                 default:
-                    Draw.Circle(RenderPosition, Math.Max(size.X, size.Y), Color, 1);
+                    Draw.Circle(RenderPosition, Math.Max(size.X, size.Y), Color * Alpha, 1);
                     break;
             }
         }
-
     }
 }

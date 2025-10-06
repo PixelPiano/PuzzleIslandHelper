@@ -11,6 +11,7 @@ using Monocle;
 using System;
 using System.Collections.Generic;
 using VivHelper.Entities;
+using static Celeste.Autotiler;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -25,6 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Vector2 OrigPosition;
         public Vector2 SwitchPosition => OrigPosition - (Vector2.UnitY * CurrentCount * CounterSpace);
         public TileGrid tiles;
+        public AnimatedTiles AnimatedTiles;
         private float dashEase, yLerp;
         private Vector2 dashDirection;
         public ThreadedBlock(EntityData data, Vector2 offset) : base(data.Position + offset, data.Width, data.Height, true)
@@ -36,7 +38,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 ThreadedBlockMachine.Counters.Add(CounterName, 0);
             }
-            Add(tiles = GFX.FGAutotiler.GenerateBox(data.Char("tiletype"), data.Width / 8, data.Height / 8).TileGrid);
+            Generated g = GFX.FGAutotiler.GenerateBox(data.Char("tiletype"), data.Width / 8, data.Height / 8);
+            Add(tiles = g.TileGrid);
+            Add(AnimatedTiles = g.SpriteOverlay);
             Tag |= Tags.TransitionUpdate;
             OnDashCollide = OnDash;
         }
@@ -49,10 +53,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
 
             return DashCollisionResults.NormalOverride;
-        }
-        private float JITBarrier(float f)
-        {
-            return f;
         }
         private float sinkTimer;
         public override void Update()
@@ -80,15 +80,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             dashEase = Calc.Approach(dashEase, 0f, Engine.DeltaTime * 1.5f);
 
 
-            Vector2 vector = Calc.YoYo(Ease.QuadIn(dashEase)) * dashDirection * 8f;
-            Vector2 value = SwitchPosition;
-            double yOffset = (double)JITBarrier(12f) * (double)Ease.SineInOut(yLerp);
-            double num2 = (double)value.Y + yOffset;
-            MoveToY((float)(num2 + (double)vector.Y));
-            MoveToX(value.X + vector.X);
+            Vector2 dashOffset = Calc.YoYo(Ease.QuadIn(dashEase)) * dashDirection * 8f;
+            Vector2 switchPosition = SwitchPosition;
+            double sinkOffset = (double)8f * (double)Ease.SineInOut(yLerp);
+            MoveToY((float)(switchPosition.Y + sinkOffset + dashOffset.Y));
+            MoveToX(switchPosition.X + dashOffset.X);
             foreach (DottedLine line in Lines)
             {
-                line.Offset = new Vector2(-vector.X, -(float)yOffset * 2 - vector.Y);
+                line.Offset = new Vector2(-dashOffset.X, -(float)sinkOffset * 2 - dashOffset.Y);
             }
             LiftSpeed = Vector2.Zero;
         }
@@ -107,7 +106,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Lines[i] = new DottedLine(new Vector2(x, bounds.Bottom + 16), new Vector2(x, bounds.Top - 16), 1, FancyLine.ColorModes.Fade, 8, 2, 0.05f, Color.Lime, Color.Cyan, 60f);
             }
             scene.Add(Lines);
-            OrigPosition = Position;
         }
         public override void Removed(Scene scene)
         {

@@ -25,6 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public AfterImage(Entity entity, Action drawZero, float duration = 1, float startAlpha = 0.8f, Effect effect = null) : this(entity.Position, entity.Width, entity.Height, drawZero, duration, startAlpha, effect)
         {
             Collidable = false;
+            
             Depth = entity.Depth;
         }
         public void DrawZero()

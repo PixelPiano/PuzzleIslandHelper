@@ -23,6 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public float WaitTimer;
         private float minSpeed, maxSpeed;
         private float minWait, maxWait;
+        private int minDepth, maxDepth;
         public static Rectangle Bounds = new Rectangle(-16, -16, 352, 212);
         private List<ChipPhrase> toRemove = [];
         private bool firstFrame = true;
@@ -32,7 +33,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             maxSpeed = data.AttrFloat("maxSpeed");
             minWait = data.AttrFloat("minWait");
             maxWait = data.AttrFloat("maxWait");
-
+            minDepth = data.AttrInt("minDepth",-10);
+            maxDepth = data.AttrInt("maxDepth",10);
             string ph = data.Attr("phrases");
             string str = data.AttrBool("fromDialog") ? Dialog.Get(ph) : ph;
             Phrases = str.Split(validSplits, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
@@ -62,8 +64,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         }
         public void AddChip(Level level)
         {
-            int depth = Calc.Random.Range(-10, 10);
-            int size = Math.Max(1, 3 + depth / 2);
+            int depth = Calc.Random.Range(minDepth, maxDepth);
+            int size = Math.Max(1, 3 + Math.Min(5, depth / 2));
             float fadeTime = Calc.Random.Range(2f, 5f);
             float speed = Calc.Random.Range(minSpeed, maxSpeed) * Calc.Random.Sign();
             float alpha = Calc.Random.Range(0.3f, 0.6f);

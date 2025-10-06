@@ -19,7 +19,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Teleport,
             Dialog,
-            Cutscene
+            Cutscene,
+            Flag
+        }
+        public enum ChooserModes
+        {
+            Single,
+            Swap
         }
         public enum UseModes
         {
@@ -86,15 +92,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             return string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag);
         }
-        public FlagList TalkFlagList;
-        public FlagList VisibleFlagList;
+        public FlagList TalkEnabled;
+        public FlagList RenderingEnabled;
         private Sprite offSprite;
         private VertexLight onLight;
         private VertexLight offLight;
         private bool useNearestSpawn;
+        public float TalkAlpha = 1;
+
+        private bool invertFlag;
+        private enum FlagModes
+        {
+            Invert,
+            SetTrue,
+            SetFalse
+        }
+        private FlagModes flagMode;
+        private string flag;
+        private bool disableIfTrue;
+        private bool disableIfFalse;
         public TalkingDecal(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
+            flag = data.Attr("flag");
+            flagMode = data.Enum<FlagModes>("flagMode");
+            disableIfTrue = data.Bool("disableIfTrue");
+            disableIfFalse = data.Bool("disableIfFalse");
             MarkerID = data.Attr("markerID");
             FlagsOnTalk = new FlagList(data.Attr("flagsOnTalk"));
             TeleportMode = data.Enum<TeleportModes>("teleportMode");
@@ -105,9 +128,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             extendLeft = data.Float("leftExtend");
             extendRight = data.Float("rightExtend");
             TalkMode = data.Enum<TalkModes>("mode");
-            VisibleFlagList = new FlagList(data.Attr("visibilityFlag"));
-            TalkFlagList = new FlagList(data.Attr("talkEnabledFlag"));
-
+            RenderingEnabled = new FlagList(data.Attr("visibilityFlag"));
+            TalkEnabled = new FlagList(data.Attr("talkEnabledFlag"));
+            switch (data.Attr("visibleMode"))
+            {
+                case "Visible":
+                    RenderingEnabled.ForcedValue = true;
+                    break;
+                case "Invisible":
+                    RenderingEnabled.ForcedValue = false;
+                    break;
+            }
             switch (TalkMode)
             {
                 case TalkModes.Teleport:
@@ -159,16 +190,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 offSprite = new Sprite(GFX.Game, "decals/");
                 offSprite.AddLoop("idle", data.Attr("offDecalPath"), 0.1f);
                 offSprite.Color = data.HexColor("color");
-                offSprite.CenterOrigin();
                 offSprite.Play("idle");
+                offSprite.CenterOrigin();
                 offSprite.Position += offSprite.HalfSize();
                 Add(offSprite);
             }
             Tag |= Tags.TransitionUpdate;
         }
-        public override void Awake(Scene scene)
+        public Vector2 DrawAt;
+        public Rectangle TalkBounds;
+        public override void Added(Scene scene)
         {
-            base.Awake(scene);
+            base.Added(scene);
             if (onSprite != null)
             {
                 Collider = new Hitbox(onSprite.Width, onSprite.Height);
@@ -177,11 +210,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             int y = -(int)extendUp;
             int width = (int)(Width + extendLeft + extendRight);
             int height = (int)(Height + extendUp + extendDown);
-            Rectangle bounds = new Rectangle(x, y, width, height);
-
-            Talk = new TalkComponent(bounds, Vector2.UnitX * bounds.Width / 2, Interact);
+            TalkBounds = new Rectangle(x, y, width, height);
+            DrawAt = Vector2.UnitX * TalkBounds.Width / 2;
+            Talk = new TalkComponent(TalkBounds, DrawAt, Interact);
             Talk.PlayerMustBeFacing = false;
             Add(Talk);
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            UpdateHoverUIAlpha();
         }
         public static bool TriggerCustomEvent(Player player, string eventID)
         {
@@ -201,7 +239,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             FlagsOnTalk.State = true;
             switch (TalkMode)
             {
+                case TalkModes.Flag:
+                    if (!string.IsNullOrEmpty(flag))
+                    {
+                        switch (flagMode)
+                        {
+                            case FlagModes.Invert:
+                                SceneAs<Level>().Session.SetFlag(flag, !SceneAs<Level>().Session.GetFlag(flag));
+                                break;
+                            case FlagModes.SetTrue:
+                                SceneAs<Level>().Session.SetFlag(flag);
+                                break;
+                            case FlagModes.SetFalse:
+                                SceneAs<Level>().Session.SetFlag(flag, false);
+                                break;
+                        }
+                    }
+                    break;
                 case TalkModes.Teleport:
+
                     MapData data = (Scene as Level).Session.MapData;
                     if (data.Levels.Find(item => item.Name == String) != null)
                     {
@@ -228,21 +284,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                 {
                                     Level level = Engine.Scene as Level;
                                     Vector2 respawnPosition = Vector2.Zero;
-                                    //CatHelper.Enabled = true;
-                                    //CatHelper.CatState(false);
                                     if (NearestSpawn.HasValue)
                                     {
                                         respawnPosition = NearestSpawn.Value;
                                     }
                                     else if (!string.IsNullOrEmpty(MarkerID))
                                     {
-                                        if (MarkerExt.TryGetData(MarkerID, String, Engine.Scene, out MarkerData data))
+                                        if (MarkerExt.TryGetRoomData(MarkerID, String, Engine.Scene, out MarkerData data))
                                         {
                                             respawnPosition = data.PositionInRoom;
-                                            //CatHelper.CatState(true);
                                         }
                                     }
+                                    Calidus c = level.Tracker.GetEntity<Calidus>();
+                                    Vector2 relativePosition = Vector2.Zero;
+                                    if (c != null)
+                                    {
+                                        relativePosition = c.Position - player.Position;
+                                        c.RemoveSelf();
+                                    }
                                     level.TeleportTo(player, String, introType, respawnPosition);
+                                    if (c != null)
+                                    {
+                                        Calidus calidus = new Calidus(player.Position + relativePosition, false, true, Calidus.Looking.Player, Calidus.Mood.Normal, true);
+                                        Engine.Scene.Add(calidus);
+                                    }
                                     new FadeWipe(Engine.Scene, wipeIn: true, () =>
                                     {
                                         Engine.Scene.GetPlayer()?.EnableMovement();
@@ -277,7 +342,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             Player = player,
                             Arg = targetString,
                         };
-
                         Scene.Add(cutscene);
                     }
 
@@ -359,59 +423,68 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 level.ResetZoom();
             }
         }
-        private bool hasFirstString => !string.IsNullOrEmpty(String);
-        private bool hasSecondString => !string.IsNullOrEmpty(String2);
         private string targetString;
-        public override void Update()
+        public void UpdateHoverUIAlpha()
         {
-            base.Update();
-            bool flagstate = TalkFlagList;
-            if (flagstate)
+            Vector2 trueDrawAt = Position + TalkBounds.Location.ToVector2() + DrawAt;
+            if (CollideCheck<Solid>(trueDrawAt) || CollideCheck<FakeWall>(trueDrawAt))
             {
-                if (hasFirstString)
-                {
-                    targetString = String;
-                    Talk.Enabled = true;
-                }
-                else
-                {
-                    targetString = "";
-                    Talk.Enabled = false;
-                }
+                TalkAlpha = Calc.Approach(TalkAlpha, 0, Engine.DeltaTime * 2);
             }
             else
             {
-                if (hasSecondString)
+                TalkAlpha = Calc.Approach(TalkAlpha, 1, Engine.DeltaTime * 2);
+            }
+            if (Talk.UI != null)
+            {
+                Talk.UI.alpha = TalkAlpha;
+            }
+        }
+        public override void Update()
+        {
+            base.Update();
+            if (TalkMode is TalkModes.Flag)
+            {
+                bool flagstate2 = string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag);
+
+                if ((disableIfTrue && flagstate2) || (disableIfFalse && !flagstate2))
                 {
-                    targetString = String2;
-                    Talk.Enabled = true;
-                }
-                else
-                {
-                    targetString = "";
                     Talk.Enabled = false;
                 }
+                UpdateSprites(flagstate2);
             }
+            else
+            {
+                bool flagstate = TalkEnabled;
+                targetString = flagstate ? String : String2;
+                targetString ??= "";
+                Talk.Enabled = !string.IsNullOrEmpty(targetString);
+                UpdateSprites(flagstate);
+            }
+            UpdateHoverUIAlpha();
+        }
+        public void UpdateSprites(bool value)
+        {
             if (onSprite != null)
             {
-                onSprite.Visible = flagstate;
+                onSprite.Visible = value;
                 if (onLight != null)
                 {
-                    onLight.Visible = flagstate;
+                    onLight.Visible = value;
                 }
             }
             if (offSprite != null)
             {
-                offSprite.Visible = !flagstate;
+                offSprite.Visible = !value;
                 if (offLight != null)
                 {
-                    offLight.Visible = !flagstate;
+                    offLight.Visible = !value;
                 }
             }
         }
         public override void Render()
         {
-            if (!VisibleFlagList) return;
+            if (!RenderingEnabled) return;
             if (Outline)
             {
                 if (onSprite != null && onSprite.Visible)

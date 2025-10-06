@@ -275,8 +275,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.GameshowEntities
             float angle = Calc.Angle(Anchor, Target);
             Light.Rotation = Led.Rotation = angle;
             Vector2 reference = Target + Calc.AngleToVector(angle, Circle.Width / 2 * circleScale);
-            Vector2 pos1 = PianoUtils.RotatePoint(reference, Target, 90);
-            Vector2 pos2 = PianoUtils.RotatePoint(reference, Target, -90);
+            Vector2 pos1 = PianoUtils.RotateAroundDeg(reference, Target, 90);
+            Vector2 pos2 = PianoUtils.RotateAroundDeg(reference, Target, -90);
             Vertices[0].Position = new Vector3(Anchor, 0);
             Vertices[1].Position = new Vector3(pos1, 0);
             Vertices[2].Position = new Vector3(pos2, 0);

@@ -43,14 +43,15 @@ powerLine.placements = {
         offset = 0,
         flagMode = "Hide",
         changeFlags = false,
-        displayLengths = false
+        displayLengths = false,
+        solid = true
 
     }
 }
 powerLine.fieldOrder =
 {
     "x","y","flags","flagMode","startFade","endFade","length","speed","alphaA","alphaB","tweenDuration","offset",
-    "colorA","colorB","altColorA","altColorB","depth","backwards","connectEnds","invertFlag","changeFlags","displayLengths"
+    "colorA","colorB","altColorA","altColorB","depth","backwards","connectEnds","invertFlag","changeFlags","displayLengths","solid"
 }
 local flagModes = {"Hide","AlternateColor"}
 powerLine.fieldInformation = 
@@ -266,8 +267,18 @@ end
 function powerLine.depth(room,entity)
 return entity.depth
 end
+local function getLine(p1, p2, color)
+    local line =
+        drawableFunction.fromFunction(function()
+            drawing.callKeepOriginalColor(function()
+            love.graphics.setColor({color.r /255, color.g/255, color.b/255, color.a/255})
+            love.graphics.line({p1.x,p1.y, p2.x,p2.y})
+            end)
+        end)
+    return line
+end
 local function getLines(entity)
-    local color = {255,0,0,255}
+    local color = {r = 255,g = 0,b = 0,a = 255}
     local lines = {}
     local n = entity.nodes
     if n then
@@ -285,16 +296,6 @@ local function getLines(entity)
     return lines
 end
 
-local function getLine(p1, p2, color)
-    local line =
-        drawableFunction.fromFunction(function()
-            drawing.callKeepOriginalColor(function()
-            love.graphics.setColor({color.r /255, color.g/255, color.b/255, color.a/255})
-            love.graphics.line({p1.x,p1.y, p2.x,p2.y})
-            end)
-        end)
-    return line
-end
 local function getDistanceText(a, b)
     local length = math.sqrt((a.x-b.x)^2 + (a.y-b.y)^2)
     local mp = {x = a.x + (b.x - a.x) / 2, y = a.y + (b.y - a.y) / 2}

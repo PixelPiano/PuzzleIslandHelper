@@ -8,12 +8,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Loaders
 {
     public static class PassengerCutsceneLoader
     {
-        public delegate PassengerCutscene ContentLoader(Passenger passenger, Player player);
+        public delegate PassengerCutscene ContentLoader(Passenger passenger, Player player, params string[] args);
         public static readonly Dictionary<string, ContentLoader> ContentLoaders = new Dictionary<string, ContentLoader>();
-        public static bool LoadCustomCutscene(string name, Passenger passenger, Player player, Level level)
+        public static bool LoadCustomCutscene(string name, Passenger passenger, Player player, Level level, params string[] args)
         {
-            var cutscene = CreateCutscene(name, passenger, player);
-            if(cutscene != null)
+            var cutscene = CreateCutscene(name, passenger, player, args);
+            if (cutscene != null)
             {
                 level.Add(cutscene);
             }
@@ -23,11 +23,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Loaders
         {
             return ContentLoaders.ContainsKey(name);
         }
-        public static PassengerCutscene CreateCutscene(string name, Passenger passenger, Player player)
+        public static PassengerCutscene CreateCutscene(string name, Passenger passenger, Player player, params string[] args)
         {
             if (ContentLoaders.TryGetValue(name, out var value))
             {
-                PassengerCutscene cutscene = value(passenger, player);
+                PassengerCutscene cutscene = value(passenger, player, args);
                 return cutscene;
             }
             return null;
@@ -65,11 +65,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Loaders
                         text2 = text2.Trim();
                         text3 = text3.Trim();
                         ContentLoader loader = null;
-                        ConstructorInfo ctor = type.GetConstructor(new Type[] { typeof(Passenger), typeof(Player)});
+                        ConstructorInfo ctor = type.GetConstructor(new Type[] { typeof(Passenger), typeof(Player), typeof(string[]) });
                         if (ctor != null)
                         {
-                            loader = (passenger, player) => (PassengerCutscene)ctor.Invoke(new object[] { passenger, player});
+                            loader = (passenger, player, args) => (PassengerCutscene)ctor.Invoke([passenger, player, args]);
                         }
+                        
                         if (loader == null)
                         {
                             Logger.Log(LogLevel.Warn, "PuzzleIslandHelper", "Found passenger cutscene without suitable constructor / " + text3 + "(PassengerWIP): " + text2 + " (" + type.FullName + ")");

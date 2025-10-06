@@ -3,6 +3,7 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -31,7 +32,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 level.Add(f);
             }
         }
-
         public static int FirfilsFollowing
         {
             get
@@ -43,7 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 return 0;
             }
         }
-        public bool Stored => FirfilStorage.Stored.Contains(this);
+        public bool Stored => FirfilStorage.Stored.Contains(ID);
         public bool FollowingPlayer => Follower != null && Follower.HasLeader && Follower.Leader.Entity is Player;
         public bool CanFollow = true;
         public bool AtNest;
@@ -51,7 +51,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public Vector2 Offset;
         public Vector2 OffsetTarget;
         public const float FlySpeed = 20f;
-        public const int MaxFollowing = 10;
+        public const int MaxFollowing = 100;
         public float SpeedMult = 1;
         public EntityID ID;
         private float offsetTimer;
@@ -61,6 +61,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public bool InView;
         private float afterImageTimer = 0.1f;
         public float Alpha = 1;
+        public bool FollowImmediately;
         public Firfil(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id)
         {
         }
@@ -71,24 +72,45 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             Add(Follower = new Follower());
             Follower.FollowDelay = Engine.DeltaTime;
             Add(new PlayerCollider(OnPlayer));
-            Tween.Set(this, Tween.TweenMode.Looping, 0.23f, Ease.SineInOut, t => colorLerp = t.Eased);
+            Tween.Set(this, Tween.TweenMode.Looping, 0.3f, Ease.SineInOut, t => colorLerp = t.Eased);
             Tag |= Tags.TransitionUpdate;
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            if (FollowImmediately)
+            {
+                Player player = scene.GetPlayer();
+                if (player != null)
+                {
+                    StartFollowing(player.Leader, false);
+                }
+            }
+            if (PianoModule.Session.CollectedFirfilIDs.Contains(ID) && !AtNest)
+            {
+                RemoveSelf();
+            }
+            if (FirfilStorage.Stored.Contains(ID))
+            {
+                RemoveSelf();
+            }
             afterImageTimer += Calc.Random.Range(0f, 0.3f);
         }
         public void FadeIn(float duration = 0.8f)
         {
             Alpha = 0;
-            Tween.Set(this, Tween.TweenMode.Oneshot, duration, Ease.SineIn, t => Alpha = t.Eased);
+            FadeTo(1, duration);
         }
-
+        public void FadeTo(float to, float time)
+        {
+            float a = Alpha;
+            Tween.Set(this, Tween.TweenMode.Oneshot, time, Ease.SineIn, t => Alpha = Calc.LerpClamp(a, to, t.Eased));
+        }
         public void DrawWithAlpha(Vector2 position, float alphaMult)
         {
             if (InView)
             {
+                base.Render();
                 Draw.Point(position, Color * (Alpha * alphaMult));
             }
         }
@@ -120,73 +142,176 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public override void Render()
         {
-            base.Render();
             DrawWithAlpha(Position + Offset, 1);
         }
         public void OnPlayer(Player player)
         {
-            if (!Stored && !AtNest && !FollowingPlayer && CanFollow)
+            if (!Stored && !AtNest && !FollowingPlayer && CanFollow && FirfilsFollowing < MaxFollowing)
             {
-                SceneAs<Level>().Session.DoNotLoad.Add(ID);
-                Pulse.Circle(this, Pulse.Fade.Linear, Pulse.Mode.Oneshot, Offset, 0, 8, 0.8f, true, Color, Color.White, Ease.CubeIn, Ease.CubeIn);
-                if (FirfilsFollowing >= MaxFollowing)
-                {
-                    Follower.PersistentFollow = false;
-                    FirfilStorage.Store(this);
-                }
-                else
-                {
-                    Follower.PersistentFollow = true;
-                    player.Leader.GainFollower(Follower);
-                }
+                StartFollowing(player.Leader, true);
             }
         }
-        public void Reset()
+        public void StartFollowing(Leader leader, bool pulse)
         {
-            Alpha = 1;
-            Collidable = true;
-            Follower.Leader?.LoseFollower(Follower);
-            SceneAs<Level>().Session.DoNotLoad.Remove(ID);
-            if (TagCheck(Tags.Persistent))
+            SceneAs<Level>().Session.DoNotLoad.Add(ID);
+            if (pulse)
             {
-                RemoveTag(Tags.Persistent);
+                PulseEntity.Circle(Position + Offset, Depth, Pulse.Fade.Linear, Pulse.Mode.Oneshot, 0, 8, 0.8f, true, Color, Color.White, Ease.CubeIn, Ease.CubeIn);
             }
+            Follower.PersistentFollow = true;
+            leader.GainFollower(Follower);
         }
         public void OnArriveAtNest()
         {
+            Active = true;
+            Visible = true;
             Collidable = false;
             AtNest = true;
-            Follower.Leader?.LoseFollower(Follower);
+            if (Follower != null)
+            {
+                Follower.Leader?.LoseFollower(Follower);
+            }
         }
     }
     [CustomEntity("PuzzleIslandHelper/FirfilNest")]
     [Tracked]
     public class FirfilNest : Entity
     {
-        public static List<EntityID> CollectedFirfilIDs => PianoModule.Session.CollectedFirfilIDs;
-        public static MTexture Texture => GFX.Game["PuzzleIslandHelper/firfil/nest"];
-        public List<Firfil> Firfils = new();
+        public static HashSet<EntityID> CollectedFirfilIDs => PianoModule.Session.CollectedFirfilIDs;
+
+        public static MTexture Texture => GFX.Game["objects/PuzzleIslandHelper/firfil/nest"];
+        public HashSet<Firfil> Firfils = [];
         public Image Nest;
-        public Collider CollectCollider;
         public float CircleRotation;
+        public TalkComponent Talk;
+        public int RequiredForKey;
+        public string KeyID;
+        public string FullKeyID => "FirfilNestKeyCollected:" + KeyID;
+        private float rotateRate = 1;
+        public bool CanSpawnKey => Firfils.Count >= RequiredForKey && !KeyCollected && !KeySpawned;
+        public bool KeyCollected
+        {
+            get => KeyID.GetFlag();
+            set => KeyID.SetFlag(value);
+        }
+        public bool KeySpawned
+        {
+            get => FullKeyID.GetFlag();
+            set => FullKeyID.SetFlag();
+        }
+        public bool InCutscene;
+        public bool SnapPositions;
+        public int PositionLoops = 1;
         public FirfilNest(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
+            Depth = 1;
             Add(Nest = new Image(Texture));
-            CollectCollider = new Hitbox(Nest.Width + 24, Nest.Height + 40, -12, -32);
             Collider = new Hitbox(Nest.Width, Nest.Height);
-            Add(new PlayerCollider(OnPlayer, CollectCollider));
+            Rectangle r = new Rectangle(0, 0, (int)Width, (int)Height);
+            Add(Talk = new TalkComponent(r, Vector2.UnitX * Width / 2, Interact));
+            KeyID = data.Attr("keyID");
+            Tag |= Tags.TransitionUpdate;
+            RequiredForKey = data.Int("requiredFirfils", 10);
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            Draw.Point(TopCenter - Vector2.UnitY * 32, Color.Magenta);
         }
         public override void Update()
         {
             base.Update();
-            HandlePositions(false);
-            CircleRotation = (CircleRotation + 1) % 360;
+            HandlePositions(SnapPositions);
+            CircleRotation = (CircleRotation + rotateRate) % 360;
+            if (InCutscene)
+            {
+                return;
+            }
+            if (Scene.GetPlayer() is Player player)
+            {
+                Talk.Enabled = player.Leader.Followers.Find(item => item.Entity is Firfil) != null;
+            }
+        }
+        public class FirfilKeyCutscene : CutsceneEntity
+        {
+            public Player Player;
+            public FirfilNest Nest;
+            private Coroutine zoomRoutine, moveRoutine;
+            private Vector2 cameraOrig;
+            public FirfilKeyCutscene(Player player, FirfilNest nest) : base()
+            {
+                Player = player;
+                Nest = nest;
+            }
+            public override void OnBegin(Level level)
+            {
+                Player.DisableMovement();
+                Add(new Coroutine(Sequence()));
+            }
+            public IEnumerator Sequence()
+            {
+                cameraOrig = Level.Camera.Position;
+                Vector2 target = Nest.TopCenter - Vector2.UnitY * 32;
+
+                Add(moveRoutine = new Coroutine(CameraTo(target - new Vector2(160, 90), 2, Ease.SineInOut)));
+                Add(zoomRoutine = new Coroutine(Level.ZoomTo(new Vector2(160, 90), 2, 1.5f)));
+
+                yield return 0.8f;
+                float from = Nest.rotateRate;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
+                {
+                    Nest.rotateRate = Calc.LerpClamp(from, 0, Ease.CubeIn(i));
+                    yield return null;
+                }
+                while (!zoomRoutine.Finished) yield return null;
+                Nest.PositionLoops = 2;
+                float speed = 0;
+                float speedTimer = 0;
+                while (speedTimer < 1.7f)
+                {
+                    Nest.rotateRate -= speed;
+                    speed = Calc.Approach(speed, 200f, 20f * Engine.DeltaTime);
+                    if (speed > 10)
+                    {
+                        speedTimer += Engine.DeltaTime;
+                    }
+                    yield return null;
+                }
+                Nest.SpawnKey(false);
+                from = Nest.rotateRate;
+                for (float i = 0; i < 1; i += Engine.DeltaTime)
+                {
+                    Nest.rotateRate = Calc.LerpClamp(from, 1, Ease.SineInOut(i));
+                    yield return null;
+                }
+                Add(zoomRoutine = new(Level.ZoomBack(1)));
+                Add(moveRoutine = new(CameraTo(cameraOrig, 1, Ease.SineInOut)));
+                yield return 1;
+                EndCutscene(Level);
+            }
+            public override void OnEnd(Level level)
+            {
+                zoomRoutine.RemoveSelf();
+                moveRoutine.RemoveSelf();
+                Level.ResetZoom();
+                Level.Camera.Position = cameraOrig;
+                if (!Nest.KeySpawned)
+                {
+                    Nest.SpawnKey(true);
+                }
+                Nest.PositionLoops = 1;
+                Nest.rotateRate = 1;
+                Nest.InCutscene = false;
+                Player.EnableMovement();
+            }
         }
         public void HandlePositions(bool instant)
         {
-            for (int i = 0; i < Firfils.Count; i++)
+            int count = 0;
+            foreach (Firfil f in Firfils)
             {
-                SetFirfilPosition(i, Firfils[i], instant);
+                SetFirfilPosition(count, f, instant);
+                count++;
             }
         }
         public void SetFirfilPosition(int index, Firfil f, bool instant)
@@ -213,82 +338,111 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             else
             {
-                f.Position += (vector2 - f.Position) * (1f - (float)Math.Pow(0.0099999997764825821, Engine.DeltaTime));
+                for (int i = 0; i < PositionLoops; i++)
+                {
+                    f.Position += (vector2 - f.Position) * (1f - (float)Math.Pow(0.0099999997764825821, Engine.DeltaTime));
+                }
             }
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-
+            if (scene.GetPlayer() is Player player)
+            {
+                Talk.Enabled = player.Leader.Followers.Find(item => item.Entity is Firfil) != null;
+            }
+            HashSet<EntityID> inLevel = [];
             foreach (Firfil f in scene.Tracker.GetEntities<Firfil>())
             {
+                //Auto collect any firfils in the level that should be at the nest
                 if (CollectedFirfilIDs.Contains(f.ID))
                 {
                     CollectFirfil(f);
+                    inLevel.Add(f.ID);
+                }
+            }
+            //re-add any firfils that aren't in the level that should be at the nest
+            foreach (EntityID id in CollectedFirfilIDs)
+            {
+                if (!inLevel.Contains(id))
+                {
+                    CollectFirfil(CreateNewFirfil(id));
                 }
             }
             HandlePositions(true);
 
+            if (KeySpawned && !KeyCollected)
+            {
+                SpawnKey(true);
+            }
+
+        }
+        public void SpawnKey(bool instant)
+        {
+            CutsceneHeart key = new(TopCenter - Vector2.UnitY * 32 - Vector2.One * 16, new EntityID(Guid.NewGuid().ToString(), 0), "", false, "", "", KeyID, Color.White, !instant);
+            Scene.Add(key);
+            KeySpawned = true;
+        }
+        public Firfil CreateNewFirfil(EntityID id)
+        {
+            Firfil newFirfil = new(TopCenter - Vector2.UnitY * 32, id);
+            Scene.Add(newFirfil);
+            return newFirfil;
         }
         public void CollectFirfil(Firfil firfil)
         {
-            if (Firfils.TryAdd(firfil))
+            if (Firfils.Add(firfil))
             {
-                CollectedFirfilIDs.TryAdd(firfil.ID);
+                CollectedFirfilIDs.Add(firfil.ID);
                 firfil.OnArriveAtNest();
             }
         }
-
-        public void OnPlayer(Player player)
+        public void Interact(Player player)
         {
-            FirfilStorage.ReleaseToNest(this, player.Center);
+            Input.Dash.ConsumePress();
+            //todo: add ui
             foreach (Firfil f in player.Leader.GetFollowerEntities<Firfil>())
             {
                 CollectFirfil(f);
             }
+            if (CanSpawnKey)
+            {
+                Scene.Add(new FirfilKeyCutscene(player, this));
+                InCutscene = true;
+            }
         }
     }
 
-    [ConstantEntity("PuzzleIslandHelper/FirfilStorage")]
-    [Tracked]
-    public class FirfilStorage : Entity
+    public static class FirfilStorage
     {
-        public static List<Firfil> Stored = new();
-        public FirfilStorage() : base()
-        {
-
-        }
+        public static HashSet<EntityID> Stored = [];
         public static void Store(Firfil firfil)
         {
-            if (Stored.TryAdd(firfil))
+            if (Stored.Add(firfil.ID))
             {
-                if (!firfil.TagCheck(Tags.Persistent))
+                firfil.RemoveSelf();
+            }
+        }
+        public static void Take()
+        {
+            if (Stored.Count > 0)
+            {
+                if (Engine.Scene is not null && Engine.Scene.GetPlayer() is Player player)
                 {
-                    firfil.AddTag(Tags.Persistent);
+                    Firfil firfil = new Firfil(player.Position, Stored.First());
+                    Stored.Remove(Stored.First());
+                    Engine.Scene.Add(firfil);
+                    firfil.FollowImmediately = true;
                 }
             }
         }
-        public static void ReleaseToNest(FirfilNest nest, Vector2 position)
+        public static void ReleaseAll()
         {
-            foreach (Firfil f in Stored)
+            if (Engine.Scene is Level level)
             {
-                f.Position = position;
-                f.FadeIn();
-                nest.CollectFirfil(f);
-            }
-            Stored.Clear();
-        }
-        public static void Release(bool fade)
-        {
-            if (Engine.Scene is not null)
-            {
-                foreach (Firfil f in Stored)
+                foreach (EntityID id in Stored)
                 {
-                    f.Reset();
-                    if (fade)
-                    {
-                        f.FadeIn();
-                    }
+                    level.Session.DoNotLoad.Remove(id);
                 }
                 Stored.Clear();
 

@@ -35,6 +35,7 @@ calidus.placements =
             excludedCutscenes = "",
             startCutsceneArgs = "",
             endCutsceneArgs = "",
+            awakeArgs = "",
             cutscene = "",
             cutsceneType = "CutsceneEntity",
             spawnFlag = "",

@@ -2,12 +2,14 @@ using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
     [CustomEntity("PuzzleIslandHelper/TempleBook")]
     [Tracked]
+    [Obsolete]
     public class TempleBook : Entity
     {
         public Image Book;

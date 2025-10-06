@@ -1,8 +1,8 @@
 - Name: PuzzleIslandHelper
   Version: 0.4.1
-  DLL: bin/Debug/net7.0/PuzzleIslandHelper.dll
+  DLL: bin/Debug/net8.0/PuzzleIslandHelper.dll
   Dependencies:
     - Name: Everest
-      Version: 1.4021.0
+      Version: 1.5846.0
     - Name: FrostHelper
       Version: 1.38.3

@@ -14,6 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     [Tracked(true)]
     public abstract class WarpCapsule : Entity
     {
+        
         public string WarpID = "";
         public string TargetID = "";
         public bool WaitingForCutscene;
@@ -70,7 +71,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public string Path = "objects/PuzzleIslandHelper/digiWarpReceiver/";
         public float DoorClosedPercent, DoorStallTimer, ShineAmount;
         public bool InCutscene, CanEnter = true, DoorsIdle = true, InvertFlag, Accessible, Blocked;
-        public FlagData Flag;
+        public FlagList Flag;
+        
         public EntityID ID;
         public Image Bg, Fg;
         public DotX3 Talk;
@@ -81,10 +83,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public WarpData OwnWarpData;
         public bool UsesRune;
         public bool UsesBeam;
-        public WarpCapsule(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"), data.Attr("warpID"), data.Attr("path"), false, false)
+        public WarpCapsule(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.FlagList(), data.Attr("warpID"), data.Attr("path"), false, false)
         {
         }
-        public WarpCapsule(Vector2 position, EntityID id, FlagData flag, string warpID, string path = null, bool usesRune = false, bool usesBeam = false) : base(position)
+        public WarpCapsule(Vector2 position, EntityID id, FlagList flag, string warpID, string path = null, bool usesRune = false, bool usesBeam = false) : base(position)
         {
             WarpID = warpID;
             Tag |= Tags.TransitionUpdate;
@@ -100,8 +102,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             Add(Bg = new Image(GFX.Game[Path + "bg"]));
             Bg.JustifyOrigin(0.5f, 1);
             Collider = Bg.Collider();
-            Vector2 texoffset = new Vector2(Bg.Width / 2, Bg.Height);
-            Bg.Position += texoffset;
+            Bg.Position += Bg.Origin;
             Fg = new Image(GFX.Game[Path + "fg"]);
             Add(Talk = new DotX3(Collider, Interact));
             Talk.PlayerMustBeFacing = false;
@@ -124,7 +125,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             LeftDoor = new Door(Center, -1, WARPData.XOffset, Path);
             RightDoor = new Door(Center, 1, WARPData.XOffset, Path);
             scene.Add(Floor, LeftDoor, RightDoor);
-            if (WarpEnabled() && Flag.State)
+            if (WarpEnabled())
             {
                 InstantOpenDoors();
             }
@@ -172,12 +173,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                     CanEnter = valid;
                     if (DoorStallTimer <= 0)
                     {
-                        MoveAlongTowards(valid);
+                        MoveDoorsTowards(valid);
                     }
                 }
             }
         }
-        public abstract bool WarpEnabled();
+        public virtual bool WarpEnabled()
+        {
+            return Flag;
+        }
         public override void Render()
         {
             LeftDoor.Image.DrawSimpleOutline();
@@ -202,29 +206,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         {
             Alarm.Set(this, 0.3f, delegate { Blocked = false; });
         }
-        public void MoveAlongTowards(bool open)
+        public void MoveDoorsTowards(bool open)
         {
             if (!open)
             {
                 if (DoorClosedPercent < 1)
                 {
-                    MoveAlong(Math.Min(DoorClosedPercent + Engine.DeltaTime, 1));
+                    MoveDoors(Math.Min(DoorClosedPercent + Engine.DeltaTime, 1));
                 }
                 else
                 {
-                    MoveAlong(1);
+                    MoveDoors(1);
                 }
             }
             else if (DoorClosedPercent > 0)
             {
-                MoveAlong(Math.Max(DoorClosedPercent - Engine.DeltaTime, 0));
+                MoveDoors(Math.Max(DoorClosedPercent - Engine.DeltaTime, 0));
             }
             else
             {
-                MoveAlong(0);
+                MoveDoors(0);
             }
         }
-        public void MoveAlong(float percent)
+        public void MoveDoors(float percent)
         {
             DoorClosedPercent = percent;
             LeftDoor.SetTo(percent);
@@ -243,30 +247,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public void InstantOpenDoors()
         {
             CanEnter = true;
-            MoveAlong(0);
+            MoveDoors(0);
         }
         public void InstantCloseDoors()
         {
             CanEnter = false;
-            MoveAlong(1);
+            MoveDoors(1);
         }
-        public void UpdateScale(Vector2 scale)
+        public virtual void UpdateScale(Vector2 scale)
         {
             Bg.Scale = LeftDoor.Scale = RightDoor.Scale = scale;
         }
-        public IEnumerator MoveTo(float from, float to, float time, Ease.Easer ease)
+        public IEnumerator MoveDoorsTo(float from, float to, float time, Ease.Easer ease)
         {
             DoorsIdle = false;
             ease ??= Ease.Linear;
             for (float i = 0; i < 1; i += Engine.DeltaTime / time)
             {
-                MoveAlong(Calc.LerpClamp(from, to, ease(i)));
+                MoveDoors(Calc.LerpClamp(from, to, ease(i)));
                 yield return null;
             }
-            MoveAlong(to);
+            MoveDoors(to);
             DoorsIdle = true;
         }
-        public IEnumerator CloseAndOpen(float closeTime, float openTime)
+        public IEnumerator CloseAndOpenDoors(float closeTime, float openTime)
         {
             CanEnter = false;
             yield return new SwapImmediately(CloseDoorsRoutine(closeTime));
@@ -278,12 +282,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public IEnumerator OpenDoorsRoutine(float openTime)
         {
             float from = DoorClosedPercent;
-            yield return new SwapImmediately(MoveTo(from, 0, openTime, null));
+            yield return new SwapImmediately(MoveDoorsTo(from, 0, openTime, null));
         }
         public IEnumerator CloseDoorsRoutine(float closeTime)
         {
             float from = DoorClosedPercent;
-            yield return new SwapImmediately(MoveTo(from, 1, closeTime, null));
+            yield return new SwapImmediately(MoveDoorsTo(from, 1, closeTime, null));
         }
         public PlayerShade Shade;
         public virtual IEnumerator ReceivePlayerRoutine(Player player, bool? setPlayerStateToNormal)
@@ -292,14 +296,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             {
                 Engine.Scene.Add(Shade = new PlayerShade(0.5f));
             }
-            //(Engine.Scene as Level).Camera.Position = Position;
             
             LeftDoor.MoveToFg();
             RightDoor.MoveToFg();
             InstantCloseDoors();
             player.StateMachine.State = Player.StDummy;
             yield return 0.1f;
-            yield return MoveTo(DoorClosedPercent, 0, 1.2f, Ease.BigBackIn);
+            yield return MoveDoorsTo(DoorClosedPercent, 0, 1.2f, Ease.BigBackIn);
             Shade?.Fade(0, 0.7f, Ease.SineIn, true);
             LeftDoor.MoveToBg();
             RightDoor.MoveToBg();
@@ -314,7 +317,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
 
             LeftDoor.MoveToFg();
             RightDoor.MoveToFg();
-            yield return MoveTo(0, 1, time, Ease.BigBackIn);
+            yield return MoveDoorsTo(0, 1, time, Ease.BigBackIn);
         }
         public IEnumerator SendScale()
         {

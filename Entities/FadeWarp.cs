@@ -204,6 +204,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void Interact(Player player)
         {
+            if (player.Holding != null)
+            {
+                return;
+            }
             if (isDoor || usesFlag && !SceneAs<Level>().Session.GetFlag(flag))
             {
                 Add(new Coroutine(DialogCutscene(player, keyId, dialogue)));

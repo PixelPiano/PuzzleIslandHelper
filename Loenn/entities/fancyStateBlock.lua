@@ -14,6 +14,7 @@ solidTiles.placements = {
         blendin = true,
         permanent = true,
         canDash = true,
+        canBoost = true,
         width = 8,
         height = 8
     }

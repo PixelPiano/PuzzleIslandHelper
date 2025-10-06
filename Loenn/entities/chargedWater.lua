@@ -1,6 +1,6 @@
 local xnaColors = require("consts.xna_colors")
-local lightBlue = xnaColors.LightBlue
 
+local lightBlue = xnaColors.LightBlue
 local water = {}
 
 water.name = "PuzzleIslandHelper/ChargedWater"

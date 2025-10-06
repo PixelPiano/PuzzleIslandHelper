@@ -7,6 +7,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         internal class Shaker : Entity
         {
+
             public Shaker() : base()
             {
                 Tag |= Tags.TransitionUpdate | Tags.Global;
@@ -46,7 +47,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             On.Celeste.Level.BeforeRender += Level_BeforeRender;
             Everest.Events.LevelLoader.OnLoadingThread += LevelLoader_OnLoadingThread;
         }
-
         private static void LevelLoader_OnLoadingThread(Level level)
         {
             level.Add(ShakeHelper = new Shaker());

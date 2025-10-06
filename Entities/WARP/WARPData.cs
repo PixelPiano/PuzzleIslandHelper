@@ -9,7 +9,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     public static class WARPData
     {
         public static WarpRune.RuneNodeInventory Inv => PianoModule.SaveData.RuneNodeInventory;
-        public static HashSet<WarpRune>  AllRunes = [];
+        public static HashSet<WarpRune> AllRunes = [];
         public static HashSet<WarpRune> DefaultRunes = [];
         public static HashSet<WarpRune> ObtainedRunes = [];
         public const int XOffset = 10;
@@ -18,6 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public static bool RuneExists(WarpRune input, out WarpData warpData)
         {
             warpData = null;
+            if (input == null) return false;
             if (PianoUtils.TryGetAreaKey(out AreaKey key))
             {
                 if (Data.TryGetValue(key.GetFullID(), out CapsuleList list))

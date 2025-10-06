@@ -3,7 +3,9 @@ using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
+using System;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
 {
@@ -11,91 +13,94 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
     [Tracked]
     public class Ghost : VertexPassenger
     {
-        public bool StartEmpty;
-        public float VeilSize;
-        public bool DrawCircles;
-        public float[] Circles = new float[6];
-        public Wiggler Wiggler;
-        public SoundSource Scraping;
-        public Ghost(EntityData data, Vector2 offset) : this(data.Position + offset, 16, 16, data.Attr("cutsceneID"), Vector2.One, new(-1, 1), 0.95f)
+        private const int armLength = 12;
+        public Group[] Groups = new Group[3];
+        public Ghost(EntityData data, Vector2 offset, EntityID id) : this(data, offset, id, armLength * 3, armLength * 3, Vector2.One, new(-1, 1), 0.95f)
         {
         }
-        public Ghost(Vector2 position) : this(position, 16, 16, null, Vector2.One, new(-1, 1), 1f)
+        public Ghost(EntityData data, Vector2 offset, EntityID id, float width, float height, Vector2 scale, Vector2 breathDirection, float breathDuration) : base(data, offset, id, width, height, scale, breathDirection, breathDuration)
         {
-            Add(new DebugComponent(GlitchCalidus, Keys.O));
-        }
-        public Ghost(Vector2 position, float width, float height, string cutscene, Vector2 scale, Vector2 breathDirection, float breathDuration) : base(position, width, height, cutscene, null, scale, breathDirection, breathDuration)
-        {
+
+            HasGravity = false;
             MinWiggleTime = 1;
             MaxWiggleTime = 2.5f;
-            AddQuad(Vector2.Zero, new(0, 16), new(16, 0), new(16), 1, Vector2.One, new(Color.Red));
+            for (int i = 0; i < Groups.Length; i++)
+            {
+                Groups[i] = new Group()
+                {
+                    RotationRate = 1f.ToRad(),
+                };
+            }
+
+            /*            
+             *            PointData[] ct = [new(Collider.BottomLeft, Color.Lime), new(Collider.TopCenter, Color.Lime), new(Collider.BottomRight, Color.Lime), new(Collider.BottomLeft, Color.Lime)];
+             *            for (int i = 1; i < ct.Length; i++)
+                        {
+                            Vector2 center = getSideTriCenter(ct[i - 1].Point, ct[i].Point, armLength, out float angle);
+                            AddEquilateral(new PointData()
+                            {
+                                Point = center,
+                                DefaultColor = Color.Lime,
+                                Group = Groups[i - 1],
+                                Shifter = null,
+                            }, armLength, angle);
+                        }
+                        AddTriangle(ct[0], ct[1], ct[2]);*/
+
+            Vector2 bodyTop = Collider.TopCenter;
+            Vector2 bodyLeft = Collider.Center + new Vector2(-Width / 4f, Height / 8f);
+            Vector2 bodyRight = Collider.Center + new Vector2(Width / 4f, Height / 8f);
+            Vector2 bodyBottom = Collider.BottomCenter;
+            AddTriangle(bodyTop, bodyLeft, bodyRight, 1, -Vector2.UnitY);
+            AddTriangle(bodyLeft, bodyRight, bodyBottom, 0, Vector2.Zero);
+            PointData leftCenter = new PointData()
+            {
+                Point = bodyLeft,
+                WiggleMult = 0,
+                WiggleDir = Vector2.Zero,
+                DefaultColor = Color.Lime
+            };
+            PointData rightCenter = new PointData()
+            {
+                Point = bodyRight,
+                WiggleMult = 0,
+                WiggleDir = Vector2.Zero,
+                DefaultColor = Color.Lime
+            };
+            PointData circleCenter = new PointData()
+            {
+                Point = bodyBottom,
+                WiggleMult = 0,
+                WiggleDir = Vector2.Zero,
+                DefaultColor = Color.DarkGreen
+            };
+            AddEquilateral(leftCenter, Width / 4f, 45f.ToRad());
+            AddEquilateral(rightCenter, Width / 4f, 45f.ToRad());
+            AddCircle(circleCenter, (bodyRight.X - bodyLeft.X) / 4, 0, 8);
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            /*            foreach (var v in lines)
+                        {
+                            Draw.Line(v.Item1 + Position, v.Item2 + Position, Color.Orange);
+                        }*/
+        }
+        private Vector2 getSideTriCenter(Vector2 a, Vector2 b, float radius, out float angle)
+        {
+            Vector2 centerLine = Vector2.Lerp(a, b, 0.5f);
+            angle = Vector2.Normalize(a - b).Perpendicular().Angle();
+            return centerLine + Calc.AngleToVector(angle, radius);
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
             Bake();
-            if (StartEmpty)
-            {
-                Alpha = 0;
-                GravityMult = 0;
-                Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineInOut, t => VeilSize = t.Eased);
-            }
         }
         public override void Render()
         {
-            Draw.Rect(Center - Vector2.One * VeilSize * 32, 64 * VeilSize, 64 * VeilSize, Color.Green);
-            if (DrawCircles)
-            {
-                for (int i = 0; i < Circles.Length; i++)
-                {
-                    Draw.Circle(Center, Circles[i], Color.Red, 50);
-                }
-            }
             base.Render();
         }
-        public override void Update()
-        {
-            base.Update();
-            if (onGround) GravityMult = 1;
-        }
-        public void Roar()
-        {
 
-        }
-        public void GlitchCalidus()
-        {
-            ScaleApproach = Vector2.One * 3;
-            Circles = new float[6];
-            Tween t = Tween.Create(Tween.TweenMode.Oneshot, Ease.CubeIn, 0.8f, true);
-            t.OnUpdate = t =>
-            {
-                float space = 0;
-                for (int i = 0; i < Circles.Length; i++)
-                {
-                    Circles[i] = Calc.Max(0, Calc.LerpClamp(-Circles.Length + 1, 320, t.Eased) - space);
-                    space += i;
-                }
-            };
-            Add(t);
-            Alarm.Set(this, 1, delegate { DrawCircles = false; });
-        }
-        public void Appear()
-        {
-            Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.Linear, t => { Alpha = t.Eased; },
-                delegate { Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineInOut, t => VeilSize = 1 - t.Eased, delegate { HasGravity = true; GravityMult = 0.3f; }); });
-        }
-        public IEnumerator Materialize()
-        {
-            Appear();
-            while (!onGround)
-            {
-                yield return null;
-            }
-            yield return 0.2f;
-        }
-        public void Approach()
-        {
-            Speed.X = 90f;
-        }
     }
 }

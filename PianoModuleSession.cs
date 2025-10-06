@@ -22,68 +22,79 @@ namespace Celeste.Mod.PuzzleIslandHelper
         Barely,
         Restored
     }
+     
     public class PianoModuleSession : EverestModuleSession
     {
-        public bool RestorePowerFirst {get; set;}
-        public bool DEBUG { get; set; }
-        public bool HasPiano { get; set; }
+        
+        public HashSet<CompassData> CompassData = [];
         public Dictionary<EntityID, int> StoredStoolDashes = [];
+        public Dictionary<EntityID, int> CrystalElevatorFurthestLevelReached = new();
+        public Dictionary<EntityID, List<int>> TiletypePuzzleCache = new();
+        public Dictionary<EntityID, (string, string)> UsedHeartMachines = new();
+        public Dictionary<EntityID, string> PersistentWarpLinks = new();
+        public Dictionary<EntityID, bool> MiniGenStates = new();
+        public Dictionary<EntityID, float> GearDoorStates = new();
+        public Dictionary<EntityID, Vector2> PressedTSwitches = new();
+        public Dictionary<EntityID, LHLData> BrokenLamps { get; set; } = new Dictionary<EntityID, LHLData>();
         public Dictionary<string, List<int>> DestroyedVanillaSpinnerIDs = [];
         public Dictionary<string, HashSet<int>> DestroyedCustomSpinnerIDs = [];
-        public Dictionary<EntityID, List<int>> TiletypePuzzleCache = new();
-        public Dictionary<EntityID, int> CrystalElevatorFurthestLevelReached = new();
-        public HeartInventory HeartInventory = new();
-        public Dictionary<EntityID, (string, string)> UsedHeartMachines = new();
-
-        public List<int> RuneNodes = [0, 2, 5];
+        public Dictionary<string, Vector2> PortalNodePositions = new();
+        public Dictionary<string, bool> LoggedCapsules = new();
+        public Dictionary<string, List<LightsIcon.LightsIconData>> IconDictionary { get; set; } = new();
+        public Dictionary<string, string> LevelMusic { get; set; } = new();
+        public Dictionary<FluidBottle.Side, List<Vector2>> Tiles = new();
+        public List<FadeWarpKey.KeyData> Keys { get; set; } = new();
+        public List<EntityID> DoorIds { get; set; } = new();
+        public List<Vector2> PotionTiles { get; set; } = new();
+        public List<string> UsedCutscenes = new();
+        public List<string> BrokenPillars = new();
+        public List<string> ChainedMonitorsActivated = new();
+        public List<DashCodeCollectable> CollectedIDs = new();
+        public List<PrologueGlitchBlock> ActiveGlitchBlocks = new();
+        public List<FloppyDisk> CollectedDisks = new();
+        public HashSet<string> HoldableGroupIDs = new();
+        public HashSet<string> HoldableCheckpointIDs = new();
+        public List<EntityID> SpoutWreckage = new();
+        public List<int> FixedFloors = new();
+        public List<string> GearCheckpointIDs = new();
+        public List<string> ContinuousGearIDs = new();
+        public List<string> DrillBatteryIds = new();
         public List<EntityID> BathroomStallsOpen = new();
+        public HashSet<EntityID> CollectedFirfilIDs = new();
+        public List<string> VoidLampGroups = new();
+        public List<RecordedMemory> Memories = new();
+        public bool RestorePowerFirst { get; set; }
+        public bool DEBUG { get; set; }
+        public bool HasPiano { get; set; }
         public bool BathroomStallOpened { get; set; }
+        public HeartInventory HeartInventory = new();
+
         public int TimesUsedCapsuleWarpWithRunes { get; set; }
         public int TimesUsedCapsuleWarp { get; set; }
-        public List<EntityID> CollectedFirfilIDs = new();
-        public List<string> VoidLampGroups = new();
-        public Dictionary<string, Vector2> PortalNodePositions = new();
-        public Dictionary<EntityID, string> PersistentWarpLinks = new();
-        public Dictionary<string, bool> LoggedCapsules = new();
-        public bool DEBUGBOOL1 { get; set; }
         public int DEBUGINT { get; set; }
+        public bool DEBUGBOOL1 { get; set; }
         public bool DEBUGBOOL2 { get; set; }
         public bool DEBUGBOOL3 { get; set; }
         public bool DEBUGBOOL4 { get; set; }
         public float DEBUGFLOAT1 { get; set; }
         public Vector2 DEBUGVECTOR { get; set; }
         public string DEBUGSTRING { get; set; }
-        public List<RecordedMemory> Memories = new();
         public int TimesMetWithCalidus;
         public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
         public ForkAmpState ForkAmpState = new();
-        public bool ModeratorEscape;
         public bool MonitorActivated;
-        public string CurrentAreaFlag;
-        public string CurrentBackdropArea;
         public bool FixedElevator;
         public int FurthestElevatorLevel;
         public int OrderPoints { get; set; }
         public bool DrillUsed;
-        public List<string> DrillBatteryIds = new();
         public bool HasFirstFloppy;
         public bool FountainCanOpen;
         public bool ForceFountainOpen;
-        public Dictionary<EntityID, bool> MiniGenStates = new();
-        public List<EntityID> SpoutWreckage = new();
-        public List<int> FixedFloors = new();
-        public List<string> GearCheckpointIDs = new();
-        public List<string> ContinuousGearIDs = new();
         public GearData GearData = new();
         public int GameshowLivesLost;
         public HoldableData HoldableData = new();
-        public List<string> HoldableGroupIDs = new();
-        public List<string> HoldableCheckpointIDs = new();
 
-        public Dictionary<EntityID, float> GearDoorStates = new();
         public int WasherSwitchAttempts;
-        public List<PrologueGlitchBlock> ActiveGlitchBlocks = new();
-        public List<FloppyDisk> CollectedDisks = new();
 
         public bool TryAddDisk(FloppyDisk disk)
         {
@@ -103,7 +114,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
             set => "PipesFixed".SetFlag(value);
         }
         public bool PipesFixable;
-        public bool PipesBroken;
+        public bool PipesBroken
+        {
+            get => "PipesBroken".GetFlag();
+            set => "PipesBroken".SetFlag();
+        }
         public bool PipesSafe => !PipesBroken || PipesFixed;
         public void SetPipeState(int state)
         {
@@ -112,7 +127,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 PipesBroken = true;
                 PipesFixable = false;
                 PipesFixed = true;
-
             }
             else if (state > 2)
             {
@@ -189,16 +203,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
         public ForkAmpBattery LastHeld;
         public bool HasInvert;
-        public List<string> ChainedMonitorsActivated = new();
         public bool GrassMazeFinished;
         public bool HasArtifact;
         public bool HasClearance;
         public bool Escaped;
-        public List<string> UsedCutscenes = new();
-        public Dictionary<EntityID, Vector2> PressedTSwitches = new();
-        public List<string> BrokenPillars = new();
         public int PillarBlockState;
-        public List<DashCodeCollectable> CollectedIDs = new();
 
         public bool PipeScrewLaunched;
         public Vector2? PipeScrewRestingPoint;
@@ -241,9 +250,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
         private LabPowerState actualPowerState;
         public void UpdatePowerStateFlags(Scene scene)
         {
-            foreach (LabPowerState state in Enum.GetValuesAsUnderlyingType<LabPowerState>())
+            if (scene is Level level)
             {
-                (scene as Level).Session.SetFlag("Power:" + state.ToString(), actualPowerState == state); //store the state in a set of flags so it can be accessed anywhere
+                foreach (LabPowerState state in Enum.GetValuesAsUnderlyingType<LabPowerState>())
+                {
+                    level.Session.SetFlag("Power:" + state.ToString(), actualPowerState == state); //store the state in a set of flags so it can be accessed anywhere
+                }
             }
 
         }
@@ -252,14 +264,9 @@ namespace Celeste.Mod.PuzzleIslandHelper
             get => PowerState == LabPowerState.Restored;
             set => PowerState = LabPowerState.Restored;
         }
-        public Dictionary<EntityID, LHLData> BrokenLamps { get; set; } = new Dictionary<EntityID, LHLData>();
         public Effect MonitorShader { get; set; }
         public int GlitchBlocks { get; set; }
         public string CurrentPrompt { get; set; }
-        public List<FadeWarpKey.KeyData> Keys { get; set; } = new();
-        public Dictionary<string, List<LightsIcon.LightsIconData>> IconDictionary { get; set; } = new();
-        public List<EntityID> DoorIds { get; set; } = new();
-        public Dictionary<string, string> LevelMusic { get; set; } = new();
         public float InvertWaitTime = 1.5f;
 
         public float JumpMult { get; set; } = 1;
@@ -270,7 +277,5 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public float PotionJumpMult { get; set; } = 1;
         public Vector2 PotionSpeedMult = Vector2.One;
 
-        public List<Vector2> PotionTiles { get; set; } = new();
-        public Dictionary<FluidBottle.Side, List<Vector2>> Tiles = new();
     }
 }

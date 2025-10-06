@@ -18,7 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         : base(data.Position + offset)
         {
             UsesTexture = data.Bool("usesTexture", true);
-            Depth = 2;
+            Depth = 9000;
             path = data.Attr("texturePath", "objects/PuzzleIslandHelper/noteSprites/paperA");
             image = new Image(GFX.Game[path]);
             image.Position = data.Nodes[0] - data.Position;

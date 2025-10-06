@@ -20,7 +20,10 @@ for _, type in ipairs(names) do
             groupWidth = 10,
             dialog = "",
             dialogMethod = "OnlyOnce",
-            flag = ""
+            dialogFlags = "",
+            flag = "",
+            cutsceneArgs = "",
+            cutsceneOnTransition = false
         }
     }
     table.insert(passenger.placements,placement)

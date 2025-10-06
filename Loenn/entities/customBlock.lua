@@ -13,6 +13,7 @@ customFallingBlock.placements =
     data = 
     {
         tiletype = "3",
+        allowAnimatedTiles = true,
         fadeWhenInside = true,
         collisionFlags = "",
         fadeFlags = "",

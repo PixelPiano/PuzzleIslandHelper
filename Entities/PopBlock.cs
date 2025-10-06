@@ -5,7 +5,7 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-// PuzzleIslandHelper.ArtifactSlot
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/PopBlock")]

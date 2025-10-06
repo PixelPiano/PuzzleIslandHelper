@@ -83,7 +83,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 currentIndex = Calc.Clamp(t.index, 0, t.Nodes.Count - 1);
                 if (lastIndex != currentIndex)
                 {
-                    if (t.Nodes[currentIndex] is FancyText.Char c)
+                    if (currentIndex < t.Nodes.Count && currentIndex >= 0 && t.Nodes[currentIndex] is FancyText.Char c)
                     {
                         OnNextChar?.Invoke(Portrait, c);
                     }

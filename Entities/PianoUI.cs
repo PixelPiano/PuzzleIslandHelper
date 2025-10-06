@@ -11,7 +11,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using static MonoMod.InlineRT.MonoModRule;
-// PuzzleIslandHelper.ArtifactSlot
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
 /*    [ConstantEntity("PuzzleIslandHelper/DebugEntity")]

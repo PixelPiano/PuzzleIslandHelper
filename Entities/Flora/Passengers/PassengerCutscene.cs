@@ -7,7 +7,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
     [Tracked]
     public abstract class PassengerCutscene : CutsceneEntity
     {
-
         public Passenger Passenger;
         public Player Player;
         private Coroutine zoomRoutine;
@@ -36,12 +35,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public bool OncePerSession = true;
         public bool CanBeDisabled = true;
-        public PassengerCutscene(Passenger passenger, Player player) : base()
+        public string[] Args;
+        public PassengerCutscene(Passenger passenger, Player player, params string[] args) : base()
         {
             Passenger = passenger;
             Player = player;
             zoomRoutine = new Coroutine(false);
             moveRoutine = new Coroutine(false);
+            Args = args;
             Add(zoomRoutine, moveRoutine);
         }
         public void CancelCameraZoom()
@@ -147,7 +148,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
     public class DialogPassengerCutscene : PassengerCutscene
     {
         public string Dialog;
-        public DialogPassengerCutscene(Passenger passenger, Player player, string dialog) : base(passenger, player)
+        public DialogPassengerCutscene(Passenger passenger, Player player, string dialog, string[] args) : base(passenger, player, args)
         {
             Dialog = dialog;
             OncePerSession = false;
@@ -172,10 +173,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                     Passenger.DialogIndex++;
                     break;
                 case Passenger.DialogMethods.Loop:
-                    Passenger.DialogIndex = (Passenger.DialogIndex + 1) % Passenger.Dialogs.Length;
+                    Passenger.DialogIndex = (Passenger.DialogIndex + 1) % Passenger.dataDialogs.Length;
                     break;
                 case Passenger.DialogMethods.RepeatLast:
-                    Passenger.DialogIndex = (int)Calc.Min(Passenger.Dialogs.Length, Passenger.DialogIndex + 1);
+                    Passenger.DialogIndex = (int)Calc.Min(Passenger.dataDialogs.Length, Passenger.DialogIndex + 1);
                     break;
             }
         }

@@ -16,6 +16,7 @@ flagEvent.placements =
             flagsToInvert = "",
             oncePerLevel = true,
             oncePerSession = true,
+            talker = false
         }
     },
 }

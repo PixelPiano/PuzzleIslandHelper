@@ -21,6 +21,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         public WarpCapsule Capsule;
         public Arguments StartArgs;
         public Arguments EndArgs;
+        public string EndArgsData => EndArgs.ToString();
         public string CutsceneID;
         private string flagID;
         public bool LockPlayerAtEnd;

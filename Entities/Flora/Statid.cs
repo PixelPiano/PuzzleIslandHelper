@@ -70,7 +70,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 Vector2 p = RenderPosition;
                 for (int i = 0; i < Vertices.Length; i++)
                 {
-                    Vertices[i].Position = new Vector3(p + PianoUtils.RotatePoint(PetalPoints[i] * Scale, Vector2.Zero, startRotation + Rotation), 0);
+                    Vertices[i].Position = new Vector3(p + PianoUtils.RotateAroundDeg(PetalPoints[i] * Scale, Vector2.Zero, startRotation + Rotation), 0);
                 }
             }
             public void DrawPetal(Matrix matrix)

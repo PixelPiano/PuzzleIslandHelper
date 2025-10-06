@@ -8,6 +8,7 @@ exitBlock.placements = {
     name = "Custom Exit Block",
     data = {
         tileType = "3",
+        allowAnimatedTiles = true,
         flag = "flag_exit_block",
         inverted = false,
         playSound = true,

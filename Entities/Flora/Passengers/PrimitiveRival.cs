@@ -28,7 +28,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public bool IntroCutscenePlayed => SceneAs<Level>().Session.GetFlag("RivalsHaveEntered");
         public EntityID ID;
-        public PrimitiveRival(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset, 12, 20, null, null, Vector2.One, new(-1, 1), 0.9f)
+        public PrimitiveRival(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id, 12, 20, Vector2.One, new(-1, 1), 0.9f)
         {
             ID = id;
             MinWiggleTime = 1;

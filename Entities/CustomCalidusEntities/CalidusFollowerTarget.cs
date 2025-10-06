@@ -145,6 +145,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         [OnLoad]
         public static void Load()
         {
+            spawnCalidusOnPlayerSpawn = false;
             Everest.Events.Player.OnDie += Player_OnDie;
             Everest.Events.Player.OnSpawn += Player_OnSpawn;
         }
@@ -171,6 +172,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         [OnUnload]
         public static void Unload()
         {
+            spawnCalidusOnPlayerSpawn = false;
             Everest.Events.Player.OnDie -= Player_OnDie;
             Everest.Events.Player.OnSpawn -= Player_OnSpawn;
         }
@@ -178,6 +180,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         public static void AddCalidusFollower()
         {
             if (Engine.Scene is not Level level) return;
+            Engine.Commands.Log("ADDED CALIDUS FOLLOWER");
             if (level.Tracker.GetEntity<CalidusFollowerTarget>() is CalidusFollowerTarget target)
             {
                 AddCalidusFollower(target);
@@ -197,7 +200,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             c.FollowTarget = target;
             c.CreateFollower();
             c.Position = target.Position;
-            c.StartFollowing(Calidus.Looking.Player);
+            c.StartFollowing();
             target.Leader.Snap(0.5f);
         }
     }

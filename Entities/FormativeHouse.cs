@@ -88,16 +88,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         internal HouseVertex[] Vertices;
         public Vector2[] Points;
         public int[] indices;
+        public JumpThru Platform;
+        public Color BetaColor;
         public FormativeHouse(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
+            Depth = 10;
+            Tag |= Tags.TransitionUpdate;
             Collider = new Hitbox(data.Width, data.Height);
             Target = VirtualContent.CreateRenderTarget("formative-house-target", data.Width + BufferExtend * 2, data.Height + BufferExtend * 2);
             Bounds = new Rectangle((int)Position.X - BufferExtend, (int)Position.Y - BufferExtend, data.Width + BufferExtend * 2, data.Height * BufferExtend * 2);
+            if (Calc.Random.Chance(0.5f))
+            {
+                BetaColor = Color.Lerp(Color.Lime, Color.Black, Calc.Random.Range(0, 0.4f));
+            }
+            else
+            {
+                BetaColor = Color.Lerp(Color.Lime, Color.White, Calc.Random.Range(0, 0.4f));
+            }
         }
         public bool OnScreen;
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
+            Platform.RemoveSelf();
             Target.Dispose();
         }
         public override void Update()
@@ -105,6 +118,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Update();
             OnScreen = Bounds.OnScreen(SceneAs<Level>(), 16);
         }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            scene.Add(Platform = new JumpThru(Position, (int)Width, true));
+        }
+
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
@@ -117,10 +136,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     int count = indices.Count;
                     points.Add(new(x, y));
-                    points.Add(new(x + 16, y));
-                    points.Add(new(x - 8, y + 16));
-                    points.Add(new(x - 8, y + 16));
-                    points.Add(new(x + 16, y));
+                    points.Add(new(x + 8, y));
+                    points.Add(new(x - 4, y + 16));
+                    points.Add(new(x - 4, y + 16));
+                    points.Add(new(x + 8, y));
                     points.Add(new(x + 8, y + 16));
                     indices.Add(count++);
                     indices.Add(count++);
@@ -129,6 +148,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     indices.Add(count++);
                     indices.Add(count++);
                 }
+
                 xOffset = xOffset == 0 ? 8 : 0;
             }
             Points = [.. points];
@@ -136,22 +156,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             for (int i = 0; i < Points.Length; i += 3)
             {
                 int r = Calc.Random.Range(0, 3);
-                Color random = Calc.Random.Choose(Color.Green, Color.Lime, Color.DarkGreen, Color.DarkOliveGreen);
+                Color random = Calc.Random.Choose(Color.Green, Color.Lime);
                 for (int j = 0; j < 3; j++)
                 {
                     Vector2 point = Points[i + j];
                     float mult = point.Y == Height || point.Y == 0 ? 0 : 1;
-                    Color color = Color.Lerp(random, Color.White, j == r ? 0.3f : 0);
-                    Vertices[i + j] = new HouseVertex(new Vector3(point + BufferOffset, 0), color, Vector2.One * mult);
+                    Color color = random;
+                    if (j == r)
+                    {
+                        color = Color.Lerp(random, Calc.Random.Chance(0.5f) ? Color.White : Color.Black, 0.3f);
+                    }
+                    Vector2 pos = new Vector2(Calc.Clamp(point.X + BufferOffset.X, 0, Target.Width), point.Y + BufferOffset.Y);
+                    Vertices[i + j] = new HouseVertex(new Vector3(pos, 0), color, Vector2.One * mult);
                 }
             }
             this.indices = indices.ToArray();
+
         }
         public override void Render()
         {
             base.Render();
             if (Scene is not Level level) return;
-            Draw.SpriteBatch.Draw(Target, Position - BufferOffset, Color.White);
+            if (PianoModule.Session.DEBUGBOOL3)
+            {
+                Draw.SpriteBatch.Draw(Target, Position - BufferOffset, Color.White);
+            }
+            else
+            {
+                Draw.Rect(Collider, BetaColor);
+                Draw.Rect(Position, Width, 4, Color.Black);
+            }
 
         }
     }
@@ -163,7 +197,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public FormativeHouseRenderHelper() : base()
         {
             Tag |= Tags.Global;
-            Add(new BeforeRenderHook(BeforeRender));
+            //Add(new BeforeRenderHook(BeforeRender));
         }
         public override void Update()
         {

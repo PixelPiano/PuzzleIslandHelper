@@ -115,11 +115,6 @@ public class PianoCommands
             }
         }
     }
-    [Command("swapstoolpersistence", "")]
-    public static void SwapStoolPersistence()
-    {
-        Stool.AlwaysPersistent = !Stool.AlwaysPersistent;
-    }
     [Command("get_counter", "returns the counter value of the specified string")]
     public static void GetCounter(string value)
     {

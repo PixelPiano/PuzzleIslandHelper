@@ -1,20 +1,21 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Microsoft.Xna.Framework;
 using Monocle;
-using PrismaticHelper.Entities.Panels;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Serialization;
-using static Celeste.Mod.PuzzleIslandHelper.Cutscenes.Gameshow;
-using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.WARP.WarpCapsuleBeta;
-using System.Text;
+using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
+    public enum Directions
+    {
+        Right = 0,
+        Up = 1,
+        Left = 2,
+        Down = 3,
+    }
     public struct SecurityCamData
     {
         public string Name;
@@ -86,15 +87,16 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public string Room;
         public string ID;
         public bool Lab;
+        public bool Default;
         public WarpRune Rune;
         public bool HasRune => Rune != null;
     }
     public class CapsuleList
     {
         public WarpData DefaultRune;
-        public List<WarpData> DefaultRuneSet = [];
-        public List<WarpData> AllRunes = [];
-        public List<WarpData> All = [];
+        public HashSet<WarpData> DefaultRuneSet = [];
+        public HashSet<WarpData> AllRunes = [];
+        public HashSet<WarpData> All = [];
         public bool ContainsRune(WarpRune rune) => GetDataFromRune(rune) != null;
         public bool ContainsID(string id) => GetDataFromID(id) != null;
         public WarpData GetDataFromRune(WarpRune rune)
@@ -120,6 +122,173 @@ namespace Celeste.Mod.PuzzleIslandHelper
             return null;
         }
     }
+
+    public class CompassNodeData
+    {
+        public string Flag => $"CompassNode{{{FullID}}}:On";
+        public bool Broken;
+        public static Vector2 CenterOffset = Vector2.One * 8;
+        public Directions Direction;
+        public Vector2 PositionInRoom;
+        public bool Empty;
+        public bool CanTurnOn => !Empty && !Broken;
+        public bool On
+        {
+            get
+            {
+                if (Empty) return false;
+                if (Engine.Scene is Level level)
+                {
+                    return level.Session.GetFlag(Flag);
+                }
+                return false;
+            }
+            set
+            {
+                if (Engine.Scene is Level level)
+                {
+                    level.Session.SetFlag(Flag, value);
+                }
+            }
+        }
+        public string ParentID = "";
+        public string ID = "";
+        public float Distance => Vector2.Distance(WorldPosition, ParentData.WorldPosition);
+        public int Index;
+        public string FullID => $"{ID}+{ParentID}";
+        public MapData MapData;
+        public Vector2 WorldPosition => RoomOffset + PositionInRoom + CenterOffset;
+        public Vector2 RoomOffset => MapData.Get(Room).Position;
+        public string Room;
+        public CompassData ParentData;
+        public override string ToString()
+        {
+            return $"ID:{ID},\n" +
+                $"ParentID:{ParentID},\n" +
+                $"Position:{WorldPosition},\n" +
+                $"Direction:{Direction},\n" +
+                $"On:{On},\n" +
+                $"Empty:{Empty},\n" +
+                $"Flag:{Flag.GetFlag()},\n" +
+                $"FlagName:{Flag},\n" +
+                $"Distance:{Distance},\n" +
+                $"Index:{Index}";
+        }
+    }
+    public class CompassData
+    {
+        public static Vector2 CenterOffset = Vector2.One * (59f / 2);
+        public Vector2 PositionInRoom;
+        public string ID;
+        public string Room;
+        public MapData MapData;
+        public Vector2 WorldPosition => RoomOffset + PositionInRoom + CenterOffset;
+        public Vector2 RoomOffset => MapData.Get(Room).Position;
+        public Dictionary<Directions, HashSet<CompassNodeData>> Nodes = []; //sorted by distance to node
+        public CompassData(string id, Vector2 positionInRoom, string room, MapData mapData)
+        {
+            ID = id;
+            PositionInRoom = positionInRoom;
+            Room = room;
+            MapData = mapData;
+            foreach (var value in Enum.GetValues<Directions>())
+            {
+                Nodes.Add(value, []);
+            }
+        }
+        public override string ToString()
+        {
+            return $"ID:{ID},\n" +
+                $"PositionInRoom:{PositionInRoom},\n" +
+                $"WorldPosition:{WorldPosition},\n" +
+                $"RoomOffset:{RoomOffset},\n" +
+                $"NodeCount:{NodeListString()}";
+        }
+        public string NodeListString()
+        {
+            string output = "Nodes:";
+            foreach (var pair in Nodes)
+            {
+                output += "\n\t";
+                output += $"{{{pair.Key}}}:{pair.Value.Count}";
+            }
+
+            return output;
+        }
+        public void Add(CompassNodeData node)
+        {
+            if (node != null)
+            {
+                node.ParentData = this;
+                Nodes[node.Direction].Add(node);
+            }
+        }
+        public void OrderNodes()
+        {
+            foreach (var pair2 in Nodes)
+            {
+                Nodes[pair2.Key] = [.. pair2.Value.OrderBy(item => item.Distance)];
+                int index = 0;
+                foreach (var n in Nodes[pair2.Key])
+                {
+                    n.Index = index++;
+                }
+            }
+        }
+        public Directions GetDirection(Level level)
+        {
+            return (Directions)level.Session.GetCounter("Compass" + ID);
+        }
+        public void Reset(Level level)
+        {
+            level.Session.SetCounter("Compass" + ID, 0);
+            TrySetFirstFound(level);
+        }
+        public bool TrySetFirstFound(Level level)
+        {
+            DeactivateAll();
+            if (Compass.Enabled)
+            {
+                Directions dir = GetDirection(level);
+                foreach (var n in Nodes[dir])
+                {
+                    if (n.CanTurnOn)
+                    {
+                        n.On = true;
+                        return true;
+                    }
+                }
+                Directions oppDir = dir switch
+                {
+                    Directions.Right => Directions.Left,
+                    Directions.Up => Directions.Down,
+                    Directions.Left => Directions.Right,
+                    Directions.Down => Directions.Up,
+                };
+                List<CompassNodeData> secondSet = [.. Nodes[oppDir]];
+                for (int i = secondSet.Count - 1; i >= 0; i--)
+                {
+                    var n2 = secondSet[i];
+                    if (n2.CanTurnOn)
+                    {
+                        n2.On = true;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        public void DeactivateAll()
+        {
+            foreach (var pair in Nodes)
+            {
+                foreach (var node in pair.Value)
+                {
+                    node.On = false;
+                }
+            }
+        }
+    }
     public class PianoMapDataProcessor : EverestMapDataProcessor
     {
         private string levelName;
@@ -132,7 +301,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static readonly Dictionary<string, Dictionary<string, List<SlotData>>> SlotData = [];
         public static readonly Dictionary<string, Dictionary<string, List<MarkerData>>> MarkerData = [];
         public static readonly Dictionary<string, List<string>> CollectableData = [];
+        public static readonly Dictionary<string, HashSet<CompassNodeData>> CompassNodeData = [];
+        public static readonly Dictionary<string, HashSet<CompassData>> CompassData = [];
+
         public static void Reset<T>(Dictionary<string, List<T>> dict, string key)
+        {
+            dict.Remove(key);
+            dict.Add(key, []);
+        }
+        public static void Reset<T>(Dictionary<string, HashSet<T>> dict, string key)
         {
             dict.Remove(key);
             dict.Add(key, []);
@@ -145,7 +322,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static void Reset<T>(Dictionary<string, T> dict, string key, Func<T> create)
         {
             dict.Remove(key);
-            dict.Add(key, create());
+            dict.Add(key, create == null ? default : create());
         }
         public override void Reset()
         {
@@ -159,6 +336,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Reset(WarpCapsules, key, delegate { return new CapsuleList(); });
             Reset(MarkerData, key);
             Reset(CollectableData, key);
+            Reset(CompassNodeData, key);
+            Reset(CompassData, key);
         }
         [Command("print_markers", "")]
         public static void PrintMarkers()
@@ -174,6 +353,38 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
             string key = AreaKey.GetFullID();
+            Action<BinaryPacker.Element> compassNodeData = data =>
+            {
+                if (CompassNodeData[key] == null)
+                {
+                    CompassNodeData[key] = [];
+                }
+
+                CompassNodeData nodeData = new()
+                {
+                    ID = data.Attr("nodeID"),
+                    ParentID = data.Attr("compassID"),
+                    PositionInRoom = data.Position(),
+                    Empty = data.AttrBool("startEmpty"),
+                    Direction = Enum.Parse<Directions>(data.Attr("direction")),
+                    Room = levelName,
+                    MapData = MapData,
+                };
+
+                PianoMapDataProcessor.CompassNodeData[key].Add(nodeData);
+            };
+            Action<BinaryPacker.Element> compassData = data =>
+            {
+                if (CompassData[key] == null)
+                {
+                    CompassData[key] = [];
+                }
+                if (data.AttrBool("leader"))
+                {
+                    CompassData compassData = new(data.Attr("compassID"), data.Position(), levelName, MapData);
+                    CompassData[key].Add(compassData);
+                }
+            };
             Action<BinaryPacker.Element> collectableHandler = data =>
             {
                 if (CollectableData[key] == null)
@@ -314,10 +525,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     if (hasRune)
                     {
                         WarpRune rune = null;
-                        if (!string.IsNullOrEmpty(data.Attr("rune")))
-                        {
-                            rune = new(id, data.Attr("rune"));
-                        }
+                        rune = new(id, data.Attr("rune", ""));
                         if (rune != null && !WarpCapsules[key].ContainsRune(rune))
                         {
                             awData = new()
@@ -325,9 +533,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
                                 ID = id,
                                 Room = levelName,
                                 Rune = rune,
-                                Lab = data.AttrBool("isLaboratory")
+                                Lab = data.AttrBool("isLaboratory"),
+                                Default = data.AttrBool("isDefaultRune")
                             };
-                            if (data.AttrBool("isDefaultRune"))
+                            if (awData.Default)
                             {
                                 WarpCapsules[key].DefaultRune = awData;
                             }
@@ -362,6 +571,18 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         if (levelName.StartsWith("lvl_")) {
                             levelName = levelName.Substring(4);
                         }
+                    }
+                },
+                {
+                    "entity:PuzzleIslandHelper/Compass", compass =>
+                    {
+                       compassData(compass);
+                    }
+                },
+                {
+                    "entity:PuzzleIslandHelper/CompassNode", compassNode =>
+                    {
+                       compassNodeData(compassNode);
                     }
                 },
                 {
@@ -431,6 +652,29 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     }
                 },
             };
+        }
+        [Command("print_compass", "")]
+        public static void printcompass()
+        {
+            var key = Engine.Scene.GetAreaKey();
+            if (CompassData.TryGetValue(key, out var c))
+            {
+                var list = c;
+                foreach (var v in list)
+                {
+                    Engine.Commands.Log(v.ID);
+                    foreach (var v2 in v.Nodes)
+                    {
+                        Engine.Commands.Log(v2.Key + ":");
+                        string output = "\t";
+                        foreach (var v3 in v2.Value)
+                        {
+                            output += v3.ID + "\n\t";
+                        }
+                        Engine.Commands.Log(output);
+                    }
+                }
+            }
         }
         public override void End()
         {

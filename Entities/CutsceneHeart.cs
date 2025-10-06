@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using static MonoMod.InlineRT.MonoModRule;
 // PuzzleIslandHelper.CutsceneHeart
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -22,14 +23,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
         public EntityID ID;
-        //public Sprite Sprite;
         private string collectSound = "event:/game/07_summit/gem_get";
         private Vector2 moveWiggleDir;
         private string spriteName;
         private float bounceSfxDelay;
         private Wiggler scaleWiggler;
         private Wiggler moveWiggler;
-        private EventInstance sfx;
         public string flag;
         public Heart heart;
         private bool Collected;
@@ -37,29 +36,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private string returnRoom;
         private bool TeleportsPlayer;
         private Cutscene cutscene;
-        public CutsceneHeart(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
+        private bool startPulse;
+        public Action OnAwakePulse;
+        public CutsceneHeart(Vector2 position, EntityID id, string sprite, bool teleportsPlayer, string room, string returnRoom, string flag, Color color, bool startPulse) : base(position)
         {
             ID = id;
-            spriteName = data.Attr("sprite");
-            TeleportsPlayer = data.Bool("teleportsPlayer");
-            room = data.Attr("room");
-            returnRoom = data.Attr("returnRoom");
-            ID = id;
-            flag = data.Attr("flag");
+            spriteName = sprite;
+            TeleportsPlayer = teleportsPlayer;
+            this.room = room;
+            this.returnRoom = returnRoom;
+            this.flag = flag;
             Tag = Tags.TransitionUpdate;
             heart = new Heart(Position, GFX.Game["objects/PuzzleIslandHelper/white"]);
-            heart.Color = data.HexColor("color", Color.White);
-            /* 
-            heart.Add(Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/cutsceneHeart/"));
-            Sprite.AddLoop("idle", spriteName, 0.08f);
-            Sprite.AddLoop("static", spriteName, 1f, 0);
-            Sprite.X = -(Sprite.Width - 12);
-            if (data.Bool("flipped"))
-            {
-                Sprite.CenterOrigin();
-                Sprite.Position += new Vector2(Sprite.Width / 2, Sprite.Height / 2);
-                Sprite.Scale = -Vector2.One;
-            }*/
+            heart.Color = color;
             Add(scaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f)
             {
                 heart.Scale = Vector3.One * (1f + f * 0.3f);
@@ -68,17 +57,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (!Collected)
                 {
-                    heart.Position = Position + (moveWiggleDir * f * -8f);// - (Vector2.UnitX * 4);
+                    heart.Position = Position + (moveWiggleDir * f * -8f);
                 }
             }));
             moveWiggler.StartZero = true;
             heart.Add(new PlayerCollider(OnPlayer));
-            //Sprite.Play("idle");
+            this.startPulse = startPulse;
+        }
+        public CutsceneHeart(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Attr("sprite"), data.Bool("teleportsPlayer"), data.Attr("room")
+            , data.Attr("returnRoom"), data.Attr("flag"), data.HexColor("color", Color.White), false)
+        {
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
             scene.Add(heart);
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            if (startPulse)
+            {
+                Bounce(null, false);
+                OnAwakePulse?.Invoke();
+            }
         }
         private void OnPlayer(Player player)
         {
@@ -91,16 +93,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
+                Bounce(player, true);
+            }
+        }
+        private void Bounce(Player player, bool sfx)
+        {
+            scaleWiggler.Start();
+            if (player != null)
+            {
                 player.PointBounce(heart.Center);
                 moveWiggler.Start();
-                scaleWiggler.Start();
                 moveWiggleDir = (heart.Center - player.Center).SafeNormalize(Vector2.UnitY);
-                Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
-                if (bounceSfxDelay <= 0f)
-                {
-                    Audio.Play("event:/game/general/crystalheart_bounce", heart.Position);
-                    bounceSfxDelay = 0.1f;
-                }
+            }
+            Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
+            if (sfx && bounceSfxDelay <= 0f)
+            {
+                Audio.Play("event:/game/general/crystalheart_bounce", heart.Position);
+                bounceSfxDelay = 0.1f;
             }
         }
         public class Cutscene : MemoryTextscene

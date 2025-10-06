@@ -2,20 +2,42 @@ using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
-// PuzzleIslandHelper.ArtifactSlot
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+    [Tracked]
+    public class ImpactSignalComponent : Component
+    {
+        public Action<ImpactSender> Action;
+        public ImpactSignalComponent(Action<ImpactSender> action) : base(true, false)
+        {
+            Action = action;
+        }
+    }
     [CustomEntity("PuzzleIslandHelper/ImpactSender")]
     [TrackedAs(typeof(DashBlock))]
     public class ImpactSender : DashBlock
     {
         public char Key;
         public ImpactSignaller Signaller;
+        private float pulseDuration;
+        private Vector2 pulsePosition;
+        private Color pulseColor;
+        private bool shakes;
+        private TileGrid tiles;
+        private Color tileColor = Color.White;
+        private float colorLerp;
         public ImpactSender(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id)
         {
             Key = data.Char("key");
             OnDashCollide = NewOnDashed;
+            pulseDuration = data.Float("pulseDuration");
+            pulsePosition = data.NodesOffset(offset)[0];
+            pulseColor = data.HexColor("pulseColor");
+            shakes = data.Bool("shakes");
+
         }
+
         public DashCollisionResults NewOnDashed(Player player, Vector2 direction)
         {
             if (!canDash && player.StateMachine.State != 5 && player.StateMachine.State != 10)
@@ -25,19 +47,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Impact(player.Center, direction, true, true);
             return DashCollisionResults.Rebound;
         }
+        public override void OnShake(Vector2 amount)
+        {
+            base.OnShake(amount);
+            if (tiles != null)
+            {
+                tiles.Position += amount;
+            }
+        }
+        public override void Update()
+        {
+            base.Update();
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             Signaller = scene.Tracker.GetEntity<ImpactSignaller>();
+            tiles = Components.Get<TileGrid>();
         }
         public void EmitKey()
         {
             Signaller.EmitKey(this);
         }
+
         public void Impact(Vector2 from, Vector2 direction, bool playSound = true, bool playDebrisSound = true)
         {
-            StartShaking(0.3f);
+            if (shakes)
+            {
+                StartShaking(0.3f);
+            }
             EmitKey();
+            PulseEntity.Circle(pulsePosition, Depth + 1, Pulse.Fade.InAndOut, Pulse.Mode.Oneshot,0, Width, pulseDuration,true,pulseColor,pulseColor,null,Ease.CubeIn);
             if (playSound)
             {
                 if (tileType == '1')

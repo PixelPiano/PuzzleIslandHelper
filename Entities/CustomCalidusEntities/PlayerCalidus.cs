@@ -604,9 +604,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
             GravityMult = yDir;
             FlashEye(yDir);
         }
-        public static bool LevelContainsSpawner(Level level, out CalidusSpawnerData data)
+        public static bool TryGetSpawner(Level level, out CalidusSpawnerData data)
         {
-            return PianoMapDataProcessor.CalidusSpawners[level.GetAreaKey()].TryGetValue(level.Session.Level, out data);
+            if (level != null)
+            {
+                var key = level.GetAreaKey();
+                var l = PianoMapDataProcessor.CalidusSpawners;
+                if (l != null)
+                {
+                    if(l.TryGetValue(key, out var dict))
+                    {
+                        if(l[key].TryGetValue(level.Session.Level, out data))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            data = default;
+            return false;
+            //return PianoMapDataProcessor.CalidusSpawners[level.GetAreaKey()].TryGetValue(level.Session.Level, out data);
         }
 
         public static void SetInventory(Upgrades upgrade)
@@ -1520,7 +1537,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         {
             if (Engine.Scene is Level level)
             {
-                if (LevelContainsSpawner(level, out CalidusSpawnerData data))
+                if (TryGetSpawner(level, out CalidusSpawnerData data))
                 {
                     _ = orig(position, spriteMode);
                     return new PlayerCalidus(position, data);
@@ -1531,7 +1548,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
 
         private static Player On_Level_LoadNewPlayerForLevel(On.Celeste.Level.orig_LoadNewPlayerForLevel orig, Vector2 position, PlayerSpriteMode spriteMode, Level lvl)
         {
-            if (LevelContainsSpawner(lvl, out CalidusSpawnerData data))
+            if (TryGetSpawner(lvl, out CalidusSpawnerData data))
             {
                 _ = orig(position, spriteMode, lvl);
                 return new PlayerCalidus(position + new Vector2(2, -3), data);

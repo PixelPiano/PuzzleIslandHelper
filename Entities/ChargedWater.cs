@@ -94,27 +94,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool RightSide;
         private bool TopSide;
         private bool BottomSide;
-        private string flag;
-        private bool FlagState
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(flag))
-                {
-                    return true;
-                }
-                if (Scene is not Level level)
-                {
-                    return false;
-                }
-                return level.Session.GetFlag(flag);
-
-            }
-        }
+        private FlagList flag;
+        private bool FlagState => flag;
         public ChargedWater(EntityData data, Vector2 offset) : base(CreateData(data), offset)
         {
             UsedInCutscene = data.Bool("usedInCutscene");
-            flag = data.Attr("flag");
+            flag = data.FlagList();
             BubbleType = data.Enum<Bubble.BubbleType>("bubbleType");
             LeftSide = data.Bool("bubbleLeft");
             RightSide = data.Bool("bubbleRight");

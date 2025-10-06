@@ -14,7 +14,8 @@ ladder.placements = {
         collidableFlag = "",
         depth = 0,
         visible = true,
-        texture = "objects/PuzzleIslandHelper/ladder"
+        texture = "objects/PuzzleIslandHelper/ladder",
+        suspendedFlags = ""
     }
 }
 

@@ -19,11 +19,74 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using static Celeste.Autotiler;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.Pulse;
 using static Celeste.Player;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static void MagicGlowRender(Texture2D texture, Vector2 position, Color color, float noiseEase, float direction, Matrix matrix)
+    {
+        GFX.FxMagicGlow.Parameters["alpha"].SetValue(0.5f);
+        GFX.FxMagicGlow.Parameters["pixel"].SetValue(new Vector2(1f / (float)texture.Width, 1f / (float)texture.Height) * 3f);
+        GFX.FxMagicGlow.Parameters["noiseSample"].SetValue(new Vector2(1f, 0.5f));
+        GFX.FxMagicGlow.Parameters["noiseDistort"].SetValue(new Vector2(1f, 1f));
+        GFX.FxMagicGlow.Parameters["noiseEase"].SetValue(noiseEase * 0.05f);
+        GFX.FxMagicGlow.Parameters["direction"].SetValue(0f - direction);
+        Engine.Graphics.GraphicsDevice.Textures[1] = GFX.MagicGlowNoise.Texture_Safe;
+        Engine.Graphics.GraphicsDevice.SamplerStates[1] = SamplerState.LinearWrap;
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, null, null, GFX.FxMagicGlow, matrix);
+        Draw.SpriteBatch.Draw(texture, position, color);
+        Draw.SpriteBatch.End();
+    }
+    public static void MagicGlowRender(List<Texture2D> textures, Vector2 position, Color color, float noiseEase, float direction, Matrix matrix)
+    {
+        GFX.FxMagicGlow.Parameters["alpha"].SetValue(0.5f);
+        GFX.FxMagicGlow.Parameters["pixel"].SetValue(new Vector2(1f / (float)textures[0].Width, 1f / (float)textures[0].Height) * 3f);
+        GFX.FxMagicGlow.Parameters["noiseSample"].SetValue(new Vector2(1f, 0.5f));
+        GFX.FxMagicGlow.Parameters["noiseDistort"].SetValue(new Vector2(1f, 1f));
+        GFX.FxMagicGlow.Parameters["noiseEase"].SetValue(noiseEase * 0.05f);
+        GFX.FxMagicGlow.Parameters["direction"].SetValue(0f - direction);
+        Engine.Graphics.GraphicsDevice.Textures[1] = GFX.MagicGlowNoise.Texture_Safe;
+        Engine.Graphics.GraphicsDevice.SamplerStates[1] = SamplerState.LinearWrap;
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, null, null, GFX.FxMagicGlow, matrix);
+        foreach (var t in textures)
+        {
+            Draw.SpriteBatch.Draw(t, position, color);
+        }
+        Draw.SpriteBatch.End();
+    }
+    public static void MagicGlowRender(List<Image> textures, Vector2 offset, float noiseEase, float direction, Matrix matrix)
+    {
+        GFX.FxMagicGlow.Parameters["alpha"].SetValue(0.5f);
+        GFX.FxMagicGlow.Parameters["pixel"].SetValue(new Vector2(1f / (float)textures[0].Width, 1f / (float)textures[0].Height) * 3f);
+        GFX.FxMagicGlow.Parameters["noiseSample"].SetValue(new Vector2(1f, 0.5f));
+        GFX.FxMagicGlow.Parameters["noiseDistort"].SetValue(new Vector2(1f, 1f));
+        GFX.FxMagicGlow.Parameters["noiseEase"].SetValue(noiseEase * 0.05f);
+        GFX.FxMagicGlow.Parameters["direction"].SetValue(0f - direction);
+        Engine.Graphics.GraphicsDevice.Textures[1] = GFX.MagicGlowNoise.Texture_Safe;
+        Engine.Graphics.GraphicsDevice.SamplerStates[1] = SamplerState.LinearWrap;
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, null, null, GFX.FxMagicGlow, matrix);
+        foreach (var t in textures)
+        {
+            Draw.SpriteBatch.Draw(t.Texture.Texture.Texture_Safe, t.RenderPosition + offset, t.Color);
+        }
+        Draw.SpriteBatch.End();
+    }
+    public static IEnumerator CutAtEnd(string dialog, params Func<IEnumerator>[] events)
+    {
+        bool close = false;
+        IEnumerator stop() { close = true; yield break; }
+        Textbox textbox = new Textbox(dialog, [.. events.Prepend(stop)]);
+        Engine.Scene.Add(textbox);
+        while (!close)
+        {
+            yield return null;
+        }
+        yield return textbox.EaseClose(true);
+        textbox.Close();
+    }
+    public static EntityID GenerateRandomID() => new EntityID(Guid.NewGuid().ToString(), 0);
     public static List<Image> NineSlice(this MTexture texture, int width, int height, int segmentWidth = 8, int segmentHeight = 8)
     {
         List<Image> list = [];
@@ -68,26 +131,7 @@ public static class PianoUtils
         }
         return list;
     }
-    public static Directions Direction(this Vector2 vector)
-    {
-        if (vector.X > 0) return Directions.Right;
-        else if (vector.X < 0) return Directions.Left;
-        else if (vector.Y > 0) return Directions.Down;
-        else if (vector.Y < 0) return Directions.Up;
-        else return Directions.None;
-    }
-    public static Vector2 Vector(this Directions direction)
-    {
-        return direction switch
-        {
-            Directions.Left => -Vector2.UnitX,
-            Directions.Right => Vector2.UnitX,
-            Directions.Up => -Vector2.UnitY,
-            Directions.Down => Vector2.UnitY,
-            Directions.None => Vector2.Zero,
-            _ => Vector2.Zero,
-        };
-    }
+
     public static void LogValue<T>(this Monocle.Commands commands, T value)
     {
         commands.Log($"{{{nameof(value)}:{value.ToString()}}}");
@@ -100,6 +144,7 @@ public static class PianoUtils
         => new FlagData(data.Attr(flagname), data.Bool(invertedname));
     public static FlagData Flag(this EntityData data, string flagname, bool inverted)
     => new FlagData(data.Attr(flagname), inverted);
+    public static FlagList FlagList(this EntityData data, string flagname = "flag", string invertedname = "inverted") => new FlagList(data.Attr(flagname), data.Bool(invertedname));
     public static Vector2 Position(this BinaryPacker.Element element) => new Vector2(element.AttrFloat("x"), element.AttrFloat("y"));
     public static IEnumerator TextboxSayClean(string text, params Func<IEnumerator>[] events)
     {
@@ -112,9 +157,10 @@ public static class PianoUtils
         }
     }
     public static string GetAreaKey(this Entity entity) => GetAreaKey(entity.Scene);
-    public static string GetAreaKey(this Scene scene) => scene is Level level ? level.Session.Area.GetFullID() : "";
+    public static string GetAreaKey(this Scene scene) => (scene as Level).Session.Area.GetFullID();
     public static string GetFullID(this AreaKey key) => key.SID + key.Mode.ToString();
-    public static TileGrid GetTileOverlayBox(Scene scene, float x, float y, float width, float height, char tile)
+    public static TileGrid GetTileGridOverlay(Scene scene, float x, float y, float width, float height, char tile) => GetTileOverlay(scene, x, y, width, height, tile).TileGrid;
+    public static Generated GetTileOverlay(Scene scene, float x, float y, float width, float height, char tile)
     {
         Level level = scene as Level; ;
         Rectangle tileBounds = level.Session.MapData.TileBounds;
@@ -123,13 +169,14 @@ public static class PianoUtils
         y = (int)(y / 8f) - tileBounds.Top;
         int tilesX = (int)width / 8;
         int tilesY = (int)height / 8;
-        return GFX.FGAutotiler.GenerateOverlay(tile, (int)x, (int)y, tilesX, tilesY, solidsData).TileGrid;
+        return GFX.FGAutotiler.GenerateOverlay(tile, (int)x, (int)y, tilesX, tilesY, solidsData);
     }
-    public static TileGrid GetTileBox(float width, float height, char tile)
+    public static TileGrid GetTileGridBox(float width, float height, char tile) => GetTileBox(width, height, tile).TileGrid;
+    public static Generated GetTileBox(float width, float height, char tile)
     {
         int tilesX = (int)width / 8;
         int tilesY = (int)height / 8;
-        return GFX.FGAutotiler.GenerateBox(tile, tilesX, tilesY).TileGrid;
+        return GFX.FGAutotiler.GenerateBox(tile, tilesX, tilesY);
     }
     public static string ReplaceAt(this string input, int index, char newChar)
     {
@@ -263,7 +310,130 @@ public static class PianoUtils
         using Stream stream = File.OpenWrite(path);
         renderTarget2D.SaveAsPng(stream, renderTarget2D.Width, renderTarget2D.Height);
     }
+    private class spriteSplitEntity : Entity
+    {
+        private string path, anim;
+        private int w, h;
+        private MTexture[] textures;
+        private List<string> prefixesUsed = [];
+        private List<char> prefixesAllowed = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+        private string[] names;
+        private int frames;
+        private VirtualRenderTarget[] targets;
+        private bool ready;
+        public spriteSplitEntity(string path, string anim, int width, int height) : base()
+        {
+            names = "Sa,Sb,UDUa,UDUb,UDUc,UDUd,Sc,Sd,UDMb,UDMc,UDMd,IUDL,IUDR,UDDa,UDDb,UDDc,UDDd,ULa,ULb,URa,URb,ULc,ULd,Ua,Ub,Uc,Ud,URc,URd,LRLa,LRMa,LRRa,La,Ma,Mb,Mc,Md,Ra,LRLb,LRMb,LRRb,Lb,Me,Mf,Mg,Mh,Rb,LRLc,LRMc,LRRc,Lc,Mi,Mj,Mba,Mbb,Rc,LRLd,LRMd,LRRd,Ld,Mbc,Mbd,Mb4,Mb5,Rd,DLa,DLb,Da,Db,Dc,Dd,DRa,DRb,DLc,DLd,IDL,IDR,DRc,DRd".Split(',');
+            this.path = path;
+            this.anim = anim;
+            w = width;
+            h = height;
+            textures = GFX.Game.GetAtlasSubtextures(path + anim).ToArray();
+            frames = textures.Length;
+            targets = new VirtualRenderTarget[frames];
+            for (int i = 0; i < targets.Length; i++)
+            {
+                targets[i] = VirtualContent.CreateRenderTarget("bleh", textures[0].Width, textures[0].Height);
+            }
+            Add(new BeforeRenderHook(BeforeRender));
+        }
+        public override void Update()
+        {
+            base.Update();
+            if (ready)
+            {
+                int width = textures[0].Width;
+                int height = textures[0].Height;
+                int nameindex = 0;
+                string output = "";
+                for (int y = 0; y < height; y += h)
+                {
+                    for (int x = 0; x < width; x += w)
+                    {
+                        bool success = true;
+                        for (int i = 0; i < frames; i++)
+                        {
+                            string name = names[nameindex];
+                            name += "0" + i;
 
+                            if (!SaveTargetAsPng(targets[i], "Split/" + name, x, y, w, h))
+                            {
+                                success = false;
+                                break;
+                            }
+                        }
+                        if (success)
+                        {
+                            output += string.Format("<sprite name=\"{0}\" path=\"animatedTiles/PianoBoy/digitalTest/{0}\" delay=\"0.1\" posX=\"0\" posY=\"0\"/>", names[nameindex]) + '\n';
+                            nameindex++;
+                        }
+                    }
+                }
+                using (StreamWriter stream = File.CreateText("Split/text.txt"))
+                {
+                    stream.WriteLine(output);
+                }
+                RemoveSelf();
+            }
+        }
+        public bool SaveTargetAsPng(RenderTarget2D from, string path, int x, int y, int w, int h, int scale = 1)
+        {
+            if (!path.EndsWith(".png"))
+            {
+                path += ".png";
+            }
+            Rectangle value = new Rectangle(x, y, w, h);
+            Color[] data = new Color[w * h];
+            from.GetData(0, value, data, 0, w * h);
+            if (data[0] == Color.Transparent) return false;
+            using Texture2D texture2D = new Texture2D(Engine.Graphics.GraphicsDevice, w, h);
+            texture2D.SetData(data);
+            using RenderTarget2D renderTarget2D = new RenderTarget2D(Engine.Graphics.GraphicsDevice, w * scale, h * scale);
+            Engine.Instance.GraphicsDevice.SetRenderTarget(renderTarget2D);
+            Engine.Instance.GraphicsDevice.Clear(Color.Transparent);
+            Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone);
+            Draw.SpriteBatch.Draw(texture2D, new Rectangle(0, 0, renderTarget2D.Width, renderTarget2D.Height), Color.White);
+            Draw.SpriteBatch.End();
+            Engine.Instance.GraphicsDevice.SetRenderTarget(null);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using Stream stream = File.OpenWrite(path);
+            renderTarget2D.SaveAsPng(stream, renderTarget2D.Width, renderTarget2D.Height);
+            return true;
+        }
+        public void BeforeRender()
+        {
+            if (ready) return;
+            for (int i = 0; i < targets.Length; i++)
+            {
+                targets[i].SetAsTarget();
+                Draw.SpriteBatch.Begin();
+                textures[i].Draw(Vector2.Zero);
+                Draw.SpriteBatch.End();
+            }
+            ready = true;
+
+        }
+        public override void Render()
+        {
+            base.Render();
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            foreach (var v in targets)
+            {
+                v?.Dispose();
+            }
+        }
+    }
+    [Command("temp_split", "")]
+    public static void SplitAnimationIntoFrames(string path, string anim, int width, int height)
+    {
+        if (Engine.Scene is Level level)
+        {
+            level.Add(new spriteSplitEntity(path, anim, width, height));
+        }
+    }
     /// <summary>Splits a string into segments of size <paramref name="count"/>.</summary>
     /// <param name="str">The <see cref="string"/> to split.</param>
     /// <param name="count">The maximum size of each segment.</param>
@@ -1070,7 +1240,8 @@ public static class PianoUtils
                         block.FallDelay = 10;
                         yield return null;
                     }
-                };
+                }
+                ;
                 block.Add(new Coroutine(makeLame()));
                 block.Add(new KeepGrounded());
                 break;
@@ -1424,10 +1595,6 @@ public static class PianoUtils
                 }
             }
         }
-    }
-    public static bool JustJumped(this Player player)
-    {
-        return player.jumpGraceTimer > 0;
     }
     public static void StandardBegin(this SpriteBatch spriteBatch)
     {
@@ -2200,40 +2367,29 @@ public static class PianoUtils
         yield return null;
     }
 
-    public static Vector2 RotateAround(this Vector2 pointToRotate, Vector2 centerPoint, double angleInDegrees)
+    public static Vector2 RotateAroundDeg(this Vector2 pointToRotate, Vector2 centerPoint, double angleInDegrees, bool floor = false)
     {
         double angleInRadians = angleInDegrees * (Math.PI / 180);
-        double cosTheta = Math.Cos(angleInRadians);
-        double sinTheta = Math.Sin(angleInRadians);
-        return new Vector2
-        {
-            X =
-                (int)
-                (cosTheta * (pointToRotate.X - centerPoint.X) -
-                sinTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.X),
-            Y =
-                (int)
-                (sinTheta * (pointToRotate.X - centerPoint.X) +
-                cosTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.Y)
-        };
+        return RotateAroundRad(pointToRotate, centerPoint, angleInRadians, floor);
     }
-    public static Vector2 RotatePoint(Vector2 pointToRotate, Vector2 centerPoint, double angleInDegrees)
+    public static Vector2 RotateAroundRad(this Vector2 pointToRotate, Vector2 centerPoint, double angleInRadians, bool floor = false)
     {
-        double angleInRadians = angleInDegrees * (Math.PI / 180);
         double cosTheta = Math.Cos(angleInRadians);
         double sinTheta = Math.Sin(angleInRadians);
-        return new Vector2
+        double x = (cosTheta * (pointToRotate.X - centerPoint.X) -
+        sinTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.X);
+        double y = (sinTheta * (pointToRotate.X - centerPoint.X) +
+                cosTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.Y);
+        if (floor)
         {
-            X =
-                (int)
-                (cosTheta * (pointToRotate.X - centerPoint.X) -
-                sinTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.X),
-            Y =
-                (int)
-                (sinTheta * (pointToRotate.X - centerPoint.X) +
-                cosTheta * (pointToRotate.Y - centerPoint.Y) + centerPoint.Y)
-        };
+            return new Vector2((int)x, (int)y);
+        }
+        else
+        {
+            return new Vector2((float)x, (float)y);
+        }
     }
+
 
     public static Player GetPlayer(this Level level) => level.Tracker.GetEntity<Player>();
     public static Player GetPlayer(this Scene scene) => (scene as Level).GetPlayer();

@@ -13,6 +13,8 @@ firfil.placements =
         name = "Firfil Nest",
         data = 
         {
+            requiredFirfils = 10,
+            keyID = ""
         }
     }
 }

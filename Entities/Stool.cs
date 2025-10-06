@@ -7,6 +7,7 @@ using Celeste.Mod.PuzzleIslandHelper.Components;
 using System.Collections.Generic;
 using System.Linq;
 using YamlDotNet.Core.Tokens;
+using System.Diagnostics;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -118,7 +119,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         public const float LaunchYSpeed = -200f;
         private static Vector2 StoolJustify = new Vector2(0.5f, 1f);
-        private int extraDashes;
         public int DashesHeld
         {
             get => _dashesHeld;
@@ -147,7 +147,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool DeadRefillImmunity;
 
         public bool DisablePickupCollider;
-        public bool InStack => inHeldStack || isRiding;
+        public bool InStack => inHeldStack || inLocalStack;
         public bool Raised;
         private bool inHeldStack;
         private Vector2 prevLiftSpeed, pickupColliderOrigPosition, spriteOffset;
@@ -168,6 +168,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 };
             }
         }
+
         private Coroutine coroutine;
 
         public StoolPlatform Platform;
@@ -180,7 +181,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private List<Actor> boosted = [];
         public List<Stool> StoolsInStack = [];
         private bool wasRiding;
-        private bool isRiding;
+        private bool inLocalStack;
         private StoolPlatform ridingOn;
         public Vector2 PrevPosition;
         public string OccupiedRoomName;
@@ -280,17 +281,57 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Visible = Platform.Visible = Collidable = Platform.Collidable = Hold.Visible = Flag.State;
             OccupiedRoomName = (scene as Level).Session.Level;
 
-            if (AlwaysPersistent) MakePersistent(scene as Level);
+            if (Persistent) MakePersistent(scene as Level);
+        }
+        public static List<Stool> storedStack = [];
+        private static Vector2 storedPlayerPos;
+        public static void StoreHeldStack(Player player, Level level)
+        {
+            if (player != null && player.Holding != null && player.Holding.Entity is Stool stool)
+            {
+                storedPlayerPos = player.Position;
+                storedStack.Add(stool);
+                storedStack.AddRange(stool.StoolsInStack);
+                foreach (Stool s in storedStack)
+                {
+                    s.RemoveSelf();
+                }
+            }
+        }
+        public static void RestoreHeldStack(Player player, Level level)
+        {
+            if (storedStack.Count > 0)
+            {
+                foreach (Stool stool in storedStack)
+                {
+                    level.Add(stool);
+                    stool.Position = player.Position + (stool.Position - storedPlayerPos);
+                }
+                player.Pickup(storedStack[0].Hold);
+            }
+            storedPlayerPos = Vector2.Zero;
+            storedStack.Clear();
         }
         public bool LevelNameCheck(Level level, string name)
         {
             return level.Session.Level == name;
         }
+        public Stool GetBase(Stool from)
+        {
+            Stool baseStool = from;
+            while (baseStool.GetStoolPlatformBelow() is StoolPlatform platform)
+            {
+                baseStool = platform.Stool;
+                if (baseStool.Hold.IsHeld) break;
+            }
+            return from;
+        }
+        public Color DebugLineColor = Color.Cyan;
         public override void Update()
         {
             base.Update();
             if (Scene is not Level level || level.GetPlayer() is not Player player) return;
-            if (AlwaysPersistent)
+            if (Persistent)
             {
                 if (!TagCheck(Tags.Persistent))
                 {
@@ -317,8 +358,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 return;
             }
-            Visible = Platform.Visible = Collidable = Platform.Collidable = Hold.Visible = Flag.State;
-            if (!Flag.State) return;
+            bool flagState = Flag.State;
+            Visible = Platform.Visible = Collidable = Platform.Collidable = Hold.Visible = flagState;
+            if (!flagState) return;
             if (DebugTimer > 0f)
             {
                 DebugTimer -= Engine.DeltaTime;
@@ -345,6 +387,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 if (!InStack)
                 {
+                    releaseStack();
                     if (OnGround())
                     {
                         OnGroundUpdate();
@@ -361,20 +404,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     MoveV(speed.Y, onCollideV);
                     VanillaMoveChecks();
                 }
-                ridingOn = GetRiding();
-                isRiding = ridingOn != null;
+                ridingOn = GetStoolPlatformBelow();
+                inLocalStack = ridingOn != null;
 
                 if (!inHeldStack)
                 {
-                    if (player.Holding != null && player.Holding.Entity is Stool holding)
+                    if (!wasRiding && inLocalStack)
                     {
-                        if (!wasRiding && isRiding)
+                        if (player.Holding != null && player.Holding.Entity is Stool holding)
                         {
                             if (holding.StoolsInStack.Contains(ridingOn.Stool))
                             {
                                 AddRidersToStack(holding);
                                 holding.OrderStack();
+                                DebugLineColor = Color.Magenta;
                             }
+                            else
+                            {
+                                holding.recreateStack();
+                                DebugLineColor = Color.Yellow;
+                            }
+                        }
+                        else
+                        {
+                            GetBase(ridingOn.Stool)?.recreateStack();
+                            DebugLineColor = Color.Red;
                         }
                     }
                 }
@@ -425,8 +479,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 launchedTimer -= Engine.DeltaTime;
             }
-            wasRiding = isRiding;
+            wasRiding = inLocalStack;
         }
+
         public void OnGroundUpdate()
         {
             float target = !OnGround(Position + Vector2.UnitX * 3f) ? 20f : !OnGround(Position - Vector2.UnitX * 3f) ? -20f : 0;
@@ -475,7 +530,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void OnPickup()
         {
-            isRiding = false;
+            inLocalStack = false;
             ridingOn = null;
             RestartDeadRefillImmunityTimer();
             foreach (Stool stool in Scene.Tracker.GetEntities<Stool>())
@@ -508,6 +563,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             ManuallyAddToStack(parent);
             foreach (Stool stackItem in Platform.GetRiders<Stool>())
             {
+                stackItem.releaseStack();
                 if (!stackItem.inHeldStack)
                 {
                     stackItem.AddRidersToStack(parent);
@@ -520,15 +576,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (this != parent)
             {
                 parent.StoolsInStack.Add(this);
-                inHeldStack = true;
+                inHeldStack = parent.Hold.IsHeld;
             }
         }
         public void OrderStack()
         {
             StoolsInStack = [.. StoolsInStack.OrderByDescending(item => item.Y)];
         }
-        private void recreateStack()
+        private void recreateStack(string prefix = "parent")
         {
+            Stopwatch watch = Stopwatch.StartNew();
             releaseStack();
             AddRidersToStack(this);
             OrderStack();
@@ -538,8 +595,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 s.Speed = Vector2.Zero;
                 s.prevLiftSpeed = Vector2.Zero;
             }
+            foreach (Stool s in Scene.Tracker.GetEntities<Stool>())
+            {
+                if (s.StoolsInStack.Contains(this))
+                {
+                    s.recreateStack("\tsub");
+                }
+            }
+            watch.Stop();
+            Engine.Commands.Log(prefix + watch.ElapsedMilliseconds);
         }
-        private void releaseStack(bool snap = false)
+        private void releaseStack()
         {
             MakeLocal(SceneAs<Level>());
             foreach (Stool s in StoolsInStack)
@@ -558,7 +624,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         s.Position += Vector2.UnitY;
                     }
                 }
-
             }
             StoolsInStack.Clear();
         }
@@ -587,8 +652,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             for (int i = 0; i < StoolsInStack.Count && i < 9; i++)
             {
-                string path = "objects/PuzzleIslandHelper/stool/debugNum0" + i;
-                GFX.Game[path].DrawOutline(StoolsInStack[i].CenterLeft - Vector2.UnitX * 8);
+                Vector2 p = StoolsInStack[i].CenterLeft - Vector2.UnitX * 8;
+                Draw.Line(p, Position, DebugLineColor);
+                //string path = "objects/PuzzleIslandHelper/stool/debugNum0" + i;
+                //GFX.Game[path].DrawOutline(StoolsInStack[i].CenterLeft - Vector2.UnitX * 8);
             }
 
         }
@@ -598,9 +665,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (FromMap)
             {
                 (scene as Level).Session.DoNotLoad.Remove(id);
-                #if DEBUG
+#if DEBUG
                 stoolIDs.Remove(id);
-                #endif
+#endif
             }
             base.Removed(scene);
         }
@@ -638,7 +705,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             return Platform != jumpThru && base.IsRiding(jumpThru);
         }
-        public StoolPlatform GetRiding()
+        public StoolPlatform GetStoolPlatformBelow()
         {
             foreach (StoolPlatform platform in Scene.Tracker.GetEntities<StoolPlatform>())
             {
@@ -649,11 +716,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return null;
         }
-        public static bool AlwaysPersistent = true;
+        public bool Persistent = true;
         public void VanillaMoveChecks()
         {
             Level level = Scene as Level;
-            if (!AlwaysPersistent)
+            if (!Persistent)
             {
                 if (Center.X > level.Bounds.Right)
                 {
@@ -736,13 +803,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Platform.AddTag(Tags.Persistent);
             }
             level.Session.DoNotLoad.Add(id);
-            #if DEBUG
+#if DEBUG
             stoolIDs.Add(id);
-            #endif
+#endif
         }
         public void MakeLocal(Level level)
         {
-            if (!AlwaysPersistent)
+            if (!Persistent)
             {
                 if (TagCheck(Tags.Persistent))
                 {
@@ -753,9 +820,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Platform.RemoveTag(Tags.Persistent);
                 }
                 level.Session.DoNotLoad.Remove(id);
-                #if DEBUG
+#if DEBUG
                 stoolIDs.Remove(id);
-                #endif
+#endif
             }
         }
         private IEnumerator stateRoutine(Player player)
@@ -850,13 +917,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             c.Position.X = p.Position.X + 4;
         }
         public float DebugTimer;
-        public void RemoveLeftoverDashes(Player player)
-        {
-            if (player != null)
-            {
-                player.Dashes = Math.Max(0, player.Dashes - extraDashes);
-            }
-        }
         private void givePlayerDashes(Player player)
         {
             foreach (StoolListener listener in Scene.Tracker.GetComponents<StoolListener>())
@@ -868,19 +928,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (player.Dashes < player.MaxDashes)
             {
-                extraDashes = DashesHeld;
-                player.Dashes = DashesHeld + 1;
+                player.Dashes += DashesHeld;
                 player.RefillStamina();
                 float dashes = DashesHeld;
-                DashListener temporaryDashListener = new()
-                {
-                    OnDash = (dir) =>
-                    {
-                        dashes = (int)Calc.Max(dashes - 1, 0);
-                    }
-                };
+                DashListener temporaryDashListener = new((dir) => { dashes = (int)Calc.Max(dashes - 1, 0); });
                 player.Add(temporaryDashListener);
-                player.Add(new OnGroundAlarm(0.1f, 0.1f, null, delegate { RemoveLeftoverDashes(player); player.Remove(temporaryDashListener); }));
+                player.Add(new OnGroundAlarm(0.1f, 0.1f, null, () =>
+                {
+                    player.Dashes = (int)Math.Max(player.Dashes - dashes, 0);
+                    player.Remove(temporaryDashListener);
+                }));
             }
             ConsumeDashes();
         }
@@ -903,7 +960,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             stackBase = null;
             if (collided == null) return false;
             Stool current = collided.Stool;
-            while (current != null && current.GetRiding() is StoolPlatform next)
+            while (current != null && current.GetStoolPlatformBelow() is StoolPlatform next)
             {
                 if (current.IsHeld)
                 {
@@ -932,7 +989,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Audio.Play("event:/PianoBoy/stool_hit_ground", Position, "crystal_velocity", 0f);
                 }
             }
-
             /*            if (data.Hit is StoolPlatform p)
                         {
                             Stool stool = p.Stool;

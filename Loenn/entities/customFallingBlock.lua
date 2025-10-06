@@ -12,6 +12,7 @@ customFallingBlock.placements =
     name = "Custom Falling Block",
     data = 
     {
+        allowAnimatedTiles = true,
         flagOnImpact = "",
         flagOnTriggered = "",
         tangibleFlag = "",

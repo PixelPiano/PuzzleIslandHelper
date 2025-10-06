@@ -11,7 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         private Collider playerBox;
         private float origBreathDuration;
         private float pantingDuration = 0.3f;
-        public DogPassenger(EntityData data, Vector2 offset) : base(data.Position + offset, 14, 10, data.Attr("cutsceneID"), data.Attr("dialog"), new(14, 10), new(-1, 1), 0.7f)
+        public DogPassenger(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id, 14, 10, new(14, 10), new(-1, 1), 0.7f)
         {
             origBreathDuration = 0.7f;
             MinWiggleTime = 0.7f;
@@ -43,14 +43,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                     BreathDuration = Calc.Approach(BreathDuration, pantingDuration, Engine.DeltaTime);
                     MinWiggleTime = Calc.Approach(MinWiggleTime, 0.5f, Engine.DeltaTime);
                     MaxWiggleTime = Calc.Approach(MaxWiggleTime, 0.8f, Engine.DeltaTime);
-                    OffsetMults[4] = Calc.Approach(OffsetMults[4], 2, Engine.DeltaTime);
+                    VertexList[4].WiggleMult = Calc.Approach(VertexList[4].WiggleMult, 2, Engine.DeltaTime);
                 }
                 else
                 {
                     BreathDuration = Calc.Approach(BreathDuration, origBreathDuration, Engine.DeltaTime);
                     MinWiggleTime = Calc.Approach(MinWiggleTime, 0.7f, Engine.DeltaTime);
                     MaxWiggleTime = Calc.Approach(MaxWiggleTime, 1.1f, Engine.DeltaTime);
-                    OffsetMults[4] = Calc.Approach(OffsetMults[4], 1, Engine.DeltaTime);
+                    VertexList[4].WiggleMult = Calc.Approach(VertexList[4].WiggleMult, 1, Engine.DeltaTime);
                 }
                 Collider = prev;
             }

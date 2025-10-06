@@ -1,12 +1,14 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
+using ExtendedVariants.Variants;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
-using Celeste.Mod.Entities;
-using System.Collections;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
-using ExtendedVariants.Variants;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
 {
@@ -15,7 +17,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
     [Tracked]
     public class GearHolder : Entity
     {
-
         public const string Path = "objects/PuzzleIslandHelper/gear/";
         public static MTexture MaskImage => GFX.Game[Path + "mask" + (RenderSmall ? "Small" : "")];
         public static MTexture Insides => GFX.Game[Path + "inside" + (RenderSmall ? "Small" : "")];
@@ -27,7 +28,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         [Tracked]
         public class GearHolderRenderer : Entity
         {
-            private bool noHolders;
             private static VirtualRenderTarget _Target;
             public static VirtualRenderTarget Target => _Target ??= VirtualContent.CreateRenderTarget("GearHolderRendererTarget", 320, 180);
             private static VirtualRenderTarget _Mask;
@@ -49,22 +49,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             public override void Render()
             {
                 base.Render();
-                if (Scene is not Level level || noHolders) return;
+                if (Scene is not Level level || holders.Count <= 0) return;
                 Draw.SpriteBatch.Draw(Target, level.Camera.Position.Floor(), Color.White);
                 var outline = Outline.Texture.Texture_Safe;
-                foreach (GearHolder holder in level.Tracker.GetEntities<GearHolder>())
+                foreach (GearHolder holder in holders)
                 {
                     Draw.SpriteBatch.Draw(outline, holder.RenderPosition + Offset, null, holder.BackColor, 0, Origin, 1, SpriteEffects.None, 0);
                 }
             }
-
+            private List<Entity> holders;
             public void BeforeRender()
             {
                 if (Scene is not Level level) return;
                 Matrix m = Matrix.Identity;
 
-                noHolders = level.Tracker.GetEntities<GearHolder>().Count == 0;
-                if (noHolders) return;
+                holders = level.Tracker.GetEntities<GearHolder>();
+                if (holders.Count <= 0) return;
                 Mask.DrawToObject(RenderMask, m, true);
                 GameplayBuffers.TempA.DrawToObject(RenderInsides, m, true);
                 GameplayBuffers.TempA.MaskToObject(Mask);
@@ -75,7 +75,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             {
                 if (Scene is not Level level) return;
                 var m = MaskImage.Texture.Texture_Safe;
-                foreach (GearHolder holder in level.Tracker.GetEntities<GearHolder>())
+                foreach (GearHolder holder in holders)
                 {
                     Draw.SpriteBatch.Draw(m, holder.RenderPosition - level.Camera.Position + Offset, null, Color.White, 0, Origin, 1, SpriteEffects.None, 0);
                 }
@@ -84,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             {
                 if (Scene is not Level level) return;
                 var i = Insides.Texture.Texture_Safe;
-                foreach (GearHolder holder in level.Tracker.GetEntities<GearHolder>())
+                foreach (GearHolder holder in holders)
                 {
                     Draw.SpriteBatch.Draw(i, holder.RenderPosition - level.Camera.Position + Offset, null, holder.BackColor, holder.Rotation.ToRad(), Origin, 1, SpriteEffects.None, 0);
                 }
@@ -97,7 +97,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public Sprite Sprite;
         private Color Color;
         public Color BackColor = Color.Cyan;
-        public float Rotation;
+
+        private float dustRate = 45.5f;
+        private float rotationVelocity;
+        public float Rotation
+        {
+            get => rotation;
+            set
+            {
+                float prev = rotation;
+                rotation = value;
+                if (ReallyGrindMyGear && Scene is Level level)
+                {
+                    float dist = Math.Abs(rotation - prev);
+                    rotationVelocity += dist;
+                    if (rotationVelocity > dustRate)
+                    {
+                        StartShaking(Engine.DeltaTime * 2);
+                        for (; rotationVelocity > dustRate; rotationVelocity -= dustRate)
+                        {
+                            Vector2 p = Center + Vector2.UnitX * (1 + Calc.Random.Range(-4, 5));
+                            level.ParticlesBG.Emit(SpinDust, p);
+                            EmitSparks(140f, 1);
+                        }
+                    }
+                }
+            }
+        }
+        private float rotation;
         public bool InGearRoutine;
         public bool ForceCanHold;
         public float RotateRate
@@ -130,7 +157,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public VertexLight Light;
         public BloomPoint Bloom;
         public MTexture Middle = GFX.Game["objects/PuzzleIslandHelper/Gear/holder"];
-        public MTexture FakeGear = GFX.Game["objects/PuzzleIslandHelper/Gear/fakeGear"];
         public float TimeLimit;
         private float timer;
         public bool HoldingGear;
@@ -160,7 +186,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public bool SwitchesColors = true;
         public Color GearColor = Color.White;
         public bool Interruptable;
-        public bool CanUseGear(Gear gear) => gear != null && !HasGear && !gear.Hold.IsHeld && (!OnlyOnce || !UsedOnce) && !preventGrab;
+        public float LockedTimer;
+        public bool ReallyGrindMyGear;
+        public Image FakeGear;
+        public ParticleSystem SparkSystem;
+        public ParticleSystem SparkFlashSystem;
+        public bool CanUseGear(Gear gear) => gear != null && !HasGear && !gear.Hold.IsHeld && (!OnlyOnce || !UsedOnce) && LockedTimer <= 0 && !preventGrab;
         public ParticleType GearSparks = new()
         {
             Color = Color.Orange,
@@ -168,12 +199,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             DirectionRange = (float)Math.PI / 2,
             ColorMode = ParticleType.ColorModes.Choose,
             FadeMode = ParticleType.FadeModes.Late,
-            Friction = 1,
+            Friction = 5,
             Size = 1,
-            SpeedMin = 10,
-            SpeedMax = 50,
-            LifeMin = 0.7f,
-            LifeMax = 1.8f
+            SpeedMin = 40,
+            SpeedMax = 120,
+            LifeMin = 0.05f,
+            LifeMax = 0.1f
+        };
+        public ParticleType GearSparkFlash = new()
+        {
+            Color = Color.White,
+            FadeMode = ParticleType.FadeModes.None,
+            Size = 1,
+            LifeMin = 0.05f,
+            LifeMax = 0.1f
+        };
+        public ParticleType SpinDust = new()
+        {
+            Color = Color.LightGray * 0.8f,
+            Color2 = Color.Gray * 0.8f,
+            DirectionRange = 30f.ToRad(),
+            Direction = (float)(Math.PI / 2f),
+            ColorMode = ParticleType.ColorModes.Choose,
+            FadeMode = ParticleType.FadeModes.Linear,
+            Friction = 3,
+            Acceleration = -Vector2.UnitY * 4,
+            Size = 1,
+            SpeedMin = 5,
+            SpeedMax = 15,
+            LifeMin = 1f,
+            LifeMax = 2f
         };
         public GearHolder(Vector2 position, bool onlyOnce, Color color, EntityID entityId, float rotateRate = 10f, int id = -1, bool playerCanInterrupt = true, string flag = "", float stopAfter = -1) : base(position)
         {
@@ -182,6 +237,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             if (IsBaseHolder)
             {
                 SwitchesColors = false;
+                ReallyGrindMyGear = true;
             }
             this.flag = flag;
             EntityID = entityId;
@@ -194,36 +250,66 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
             Color = Color.White;
             Sprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/Gear/");
             Sprite.AddLoop("idle", "holder", 0.1f);
-            Sprite.Position += new Vector2(Sprite.Width / 2, Sprite.Height / 2);
             int offset = 2;
             Collider = new Hitbox(Sprite.Width - offset, Sprite.Height - offset, offset / 2, offset / 2);
             Add(Light = new VertexLight(Color.White, 0.4f, 24, 40) { Position = Vector2.One * 12 });
             Add(Bloom = new BloomPoint(0.5f, 24) { Position = Vector2.One * 12 });
             Add(SlotCoroutine = new Coroutine(false));
+            Add(FakeGear = new Image(GFX.Game["objects/PuzzleIslandHelper/Gear/fakeGear"]));
+            FakeGear.Visible = false;
+            FakeGear.CenterOrigin();
+            FakeGear.RenderPosition = Center;
         }
         public GearHolder(EntityData data, Vector2 offset, EntityID entityID)
             : this(data.Position + offset - Vector2.One * 8, data.Bool("onlyOnce"), Color.White, entityID, 10, data.Int("holderId"), false, data.Attr("flagOnFinish"), 1)
         {
         }
+        public virtual void OnGearRelease()
+        {
+            HasGear = false;
+        }
         public void EmitSparks(float speed, int amount)
         {
-            ParticleSystem system = SceneAs<Level>().ParticlesBG;
             GearSparks.SpeedMin = speed;
             GearSparks.SpeedMax = speed + 1;
             for (int i = 0; i < amount; i++)
             {
-                float angle = Calc.Random.Range((float)-Math.PI, (float)Math.PI);
-                Vector2 offset = new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
-                system.Emit(GearSparks, Center + offset * SparkOffset, angle);
+                float angle = Calc.Random.NextAngle();
+                Vector2 angleVector = new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
+                Vector2 position = Center + SparkOffset * angleVector;
+                SparkSystem.Emit(GearSparks, position, angle + Calc.Random.NextAngle() * 0.2f);
+                Vector2 flashPosition = position + (Width / 3f * angleVector);
+                SparkFlashSystem.Emit(GearSparkFlash, flashPosition);
+                VertexLight light = new VertexLight(flashPosition - Position, Color.White, 0.6f, 3, 5);
+                Add(light);
+                Alarm.Set(this, 0.2f, () => Remove(light));
             }
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            string texturePath = Path + "center";
+            if (RenderSmall)
+            {
+                texturePath += "Small";
+                if (Interruptable)
+                {
+                    texturePath += "NoGrab";
+                }
+            }
+            Add(new Image(GFX.Game[texturePath]));
             if (PianoUtils.SeekController<GearHolderRenderer>(scene) is null)
             {
                 scene.Add(new GearHolderRenderer());
             }
+            SparkSystem = new ParticleSystem(Depth + 1, 20);
+            SparkFlashSystem = new ParticleSystem(Depth - 1, 20);
+            scene.Add(SparkSystem, SparkFlashSystem);
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            scene.Remove(SparkSystem, SparkFlashSystem);
         }
         public override void Awake(Scene scene)
         {
@@ -237,22 +323,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
         public override void Render()
         {
             base.Render();
-            Vector2 offset = Vector2.Zero;
-            string path = Path + "center";
-            if (RenderSmall)
-            {
-                path += "Small";
-                if (!Interruptable)
-                {
-                    path += "NoGrab";
-                }
-            }
-            var s = GFX.Game[path].Texture.Texture_Safe;
-            Draw.SpriteBatch.Draw(s, RenderPosition + offset, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
             if (useFakeGearImage)
             {
-                Vector2 gearOffset = new Vector2(FakeGear.Width / 2, FakeGear.Height / 2).Floor();
-                FakeGear.DrawOutline(RenderPosition + offset + gearOffset, gearOffset, Color.White, 1, Rotation.ToRad());
+                FakeGear.DrawSimpleOutline();
+                FakeGear.Render();
             }
         }
         public override void Update()
@@ -277,12 +351,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
                 }
             }
             base.Update();
+            LockedTimer = Math.Max(LockedTimer - Engine.DeltaTime, 0);
             if (OnlyOnce && UsedOnce)
             {
                 Color = Color.Lerp(Color, Color.Gray, Engine.DeltaTime);
             }
             Rotation = (float)Math.Round(Rotation + RotateRate);
             Rotations = Rotation / 360;
+            FakeGear.Rotation = Rotation.ToRad();
         }
         public virtual void StopSpinning(bool drop = true)
         {

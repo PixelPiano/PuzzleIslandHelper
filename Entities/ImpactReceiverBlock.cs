@@ -1,13 +1,15 @@
 using Celeste.Mod.Entities;
+using Iced.Intel;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Monocle;
 using System;
-// PuzzleIslandHelper.ArtifactSlot
+
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/ImpactReceiver")]
     [Tracked]
-    public class ImpactReceiver : Solid
+    public class ImpactReceiverBlock : Solid
     {
         public TileGrid tiles;
         public EffectCutout cutout;
@@ -30,9 +32,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public string Code;
         public string Input;
         public bool Solved;
-        public ImpactReceiver(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, data.Width, data.Height, data.Char("tiletype", '3'), id, data.Attr("code")) { }
+        public bool SetFlag;
+        public string Flag;
+        public ImpactReceiverBlock(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, data.Width, data.Height, data.Char("tiletype", '3'), id, data.Attr("code")) { }
 
-        public ImpactReceiver(Vector2 position, float width, float height, char tileType, EntityID id, string code) : base(position, width, height, true)
+        public ImpactReceiverBlock(Vector2 position, float width, float height, char tileType, EntityID id, string code) : base(position, width, height, true)
         {
             Tag |= Tags.TransitionUpdate;
             Depth = -13000;
@@ -42,6 +46,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             EnableAssistModeChecks = false;
             Code = code;
             ID = id;
+            Add(new ImpactSignalComponent(item => AddInput(item.Key)));
         }
         public void AddInput(char c)
         {
@@ -70,7 +75,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            tiles = PianoUtils.GetTileOverlayBox(scene, X, Y, Width, Height, tileType);
+            tiles = PianoUtils.GetTileGridOverlay(scene, X, Y, Width, Height, tileType);
             Add(tiles);
             Add(new TileInterceptor(tiles, highPriority: false));
         }
@@ -81,6 +86,49 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Alpha = 0;
                 Collidable = false;
+            }
+        }
+    }
+
+    [CustomEntity("PuzzleIslandHelper/ImpactReceiverFlag")]
+    [Tracked]
+    public class ImpactReceiverTrigger : Trigger
+    {
+        public ImpactReceiverTrigger(EntityData data, Vector2 offset) : base(data, offset)
+        {
+            Code = data.Attr("code");
+            Flag = data.Attr("flagOnSolved");
+            FlagState = data.Bool("flagState");
+            Add(new ImpactSignalComponent(item => AddInput(item.Key)));
+        }
+        public string Code;
+        public string Input;
+        public bool Solved;
+        public bool SetFlag;
+        public string Flag;
+        public bool FlagState;
+        public void AddInput(char c)
+        {
+            if (!Solved && !string.IsNullOrEmpty(Code))
+            {
+                Input += c;
+                if (Input == Code)
+                {
+                    Solve();
+                }
+                else if (!Code.StartsWith(Input))
+                {
+                    Input = "";
+                }
+
+            }
+        }
+        public void Solve()
+        {
+            Solved = true;
+            if (!string.IsNullOrEmpty(Flag))
+            {
+                SceneAs<Level>().Session.SetFlag(Flag, FlagState);
             }
         }
     }

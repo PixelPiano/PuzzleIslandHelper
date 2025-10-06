@@ -24,6 +24,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
         public LabComputer(EntityData data, Vector2 offset) : base(data.Position + offset, "objects/PuzzleIslandHelper/interface/keyboard", Color.Green)
         {
             UsesStartupMonitor = true;
+            TalkEnabled = false;
         }
         public override IEnumerator OnBegin(Player player)
         {

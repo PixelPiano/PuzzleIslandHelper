@@ -82,7 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                     {
                         for (int i = 0; i < 8; i++)
                         {
-                            Texture.Draw(RenderPosition.RotateAround(Center, 360 / 8 * i), Origin, Color, Scale, Rotation, Effects);
+                            Texture.Draw(RenderPosition.RotateAroundDeg(Center, 360 / 8 * i), Origin, Color, Scale, Rotation, Effects);
                         }
 
                     }

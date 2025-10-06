@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -9,44 +10,109 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [CustomEntity("PuzzleIslandHelper/BorderRunePuzzle")]
     public class BorderRunePuzzle : Entity
     {
-        public bool[] Lights = new bool[4];
-        public MTexture BaseTexture => GFX.Game["objects/PuzzleIslandHelper/borderRune/borderRunePuzzle"];
-        public MTexture LightTexture => GFX.Game["objects/PuzzleIslandHelper/borderRune/borderRuneLight"];
+        public Sprite[] Lights = new Sprite[4];
+        public ShakeComponent Shaker;
+        public Image Pannel;
+        private Entity backEntity;
+        private static string path = "objects/PuzzleIslandHelper/borderRune/";
+        public static FlagData[] Flags = ["BorderRuneUp", "BorderRuneDown", "BorderRuneLeft", "BorderRuneRight"];
+        public float OrigY;
+        private string runeID;
+        public static FlagData RoutineFlag = new FlagData("BorderRuneRoutine");
+        public RuneDisplay RewardRune;
         public BorderRunePuzzle(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
-            MTexture t = BaseTexture;
-            Collider = new Hitbox(t.Width, t.Height);
-            Tag |= Tags.TransitionUpdate;
-        }
-        public override void Render()
-        {
-            base.Render();
-            Draw.SpriteBatch.Draw(BaseTexture.Texture.Texture_Safe, Position, Color.White);
+            runeID = data.Attr("runeId");
+            OrigY = Position.Y;
+            Depth = 5;
+            Add(Pannel = new Image(GFX.Game[path + "pannel"]));
+            string[] spriteSuffix = ["Up", "Down", "Left", "Right"];
             for (int i = 0; i < 4; i++)
             {
-                Vector2 pos = Center + GetAngleOffset(i, i % 2 == 0 ? 17 : 14);
-                Draw.SpriteBatch.Draw(LightTexture.Texture.Texture_Safe, pos - LightTexture.HalfSize(), Lights[i] ? Color.Lime : Color.Gray);
+                Add(Lights[i] = new Sprite(GFX.Game, path));
+                Lights[i].AddLoop("off", "light" + spriteSuffix[i], 0.1f, 0);
+                Lights[i].AddLoop("on", "light" + spriteSuffix[i], 0.1f, 1);
+            }
+            Add(Shaker = new ShakeComponent(OnShake));
+            Tag |= Tags.TransitionUpdate;
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            Image backImage = new Image(GFX.Game[path + "back"]);
+            scene.Add(backEntity = new Entity(Position) { backImage });
+            backEntity.Depth = 10;
+            Collider = new Hitbox(backImage.Width, backImage.Height);
+            bool routineDone = RoutineFlag;
+            bool allOn = true;
+            for (int i = 0; i < Lights.Length; i++)
+            {
+                if (routineDone) Flags[i].State = true;
+                bool flag = Flags[i];
+                allOn &= flag;
+                Lights[i].Play(flag ? "on" : "off");
+                Lights[i].Color = flag ? Color.Lime : Color.LightGray;
+            }
+            scene.Add(RewardRune = new RuneDisplay(
+                Pannel.RenderPosition + Vector2.One * 4, 
+                (int)Pannel.Width - 8, 
+                (int)Pannel.Height - 8, 
+                runeID, 
+                true, 
+                "", 
+                Depth + 1));
+            if (routineDone || allOn)
+            {
+                Y = (float)Math.Floor(OrigY + Pannel.Height * 0.7f);
+                if (!routineDone)
+                {
+                    RoutineFlag.State = true;
+                    Add(new Coroutine(revealRune()));
+                }
             }
         }
-        public float GetAngle(int index)
+        private IEnumerator revealRune()
         {
-            return index * MathHelper.TwoPi / 4;
+            Shaker.StartShaking(-1);
+            yield return 1f;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / 3)
+            {
+                Y = (float)Math.Floor(OrigY + Pannel.Height * i);
+                yield return null;
+            }
+            Shaker.StopShaking();
+            Y = (float)Math.Floor(OrigY + Pannel.Height);
+            yield return null;
         }
-        public Vector2 GetAngleOffset(int index, float length)
+        private void OnShake(Vector2 shake)
         {
-            float theta = GetAngle(index);
-            return new Vector2(x: (float)Math.Cos(theta) * length, y: (float)Math.Sin(theta) * length);
+            Pannel.Position += shake;
+            for (int i = 0; i < 4; i++)
+            {
+                Lights[i].Position += shake;
+            }
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            backEntity?.RemoveSelf();
+            RewardRune?.RemoveSelf();
         }
         public override void Update()
         {
             base.Update();
-            GetFlags();
-        }
-        public void GetFlags()
-        {
-            for (int i = 0; i < 4; i++)
+            bool allOn = true;
+            for (int i = 0; i < Lights.Length; i++)
             {
-                Lights[i] = SceneAs<Level>().Session.GetFlag("BorderRune" + i);
+                bool flag = Flags[i];
+                allOn &= flag;
+                Lights[i].Play(flag ? "on" : "off");
+                Lights[i].Color = flag ? Color.Lime : Color.Gray;
+            }
+            if (allOn && !RoutineFlag)
+            {
+                RoutineFlag.State = true;
+                Add(new Coroutine(revealRune()));
             }
         }
     }
@@ -54,26 +120,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [CustomEntity("PuzzleIslandHelper/BorderRuneButton")]
     public class BorderRuneButton : Solid
     {
-        public int Index;
-        public bool On
-        {
-            get
-            {
-                return SceneAs<Level>().Session.GetFlag("BorderRune" + Index);
-            }
-            set
-            {
-                SceneAs<Level>().Session.SetFlag("BorderRune" + Index, value);
-            }
-        }
-        public MTexture Texture => GFX.Game["objects/PuzzleIslandHelper/borderRune/borderRuneButton"];
+        public FlagData Flag;
         public Image Image;
         public BorderRuneButton(EntityData data, Vector2 offset) : base(data.Position + offset, 8, 16, true)
         {
             Depth = -1;
-            Index = data.Int("index");
+            int index = Calc.Clamp(data.Int("index"), 0, BorderRunePuzzle.Flags.Length);
+            Flag = BorderRunePuzzle.Flags[index];
             OnDashCollide = OnDashCollideMethod;
-            Add(Image = new Image(Texture));
+            Add(Image = new Image(GFX.Game["objects/PuzzleIslandHelper/borderRune/borderRuneButton"]));
             Tag |= Tags.TransitionUpdate;
         }
         public override void Render()
@@ -83,7 +138,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator pressRoutine()
         {
-            On = true;
+            Flag.State = true;
             float from = Position.Y;
             while (Position.Y > from + 14)
             {
@@ -95,7 +150,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (On)
+            if (Flag)
             {
                 InstantPress();
             }
@@ -106,17 +161,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public DashCollisionResults OnDashCollideMethod(Player player, Vector2 dir)
         {
-            if (!On && HasPlayerOnTop() && dir.Y > 0)
+            if (!Flag && HasPlayerOnTop() && dir.Y > 0)
             {
                 Add(new Coroutine(pressRoutine()));
                 return DashCollisionResults.Rebound;
             }
             return DashCollisionResults.NormalCollision;
-        }
-        public override void Update()
-        {
-            base.Update();
-
         }
     }
 }

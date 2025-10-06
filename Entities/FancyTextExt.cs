@@ -164,6 +164,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             public Vector2 LastPosition;
 
+            public char RawCharacter;
+
+            public float XAdvance;
+
             public int Character;
 
             public float Position;
@@ -193,8 +197,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public bool Impact;
 
             public bool IsPunctuation;
-
-            public float Width;
 
             public void Draw(PixelFont font, float baseSize, Vector2 position, Vector2 scale, float alpha, Color color)
             {
@@ -229,6 +231,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public override string ToString()
             {
                 return $"{(char)Character}";
+            }
+            public FancyText.Char ToChar()
+            {
+                return new FancyText.Char()
+                {
+                    Character = Character,
+                    Delay = Delay,
+                    Color = Color,
+                    Scale = Scale,
+                    Index = Index,
+                    Fade = Fade,
+                    Impact = Impact,
+                    IsPunctuation = IsPunctuation,
+                    Line = Line,
+                    LineWidth = LineWidth,
+                    Shake = Shake,
+                    Page = Page,
+                    Position = Position,
+                    Rotation = Rotation,
+                    Wave = Wave,
+                    YOffset = YOffset
+                };
             }
         }
 
@@ -1366,6 +1390,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                 group.Nodes.Add(new Char
                 {
+                    RawCharacter = word[i],
+                    XAdvance = pixelFontCharacter.XAdvance,
                     Index = currentCharIndex++,
                     Character = word[i],
                     Position = currentPosition,

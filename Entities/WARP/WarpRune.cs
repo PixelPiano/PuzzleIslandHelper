@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components.Visualizers.DSPs;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -112,7 +113,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 {"63","344556"},
                 {"97","7889"},
             };
-        public static WarpRune Default;
+        public static WarpRune Default
+        {
+            get
+            {
+                if(Engine.Scene is Level level)
+                {
+                    string key = level.GetAreaKey();
+                    if(PianoMapDataProcessor.WarpCapsules.TryGetValue(key, out var c))
+                    {
+                        return c.DefaultRune.Rune;
+                    }
+                }
+                return null;
+            }
+        }
         public string ID;
         public List<(int, int)> Segments = [];
         [Command("dr", "s")]
@@ -131,8 +146,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 Engine.Commands.Log(r.ToString());
             }
         }
+        public static List<(int, int)> GetSortedPattern(List<(int, int)> segments)
+        {
+            //sort each tuple value group from lowest to highest
+            //eg.   10 -> 01   75 -> 57
+            for (int i = 0; i < segments.Count; i++)
+            {
+                (int, int) t = segments[i];
+                if (t.Item1 > t.Item2)
+                {
+                    segments[i] = (t.Item2, t.Item1);
+                }
+            }
+            //order tuple list by Item1, then Item2
+            //eg.   01, 24, 04, 28, 89, 79, 02     ->      01, 02, 04, 24, 28, 79, 89
+
+            //return the list with any duplicates removed
+            return [.. segments.OrderBy(item => item.Item1).ThenBy(item => item.Item2).Distinct()];
+        }
         public static List<(int, int)> GetSortedPattern(string pattern)
         {
+            if (string.IsNullOrEmpty(pattern))
+            {
+                return [];
+            }
             //split the pattern into groups of 2
             var split = pattern.Replace(" ", "").Segment(2, false);
 
@@ -144,31 +181,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 newString += !string.IsNullOrEmpty(value) ? value : s;
             }
             //transform the new pattern into groups of (int, int) tuples
-            var normalized = newString.Segment(2, false).Select(item => (item[0] - '0', item[1] - '0')).ToList();
-
-            //sort each tuple value group from lowest to highest
-            //eg.   10 -> 01   75 -> 57
-            for (int i = 0; i < normalized.Count; i++)
-            {
-                (int, int) t = normalized[i];
-                if (t.Item1 > t.Item2)
-                {
-                    normalized[i] = (t.Item2, t.Item1);
-                }
-            }
-            //order tuple list by Item1, then Item2
-            //eg.   01, 24, 04, 28, 89, 79, 02     ->      01, 02, 04, 24, 28, 79, 89
-            var ordered = normalized.OrderBy(item => item.Item1).ThenBy(item => item.Item2);
-
-            //return the list with any duplicates removed
-            return ordered.Distinct().ToList();
+            return [.. newString.Segment(2, false).Select(item => (item[0] - '0', item[1] - '0'))];
         }
+        public string RawPattern;
         public WarpRune(string id, string pattern) : this(id, GetSortedPattern(pattern))
         {
+            RawPattern = pattern;
         }
         public WarpRune(string id, List<(int, int)> sequence)
         {
-            Segments = sequence;
+            Segments = GetSortedPattern(sequence);
             ID = id;
         }
         public static List<Fragment> ToFragments(WarpRune rune)
@@ -206,10 +228,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             }
             if (s == ss)
             {
-                if(log) Console.WriteLine("AAA Runes match!");
+                if (log) Console.WriteLine("AAA Runes match!");
                 return true;
             }
-            if(log) Console.WriteLine("AAA Runes do not match!");
+            if (log) Console.WriteLine("AAA Runes do not match!");
             return false;
         }
         [OnUnload]
@@ -219,7 +241,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public static void ClearRunes()
         {
-            Default = null;
             DefaultRunes.Clear();
             AllRunes.Clear();
         }

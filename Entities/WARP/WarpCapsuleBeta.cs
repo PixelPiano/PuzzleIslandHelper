@@ -21,7 +21,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public const string TransitID2 = "TransitCapsule2";
         public static bool AllowWarpingToSameCapsule = true;
         public WarpCapsuleBeta(EntityData data, Vector2 offset, EntityID id)
-            : base(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"), data.Attr("warpID"),
+            : base(data.Position + offset, id, data.FlagList(), data.Attr("warpID"),
                   "objects/PuzzleIslandHelper/protoWarpCapsule/")
         {
         }
@@ -89,7 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public override bool WarpEnabled()
         {
-            return !string.IsNullOrEmpty(TargetID) &&  (AllowWarpingToSameCapsule || TargetID != WarpID);
+            return base.WarpEnabled() && !string.IsNullOrEmpty(TargetID) &&  (AllowWarpingToSameCapsule || TargetID != WarpID);
         }
         [Command("open_to", "")]
         public static void OpenTo(string id)

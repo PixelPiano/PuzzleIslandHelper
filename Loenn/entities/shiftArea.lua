@@ -34,7 +34,7 @@ shiftArea.placements = {
         inverted = false
     }
 }
-function getText(text, position, width, height)
+local function getText(text, position, width, height)
     local result =
             drawableFunction.fromFunction(function()
                 drawing.callKeepOriginalColor(function()
@@ -44,7 +44,7 @@ function getText(text, position, width, height)
             end)
     return result
 end
-function getColors(fillAmount, borderAmount, brighter)
+local function getColors(fillAmount, borderAmount, brighter)
     local colors = {}
     local addition = brighter and 0.2 or 0.0
     local mults = {fillAmount + addition, borderAmount + addition}
@@ -54,13 +54,13 @@ function getColors(fillAmount, borderAmount, brighter)
     table.insert(colors, border)
     return colors
 end
-function getRectangle(room, entity, position, brighter)
+local function getRectangle(room, entity, position, brighter)
     local colors = getColors(0.3, 0.8, brighter)
     local rectangle = utils.rectangle(position.x, position.y, 8, 8)
     local rect = drawableRectangle.fromRectangle("bordered", rectangle, colors[1], colors[2])
     return rect
 end
-function getIndexPositions( entity)
+local function getIndexPositions( entity)
     local result = {}
     local entityPos = {x = entity.x, y = entity.y}
     local list = entity.indices or ""
@@ -75,7 +75,7 @@ function getIndexPositions( entity)
     return result
 end
 
-function getTriangleSprites(entity)
+local function getTriangleSprites(entity)
     local lines = {}
     local ind = getIndexPositions(entity)
     if ind then 
@@ -98,11 +98,11 @@ function getTriangleSprites(entity)
     return lines
 end
 
-function getTriPoints(p1, p2, p3)
+local function getTriPoints(p1, p2, p3)
     return p1.x + 4, p1.y + 4, p2.x + 4, p2.y + 4, p3.x + 4, p3.y + 4
 end
 
-function getTriangle(p1, p2, p3, color)
+local function getTriangle(p1, p2, p3, color)
     local triangle =
     drawableFunction.fromFunction(function()
         drawing.callKeepOriginalColor(function()
@@ -112,7 +112,7 @@ function getTriangle(p1, p2, p3, color)
     end)
     return triangle
 end
-function getFallbackLine(entity)
+local function getFallbackLine(entity)
     local fallbackLine =
         drawableFunction.fromFunction(function()
             drawing.callKeepOriginalColor(function()
@@ -122,7 +122,7 @@ function getFallbackLine(entity)
         end)
     return fallbackLine
 end
-function getColor(maxColors, num)
+local function getColor(maxColors, num)
     local color = {r = 255, g = 0, b = 0}
     local amount = (255 * 3) * (num / maxColors)
     for i = 1, amount do

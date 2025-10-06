@@ -120,7 +120,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Vector2[] left = [new(2, 13), new(7, 13), new(12, 13), new(12, 7), new(12, 2), new(12, 19), new(12, 24)];
             int[] tInd = [0, 1, 2, 3, 5, 4, 6];
             Vector2[] right = [.. left.Select(item => new Vector2(64 - item.X, item.Y))];
-            Vector2[] lower = [.. left.Select(item => item.RotateAround(new Vector2(32, 32), -90))];
+            Vector2[] lower = [.. left.Select(item => item.RotateAroundDeg(new Vector2(32, 32), -90))];
             Vector2[] eye = [new(28, 7), new(35, 7), new(38, 13), new(35, 20), new(28, 20), new(25, 13)];
             int[] eyeInd = [0, 1, 4, 5, 2, 3, 0];
             List<Vector2> bottomLeft = [];

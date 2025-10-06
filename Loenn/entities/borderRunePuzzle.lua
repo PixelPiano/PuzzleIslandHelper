@@ -1,24 +1,21 @@
-local rotator= {}
-rotator.justification = { 0, 0 }
+local puzzle= {}
+puzzle.justification = { 0, 0 }
 
-rotator.name = "PuzzleIslandHelper/BorderRunePuzzle"
+puzzle.name = "PuzzleIslandHelper/BorderRunePuzzle"
 
-rotator.depth = 1
-rotator.minimumSize = {8, 16}
-rotator.canResize = {false, false}
-rotator.texture = "objects/PuzzleIslandHelper/borderRune/borderRunePuzzle"
+puzzle.depth = 1
+puzzle.texture = "objects/PuzzleIslandHelper/borderRune/borderRunePuzzle"
 
-rotator.placements =
+puzzle.placements =
 {
     {
         name = "Border Rune Puzzle",
         data = 
         {
-            width = 8,
-            height = 16,
-            index = 0
+            index = 0,
+            runeId = ""
         }
     }
 }
 
-return rotator
+return puzzle

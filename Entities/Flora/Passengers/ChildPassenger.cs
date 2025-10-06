@@ -12,7 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
     {
         public Balloon Balloon;
         public bool HasBalloon;
-        public ChildPassenger(EntityData data, Vector2 offset) : base(data.Position + offset, 12, 20, data.Attr("cutsceneID"), data.Attr("dialog"), new(1), new(-1, 1), 0.95f)
+        public ChildPassenger(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id, 12, 20, new(1), new(-1, 1), 0.95f)
         {
             MinWiggleTime = 1;
             MaxWiggleTime = 2.5f;

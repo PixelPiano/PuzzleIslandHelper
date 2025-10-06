@@ -75,7 +75,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         }
         public void StartFollowing()
         {
-            Scene.Tracker.GetEntity<Calidus>()?.StartFollowing(Calidus.Looking.Player);
+            Scene.Tracker.GetEntity<Calidus>()?.StartFollowing();
         }
         public void StopFollowing()
         {

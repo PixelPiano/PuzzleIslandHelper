@@ -8,7 +8,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
     [Tracked]
     public class OceanGranny : OldPassenger
     {
-        public OceanGranny(EntityData data, Vector2 offset) : base(data, offset)
+        public OceanGranny(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id)
         {
         }
     }

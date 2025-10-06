@@ -919,20 +919,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 switch (ControlMode)
                 {
                     case Control.Pad:
+                       
                         Mouse.MethodsEnabled = false;
                         if (padBuffer <= 0)
                         {
-                            /*                            if (Input.MoveX.Value != 0 || Input.MoveY.Value != 0)
-                                                        {
-                                                            char? current = map[MapY, MapX];
-                                                            if (int.TryParse(current.ToString(), out int result2))
-                                                            {
-                                                                (int x, int y) tuple = Node.NextInNodeMap(result2, Input.MoveX, Input.MoveY);
-                                                                MapX = tuple.x;
-                                                                MapY = tuple.y;
-                                                                padBuffer = 0.2f;
-                                                            }
-                                                        }*/
                             if (Input.MoveX.Value != 0)
                             {
                                 padBuffer = 0.2f;
@@ -959,11 +949,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                             {
                                 padBuffer = 0.2f;
                                 int mapX = MapX;
-                                /*                                char? current = map[MapY, MapX];
-                                                                if (current.HasValue && current.Value == '6')
-                                                                {
-                                                                    mapX = mapX.Wrap(0, 4, -1);
-                                                                }*/
                                 int mapY = MapY.Wrap(0, 2, Input.MoveY.Value);
                                 int origX = mapX;
                                 int origY = mapY;
@@ -1063,7 +1048,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public void GoHome()
         {
             FadeOut(true);
-            //SetRune(WarpRune.Default);
+            SetRune(WarpRune.Default);
         }
         public void OnLeftIdle()
         {
@@ -1137,6 +1122,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                     input += " ";
                 }
             }
+
             return new WarpRune("", input);
         }
         private IEnumerator lockedRoutine()
@@ -1171,14 +1157,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             WarpRune rune = CreateRune();
             if (RuneExists(rune, out WarpData data))
             {
-                if (!PianoModule.CalidusFreedFlag.GetFlag() && !data.Lab)
-                {
-                    Add(new Coroutine(lockedRoutine()));
-                }
-                else
-                {
-                    SetRune(data.Rune);
-                }
+                SetRune(data.Rune);
+            }
+            else if (Connections.Connections.Count == 0)
+            {
+                SetRune(WarpRune.Default);
             }
             else
             {
@@ -1193,7 +1176,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void SetRune(WarpRune rune)
         {
-            if (Parent.OwnWarpData != null && Parent.OwnWarpData.HasRune && Parent.OwnWarpData.Rune.Match(rune))
+            if (rune == null || (Parent.OwnWarpData != null && Parent.OwnWarpData.HasRune && Parent.OwnWarpData.Rune.Match(rune)))
             {
                 return;
             }

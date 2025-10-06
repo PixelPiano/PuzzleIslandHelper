@@ -1,6 +1,5 @@
 ﻿using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
-using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -13,7 +12,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     [Tracked]
     public class CapsuleWarpHandler : Entity
     {
-
         public WarpCapsule Parent;
         public WarpData Data;
         public WarpBeam Beam;
@@ -46,19 +44,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public void OnEnd(Player player, Level level)
         {
             Beam?.RemoveSelf(); //remove beam if it exists
-
-            //If failed to find valid parent, instead of throwing an error, fallback onto first capsule found
-            /*            if (Data != null)
-                        {
-                            if (Data.HasRune)
-                            {
-                                Parent ??= (Scene as Level).Tracker.GetEntity<WarpCapsuleAlpha>();
-                            }
-                            else if (string.IsNullOrEmpty(Data.ID))
-                            {
-                                Parent ??= (Scene as Level).Tracker.GetEntity<WarpCapsuleBeta>();
-                            }
-                        }*/
             if (Parent != null)
             {
                 Parent.InstantOpenDoors();
@@ -81,7 +66,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         {
             calidus.StopFollowing();
             calidus.Add(new Coroutine(calidus.FloatHeightTo(0, 0.5f)));
-            yield return calidus.FloatTo(Parent.Center - Vector2.UnitX * 16);
+            yield return calidus.FloatTo(Parent.Center - Vector2.UnitX * 8);
         }
         public virtual void BeforeBegin()
         {
@@ -114,21 +99,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             AddTag(Tags.Global); //make this cutscene global so it doesn't get removed once the player is teleported
             Beam?.AddTag(Tags.Global); //if the beam exists, make that global too
             PlayerPosSave = player.Position - Parent.Position; //save the player's position relative to the machine
-            if (Scene.Tracker.GetEntity<Calidus>() is Calidus calidus)
-            {
-                CalidusPosSave = calidus.Position - Parent.Position;
-            }
-            else
-            {
-                CalidusPosSave = null;
-            }
+            CalidusPosSave = Calidus != null ? Calidus.Position - Parent.Position : null;
             DoorPercentSave = Parent.DoorClosedPercent; //save the percent the doors are closed
             if (!Returning && Beam != null)
             {
                 Beam.EmitBeam(10, (int)Parent.Width, this); //if first time visited and uses beam, emit the beam effects
             }
             yield return null;
-
+            if (Calidus != null && Parent is WarpCapsuleBeta)
+            {
+                Calidus.RegisterLastPosition();
+            }
             InstantTeleport(Scene as Level, player); //teleport the player at the end of this frame
             yield return null; //frame buffer so we don't act before the teleport occurs
             Level level = Engine.Scene as Level;
@@ -144,6 +125,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 player.StateMachine.State = Player.StDummy;
                 player.BottomCenter = nextParent.Floor.TopCenter;
                 nextParent.JustTeleportedTo = true;
+                if (nextParent is WarpCapsuleAlpha && Calidus != null)
+                {
+                    Calidus.RemoveSelf();
+                    level.Add(Calidus = new Calidus(nextParent.Position + CalidusPosSave.Value));
+                }
             }
             level.Camera.Position = player.CameraTarget;
             if (nextParent != null)
@@ -151,7 +137,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 Parent = nextParent;
                 WARPData.Scale = Vector2.One;
                 nextParent.DoorClosedPercent = DoorPercentSave;
-                nextParent.MoveAlong(DoorPercentSave);
+                nextParent.MoveDoors(DoorPercentSave);
                 nextParent.LeftDoor.MoveToFg();
                 nextParent.RightDoor.MoveToFg();
                 nextParent.InCutscene = true;
@@ -180,6 +166,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 yield return PianoUtils.Lerp(null, 0.4f, f => nextParent.ShineAmount = 1 - f);
             }
             nextParent.ShineAmount = 0;
+            yield return Parent.ReceivePlayerRoutine(Player, null);
+            if (Calidus != null)
+            {
+                Calidus.StartFollowing();
+            }
         }
         public float WarpTime = 0.8f;
         private IEnumerator Routine(Player player)
@@ -222,7 +213,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 }
             }
             yield return warp(player, WarpTime);
-            yield return Parent.ReceivePlayerRoutine(Player, null);
 
             WarpCapsuleCutscene outroCutscene = null;
             foreach (OutroWarpCutsceneTrigger trigger in Engine.Scene.Tracker.GetEntities<OutroWarpCutsceneTrigger>())
@@ -245,29 +235,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public static WarpCapsule FindCapsuleFromData(Level level, WarpData data, WarpCapsule parent)
         {
-
             if (data != null)
             {
-                bool hasRune = data.HasRune;
+                bool hasRune = data.HasRune || data.Default;
                 foreach (WarpCapsule capsule in level.Tracker.GetEntities<WarpCapsule>())
                 {
-                    Engine.Commands.Log("searching capsule id: " + capsule.ID.ID);
                     if (hasRune)
                     {
                         if (capsule is WarpCapsuleAlpha alpha)
                         {
-                            Engine.Commands.Log("capsule is alpha");
-                            if (data.Rune.Match(alpha.RuneData.Rune, true))
+                            if (data.Default && alpha.IsDefault)
                             {
-                                Engine.Commands.Log("Found a match!");
-                                Engine.Commands.Log("IDs: First:" + parent.ID.ID + ", Second:" + alpha.ID.ID);
+                                return alpha;
+                            }
+                            else if (data.Rune.Match(alpha.RuneData.Rune, true))
+                            {
                                 return alpha;
                             }
                         }
                     }
                     else if (capsule is WarpCapsuleBeta beta)
                     {
-                        Engine.Commands.Log("capsule is beta");
                         if (!string.IsNullOrEmpty(data.ID))
                         {
                             if (beta.WarpID == data.ID)
@@ -282,8 +270,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                     }
                 }
             }
-            Engine.Commands.Log("Did not find a match!");
-            Engine.Commands.Log("ID: " + parent.ID.ID);
             return null;
         }
         private IEnumerator pullSequence(WarpCapsule capsule, Player player)
@@ -291,7 +277,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             Vector2 beamStart = new Vector2(capsule.CenterX, capsule.Floor.Top + 1);
             while (capsule.DoorState != WarpCapsule.DoorStates.Open)
             {
-                capsule.MoveAlong(Calc.Approach(capsule.DoorClosedPercent, 0, 0.2f));
+                capsule.MoveDoors(Calc.Approach(capsule.DoorClosedPercent, 0, 0.2f));
                 yield return null;
             }
             capsule.InstantOpenDoors();
@@ -319,7 +305,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             if (string.IsNullOrEmpty(Data.Room)) return;
             level.OnEndOfFrame += delegate
             {
-                FirfilStorage.Release(false);
                 Vector2 levelOffset = level.LevelOffset;
                 Vector2 playerPosInLevel = player.Position - level.LevelOffset;
                 Vector2 camOffset = level.Camera.Position - player.Position;
@@ -355,6 +340,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
                 level.Wipe?.Cancel();
                 level.Flash(Color.White, false);
+                if (Calidus.LastRegisteredRoom == level.Session.Level)
+                {
+                    Calidus.LastRegisteredRoom = null;
+                    level.Add(new Calidus(level.LevelOffset + Calidus.LastRegisteredOffset, startFollowingImmediately: true));
+                }
             };
         }
         private class playerBeam : Entity

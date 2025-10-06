@@ -2,9 +2,11 @@ using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
+    [Obsolete("No longer required to access computer")]
     [CustomEntity("PuzzleIslandHelper/LabComputerAccess")]
     [Tracked]
     public class LabComputerAccess : Entity

@@ -8,9 +8,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked(false)]
     public class CustomWaterfall : Entity
     {
-        private readonly FlagData renderFlag;
-        private readonly FlagData displacementFlag;
-        private readonly FlagData audioFlag;
+        private readonly FlagList renderFlag;
+        private readonly FlagList displacementFlag;
+        private readonly FlagList audioFlag;
+        
         private readonly bool passThrough;
         private float height;
         private Water water;
@@ -21,9 +22,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Depth = -9999;
             Tag = Tags.TransitionUpdate;
-            renderFlag = data.Flag("renderFlag", "invertRenderFlag");
-            displacementFlag = data.Flag("displacementFlag", "invertDisplacementFlag");
-            audioFlag = data.Flag("audioFlag", "invertAudioFlag");
+            renderFlag = data.FlagList("renderFlag", "invertRenderFlag");
+            displacementFlag = data.FlagList("displacementFlag", "invertDisplacementFlag");
+            audioFlag = data.FlagList("audioFlag", "invertAudioFlag");
             passThrough = data.Bool("goesThroughSolids");
         }
 
@@ -44,14 +45,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 solid = null;
             }
             Add(loopingSfx = new SoundSource());
-            loopingSfx.Play("event:/env/local/waterfall_small_main");
             Add(enteringSfx = new SoundSource());
+            loopingSfx.Play("event:/env/local/waterfall_small_main");
             enteringSfx.Play(flag ? "event:/env/local/waterfall_small_in_deep" : "event:/env/local/waterfall_small_in_shallow");
             enteringSfx.Position.Y = height;
             loopingSfx.Pause();
             enteringSfx.Pause();
 
-            if (audioFlag.GetState(scene))
+            if (audioFlag)
             {
                 loopingSfx.Resume();
                 enteringSfx.Resume();
@@ -61,9 +62,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             Vector2 position = (Scene as Level).Camera.Position;
-            if (renderFlag.GetState(Scene))
+            if (renderFlag)
             {
-                if (audioFlag.GetState(Scene))
+                if (audioFlag)
                 {
                     loopingSfx.Pause();
                     enteringSfx.Pause();
@@ -93,14 +94,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void RenderDisplacement()
         {
-            if (displacementFlag.State && renderFlag.State)
+            if (displacementFlag && renderFlag)
             {
                 Draw.Rect(X, Y, 8f, height, new Color(0.5f, 0.5f, 0.8f, 1f));
             }
         }
         public override void Render()
         {
-            if (renderFlag.State)
+            if (renderFlag)
             {
                 if (water == null || water.TopSurface == null)
                 {

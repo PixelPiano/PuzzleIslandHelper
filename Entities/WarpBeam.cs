@@ -1,4 +1,5 @@
-﻿using FrostHelper.ModIntegration;
+﻿using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
+using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -11,7 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked(false)]
     public class WarpBeam : Entity
     {
-        public WARP.WarpCapsule Parent;
+        public WarpCapsule Parent;
         public Image Glow;
         private float scaleMult = 0;
         public Vector2 Scale;
@@ -34,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float scaleTargetMult = 1;
         public bool Returning;
         public List<PulseRing> Rings = new();
-        public WarpBeam(WARP.WarpCapsule parent, bool isReturnTrip)
+        public WarpBeam(WarpCapsule parent, bool isReturnTrip)
         {
             Returning = isReturnTrip;
             Depth = -100000;

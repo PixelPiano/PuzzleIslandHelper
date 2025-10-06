@@ -12,11 +12,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
     {
         public string GroupID;
         public string SubID;
+        public FlagList Flags;
         public HoldableCheckpoint(EntityData data, Vector2 offset)
     : base(data, offset)
         {
             GroupID = data.Attr("groupId");
             SubID = data.Attr("subId");
+
         }
         public override void Added(Scene scene)
         {
@@ -40,9 +42,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         {
             if (CollideFirst<HoldableEntity>() is HoldableEntity entity)
             {
-                if (entity.GroupID == GroupID)
+                if (entity.GroupID == GroupID && entity.UsesCheckpointSystem)
                 {
-                    PianoModule.Session.HoldableCheckpointIDs.TryAdd(SubID);
+                    PianoModule.Session.HoldableCheckpointIDs.Add(SubID);
                 }
             }
         }

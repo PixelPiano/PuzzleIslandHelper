@@ -8,7 +8,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
     [Tracked]
     public class OldPassenger : VertexPassenger
     {
-        public OldPassenger(EntityData data, Vector2 offset) : base(data.Position + offset, 16, 20, data.Attr("cutsceneID"), data.Attr("dialog"), new(16, 20), new(-1, 1), 1.6f)
+        public OldPassenger(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id, 16, 20, new(16, 20), new(-1, 1), 1.6f)
         {
             MinWiggleTime = 2;
             MaxWiggleTime = 4f;

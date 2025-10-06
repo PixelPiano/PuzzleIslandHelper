@@ -12,7 +12,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         private int index => DialogIndex;
         private bool cutscene => HasDataCutscene;
         private bool watched => CutsceneWatched;
-        public ThreeDeePassenger(EntityData data, Vector2 offset) : base(data.Position + offset, 20, 22, data.Attr("cutsceneID"), data.Attr("dialog"), Vector2.One, new(0.2f, 1), 1f)
+        public ThreeDeePassenger(EntityData data, Vector2 offset,EntityID id) : base(data, offset, id, 20, 22, Vector2.One, new(0.2f, 1), 1f)
         {
             MinWiggleTime = 1;
             MaxWiggleTime = 1.4f;

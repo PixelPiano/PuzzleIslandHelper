@@ -22,11 +22,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         private FlagList FlagList;
         private string startArgs;
         private string endArgs;
+        private string endArgsData
+        {
+            get
+            {
+                if(CutsceneEntity != null)
+                {
+                    return CutsceneEntity.EndArgsData;
+                }
+                else
+                {
+                    return "";
+                }
+            }
+        }
         private EntityID id;
         private bool oncePerInstance;
         private bool oncePerSession;
         private bool activated;
         public bool Talker;
+        public DotX3 Talk;
         public CalidusCutsceneTrigger(EntityData data, Vector2 offset, EntityID id)
             : base(data, offset)
         {
@@ -42,10 +57,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             oncePerSession = data.Bool("oncePerSession");
             if (Talker)
             {
-                Add(new DotX3(Collider, (player) =>
+                Add(Talk = new DotX3(Collider, (player) =>
                 {
                     Activate(player);
                 }));
+            }
+        }
+        public override void Update()
+        {
+            base.Update();
+            if(Talk != null)
+            {
+                Talk.Enabled = FlagList;
             }
         }
         public override void Awake(Scene scene)
@@ -53,7 +76,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             base.Awake(scene);
             if (!CalidusCutsceneLoader.HasCutscene(CutsceneID))
             {
-                Engine.Commands.Log("Could not find Cutscene with id:" + CutsceneID);
                 RemoveSelf();
                 return;
             }
@@ -61,7 +83,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             if (CutsceneEntity == null)
             {
                 RemoveSelf();
-                Engine.Commands.Log("CutsceneEntity is null");
                 return;
             }
             if (ActivateOnTransition && scene.GetPlayer() is Player player)

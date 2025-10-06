@@ -15,9 +15,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void EmitKey(ImpactSender from)
         {
-            foreach(ImpactReceiver r in Scene.Tracker.GetEntities<ImpactReceiver>())
+            foreach(ImpactSignalComponent component in Scene.Tracker.GetComponents<ImpactSignalComponent>())
             {
-                r.AddInput(from.Key);
+                component.Action?.Invoke(from);
             }
         }
     }

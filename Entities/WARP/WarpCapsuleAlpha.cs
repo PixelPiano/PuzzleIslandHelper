@@ -1,7 +1,10 @@
 ﻿using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +20,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     {
         public bool IsFirstTime => WARPData.ObtainedRunes.Count < 1 && PianoModule.Session.TimesUsedCapsuleWarp < 1 && Marker.TryFind("isStartingWarpRoom", out _);
         public bool ReadyForBeam;
+        public bool IsDefault;
         public Image ShineTex;
         private Entity Shine;
         public InputMachine InputMachine;
@@ -32,9 +36,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 else return tostring;
             }
         }
-        public WarpCapsuleAlpha(EntityData data, Vector2 offset, EntityID id)
-            : base(data.Position + offset, id, data.Flag("disableFlag", "invertFlag"), data.Attr("warpID"), null, true, true)
+        public string TargetString
         {
+            get
+            {
+                if (TargetWarpRune == null) return "Rune is null";
+                string tostring = TargetWarpRune.ToString();
+                if (string.IsNullOrEmpty(tostring)) return "Rune is null";
+                else return tostring;
+            }
+        }
+        public WarpCapsuleAlpha(EntityData data, Vector2 offset, EntityID id)
+            : base(data.Position + offset, id, data.FlagList("flag"), data.Attr("warpID"), null, true, true)
+        {
+            IsDefault = data.Bool("isDefaultRune");
             InputMachine = new InputMachine(this, data.NodesOffset(offset)[0]);
             ShineTex = new Image(GFX.Game[Path + "shine"]);
             ShineTex.Color = Color.White * 0;
@@ -62,13 +77,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             {
                 PianoModule.Session.PersistentWarpLinks.Add(ID, "");
             }
-            /*            if (IsFirstTime)
-                        {
-                            WarpRune = Rune.Default;
-                            Enabled = true;
-                            InstantOpenDoors();
-                        }
-                        else*/
             if (WarpEnabled())
             {
                 InstantOpenDoors();
@@ -98,7 +106,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             {
                 Scene.Add(new CapsuleWarpHandler(this, data, player));
             }
-
+        }
+        public override void Render()
+        {
+            base.Render();
         }
         [Command("reset_runes", "clears all collected runes from inventory")]
         public static void EraseRunes()
@@ -108,7 +119,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
 
         public override bool WarpEnabled()
         {
-            return RuneData != null && RuneData.HasRune && TargetData != null && TargetData.HasRune;// && Data != null && Data.HasRune && !Data.Rune.Match(RuneData.Rune);
+            var targetData = TargetData;
+            return base.WarpEnabled() && targetData != null && targetData.HasRune;
         }
     }
 }

@@ -31,36 +31,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         public override void OnEnd(Level level)
         {
             level.Session.SetFlag("DigitalBetaWarpEnabled");
+            level.Session.SetFlag("CalidusJoined");
             base.OnEnd(level);
-            leftWobbleRoutine?.Cancel();
-            rightWobbleRoutine?.Cancel();
-            Calidus.Arms[0].Offset.X = prevLeftArmOffset;
-            Calidus.Arms[1].Offset.X = prevRightArmOffset;
-            Calidus.StartFollowing();
-            Calidus.Emotion(Mood.Normal);
             if (WasSkipped)
             {
                 if (Calidus != null)
                 {
                     Calidus.CanFloat = true;
                     Calidus.Position = Calidus.OrigPosition;
+                    Calidus.ResetParts();
                 }
             }
+            leftWobbleRoutine?.Cancel();
+            rightWobbleRoutine?.Cancel();
+            Calidus.Arms[0].Offset.X = prevLeftArmOffset;
+            Calidus.Arms[1].Offset.X = prevRightArmOffset;
+
+            Calidus.StartFollowing();
+            Calidus.Emotion(Mood.Normal);
         }
         private float camSaveX;
-        public IEnumerator CutAtEnd(string dialog, params Func<IEnumerator>[] events)
-        {
-            bool close = false;
-            IEnumerator stop() { close = true; yield break; }
-            Textbox textbox = new Textbox(dialog, [.. events.Prepend(stop)]);
-            Engine.Scene.Add(textbox);
-            while (!close)
-            {
-                yield return null;
-            }
-            yield return textbox.EaseClose(true);
-            textbox.Close();
-        }
         public override IEnumerator Cutscene(Level level)
         {
             IEnumerator zoomRoutine()
@@ -74,14 +64,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             yield return Player.DummyWalkTo(Level.Marker("player3").X);
             Player.Face(Calidus);
             //yield return Player.DummyWalkTo(level.Marker("player1").X);
-            yield return CutAtEnd("CalidusPowerA", walkToMarker2, revealCalidus);
-            yield return CutAtEnd("CalidusPowerB");
-            yield return CutAtEnd("CalidusPowerC");
+            yield return PianoUtils.CutAtEnd("CalidusPowerA", walkToMarker2, revealCalidus);
+            yield return PianoUtils.CutAtEnd("CalidusPowerB");
+            yield return PianoUtils.CutAtEnd("CalidusPowerC");
             Calidus.ReturnParts(2);
             Calidus.CanFloat = true;
             Calidus.FadeLight(1, 1);
-            yield return CutAtEnd("CalidusPowerD", calidusLookRight, calidusLookPlayer, calidusLookUpRight, startMovingHands, increaseHandWobble, calidusPanic, stopHandWobble);
-
+            yield return PianoUtils.CutAtEnd("CalidusPowerD", calidusLookRight, calidusLookPlayer, calidusLookUpRight, startMovingHands, increaseHandWobble, calidusPanic);
+            leftWobbleRoutine?.Cancel();
+            rightWobbleRoutine?.Cancel();
+            Calidus.Arms[0].Offset.X = prevLeftArmOffset;
+            Calidus.Arms[1].Offset.X = prevRightArmOffset;
             lookCoroutine?.Cancel();
             Calidus.Look(Looking.Player);
             yield return Textbox.Say("CalidusPowerE", calidusLookRight, calidusLookPlayer, calidusLookDownLeft, calidusFly);
@@ -109,14 +102,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         {
             armWobbleDelay -= 0.2f;
             armWobbleAmount += 0.4f;
-            yield return null;
-        }
-        private IEnumerator stopHandWobble()
-        {
-            leftWobbleRoutine?.Cancel();
-            rightWobbleRoutine?.Cancel();
-            Calidus.Arms[0].Offset.X = prevLeftArmOffset;
-            Calidus.Arms[1].Offset.X = prevRightArmOffset;
             yield return null;
         }
         private Coroutine lookCoroutine, leftWobbleRoutine, rightWobbleRoutine;
