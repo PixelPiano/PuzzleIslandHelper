@@ -11,6 +11,53 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class TalkingDecal : Entity
     {
+        public static void Teleport(Player player, string room, Vector2? nearestSpawn = null)
+        {
+            Input.Dash.ConsumePress();
+            player.DisableMovement();
+            new FadeWipe(player.Scene, false, () =>
+            {
+                player.Scene.OnEndOfFrame += () =>
+                {
+                    Level level = player.Scene as Level;
+                    Vector2 respawnPosition = Vector2.Zero;
+                    if (nearestSpawn.HasValue)
+                    {
+                        respawnPosition = nearestSpawn.Value;
+                    }
+                    level.TeleportTo(player, room, Player.IntroTypes.None, respawnPosition);
+                    new FadeWipe(Engine.Scene, wipeIn: true, () =>
+                    {
+                        Engine.Scene.GetPlayer()?.EnableMovement();
+                    });
+                };
+            });
+        }
+        public static void Teleport(Player player, string markerID, string room)
+        {
+            Input.Dash.ConsumePress();
+            player.DisableMovement();
+            new FadeWipe(player.Scene, false, () =>
+            {
+                player.Scene.OnEndOfFrame += () =>
+                {
+                    Level level = player.Scene as Level;
+                    Vector2 respawnPosition = Vector2.Zero;
+                    if (!string.IsNullOrEmpty(markerID))
+                    {
+                        if (MarkerExt.TryGetRoomData(markerID, room, Engine.Scene, out MarkerData data))
+                        {
+                            respawnPosition = data.PositionInRoom;
+                        }
+                    }
+                    level.TeleportTo(player, room, Player.IntroTypes.None, respawnPosition);
+                    new FadeWipe(Engine.Scene, wipeIn: true, () =>
+                    {
+                        Engine.Scene.GetPlayer()?.EnableMovement();
+                    });
+                };
+            });
+        }
         public Sprite onSprite;
         public Image image;
         public bool Outline;
@@ -276,44 +323,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         }
                         if (TeleportMode is TeleportModes.Wipe)
                         {
-                            Input.Dash.ConsumePress();
-                            player.DisableMovement();
-                            new FadeWipe(Scene, false, () =>
+                            if (NearestSpawn.HasValue)
                             {
-                                Engine.Scene.OnEndOfFrame += () =>
-                                {
-                                    Level level = Engine.Scene as Level;
-                                    Vector2 respawnPosition = Vector2.Zero;
-                                    if (NearestSpawn.HasValue)
-                                    {
-                                        respawnPosition = NearestSpawn.Value;
-                                    }
-                                    else if (!string.IsNullOrEmpty(MarkerID))
-                                    {
-                                        if (MarkerExt.TryGetRoomData(MarkerID, String, Engine.Scene, out MarkerData data))
-                                        {
-                                            respawnPosition = data.PositionInRoom;
-                                        }
-                                    }
-                                    Calidus c = level.Tracker.GetEntity<Calidus>();
-                                    Vector2 relativePosition = Vector2.Zero;
-                                    if (c != null)
-                                    {
-                                        relativePosition = c.Position - player.Position;
-                                        c.RemoveSelf();
-                                    }
-                                    level.TeleportTo(player, String, introType, respawnPosition);
-                                    if (c != null)
-                                    {
-                                        Calidus calidus = new Calidus(player.Position + relativePosition, false, true, Calidus.Looking.Player, Calidus.Mood.Normal, true);
-                                        Engine.Scene.Add(calidus);
-                                    }
-                                    new FadeWipe(Engine.Scene, wipeIn: true, () =>
-                                    {
-                                        Engine.Scene.GetPlayer()?.EnableMovement();
-                                    });
-                                };
-                            });
+                                Teleport(player, String, NearestSpawn);
+                            }
+                            else
+                            {
+                                Teleport(player, MarkerID, String);
+                            }
                         }
 
                     }

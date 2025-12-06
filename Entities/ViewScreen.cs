@@ -131,7 +131,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                     return;
                 }
                 //ApplyParameters();
-                TextTarget.DrawToObject(DrawText, Matrix.Identity, true, ShaderFX.CurvedScreen);
+                TextTarget.ApplyDraw(DrawText, Matrix.Identity, true, ShaderFX.CurvedScreen);
             }
             public void DrawText()
             {
@@ -311,7 +311,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
              */
             if (Scene is not Level level) return;
             ShaderFX.CurvedScreen.ApplyStandardParameters();
-            Target.DrawToObject(CoolStuff, Matrix.Identity, true);
+            Target.ApplyDraw(CoolStuff, Matrix.Identity, true);
 
             Engine.Instance.GraphicsDevice.SetRenderTarget(Target2);
             Engine.Instance.GraphicsDevice.Clear(Color.Transparent);

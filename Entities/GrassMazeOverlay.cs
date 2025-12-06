@@ -383,7 +383,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public void BeforeRender()
         {
             if (Scene is not Level level) return;
-            Target.DrawToObject(Drawing, level.Camera.Matrix, true);
+            Target.ApplyDraw(Drawing, level.Camera.Matrix, true);
         }
         public override void Render()
         {

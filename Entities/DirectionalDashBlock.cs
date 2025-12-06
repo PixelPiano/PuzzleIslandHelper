@@ -16,10 +16,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Down
         }
         public Directions Direction;
+        public FlagList FlagOnBreak;
         public DirectionalDashBlock(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id)
         {
             OnDashCollide = NewOnDashed;
             Direction = data.Enum<Directions>("direction");
+            FlagOnBreak = data.FlagList("flagOnBreak");
         }
         public DashCollisionResults NewOnDashed(Player player, Vector2 direction)
         { 
@@ -42,7 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     return DashCollisionResults.NormalCollision;
                 }
             }
-
+            FlagOnBreak.State = true;
             Break(player.Center, direction, true, true);
             return DashCollisionResults.Rebound;
         }

@@ -3,10 +3,12 @@ statid.justification = { 0, 0 }
 
 statid.name = "PuzzleIslandHelper/Statid"
 
-statid.depth = -8500
 
 statid.texture = "objects/PuzzleIslandHelper/statid/petal"
-
+function statid.depth(room, entity)
+    return entity.depth
+end
+    
 statid.placements =
 {
     {
@@ -14,10 +16,30 @@ statid.placements =
         data = 
         {
             petals = 4,
-            digital = false
-
+            digital = false,
+            color = "FFFFFF",
+            shadeColor = "000000",
+            depth = 2,
+            dead = false,
+            petalSize = 1,
+            scaleRange = 0,
+            shadeBasedOnDepth = true,
+            big = false
         }
     }
 }
+statid.fieldInformation =
+{
+    color =  
+    {
+        fieldType = "color",
+        allowXNAColors = true
+    },
+    shadeColor =  
+    {
+        fieldType = "color",
+        allowXNAColors = true
+    },
 
+}
 return statid

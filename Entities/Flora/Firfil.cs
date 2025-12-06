@@ -1,10 +1,12 @@
 ﻿using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
@@ -32,6 +34,57 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 level.Add(f);
             }
         }
+
+        public struct Flicker
+        {
+            public static readonly Flicker Danger = new Flicker(Color.Red, Color.Yellow, 0.08f);
+            public static readonly Flicker Nest = new Flicker(Color.Lime, Color.Yellow);
+            public static readonly Flicker Pollinate = new Flicker(Color.DarkGray, Color.White);
+            public static readonly Flicker Follow = new Flicker(Color.Cyan, Color.MediumVioletRed);
+            public static readonly Flicker Default = new Flicker(Color.Magenta, Color.Yellow);
+            public Color ColorA;
+            public Color ColorB;
+            public float Interval;
+            public float AfterImageTimer;
+            public Flicker(Color a, Color b, float interval = 0.15f, float afterimageTimer = 0.15f)
+            {
+                ColorA = a;
+                ColorB = b;
+                Interval = interval;
+                AfterImageTimer = afterimageTimer;
+            }
+            public override readonly bool Equals([NotNullWhen(true)] object obj)
+            {
+                if (obj is Flicker flicker)
+                {
+                    return !(flicker.ColorA != ColorA || flicker.ColorB != ColorB || flicker.Interval != Interval || flicker.AfterImageTimer != AfterImageTimer);
+                }
+                return base.Equals(obj);
+            }
+            public static bool operator !=(Flicker left, Flicker right)
+            {
+                return !(left == right);
+            }
+            public static bool operator ==(Flicker left, Flicker right)
+            {
+                return left == right;
+            }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
+            }
+        }
+        public Flicker CurrentFlicker
+        {
+            get => currentFlicker;
+            set
+            {
+                currentFlicker = value;
+                colorTween.Duration = value.Interval * 2;
+            }
+        }
+        private Flicker currentFlicker = Flicker.Default;
         public static int FirfilsFollowing
         {
             get
@@ -45,7 +98,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public bool Stored => FirfilStorage.Stored.Contains(ID);
         public bool FollowingPlayer => Follower != null && Follower.HasLeader && Follower.Leader.Entity is Player;
-        public bool CanFollow = true;
+        public bool FollowingEnabled => !AvoidFlag;
         public bool AtNest;
         public Follower Follower;
         public Vector2 Offset;
@@ -56,29 +109,100 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public EntityID ID;
         private float offsetTimer;
         private float colorLerp;
-        public Color Color;
-        public Vector2 CirclePos;
+        public Vector2 PulsePosition;
         public bool InView;
         private float afterImageTimer = 0.1f;
         public float Alpha = 1;
         public bool FollowImmediately;
+        public bool Idle = true;
+        public float FervorMult = 1;
+        public bool Distracted;
+        public PlayerCollider PlayerCollider;
+        public WarpCapsule.OnWarpComponent OnWarp;
+        public bool Fleeing;
+        public Leader LastLeader;
+        public bool LastLeaderWasPlayer;
+        public Circle AvoidCollider;
+        public Collider NormalCollider;
+        public FlagList AvoidFlag;
+        public Vector2 AvoidOffset;
+        public const float FleeDelayInterval = 0.05f;
+        public Color ColorA => CurrentFlicker.ColorA;
+        public Color ColorB => CurrentFlicker.ColorB;
+        public Color Color => Color.Lerp(ColorA, ColorB, colorLerp);
+        public Hitbox StatidCollider;
+        public Statid Pollinating;
+        public Statid Colliding;
+        public bool IsPollinating => Pollinating != null;
+        public float StatidColliderTimer = 2;
+        public Vector2 AvoidOrig;
+        public float FleeDelay;
+        public Vector2 Speed;
+        private Tween colorTween;
+        private Coroutine dashFlickerCoroutine;
+        private static Color prevDashColor;
+        private Player dashingPlayer;
         public Firfil(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id)
         {
+            AvoidFlag = data.FlagList("avoidPlayerFlag");
         }
         public Firfil(Vector2 position, EntityID id) : base(position)
         {
             ID = id;
             Collider = new Hitbox(9, 9, -4, -4);
-            Add(Follower = new Follower());
+            NormalCollider = new Hitbox(9, 9, -4, -4);
+            AvoidCollider = new Circle(40);
+            StatidCollider = new Hitbox(16, 16, -8, -8);
+            Add(Follower = new Follower(OnGainLeader, OnLoseLeader));
             Follower.FollowDelay = Engine.DeltaTime;
-            Add(new PlayerCollider(OnPlayer));
-            Tween.Set(this, Tween.TweenMode.Looping, 0.3f, Ease.SineInOut, t => colorLerp = t.Eased);
+            Add(PlayerCollider = new PlayerCollider(OnPlayer));
+            colorTween = Tween.Set(this, Tween.TweenMode.Looping, 0.3f, Ease.SineInOut, t => colorLerp = t.Eased);
             Tag |= Tags.TransitionUpdate;
+            OnWarp = new WarpCapsule.OnWarpComponent((p, c) => Flee(false));
+            Add(OnWarp);
+            TransitionListener transitionListener = new();
+            transitionListener.OnOutBegin = () =>
+            {
+                if (Distracted)
+                {
+                    if (Pollinating != null)
+                    {
+                        Pollinating.Firfils.Remove(this);
+                        if (Scene.GetPlayer() is Player player)
+                        {
+                            Pollinating = null;
+                            player.Leader.GainFollower(Follower);
+                            Distracted = false;
+                        }
+                    }
+                }
+            };
+            Add(transitionListener);
+            DashListener dashListener = new DashListener(OnDash);
+            Add(dashListener);
+            Add(dashFlickerCoroutine = new Coroutine(false));
+            Add(new PostUpdateHook(() =>
+            {
+                if (startDashFlickerCoroutine)
+                {
+                    dashFlickerCoroutine.Replace(dashFlicker(prevDashColor, dashingPlayer.Hair.Color));
+                    dashingPlayer = null;
+                    startDashFlickerCoroutine = false;
+                }
+            }));
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            Collider c = Collider;
+            Collider = AvoidCollider;
+            Collider.Render(camera);
+            Collider = c;
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if (FollowImmediately)
+            if (FollowingEnabled && FollowImmediately)
             {
                 Player player = scene.GetPlayer();
                 if (player != null)
@@ -96,6 +220,269 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             afterImageTimer += Calc.Random.Range(0f, 0.3f);
         }
+        private float mult;
+
+        public override void Update()
+        {
+            if (!Stored)
+            {
+                if (Scene.GetPlayer() is Player player)
+                {
+                    if (!FollowingEnabled)
+                    {
+                        Collider = AvoidCollider;
+                        if (CollideCheck(player))
+                        {
+                            float radius = AvoidCollider.Radius;
+                            Vector2 offset = player.Center - Position;;
+                            float distanceSquared = Vector2.DistanceSquared(Position, player.Center);
+                            float normalMult = radius - distanceSquared;
+                            float speedMult = 300 + (200 * normalMult);
+                            Vector2 target = Vector2.Normalize(offset) * speedMult;
+                            float approachMult = 300;
+                            if(distanceSquared < (radius * radius) / 2)
+                            {
+                                approachMult += 200f;
+                            }
+                            Speed = Calc.Approach(Speed, target, approachMult * Engine.DeltaTime);
+                        }
+                    }
+                    Collider = NormalCollider;
+                    PollinateUpdate(player);
+                }
+
+                if (Speed.X != 0)
+                {
+                    Speed.X = Calc.Approach(Speed.X, 0f, 100f * Engine.DeltaTime);
+                }
+                if (Speed.Y != 0)
+                {
+                    Speed.Y = Calc.Approach(Speed.Y, 0f, 100f * Engine.DeltaTime);
+                }
+                Position += Speed * Engine.DeltaTime;
+                base.Update();
+                InView = SceneAs<Level>().Camera.GetBounds().Colliding(Collider.Bounds, 8);
+                if (InView && afterImageTimer > 0)
+                {
+                    afterImageTimer -= Engine.DeltaTime;
+                    if (afterImageTimer <= 0)
+                    {
+                        afterImageTimer = CurrentFlicker.AfterImageTimer;
+                        AfterImage.Create(Position + Offset, DrawWithAlpha, 1, 0.5f);
+                    }
+                }
+                if (offsetTimer >= 0)
+                {
+                    offsetTimer -= Engine.DeltaTime;
+                    if (offsetTimer <= 0 && Idle)
+                    {
+                        SpeedMult = Calc.Random.Range(0.6f, 1f);
+                        offsetTimer = Calc.Random.Range(0.5f, 1.2f);
+                        OffsetTarget = Calc.AngleToVector(Calc.Random.NextAngle(), Calc.Random.Range(1f, 8));
+                    }
+                }
+                Offset += (OffsetTarget - Offset) * (1f - (float)Math.Pow(0.0099999997764825821, Engine.DeltaTime)) * SpeedMult * FervorMult;
+            }
+        }
+        public override void Render()
+        {
+            DrawWithAlpha(Position + Offset, 1);
+        }
+        public void DrawWithAlpha(Vector2 position, float alphaMult)
+        {
+            if (InView)
+            {
+                base.Render();
+                Draw.Point(position, Color * (Alpha * alphaMult));
+            }
+        }
+        public void PollinateUpdate(Player player)
+        {
+            if (Pollinating == null)
+            {
+                Statid statid = null;
+                if (FollowingPlayer)
+                {
+                    if (Math.Abs(player.PreviousPosition.X - player.X) < 2 && Math.Abs(player.PreviousPosition.Y - player.Y) < 2)
+                    {
+                        statid = player.CollideFirst<Statid>();
+                    }
+                }
+                if (statid != null && !statid.Dead)
+                {
+                    CurrentFlicker = Flicker.Pollinate;
+                    if (Colliding != statid)
+                    {
+                        Colliding = statid;
+                        StatidColliderTimer = 2;
+                    }
+                    if (StatidColliderTimer > 0)
+                    {
+                        StatidColliderTimer -= Engine.DeltaTime;
+                        if (StatidColliderTimer <= 0)
+                        {
+                            Pollinating = statid;
+                            Colliding = null;
+                        }
+                    }
+                }
+                else
+                {
+                    StatidColliderTimer = 2;
+                    Colliding = null;
+                }
+            }
+            if (Pollinating != null)
+            {
+                Colliding = null;
+                if (FollowingPlayer)
+                {
+                    Distracted = true;
+                    player.Leader.LoseFollower(Follower);
+                }
+                if (!Pollinating.Firfils.Contains(this))
+                {
+                    Pollinating.Firfils.Add(this);
+                    if (Pollinating.Firfils.Count > 9)
+                    {
+                        Pollinating.HasSap = true;
+                    }
+                }
+
+                if (Distracted)
+                {
+                    if (Vector2.Distance(player.Center, Center) > 60)
+                    {
+                        if (!FollowingPlayer)
+                        {
+                            player.Leader.GainFollower(Follower);
+                        }
+                        Pollinating.Firfils.Remove(this);
+                        Pollinating = null;
+                        Distracted = false;
+                    }
+                    else
+                    {
+                        Position = Calc.Approach(Position, Pollinating.TopCenter - Vector2.UnitY * 16, 20f * Engine.DeltaTime);
+                    }
+                }
+                else
+                {
+                    if (!FollowingPlayer)
+                    {
+                        player.Leader.GainFollower(Follower);
+                    }
+                    Pollinating.Firfils.Remove(this);
+                    Pollinating = null;
+                    Distracted = false;
+                }
+            }
+        }
+        public void OnPlayer(Player player)
+        {
+            if (!Distracted && !Stored && !AtNest && !FollowingPlayer && FollowingEnabled && FirfilsFollowing < MaxFollowing)
+            {
+                StartFollowing(player.Leader, true);
+            }
+        }
+        public void OnDash(Vector2 dir)
+        {
+            if (FollowingPlayer)
+            {
+                Player player = Follower.Leader.Entity as Player;
+                if (player != null)
+                {
+                    startDashFlickerCoroutine = true;
+                    dashingPlayer = player;
+                }
+            }
+        }
+        private bool startDashFlickerCoroutine;
+        [OnLoad]
+        public static void Load()
+        {
+            On.Celeste.Player.StartDash += Player_StartDash;
+        }
+        private static int Player_StartDash(On.Celeste.Player.orig_StartDash orig, Player self)
+        {
+            prevDashColor = self.Hair.Color;
+            return orig(self);
+        }
+        [OnUnload]
+        public static void Unload()
+        {
+            On.Celeste.Player.StartDash -= Player_StartDash;
+        }
+        private IEnumerator dashFlicker(Color colorA, Color colorB)
+        {
+            Flicker flicker = new Flicker(colorA, colorB, 0.07f, Engine.DeltaTime);
+            Flicker prevFlicker = CurrentFlicker;
+            CurrentFlicker = flicker;
+            for (float i = 0; i < 0.85f; i += Engine.DeltaTime)
+            {
+                if (CurrentFlicker != flicker)
+                {
+                    yield break;
+                }
+                yield return null;
+            }
+            CurrentFlicker = prevFlicker;
+        }
+        public void OnGainLeader()
+        {
+            SceneAs<Level>().Session.DoNotLoad.Add(ID);
+            Tag |= Tags.Persistent;
+            LastLeader = Follower.Leader;
+            LastLeaderWasPlayer = Follower.Leader.Entity is Player;
+            CurrentFlicker = Flicker.Follow;
+            FleeDelay = 0;
+            foreach (var f in LastLeader.GetFollowers<Firfil>())
+            {
+                if (f.Entity is Firfil firfil && !firfil.Fleeing)
+                {
+                    FleeDelay += FleeDelayInterval;
+                }
+            }
+        }
+        public void OnLoseLeader()
+        {
+            SceneAs<Level>().Session.DoNotLoad.Remove(ID);
+            Tag &= ~Tags.Persistent;
+            if (LastLeader != null)
+            {
+                if (LastLeaderWasPlayer && (Scene.GetPlayer() is not Player player || player.Dead) && !Fleeing)
+                {
+                    Flee(true);
+                }
+            }
+            else
+            {
+                CurrentFlicker = Flicker.Default;
+            }
+            LastLeader = null;
+        }
+        public void StartFollowing(Leader leader, bool pulse = true)
+        {
+            if (pulse) PulseEntity.Circle(Position + Offset, Depth, Pulse.Fade.Linear, Pulse.Mode.Oneshot, 0, 8, 0.8f, true, Color, Color.White, Ease.CubeIn, Ease.CubeIn);
+            Follower.PersistentFollow = true;
+            leader.GainFollower(Follower);
+        }
+        public void StopFollowing(Leader leader, bool pulse = true)
+        {
+            if (pulse) PulseEntity.Circle(Position + Offset, Depth, Pulse.Fade.Linear, Pulse.Mode.Oneshot, 8, 0, 0.8f, true, Color, Color.White, Ease.CubeIn, Ease.CubeIn);
+            leader?.LoseFollower(Follower);
+        }
+        public void Flee(bool frozenUpdate)
+        {
+            Collidable = false;
+            if (frozenUpdate)
+            {
+                Tag |= Tags.FrozenUpdate;
+            }
+            Fleeing = true;
+            CurrentFlicker = Flicker.Danger;
+            Add(new Coroutine(FleeRandomDirection()));
+        }
         public void FadeIn(float duration = 0.8f)
         {
             Alpha = 0;
@@ -106,60 +493,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             float a = Alpha;
             Tween.Set(this, Tween.TweenMode.Oneshot, time, Ease.SineIn, t => Alpha = Calc.LerpClamp(a, to, t.Eased));
         }
-        public void DrawWithAlpha(Vector2 position, float alphaMult)
+        public void SetTarget(Vector2 position)
         {
-            if (InView)
-            {
-                base.Render();
-                Draw.Point(position, Color * (Alpha * alphaMult));
-            }
-        }
-        public override void Update()
-        {
-            base.Update();
-            if (!Stored)
-            {
-                InView = SceneAs<Level>().Camera.GetBounds().Colliding(Collider.Bounds, 8);
-                Color = Color.Lerp(AtNest ? Color.Lime : FollowingPlayer ? Color.Cyan : Color.Magenta, Color.Yellow, colorLerp);
-                if (InView && afterImageTimer <= 0)
-                {
-                    afterImageTimer = 0.15f;
-                    AfterImage.Create(Position + Offset, DrawWithAlpha, 0.4f, 1f);
-                }
-                if (afterImageTimer != 0)
-                {
-                    afterImageTimer = Calc.Approach(afterImageTimer, 0, Engine.DeltaTime);
-                }
-                offsetTimer -= Engine.DeltaTime;
-                if (offsetTimer <= 0)
-                {
-                    SpeedMult = Calc.Random.Range(0.6f, 1f);
-                    offsetTimer = Calc.Random.Range(0.5f, 1.2f);
-                    OffsetTarget = Calc.AngleToVector(Calc.Random.NextAngle(), Calc.Random.Range(1f, 8));
-                }
-                Offset += (OffsetTarget - Offset) * (1f - (float)Math.Pow(0.0099999997764825821, Engine.DeltaTime)) * SpeedMult;
-            }
-        }
-        public override void Render()
-        {
-            DrawWithAlpha(Position + Offset, 1);
-        }
-        public void OnPlayer(Player player)
-        {
-            if (!Stored && !AtNest && !FollowingPlayer && CanFollow && FirfilsFollowing < MaxFollowing)
-            {
-                StartFollowing(player.Leader, true);
-            }
-        }
-        public void StartFollowing(Leader leader, bool pulse)
-        {
-            SceneAs<Level>().Session.DoNotLoad.Add(ID);
-            if (pulse)
-            {
-                PulseEntity.Circle(Position + Offset, Depth, Pulse.Fade.Linear, Pulse.Mode.Oneshot, 0, 8, 0.8f, true, Color, Color.White, Ease.CubeIn, Ease.CubeIn);
-            }
-            Follower.PersistentFollow = true;
-            leader.GainFollower(Follower);
+            OffsetTarget = position - Position;
         }
         public void OnArriveAtNest()
         {
@@ -167,10 +503,44 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             Visible = true;
             Collidable = false;
             AtNest = true;
+            CurrentFlicker = Flicker.Nest;
             if (Follower != null)
             {
                 Follower.Leader?.LoseFollower(Follower);
             }
+        }
+        public IEnumerator FleeRandomDirection()
+        {
+            yield return FleeDelay;
+            float speedAngle = Calc.Random.NextAngle();
+            Vector2 dir = Calc.AngleToVector(speedAngle, 1);
+            Idle = false;
+            float rand = Calc.Random.Range(0f, 32f);
+            float speed = 3f + Calc.Random.Range(2f, 5f);
+            Camera camera = SceneAs<Level>().Camera;
+            float sinSpeed = 3f + Calc.Random.Range(0f, 5f);
+
+            float sinAngle = speedAngle + 45f.ToRad();
+            float angleOffset = -90f.ToRad();
+            float startAngle = sinAngle;
+            Tween.Set(this, Tween.TweenMode.YoyoLooping, 1f, Ease.SineInOut, t =>
+            {
+                sinAngle = startAngle + angleOffset * t.Eased;
+            });
+            int sinMult = Calc.Random.Sign();
+            Vector2 prev = Position;
+            while (this.OnScreen(8))
+            {
+                Position = prev + dir * speed;
+                prev = Position;
+                Position += Calc.AngleToVector(sinAngle, sinSpeed);
+                OffsetTarget = Calc.Approach(OffsetTarget, Vector2.UnitX * (float)Math.Sin(Scene.TimeActive + rand * 8) * sinMult, sinSpeed * Engine.DeltaTime);
+                speed = Calc.Approach(speed, 3f, 40f * Engine.DeltaTime);
+                sinSpeed = Calc.Approach(sinSpeed, 30f, 5f * Engine.DeltaTime);
+                yield return null;
+            }
+            Fleeing = false;
+            RemoveSelf();
         }
     }
     [CustomEntity("PuzzleIslandHelper/FirfilNest")]

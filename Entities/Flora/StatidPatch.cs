@@ -15,11 +15,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public bool Digital;
         public int Petals;
         public int PetalRange;
-
+        public float DeadChance;
         public List<Statid> Flowers = new();
         private Entity collide;
-        public StatidPatch(EntityData data, Vector2 offset) : base(data.Position + offset)
+        private Random Random;
+        private EntityID id;
+        public StatidPatch(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
+            this.id = id;
             Tag |= Tags.TransitionUpdate;
             Collider = new Hitbox(data.Width, data.Height);
             HalfStepChance = data.Float("halfStepChance");
@@ -27,6 +30,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             Digital = data.Bool("digital");
             Petals = data.Int("petals", 4);
             PetalRange = data.Int("petalRange");
+            DeadChance = data.Float("deadChance");
+            int y = (int)Y;
+            int x = (int)X;
+            if (x == 0) x = 1;
+            if (y == 0) y = 1;
+            Random = new Random(x + y + (y * x) - (x * x));
         }
         public override void Added(Scene scene)
         {
@@ -55,11 +64,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             return false;
         }
+        public List<Statid.Data> Data = null;
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            int count = 0;
             int absRange = Math.Abs(PetalRange);
             Level level = scene as Level;
+            PianoModule.Session.StatidPatchData.TryGetValue(this.id, out Data);
+            bool createData = Data == null;
+            if (createData)
+            {
+                Data = [];
+                PianoModule.Session.StatidPatchData.Add(this.id, Data);
+            }
             while (collide.X < Right)
             {
                 collide.Y = Top;
@@ -77,25 +95,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 if (dist > 1)
                 {
                     if (dist > 7) dist -= 3;
-                    float y = Calc.Random.Range(0, dist) + Top;
+                    float y = Random.Range(0, dist) + Top;
                     int p = Petals;
                     if (PetalRange > 0)
                     {
-                        p += Calc.Random.Range(-absRange, absRange + 1);
+                        p += Random.Range(-absRange, absRange + 1);
                     }
 
                     EntityID id = new EntityID(Guid.NewGuid().ToString(), 0);
-                    Statid flower = new Statid(new Vector2(collide.Position.X, y), p, Digital, Vector2.One * 4, 2, id);
+                    int depth = Random.Choose(-1, 2, -10000);
+                    bool dead = Random.Chance(DeadChance);
+                    Statid flower = new Statid(new Vector2(collide.Position.X, y), p, Digital, Vector2.One * 4, 2, id, depth, Color.White, Color.Black, dead);
+                    if (createData)
+                    {
+                        Statid.Data flowerData = new()
+                        {
+                            HasSap = false,
+                            IsSapped = false,
+                        };
+                        Data.Add(flowerData);
+                    }
+                    flower.data = Data[count];
                     level.Add(flower);
-                    flower.Depth = Calc.Random.Choose(-1, 2, -10000);
-                    flower.Color = Color.Lerp(Color.White, Color.Black, flower.Depth < 0 ? 0 : Calc.Random.Range(0.2f, 0.5f));
                     if (flower.Depth < -1)
                     {
-                        flower.GroundOffset = Calc.Random.Range(0, 7) * Vector2.UnitY;
+                        flower.GroundOffset = Random.Range(0, 7) * Vector2.UnitY;
                     }
                     Flowers.Add(flower);
+                    count++;
                 }
-                collide.X += (int)(Calc.Random.Chance(HalfStepChance) ? Spacing / 2f : Spacing);
+                collide.X += (int)(Random.Chance(HalfStepChance) ? Spacing / 2f : Spacing);
             }
             level.Remove(collide);
         }

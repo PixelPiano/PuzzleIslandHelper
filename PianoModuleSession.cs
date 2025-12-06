@@ -22,10 +22,14 @@ namespace Celeste.Mod.PuzzleIslandHelper
         Barely,
         Restored
     }
-     
+
     public class PianoModuleSession : EverestModuleSession
     {
-        
+        public int KeysObtained;
+        public int KeysUsed;
+        public Dictionary<EntityID, List<Statid.Data>> StatidPatchData = [];
+        public HashSet<EntityID> AscwiitsWithFirfils = [];
+        public List<Ascwiit.Controller.Sequence.Data> AscwiitSequences = [];
         public HashSet<CompassData> CompassData = [];
         public Dictionary<EntityID, int> StoredStoolDashes = [];
         public Dictionary<EntityID, int> CrystalElevatorFurthestLevelReached = new();

@@ -18,7 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             UseShader = false;
             Tag |= Tags.Global;
-            Add(new DebugComponent(Cycle,Keys.B));
+            Add(new KeyComponent(Cycle,Keys.B));
         }
         private int cycle;
         public void Cycle()
@@ -150,8 +150,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public TrailerChips(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
-            Add(new DebugComponent(next, Keys.O));
-            Add(new DebugComponent(flashWord, Keys.N));
+            Add(new KeyComponent(next, Keys.O));
+            Add(new KeyComponent(flashWord, Keys.N));
         }
         public override void Added(Scene scene)
         {

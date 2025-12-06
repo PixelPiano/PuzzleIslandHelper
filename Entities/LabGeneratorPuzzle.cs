@@ -532,7 +532,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     Bg.Color = Color.White;
                     Target.DrawThenMask(Bg.Render, Drawing, level.Camera.Matrix);
-                    Target.DrawToObject(Case.Render, level.Camera.Matrix);
+                    Target.ApplyDraw(Case.Render, level.Camera.Matrix);
                 }
                 private void DrawBeads()
                 {
@@ -679,9 +679,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(Background = new Image(GFX.Game["objects/PuzzleIslandHelper/decisionMachine/puzzle/background"]));
                 Opacity = 0;
                 Add(new BeforeRenderHook(BeforeRender));
-                DebugComponent c = new DebugComponent(SwitchDebug, Keys.LeftControl, Keys.L)
+                KeyComponent c = new KeyComponent(SwitchDebug, Keys.LeftControl, Keys.L)
                 {
-                    KeyCheckMode = DebugComponent.KeyCheckModes.All
+                    KeyCheckMode = KeyComponent.KeyCheckModes.All
                 };
                 Add(c);
             }
@@ -790,7 +790,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public void BeforeRender()
             {
-                Target.DrawToObject(Drawing, SceneAs<Level>().Camera.Matrix, true);
+                Target.ApplyDraw(Drawing, SceneAs<Level>().Camera.Matrix, true);
             }
             public override void Render()
             {

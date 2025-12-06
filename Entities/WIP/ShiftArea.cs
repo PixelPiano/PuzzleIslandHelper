@@ -158,7 +158,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             CreateArrays(nodes);
             Add(VertexBreathing);
             Collider = new Hitbox(10, 10);
-            Box = PianoUtils.Boundaries(Points, offset);
+            Box = PianoUtils.Collider(Points, offset);
         }
         public ShiftArea(Vector2 position) : base(position)
         {

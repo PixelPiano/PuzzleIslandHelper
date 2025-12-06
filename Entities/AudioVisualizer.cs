@@ -10,7 +10,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/Osc")]
     [Tracked]
-    public class AudioVisualizer : Entity
+    public class Osc : Entity
     {
         public AudioEffect Sound;
         public FFT FFT;
@@ -56,7 +56,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool SignalExists => Signal is not null;
         public bool SpectrumExists => Injected && FFT.Spectrum is not null;
         public bool SpectrumIsPopulated => SpectrumExists && FFT.Spectrum.Length > 0 && FFT.Spectrum[0].Length >= 0;
-        public AudioVisualizer(EntityData data, Vector2 offset) : base(data.Position + offset)
+        public Osc(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             WindowSize = data.Int("fftWindowSize");
             WindowType = data.Enum<FFT.Windows>("windowType");

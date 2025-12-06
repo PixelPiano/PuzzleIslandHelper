@@ -1,11 +1,6 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Microsoft.Xna.Framework;
-using Monocle;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using static Celeste.Mod.PuzzleIslandHelper.Effects.TriangleField;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -17,6 +12,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public bool Inverted;
         public bool Ignore;
         public bool? ForcedValue;
+        public string[] Raw;
+        public string RawSingle = "";
         public readonly bool Empty
         {
             get
@@ -99,9 +96,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public FlagList(string[] flags, bool inverted = false)
         {
+            Raw = flags;
             Inverted = inverted;
             foreach (var item in flags)
             {
+                RawSingle += item + ',';
                 if (item[0] == '!' && item.Length > 1)
                 {
                     List.Add(new FlagData(item.Substring(1), true));
@@ -111,6 +110,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     List.Add(new FlagData(item, false));
                 }
             }
+            RawSingle = RawSingle.TrimEnd(',');
         }
         public static string[] format(string input)
         {

@@ -1,15 +1,9 @@
 ﻿using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Microsoft.Xna.Framework;
 using Monocle;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.CutsceneHeart;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 {
@@ -199,12 +193,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public TalkComponent Talk;
         public Wiggler ScaleWiggler;
         private float scaleWiggle;
+        public bool Collectable;
         private int scaleDirection = 1;
+        public EntityID ID;
+        public Glimmer Glimmer;
         public bool CanStore => Scene.GetPlayer() is Player player && player.Leader.HasFollower<Firfil>();
-        public FirfilContainer(EntityData data, Vector2 offset) : base(data.Position + offset)
+        public FlagList FlagOnCollected;
+        public FlagList ExistFlag;
+        public bool InstantCollect;
+        public bool Persistent;
+        public GetItemComponent GetItem;
+        public FirfilContainer(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
-            Add(Container = new Image(GFX.Game["objects/PuzzleIslandHelper/firfil/container"]));
+            ExistFlag = data.FlagList("flag");
+            Collectable = data.Bool("collectable");
+            Persistent = data.Bool("persistent");
+            InstantCollect = data.Bool("instantCollect");
+            FlagOnCollected = data.FlagList("flagOnCollected");
+            ID = id;
+            Container = new Image(GFX.Game["objects/PuzzleIslandHelper/firfil/container"]);
             Collider = Container.Collider();
+            Add(Glimmer = new Glimmer(Collider.HalfSize + new Vector2(-1, 1), Color.White, 20, 8, 2, 3)
+            {
+                LineWidthTarget = 8,
+                LineWidth = 4
+            });
+            Glimmer.AlphaMult = 0;
+            Add(Container);
             Container.JustifyOrigin(0.5f, 1);
             Container.Position += Container.Origin;
             Add(Talk = new TalkComponent(new Rectangle(0, 0, (int)Container.Width, (int)Container.Height), Vector2.UnitX * Container.Width / 2, p =>
@@ -217,6 +232,52 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             {
                 scaleWiggle = f * 0.3f;
             }));
+            Add(GetItem = new GetItemComponent((p) =>
+            {
+                if (Persistent)
+                {
+                    SceneAs<Level>().Session.DoNotLoad.Add(ID);
+                }
+            }, "FirfilContainer", true, "You got the Firfil Container! Many have been scattered around the world.", "Deposit/Withdraw Firfils following you at any one of these containers.")
+            {
+                EntityOffset = new Vector2(-1, 1),
+                RevertPlayerState = true,
+            });
+            /*Add(new PlayerCollider(player =>
+            {
+                if (Collectable && ExistFlag)
+                {
+                    if (Persistent)
+                    {
+                        SceneAs<Level>().Session.DoNotLoad.Add(ID);
+                    }
+                    if (!InstantCollect)
+                    {
+                        AddTag(Tags.Persistent);
+                        player.DisableMovement();
+                        player.DummyAutoAnimate = false;
+                        player.DummyGravity = false;
+                        player.Speed.Y = 0;
+                        player.Speed.X = 0;
+                        player.Sprite.Play("pickup");
+                        Center = player.TopCenter - Vector2.UnitY * Height;
+                        Audio.Play("event:/game/general/secret_revealed", player.Center);
+                        Tween.Set(this, Tween.TweenMode.Oneshot, 3, Ease.Linear, (t) =>
+                        {
+                            Glimmer.AlphaMult = Calc.Approach(Glimmer.AlphaMult, 1, Engine.DeltaTime * 5);
+                            Center = player.TopCenter - Vector2.UnitY * Height;
+                        }, t =>
+                        {
+                            player.EnableMovement();
+                            RemoveSelf();
+                        });
+                    }
+                    else
+                    {
+                        RemoveSelf();
+                    }
+                }
+            }));*/
         }
         private IEnumerator routine(Player player)
         {
@@ -248,10 +309,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 }
             }
         }
+        public override void Render()
+        {
+            if (!ExistFlag) return;
+            base.Render();
+        }
         public override void Update()
         {
+            if (!ExistFlag)
+            {
+                GetItem.Active = false;
+                Talk.Enabled = false;
+                return;
+            }
+            GetItem.Active = Collectable;
             base.Update();
             Container.Scale = Vector2.One * (1f + scaleWiggle * scaleDirection);
+            Player player = Scene.Tracker.GetEntity<Player>();
+            Talk.Enabled = !Collectable && (FirfilStorage.Stored.Count > 0 || (player != null && player.Leader.HasFollower<Firfil>()));
         }
     }
 }

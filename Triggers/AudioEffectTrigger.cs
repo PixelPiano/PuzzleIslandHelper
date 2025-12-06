@@ -68,7 +68,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         private int pitchSize;
         private float tremFreq, tremDepth, tremShape, tremSkew, tremDuty, tremFlatness, tremPhase, tremSpread;
 
-        private Osc.Wave oscWave;
+        private Components.Visualizers.DSPs.Osc.Wave oscWave;
         private float oscRate;
 
         private TransitionListener Listener;
@@ -122,9 +122,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                     Dsp = new Normalize(normFadeTime, normThresh, normMaxAmp);
                     break;
                 case Effects.Oscillator:
-                    oscWave = data.Enum<Osc.Wave>("wave");
+                    oscWave = data.Enum<Components.Visualizers.DSPs.Osc.Wave>("wave");
                     oscRate = data.Float("oscRate");
-                    Dsp = new Osc(oscWave, oscRate);
+                    Dsp = new Components.Visualizers.DSPs.Osc(oscWave, oscRate);
                     break;
                 case Effects.PitchShift:
                     pitchPitch = data.Float("pitch");

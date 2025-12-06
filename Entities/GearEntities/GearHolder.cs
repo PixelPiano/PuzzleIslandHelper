@@ -65,10 +65,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities
 
                 holders = level.Tracker.GetEntities<GearHolder>();
                 if (holders.Count <= 0) return;
-                Mask.DrawToObject(RenderMask, m, true);
-                GameplayBuffers.TempA.DrawToObject(RenderInsides, m, true);
-                GameplayBuffers.TempA.MaskToObject(Mask);
-                Target.DrawToObject(RenderImages, m, true);
+                Mask.ApplyDraw(RenderMask, m, true);
+                GameplayBuffers.TempA.ApplyDraw(RenderInsides, m, true);
+                GameplayBuffers.TempA.ApplyMask(Mask);
+                Target.ApplyDraw(RenderImages, m, true);
             }
 
             private void RenderMask()

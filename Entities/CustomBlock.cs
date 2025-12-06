@@ -34,7 +34,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-
             if (!blendIn)
             {
                 tileGrid = GFX.FGAutotiler.GenerateBox(tileType, (int)Width / 8, (int)Height / 8).TileGrid;
@@ -75,6 +74,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
+
                 alpha = Calc.Approach(alpha, 1, Engine.DeltaTime);
             }
             bool c = CollideCheck<Player>();

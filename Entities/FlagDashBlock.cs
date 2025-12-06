@@ -18,36 +18,55 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class FlagDashBlock : DashBlock
     {
-
         public Generated Generated;
         private bool allowAnimations;
-        private FlagData flagOnBreak;
+        private FlagList flagOnBreak;
         private FlagList canDashFlag;
         private FlagList canBoosterFlag;
-        private FlagList visibleFlag;
+        private FlagList flag;
+        private bool flagActive;
+        private bool flagVisible;
+        private bool flagCollision;
         public FlagDashBlock(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id)
         {
             allowAnimations = data.Bool("allowAnimatedTiles");
-            flagOnBreak = data.Flag("flagOnBreak");
+            flagOnBreak = data.FlagList("flagOnBreak");
             canDashFlag = data.FlagList("canDashFlag");
             canBoosterFlag = data.FlagList("canBoosterFlag");
-            visibleFlag = data.FlagList("visibleFlag");
+            flag = data.FlagList("flag");
+            flagActive = data.Bool("flagAffectActive", true);
+            flagVisible = data.Bool("flagAffectVisible", true);
+            flagCollision = data.Bool("flagAffectCollision", true);
+            blendIn = data.Bool("blendIn");
             OnDashCollide = NewOnDashed;
         }
         public DashCollisionResults NewOnDashed(Player player, Vector2 direction)
         {
-            if (!canDashFlag && (!canBoosterFlag || (player.StateMachine.State != 5 && player.StateMachine.State != 10)))
+            if (!canDash && (!canBoosterFlag || (player.StateMachine.State != 5 && player.StateMachine.State != 10)))
             {
                 return DashCollisionResults.NormalCollision;
             }
             Break(player.Center, direction, true);
-            flagOnBreak.Set(!flagOnBreak.Inverted);
+            flagOnBreak.State = true;
             return DashCollisionResults.Rebound;
         }
         public override void Update()
         {
+            bool flag = this.flag.State;
+            if (flagVisible)
+            {
+                Visible = flag;
+            }
+            if (flagCollision)
+            {
+                Collidable = flag;
+            }
+            canDash = canDashFlag;
+            if (flagActive && !flag)
+            {
+                return;
+            }
             base.Update();
-            Visible = visibleFlag;
         }
         public override void Awake(Scene scene)
         {
@@ -71,7 +90,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 Add(Generated.SpriteOverlay);
             }
-            Visible = visibleFlag;
+            canDash = canDashFlag;
+            bool flag = this.flag.State;
+            if (flagVisible)
+            {
+                Visible = flag;
+            }
+            if (flagCollision)
+            {
+                Collidable = flag;
+            }
         }
     }
 }

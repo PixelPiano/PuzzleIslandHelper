@@ -19,7 +19,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float GradientRadius;
         public Vector2 GradientScale;
         public float GradientBoost;
-        public CritterLight(float radius, VertexLight light, bool enabled = false) : base(GFX.Game["objects/PuzzleIslandHelper/light"], true)
+        public Vector2 Center
+        {
+            get
+            {
+                if(Light != null) return Light.Center;
+                return Entity.Center;
+            }
+        }
+        public CritterLight(float radius, VertexLight light = null, bool enabled = false) : base(GFX.Game["objects/PuzzleIslandHelper/light"], true)
         {
             Gradient = GFX.Game["objects/PuzzleIslandHelper/lightGradient"];
             Enabled = enabled;
@@ -29,7 +37,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public bool Colliding(Entity entity)
         {
-            return Enabled && Vector2.DistanceSquared(entity.Center, Light.Center) < Radius * Radius + 16;
+            return Enabled && Vector2.DistanceSquared(entity.Center, Center) < Radius * Radius + 16;
         }
         public override void Render()
         {
@@ -55,11 +63,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void DrawLight(Color color, Vector2 offset = default)
         {
-            Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, Light.Center - Vector2.One * Radius + offset, null, color, 0, Vector2.Zero, Scale, SpriteEffects.None, 0);
+            Draw.SpriteBatch.Draw(Texture.Texture.Texture_Safe, Center - Vector2.One * Radius + offset, null, color, 0, Vector2.Zero, Scale, SpriteEffects.None, 0);
         }
         public void DrawGradient(Color color, Vector2 offset = default)
         {
-            Draw.SpriteBatch.Draw(Gradient.Texture.Texture_Safe, Light.Center - Vector2.One * GradientRadius + offset, null, color, 0, Vector2.Zero, GradientScale, SpriteEffects.None, 0);
+            Draw.SpriteBatch.Draw(Gradient.Texture.Texture_Safe, Center - Vector2.One * GradientRadius + offset, null, color, 0, Vector2.Zero, GradientScale, SpriteEffects.None, 0);
         }
     }
 }

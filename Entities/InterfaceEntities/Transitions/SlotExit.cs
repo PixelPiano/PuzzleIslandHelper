@@ -92,7 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Transitions
         {
             if (DrawOnce && !Drawn)
             {
-                Screenshot.DrawToObject(DrawLevel, Matrix.Identity, true);
+                Screenshot.ApplyDraw(DrawLevel, Matrix.Identity, true);
                 DrawOnce = false;
                 Drawn = true;
             }

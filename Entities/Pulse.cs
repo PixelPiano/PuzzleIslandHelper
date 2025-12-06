@@ -89,6 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float Percent;
         public float SizePercent => SizeEase(Percent);
         public float ColorPercent => ColorEase(Percent);
+        public float Thickness = 1;
         private bool startInstant;
         public Vector2 to;
         public enum Fade
@@ -110,7 +111,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Mode PulseMode;
         private static Pulse create(Entity follow, Shapes shape, Fade fadeMode, Mode pulseMode, Vector2 position, Vector2 to, float duration,
             float widthFrom, float widthTo, float heightFrom, float heightTo,
-            bool start, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
+            bool start, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null, float thickness = 1)
         {
             Pulse pulse = new()
             {
@@ -129,7 +130,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 ColorB = colorB,
                 ColorEase = colorEase ?? Ease.Linear,
                 SizeEase = sizeEase ?? Ease.Linear,
-                PulseMode = pulseMode
+                PulseMode = pulseMode,
+                Thickness = thickness
             };
             if (follow != null) follow.Add(pulse);
             if (start)
@@ -148,11 +150,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static Pulse Rect(Entity follow, Fade fadeMode, Mode pulseMode, Vector2 position, float widthFrom, float widthTo, float heightFrom, float heightTo, float duration = 1, bool start = true, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
         {
-            return create(follow, Shapes.Line, fadeMode, pulseMode, position, Vector2.Zero, duration, widthFrom, widthTo, heightFrom, heightTo, start, colorA, colorB, colorEase, sizeEase);
+            return create(follow, Shapes.Rectangle, fadeMode, pulseMode, position, Vector2.Zero, duration, widthFrom, widthTo, heightFrom, heightTo, start, colorA, colorB, colorEase, sizeEase);
         }
         public static Pulse Diamond(Entity follow, Fade fadeMode, Mode pulseMode, Vector2 position, float radiusFrom, float radiusTo, float duration = 1, bool start = true, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
         {
             return create(follow, Shapes.Diamond, fadeMode, pulseMode, position, Vector2.Zero, duration, radiusFrom, radiusTo, 0, 0, start, colorA, colorB, colorEase, sizeEase);
+        }
+        public static Pulse Line(Entity follow, Vector2 from, Vector2 to, Color colorA = default, Color colorB = default, float duration = 1, bool start = true, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
+        {
+            return create(follow, Shapes.Line, Fade.Linear, Mode.Oneshot, from, to, duration, 0, 0, 0, 0, start, colorA, colorB, colorEase, sizeEase);
+        }
+        public static Pulse Circle(Entity follow, float radius, Color colorA = default, Color colorB = default, float duration = 1, bool start = true, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
+        {
+            return create(follow, Shapes.Circle, Fade.Linear, Mode.Oneshot, Vector2.Zero, Vector2.Zero, duration, 0, radius, 0, radius, start, colorA, colorB, colorEase, sizeEase);
+        }
+        public static Pulse Rect(Entity follow, float width, float height, Color colorA = default, Color colorB = default, float duration = 1, bool start = true, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
+        {
+            return create(follow, Shapes.Rectangle, Fade.Linear, Mode.Oneshot, Vector2.Zero, Vector2.Zero, duration, 0, width, 0, height, start, colorA, colorB, colorEase, sizeEase);
+        }
+        public static Pulse Diamond(Entity follow, float radius, Color colorA = default, Color colorB = default, float duration = 1, bool start = true, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
+        {
+            return create(follow, Shapes.Diamond, Fade.Linear, Mode.Oneshot, Vector2.Zero, Vector2.Zero, duration, 0, radius, 0, radius, start, colorA, colorB, colorEase, sizeEase);
         }
         public Pulse() : base(false)
         {
@@ -257,16 +275,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             switch (Shape)
             {
                 case Shapes.Rectangle:
-                    Draw.Rect(RenderPosition - size / 2, size.X, size.Y, Color * Alpha);
+                    PianoUtils.HollowRect(RenderPosition - size / 2, size.X, size.Y, Color * Alpha, (int)Thickness);
                     break;
                 case Shapes.Line:
-                    Draw.Line(RenderPosition, to, Color);
+                    Draw.Line(RenderPosition, to, Color, Thickness);
                     break;
                 case Shapes.Circle:
-                    Draw.Circle(RenderPosition, Math.Max(size.X, size.Y), Color * Alpha, 20);
+                    Draw.Circle(RenderPosition, Math.Max(size.X, size.Y), Color * Alpha, Thickness, 20);
                     break;
                 default:
-                    Draw.Circle(RenderPosition, Math.Max(size.X, size.Y), Color * Alpha, 1);
+                    Draw.Circle(RenderPosition, Math.Max(size.X, size.Y), Color * Alpha, Thickness, 1);
                     break;
             }
         }

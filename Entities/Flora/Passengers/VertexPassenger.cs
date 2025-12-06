@@ -224,7 +224,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public Vector2 ScaleOffset;
         private Vector2 BreathOffset;
         public Vector2 BreathDirection;
-        public float BreathDuration;
+        public float BreathDuration
+        {
+            get => breathDuration;
+            set
+            {
+                if (BreathTween != null)
+                {
+                    BreathTween.Duration = value;
+                }
+                breathDuration = value;
+            }
+        }
+        private float breathDuration;
         public Vector2 ScaleApproach = Vector2.One;
         public bool Baked;
         public bool IsInView;
@@ -240,7 +252,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public bool DummyGravity;
         public VertexPassenger(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id)
         {
-
         }
         public VertexPassenger(EntityData data, Vector2 offset, EntityID id, float width, float height) : base(data, offset, id, width, height)
         {
@@ -270,7 +281,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                         string text = array[0];
                         switch (text.ToLower())
                         {
-                            case "facing":
+                            case "facing" or "face" or "facings":
                                 string direction = array[1].ToLower();
                                 if (direction == "right")
                                 {
@@ -358,28 +369,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             }
             Position.X = x;
         }
-        private IEnumerator breathRoutine()
-        {
-            int skip = Calc.Random.Range(0, 30);
-            Vector2 a = Vector2.Zero;
-            Vector2 b = BreathDirection;
-            void swap()
-            {
-                (b, a) = (a, b);
-            }
-            while (true)
-            {
-                while (!Breathes || BreathDuration <= 0) yield return null;
-                for (float i = 0; i < 1 && Breathes; i += Engine.DeltaTime / BreathDuration / 2f)
+        public Tween BreathTween;
+        /*        private IEnumerator breathRoutine()
                 {
-                    BreathOffset = Vector2.Lerp(a, b, Ease.QuadInOut(i));
-                    if (skip > 0) skip--;
-                    else yield return null;
-                }
-                BreathOffset = a;
-                swap();
-            }
-        }
+                    int skip = Calc.Random.Range(0, 30);
+                    Vector2 a = Vector2.Zero;
+                    Vector2 b = BreathDirection;
+                    void swap()
+                    {
+                        (b, a) = (a, b);
+                    }
+                    while (true)
+                    {
+                        while (!Breathes || BreathDuration <= 0) yield return null;
+                        for (float i = 0; i < 1 && Breathes; i += Engine.DeltaTime / BreathDuration / 2f)
+                        {
+                            BreathOffset = Vector2.Lerp(a, b, Ease.QuadInOut(i));
+                            if (skip > 0) skip--;
+                            else yield return null;
+                        }
+                        BreathOffset = a;
+                        swap();
+                    }
+                }*/
         [Obsolete("Use PointData functions")]
         protected void AddTriangle(Vector2 a, Vector2 b, Vector2 c, float multiplier, Vector2 wiggleMult, ColorShifter shifter = null, Group group = null, bool mergePoints = false)
         {
@@ -559,7 +571,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            Add(new Coroutine(breathRoutine()));
+            BreathTween = Tween.Set(this, Tween.TweenMode.YoyoLooping, BreathDuration, Ease.QuadInOut, t => BreathOffset = BreathDirection * t.Eased);
+            BreathTween.Active = !(!Breathes || BreathDuration <= 0);
+            if (BreathTween.Active)
+            {
+                BreathTween.Randomize();
+            }
         }
         public override void Jump()
         {
@@ -569,6 +586,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         }
         public override void Update()
         {
+            BreathTween.Duration = BreathDuration;
+            BreathTween.Active = !(!Breathes || BreathDuration <= 0);
             foreach (Vertex v in VertexList.Vertices)
             {
                 v.Group?.Update();
@@ -624,7 +643,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                     Vertices[i].Position = new Vector3(vertex.WorldPosition + vertex.WiggleOffset + vertex.Offset + BreathOffset, 0);
                     if (vertex.Shifter != null)
                     {
-                        vertex.Color = Color.Lerp(Color.Lerp(vertex.Shifter[i % vertex.Shifter.Colors.Length], Color2, ColorMixLerp), group.Color, group.ColorLerp) * group.Alpha * Alpha;
+                        vertex.Color = Color.Lerp(Color.Lerp(vertex.Shifter[i % vertex.Shifter.Colors.Count], Color2, ColorMixLerp), group.Color, group.ColorLerp) * group.Alpha * Alpha;
                     }
                     else
                     {

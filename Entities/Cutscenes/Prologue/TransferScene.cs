@@ -60,7 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes.Prologue
             {
                 UnbornHusk husk = Scene.Tracker.GetEntity<UnbornHusk>();
                 if (husk is null || !husk.DoPulseGlitch) return;
-                Helper.DrawToObject(husk.RenderAllPulsesForTarget, Matrix.Identity, true);
+                Helper.ApplyDraw(husk.RenderAllPulsesForTarget, Matrix.Identity, true);
                 Helper = EasyRendering.AddGlitch(Helper);
             }
         }

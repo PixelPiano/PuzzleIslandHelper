@@ -114,7 +114,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         (StaticDsps[i] as FFT).SetParams();
                         break;
                     case DSP_TYPE.OSCILLATOR:
-                        (StaticDsps[i] as Osc).SetParams();
+                        (StaticDsps[i] as Components.Visualizers.DSPs.Osc).SetParams();
                         break;
                     case DSP_TYPE.ECHO:
                         (StaticDsps[i] as Echo).SetParams();

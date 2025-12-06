@@ -357,9 +357,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
+        private static void ReloadAswiitCodeMapData(Level level)
+        {
+            PianoModule.Session.AscwiitSequences.Clear();
+            if (PianoMapDataProcessor.AscwiitCodes.TryGetValue(level.GetAreaKey(), out var data))
+            {
+                foreach (var d in data)
+                {
+                    PianoModule.Session.AscwiitSequences.Add(d);
+                }
+            }
+        }
         private static void LevelLoader_OnLoadingThread(Level level)
         {
             ReloadCompassMapData(level);
+            ReloadAswiitCodeMapData(level);
         }
 
     }

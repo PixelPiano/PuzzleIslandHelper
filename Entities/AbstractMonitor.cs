@@ -12,7 +12,7 @@ using static Celeste.Overworld;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
-    public abstract class AbstractMonitor : Entity
+    public abstract class TowerStairs : Entity
     {
         private const string defaultpath = "objects/PuzzleIslandHelper/interface/";
         public bool Flickering => flickerCoroutine.Active;
@@ -27,7 +27,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool State;
         public bool InRoutine;
         public bool Idle => Icon.CurrentAnimationID is "Center" or "Corner";
-        public AbstractMonitor(Vector2 position, string path = null) : base(position)
+        public TowerStairs(Vector2 position, string path = null) : base(position)
         {
             Add(flickerCoroutine = new Coroutine(false));
             texturepath = path ?? defaultpath;
@@ -68,7 +68,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Icon.Play(anim);
         }
-        public AbstractMonitor(EntityData data, Vector2 offset) : this(data.Position + offset)
+        public TowerStairs(EntityData data, Vector2 offset) : this(data.Position + offset)
         {
 
         }

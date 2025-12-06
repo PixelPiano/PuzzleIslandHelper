@@ -54,7 +54,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 {
                     DuelView.ForceLevelRender = false;
                 }
-                Screenshot.DrawToObject(DrawLevel, Matrix.Identity, false);
+                Screenshot.ApplyDraw(DrawLevel, Matrix.Identity, false);
                 if (DuelView is not null)
                 {
                     DuelView.ForceLevelRender = true;
@@ -63,13 +63,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
             }
             if (DrawFirstRoom && !FirstRoomDrawn)
             {
-                GameplayBuffers.TempA.DrawToObject(DrawLevel, Matrix.Identity, true);
+                GameplayBuffers.TempA.ApplyDraw(DrawLevel, Matrix.Identity, true);
                 DrawFirstRoom = false;
                 FirstRoomDrawn = true;
             }
             if (DrawSecondRoom && !SecondRoomDrawn)
             {
-                GameplayBuffers.TempB.DrawToObject(DrawGameplay, Matrix.Identity, true);
+                GameplayBuffers.TempB.ApplyDraw(DrawGameplay, Matrix.Identity, true);
                 DrawSecondRoom = false;
                 SecondRoomDrawn = true;
             }

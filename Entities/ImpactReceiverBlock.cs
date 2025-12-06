@@ -61,7 +61,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     Input = "";
                 }
-
             }
         }
         public void Solve()

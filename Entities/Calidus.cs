@@ -1100,7 +1100,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Arms[0].Scale = Arms[1].Scale = OrbSprite.Scale = Scale;
             EyeSprite.Scale = EyeScale;
             Vector2 centerOffset = GetLookOffset();
-            if(LookDir is Looking.Down or Looking.DownRight or Looking.DownLeft && CurrentMood == Mood.Closed)
+            if (LookDir is Looking.Down or Looking.DownRight or Looking.DownLeft && CurrentMood == Mood.Closed)
             {
                 centerOffset.Y -= 2;
             }
@@ -1125,7 +1125,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Collider prev = Collider;
             Collider = SpriteBox;
             Action render = delegate { RenderAt((-SpriteBox.Position + padding).Floor()); };
-            AfterImage image = new AfterImage(Collider.AbsolutePosition - padding, Width + padding.X * 2, Height + padding.Y * 2, render, time, alpha);
+            AfterImage image = new AfterImage(Collider.AbsolutePosition - padding, render, Width + padding.X * 2, Height + padding.Y * 2, time, alpha);
             Collider = prev;
             Scene.Add(image);
         }

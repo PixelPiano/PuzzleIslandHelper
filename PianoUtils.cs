@@ -25,6 +25,139 @@ using static Celeste.Player;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static Hitbox Collider(this IEnumerable<Vector2> list)
+    {
+        float left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
+        foreach (Vector2 v in list)
+        {
+            left = Math.Min(left, v.X);
+            top = Math.Min(top, v.Y);
+            right = Math.Max(right, v.X);
+            bottom = Math.Max(bottom, v.Y);
+        }
+        return new Hitbox(right - left, bottom - top);
+    }
+    public static Vector2 Derivative(Vector2 start, Vector2 end, float percent, float deviation)
+    {
+        Vector2 point = Vector2.Lerp(start, end, percent);
+        Vector2 point2 = Vector2.Lerp(start, end, percent + deviation);
+        Vector2 d = new Vector2(point2.X - point.X, point2.Y - point.Y);
+        return d / deviation;
+    }
+    public static void HollowRect(float x, float y, float width, float height, Color color, int thickness)
+    {
+        Draw.rect.X = (int)x;
+        Draw.rect.Y = (int)y;
+        Draw.rect.Width = (int)width;
+        Draw.rect.Height = thickness;
+        Draw.SpriteBatch.Draw(Draw.Pixel.Texture.Texture_Safe, Draw.rect, Draw.Pixel.ClipRect, color);
+        Draw.rect.Y += (int)height - 1;
+        Draw.SpriteBatch.Draw(Draw.Pixel.Texture.Texture_Safe, Draw.rect, Draw.Pixel.ClipRect, color);
+        Draw.rect.Y -= (int)height - 1;
+        Draw.rect.Width = thickness;
+        Draw.rect.Height = (int)height;
+        Draw.SpriteBatch.Draw(Draw.Pixel.Texture.Texture_Safe, Draw.rect, Draw.Pixel.ClipRect, color);
+        Draw.rect.X += (int)width - 1;
+        Draw.SpriteBatch.Draw(Draw.Pixel.Texture.Texture_Safe, Draw.rect, Draw.Pixel.ClipRect, color);
+    }
+    public static void HollowRect(Vector2 position, float width, float height, Color color, int thickness) => HollowRect(position.X, position.Y, width, height, color, thickness);
+    public static void DrawOutline(this FancyText.Char c, PixelFont font, float baseSize, Vector2 position, Vector2 scale, float alpha)
+    {
+        float num = (c.Impact ? (2f - c.Fade) : 1f) * c.Scale;
+        Vector2 zero = Vector2.Zero;
+        Vector2 vector = scale * num;
+        PixelFontSize pixelFontSize = font.Get(baseSize * Math.Max(vector.X, vector.Y));
+        PixelFontCharacter pixelFontCharacter = pixelFontSize.Get(c.Character);
+        vector *= baseSize / pixelFontSize.Size;
+        position.X += c.Position * scale.X;
+        zero += (c.Shake ? (new Vector2(-1 + Calc.Random.Next(3), -1 + Calc.Random.Next(3)) * 2f) : Vector2.Zero);
+        zero += (c.Wave ? new Vector2(0f, (float)Math.Sin((float)c.Index * 0.25f + Engine.Scene.RawTimeActive * 8f) * 4f) : Vector2.Zero);
+        zero.X += pixelFontCharacter.XOffset;
+        zero.Y += (float)pixelFontCharacter.YOffset + (-8f * (1f - c.Fade) + c.YOffset * c.Fade);
+
+        pixelFontCharacter.Texture.Draw(position + zero * vector + new Vector2(1, 1), Vector2.Zero, Color.Black * c.Fade * alpha, vector, c.Rotation);
+        pixelFontCharacter.Texture.Draw(position + zero * vector + new Vector2(1, -1), Vector2.Zero, Color.Black * c.Fade * alpha, vector, c.Rotation);
+        pixelFontCharacter.Texture.Draw(position + zero * vector + new Vector2(-1, 1), Vector2.Zero, Color.Black * c.Fade * alpha, vector, c.Rotation);
+        pixelFontCharacter.Texture.Draw(position + zero * vector + new Vector2(-1, -1), Vector2.Zero, Color.Black * c.Fade * alpha, vector, c.Rotation);
+        pixelFontCharacter.Texture.Draw(position + zero * vector, Vector2.Zero, c.Color * c.Fade * alpha, vector, c.Rotation);
+    }
+    public static void DrawOutlineJustifyPerLine(this FancyText.Text text, Vector2 position, Vector2 justify, Vector2 scale, float alpha, int start = 0, int end = int.MaxValue)
+    {
+        int num = Math.Min(text.Nodes.Count, end);
+        float num2 = 0f;
+        float num3 = 0f;
+        PixelFontSize pixelFontSize = text.Font.Get(text.BaseSize);
+        for (int i = start; i < num; i++)
+        {
+            if (text.Nodes[i] is FancyText.NewLine)
+            {
+                if (num2 == 0f)
+                {
+                    num2 = 1f;
+                }
+
+                num3 += num2;
+                num2 = 0f;
+            }
+            else if (text.Nodes[i] is FancyText.Char)
+            {
+                num2 = Math.Max(num2, (text.Nodes[i] as FancyText.Char).Scale);
+            }
+            else if (text.Nodes[i] is FancyText.NewPage)
+            {
+                break;
+            }
+        }
+
+        num3 += num2;
+        num2 = 0f;
+        for (int j = start; j < num && !(text.Nodes[j] is FancyText.NewPage); j++)
+        {
+            if (text.Nodes[j] is FancyText.NewLine)
+            {
+                if (num2 == 0f)
+                {
+                    num2 = 1f;
+                }
+
+                position.Y += num2 * (float)pixelFontSize.LineHeight * scale.Y;
+                num2 = 0f;
+            }
+
+            if (text.Nodes[j] is FancyText.Char)
+            {
+                FancyText.Char @char = text.Nodes[j] as FancyText.Char;
+                Vector2 vector = -justify * new Vector2(@char.LineWidth, num3 * (float)pixelFontSize.LineHeight) * scale;
+                DrawOutline(@char, text.Font, text.BaseSize, position + vector, scale, alpha);
+                num2 = Math.Max(num2, @char.Scale);
+            }
+        }
+    }
+
+    public enum TransitionDirection
+    {
+        None = 0,
+        Right = 1,
+        Down = 2,
+        Left = 3,
+        Up = 4
+    }
+    public static TransitionDirection GetTransitionDirection(this Player player)
+    {
+        MapData mapData = player.SceneAs<Level>().Session.MapData;
+        Vector2 center = player.Center;
+        const int TileSize = 8;
+
+        if (mapData.GetAt(center + Vector2.UnitX * TileSize) is not null)
+            return TransitionDirection.Right;
+        if (mapData.GetAt(center + Vector2.UnitY * (TileSize + TileSize / 2)) is not null)
+            return TransitionDirection.Down;
+        if (mapData.GetAt(center - Vector2.UnitX * TileSize) is not null)
+            return TransitionDirection.Left;
+        if (mapData.GetAt(center - Vector2.UnitY * (TileSize + TileSize / 2)) is not null)
+            return TransitionDirection.Up;
+        return TransitionDirection.None;
+    }
     public static void MagicGlowRender(Texture2D texture, Vector2 position, Color color, float noiseEase, float direction, Matrix matrix)
     {
         GFX.FxMagicGlow.Parameters["alpha"].SetValue(0.5f);
@@ -140,10 +273,10 @@ public static class PianoUtils
     public static Vector2 HalfSize(this VirtualRenderTarget target) => new Vector2(target.Width, target.Height) / 2f;
     public static FlagData GetFlagData(this BinaryPacker.Element element, string flagname = "flag", string invertedname = "inverted")
         => (new FlagData(element.Attr(flagname), element.AttrBool(invertedname)));
-    public static FlagData Flag(this EntityData data, string flagname = "flag", string invertedname = "inverted")
-        => new FlagData(data.Attr(flagname), data.Bool(invertedname));
     public static FlagData Flag(this EntityData data, string flagname, bool inverted)
     => new FlagData(data.Attr(flagname), inverted);
+    public static FlagData Flag(this EntityData data, string flagname = "flag", string invertedname = "inverted")
+        => new FlagData(data.Attr(flagname), data.Bool(invertedname));
     public static FlagList FlagList(this EntityData data, string flagname = "flag", string invertedname = "inverted") => new FlagList(data.Attr(flagname), data.Bool(invertedname));
     public static Vector2 Position(this BinaryPacker.Element element) => new Vector2(element.AttrFloat("x"), element.AttrFloat("y"));
     public static IEnumerator TextboxSayClean(string text, params Func<IEnumerator>[] events)
@@ -264,7 +397,7 @@ public static class PianoUtils
     /// <returns> <see langword="true"/> if <paramref name="entity"/>'s Collider exists and is within the currently active level's camera bounds (expanded by <paramref name="pad"/> units). <para/><see langword="false"/> if <paramref name="entity"/>'s Collider does not exists or is outside the currently active level's camera bounds (expanded by <paramref name="pad"/> units).</returns>
     public static bool OnScreen(this Entity entity, float pad = 0)
     {
-        return entity.Collider != null && entity.Collider.OnScreen(Engine.Scene as Level, pad);
+        return entity.Collider != null && entity.Collider.OnScreen(Engine.Scene as Level ?? entity.SceneAs<Level>(), pad);
     }
 
     public static bool OnScreen(this Vector2 v, float pad = 0)
@@ -817,7 +950,7 @@ public static class PianoUtils
     {
         return Color.Lerp(a, b, Calc.Random.Range(0f, 1));
     }
-    public static Color Shade(this Color a, float value, float range)
+    public static Color Shade(this Color a, float value, float range = 1)
     {
         if (value < 0)
         {
@@ -1154,6 +1287,7 @@ public static class PianoUtils
             block.Ground();
         }
     }
+
     /// <summary>Wraps an integer to the bounds of min (inclusive) and max (inclusive)</summary>
     public static int Wrap(this int i, int min, int max, int move)
     {
@@ -1332,6 +1466,7 @@ public static class PianoUtils
         {
             if (pos.Y > level.Bounds.Bottom)
             {
+                entity.Collider = c;
                 return false;
             }
             pos.Y++;
@@ -1373,27 +1508,13 @@ public static class PianoUtils
     {
         scene.Add(new SceneTimer(time, onEnd));
     }
-
-    public static Hitbox ColliderCentered(this MTexture texture)
-    {
-        return new Hitbox(texture.Width, texture.Height, -texture.Width / 2, -texture.Height / 2);
-    }
-    public static Hitbox ColliderCentered(this Image texture)
-    {
-        return texture.Texture.ColliderCentered();
-    }
-    public static Hitbox Collider(this MTexture texture)
-    {
-        return new Hitbox(texture.Width, texture.Height);
-    }
-    public static Hitbox Collider(this Image texture)
-    {
-        return texture.Texture.Collider();
-    }
-    public static Hitbox Collider(this Sprite sprite)
-    {
-        return new Hitbox(sprite.Width, sprite.Height, sprite.X, sprite.Y);
-    }
+    public static Hitbox Collider(this EntityData data) => new Hitbox(data.Width, data.Height);
+    public static Hitbox ColliderCentered(this EntityData data) => new Hitbox(data.Width, data.Height, data.Width / 2, data.Height / 2);
+    public static Hitbox ColliderCentered(this MTexture texture) => new Hitbox(texture.Width, texture.Height, -texture.Width / 2, -texture.Height / 2);
+    public static Hitbox ColliderCentered(this Image texture) => texture.Texture.ColliderCentered();
+    public static Hitbox Collider(this MTexture texture) => new Hitbox(texture.Width, texture.Height);
+    public static Hitbox Collider(this Image texture) => texture.Texture.Collider();
+    public static Hitbox Collider(this Sprite sprite) => new Hitbox(sprite.Width, sprite.Height, sprite.X, sprite.Y);
     public static IEnumerator Lerp(this Ease.Easer ease, float time, Action<float> action, bool actionOnEnd = false)
     {
         ease ??= Ease.Linear;
@@ -1810,8 +1931,14 @@ public static class PianoUtils
     {
         return new VertexPositionColor(new Vector3(position, 0), color);
     }
-
-    public static Collider Boundaries(this IEnumerable<Vector2> positions, Vector2 offset, int mult = 1)
+    public static void RemoveSelf(this IEnumerable<Entity> entities)
+    {
+        foreach (Entity e in entities)
+        {
+            e.RemoveSelf();
+        }
+    }
+    public static Collider Collider(this IEnumerable<Vector2> positions, Vector2 offset = default, int mult = 1)
     {
         float left, top, right, bottom;
         left = top = float.MaxValue;
@@ -1825,7 +1952,20 @@ public static class PianoUtils
         }
         return new Hitbox((right - left) * mult, (bottom - top) * mult, (left * mult) + offset.X, (top * mult) + offset.Y);
     }
-
+    public static Rectangle Bounds(this IEnumerable<Vector2> positions, Vector2 offset = default, float mult = 1)
+    {
+        float left, top, right, bottom;
+        left = top = float.MaxValue;
+        right = bottom = float.MinValue;
+        foreach (Vector2 vector in positions)
+        {
+            left = Math.Min(vector.X, left);
+            right = Math.Max(vector.X, right);
+            top = Math.Min(vector.Y, top);
+            bottom = Math.Max(vector.Y, bottom);
+        }
+        return new Rectangle((int)((right - left) * mult), (int)((bottom - top) * mult), (int)((left * mult) + offset.X), (int)((top * mult) + offset.Y));
+    }
     public static FancySolidTiles Create(Vector2 position, float width, float height, string tileData, bool blendEdges)
     {
         EntityData BlockData = new EntityData
@@ -1884,7 +2024,8 @@ public static class PianoUtils
     public static T Random<T>(this List<T> array)
     {
         int min = 0;
-        int max = array.Count;
+        int max = array.Count - 1;
+        if (max <= 1) return array[0];
         return array[Calc.Random.Range(min, max)];
     }
     public static Color Random(this Color color, bool r, bool g, bool b, bool a)
@@ -2390,7 +2531,60 @@ public static class PianoUtils
         }
     }
 
+    public static void RenderAt(this TileGrid grid, Vector2 position, int xPad, int yPad)
+    {
+        if (grid.Alpha <= 0f)
+        {
+            return;
+        }
 
+        if (grid.ClipCamera == null && grid.Scene is Level level)
+        {
+            grid.ClipCamera = level.Camera;
+        }
+
+        Rectangle clippedRenderTiles = grid.GetClippedRenderTiles();
+        int tileWidth = grid.TileWidth;
+        int tileHeight = grid.TileHeight;
+        Color color = grid.Color * grid.Alpha;
+        Vector2 position2 = new Vector2(position.X + xPad * tileWidth + (float)(clippedRenderTiles.Left * tileWidth), position.Y + yPad * tileHeight + (float)(clippedRenderTiles.Top * tileHeight));
+        for (int i = clippedRenderTiles.Left + xPad; i < clippedRenderTiles.Right - xPad; i++)
+        {
+            for (int j = clippedRenderTiles.Top + yPad; j < clippedRenderTiles.Bottom - yPad; j++)
+            {
+                MTexture mTexture = grid.Tiles[i, j];
+                if (mTexture != null)
+                {
+                    Draw.SpriteBatch.Draw(mTexture.Texture.Texture_Safe, position2, mTexture.ClipRect, color);
+                }
+
+                position2.Y += tileHeight;
+            }
+            position2.X += tileWidth;
+            position2.Y = position.Y + (float)(clippedRenderTiles.Top * tileHeight) + yPad * tileHeight;
+        }
+    }
+    public static void RenderAt(this AnimatedTiles grid, Vector2 position, int xPad, int yPad)
+    {
+        Rectangle clippedRenderTiles = grid.GetClippedRenderTiles(1);
+        Color color = grid.Color * grid.Alpha;
+        for (int i = clippedRenderTiles.Left + xPad; i < clippedRenderTiles.Right - xPad; i++)
+        {
+            for (int j = clippedRenderTiles.Top + yPad; j < clippedRenderTiles.Bottom - yPad; j++)
+            {
+                List<AnimatedTiles.Tile> list = grid.tiles[i, j];
+                if (list != null)
+                {
+                    for (int k = 0; k < list.Count; k++)
+                    {
+                        AnimatedTiles.Tile tile = list[k];
+                        AnimatedTilesBank.Animation animation = grid.Bank.Animations[tile.AnimationID];
+                        animation.Frames[(int)tile.Frame % animation.Frames.Length].Draw(position + animation.Offset + new Vector2((float)i + 0.5f, (float)j + 0.5f) * 8f, animation.Origin, color, tile.Scale);
+                    }
+                }
+            }
+        }
+    }
     public static Player GetPlayer(this Level level) => level.Tracker.GetEntity<Player>();
     public static Player GetPlayer(this Scene scene) => (scene as Level).GetPlayer();
 

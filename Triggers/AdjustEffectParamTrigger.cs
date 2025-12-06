@@ -330,10 +330,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                         switch (Param)
                         {
                             case Params.OscWave:
-                                (AudioEffectGlobal.StaticDsps[i] as Osc).WaveType = (Osc.Wave)(int)Value;
+                                (AudioEffectGlobal.StaticDsps[i] as Components.Visualizers.DSPs.Osc).WaveType = (Components.Visualizers.DSPs.Osc.Wave)(int)Value;
                                 break;
                             case Params.OscRate:
-                                (AudioEffectGlobal.StaticDsps[i] as Osc).Rate = Value;
+                                (AudioEffectGlobal.StaticDsps[i] as Components.Visualizers.DSPs.Osc).Rate = Value;
                                 break;
                         }
                         break;
@@ -436,9 +436,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                         switch (Param)
                         {
                             case Params.OscWave:
-                                return (float)(AudioEffectGlobal.StaticDsps[i] as Osc).WaveType;
+                                return (float)(AudioEffectGlobal.StaticDsps[i] as Components.Visualizers.DSPs.Osc).WaveType;
                             case Params.OscRate:
-                                return (AudioEffectGlobal.StaticDsps[i] as Osc).Rate;
+                                return (AudioEffectGlobal.StaticDsps[i] as Components.Visualizers.DSPs.Osc).Rate;
                         }
                         break;
                     case Effects.PitchShift:

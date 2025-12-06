@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
 {
@@ -22,10 +23,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         private Vector2? CalidusPosSave;
         public EntityID FirstParentID;
         public float DoorPercentSave;
+        public float WarpTime = 0.8f;
         public bool Returning;
         public bool Teleported;
-        private Action onEnd;
         private bool pull;
+        private Action onEnd;
         public CapsuleWarpHandler(WarpCapsule parent, WarpData data, Player player, Action onEnd = null, bool emergencyPull = false) : base()
         {
             pull = emergencyPull;
@@ -40,6 +42,82 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             base.Awake(scene);
             Parent.InCutscene = true;
             Add(new Coroutine(Routine(Player)));
+        }
+        public virtual void BeforeBegin()
+        {
+
+        }
+        private IEnumerator Routine(Player player)
+        {
+            Player = player;
+            Calidus = Scene.Tracker.GetEntity<Calidus>();
+            List<Component> components = Scene.Tracker.GetComponents<WarpCapsule.OnWarpComponent>();
+            foreach (WarpCapsule.OnWarpComponent component in components)
+            {
+                component.Activate(player, Parent);
+            }
+            foreach (WarpCapsule.OnWarpComponent component in components)
+            {
+                if (component.WaitForRoutineToFinish)
+                {
+                    while (component.InRoutine) yield return null;
+                }
+            }
+            WarpCapsuleCutscene introCutscene = null;
+            foreach (IntroWarpCutsceneTrigger trigger in Scene.Tracker.GetEntities<IntroWarpCutsceneTrigger>())
+            {
+                if (trigger.Check(player, this, Parent) is WarpCapsuleCutscene e)
+                {
+                    trigger.Chosen = true;
+                    introCutscene = e;
+                    break;
+                }
+            }
+            if (introCutscene != null)
+            {
+                yield return null;
+                yield return 4;
+                while (introCutscene.InCutscene)
+                {
+                    yield return null;
+                }
+            }
+            else
+            {
+                if (pull)
+                {
+                    WarpTime = 0.2f;
+                    yield return pullSequence(Parent, Player);
+                }
+                else
+                {
+                    yield return playerToCenter(Player);
+                    if (Calidus != null && Calidus.Following && Parent is WarpCapsuleAlpha)
+                    {
+                        yield return calidusToCenter(Calidus);
+                    }
+                }
+            }
+            yield return warp(player, WarpTime);
+
+            WarpCapsuleCutscene outroCutscene = null;
+            foreach (OutroWarpCutsceneTrigger trigger in Engine.Scene.Tracker.GetEntities<OutroWarpCutsceneTrigger>())
+            {
+                if (trigger.Check(player, this, Parent) is WarpCapsuleCutscene e)
+                {
+                    outroCutscene = e;
+                    break;
+                }
+            }
+            if (outroCutscene != null)
+            {
+                yield return null;
+                while (outroCutscene.InCutscene)
+                {
+                    yield return null;
+                }
+            }
+            OnEnd(Player, SceneAs<Level>());
         }
         public void OnEnd(Player player, Level level)
         {
@@ -68,9 +146,52 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             calidus.Add(new Coroutine(calidus.FloatHeightTo(0, 0.5f)));
             yield return calidus.FloatTo(Parent.Center - Vector2.UnitX * 8);
         }
-        public virtual void BeforeBegin()
+        public void InstantTeleport(Level level, Player player)
         {
+            if (string.IsNullOrEmpty(Data.Room)) return;
+            level.OnEndOfFrame += delegate
+            {
+                Vector2 levelOffset = level.LevelOffset;
+                Vector2 playerPosInLevel = player.Position - level.LevelOffset;
+                Vector2 camOffset = level.Camera.Position - player.Position;
 
+                float flash = level.flash;
+                Color flashColor = level.flashColor;
+                bool flashDraw = level.flashDrawPlayer;
+                bool doFlash = level.doFlash;
+                float zoom = level.Zoom;
+                float zoomTarget = level.ZoomTarget;
+                Facings facing = player.Facing;
+                level.Remove(player);
+                level.UnloadLevel();
+
+                level.Session.Level = Data.Room;
+                Session session = level.Session;
+                Level level2 = level;
+                Rectangle bounds = level.Bounds;
+                float left = bounds.Left;
+                bounds = level.Bounds;
+                session.RespawnPoint = level2.GetSpawnPoint(new Vector2(left, bounds.Top));
+                level.Session.FirstLevel = false;
+                level.LoadLevel(Player.IntroTypes.None);
+
+                level.Zoom = zoom;
+                level.ZoomTarget = zoomTarget;
+                level.flash = flash;
+                level.flashColor = flashColor;
+                level.doFlash = doFlash;
+                level.flashDrawPlayer = flashDraw;
+
+                //player.BottomCenter = Parent.Floor.TopCenter;
+                player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
+                level.Wipe?.Cancel();
+                level.Flash(Color.White, false);
+                if (Calidus.LastRegisteredRoom == level.Session.Level)
+                {
+                    Calidus.LastRegisteredRoom = null;
+                    level.Add(new Calidus(level.LevelOffset + Calidus.LastRegisteredOffset, startFollowingImmediately: true));
+                }
+            };
         }
         private IEnumerator warp(Player player, float time)
         {
@@ -172,67 +293,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 Calidus.StartFollowing();
             }
         }
-        public float WarpTime = 0.8f;
-        private IEnumerator Routine(Player player)
-        {
-            Player = player;
-            Calidus = Scene.Tracker.GetEntity<Calidus>();
-            WarpCapsuleCutscene introCutscene = null;
-            foreach (IntroWarpCutsceneTrigger trigger in Scene.Tracker.GetEntities<IntroWarpCutsceneTrigger>())
-            {
-                if (trigger.Check(player, this, Parent) is WarpCapsuleCutscene e)
-                {
-                    trigger.Chosen = true;
-                    introCutscene = e;
-                    break;
-                }
-            }
-            if (introCutscene != null)
-            {
-                yield return null;
-                yield return 4;
-                while (introCutscene.InCutscene)
-                {
-                    yield return null;
-                }
-            }
-            else
-            {
-                if (pull)
-                {
-                    WarpTime = 0.2f;
-                    yield return pullSequence(Parent, Player);
-                }
-                else
-                {
-                    yield return playerToCenter(Player);
-                    if (Calidus != null && Calidus.Following && Parent is WarpCapsuleAlpha)
-                    {
-                        yield return calidusToCenter(Calidus);
-                    }
-                }
-            }
-            yield return warp(player, WarpTime);
-
-            WarpCapsuleCutscene outroCutscene = null;
-            foreach (OutroWarpCutsceneTrigger trigger in Engine.Scene.Tracker.GetEntities<OutroWarpCutsceneTrigger>())
-            {
-                if (trigger.Check(player, this, Parent) is WarpCapsuleCutscene e)
-                {
-                    outroCutscene = e;
-                    break;
-                }
-            }
-            if (outroCutscene != null)
-            {
-                yield return null;
-                while (outroCutscene.InCutscene)
-                {
-                    yield return null;
-                }
-            }
-            OnEnd(Player, SceneAs<Level>());
-        }
         public static WarpCapsule FindCapsuleFromData(Level level, WarpData data, WarpCapsule parent)
         {
             if (data != null)
@@ -299,53 +359,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 beam.To = player.BottomCenter - Vector2.UnitY * player.Collider.HalfSize.Y;
                 yield return null;
             }
-        }
-        public void InstantTeleport(Level level, Player player)
-        {
-            if (string.IsNullOrEmpty(Data.Room)) return;
-            level.OnEndOfFrame += delegate
-            {
-                Vector2 levelOffset = level.LevelOffset;
-                Vector2 playerPosInLevel = player.Position - level.LevelOffset;
-                Vector2 camOffset = level.Camera.Position - player.Position;
-
-                float flash = level.flash;
-                Color flashColor = level.flashColor;
-                bool flashDraw = level.flashDrawPlayer;
-                bool doFlash = level.doFlash;
-                float zoom = level.Zoom;
-                float zoomTarget = level.ZoomTarget;
-                Facings facing = player.Facing;
-                level.Remove(player);
-                level.UnloadLevel();
-
-                level.Session.Level = Data.Room;
-                Session session = level.Session;
-                Level level2 = level;
-                Rectangle bounds = level.Bounds;
-                float left = bounds.Left;
-                bounds = level.Bounds;
-                session.RespawnPoint = level2.GetSpawnPoint(new Vector2(left, bounds.Top));
-                level.Session.FirstLevel = false;
-                level.LoadLevel(Player.IntroTypes.None);
-
-                level.Zoom = zoom;
-                level.ZoomTarget = zoomTarget;
-                level.flash = flash;
-                level.flashColor = flashColor;
-                level.doFlash = doFlash;
-                level.flashDrawPlayer = flashDraw;
-
-                //player.BottomCenter = Parent.Floor.TopCenter;
-                player.Hair.MoveHairBy(level.LevelOffset - levelOffset);
-                level.Wipe?.Cancel();
-                level.Flash(Color.White, false);
-                if (Calidus.LastRegisteredRoom == level.Session.Level)
-                {
-                    Calidus.LastRegisteredRoom = null;
-                    level.Add(new Calidus(level.LevelOffset + Calidus.LastRegisteredOffset, startFollowingImmediately: true));
-                }
-            };
         }
         private class playerBeam : Entity
         {

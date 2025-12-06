@@ -23,15 +23,21 @@ for _, type in ipairs(names) do
             dialogFlags = "",
             flag = "",
             cutsceneArgs = "",
-            cutsceneOnTransition = false
+            cutsceneOnTransition = false,
+            facing = "Left"
         }
     }
     table.insert(passenger.placements,placement)
 end
+local facings = {"Left","Right"}
 passenger.fieldInformation =
 {
     dialogMethod = {
         options = methods,
+        editable = false
+    },
+    facing = {
+        options = facings,
         editable = false
     }
 }

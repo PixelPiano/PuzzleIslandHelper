@@ -96,7 +96,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Image.DrawSimpleOutline();
             }
         }
+        public bool TryingToClimb => Math.Abs(Input.MoveX.Value) < 0.5f && Input.MoveY.Value == -1 && (climbTimer <= 0 || prevMoveY > -1);
         public List<Step> rungs = [];
+        public Step TopRung;
         private bool stepsCollidable = true;
         private bool playerColliding;
         public float Alpha = 1;
@@ -105,6 +107,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private FlagList Suspended;
         public float YSpeed = 20;
         private int prevMoveY = 0;
+        public bool CollidableWhileHoldingDown = false;
         public Ladder(EntityData data, Vector2 offset) : this(data.Position + offset, data.Height, data.Attr("texture", "objects/PuzzleIslandHelper/ladder"), data.Bool("visible"), data.Int("depth"), data.FlagList("suspendedFlags")) { }
         public Ladder(Vector2 position, int height, string texture, bool visible, int depth, FlagList suspendedFlags) : base(position)
         {
@@ -124,6 +127,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             };
             Add(listener);
+            Add(new PlayerCollider(p =>
+            {
+                playerColliding = true;
+            }));
         }
         public void FreezeCheck(Level level)
         {
@@ -164,8 +171,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 UpdatePositions();
             }
         }
+        public TowerHead TowerHead;
         public override void Update()
         {
+            bool playerWasColliding = playerColliding;
+            playerColliding = false;
             base.Update();
             if (Scene is not Level level || level.GetPlayer() is not Player player) return;
             if (!Suspended.Empty && !Suspended)
@@ -174,13 +184,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 MoveV(YSpeed * Engine.DeltaTime, OnCollideV);
             }
             UpdatePositions();
-            bool playerWasColliding = playerColliding;
-            playerColliding = player.CollideCheck(this);
-            bool playerInTower = CollideFirst<TowerHead>() is TowerHead head && head.PlayerInside;
-            bool inputAimedDown = Input.MoveY.Value > 0.5f && Math.Abs(Input.MoveX.Value) < 0.5f;
+
+            bool playerInTower = false;
+            if (TowerHead != null)
+            {
+                playerInTower = TowerHead.PlayerInside;
+            }
+            bool inputAimedDown = !CollidableWhileHoldingDown && Input.MoveY.Value > 0.5f && Math.Abs(Input.MoveX.Value) < 0.5f;
             if (playerColliding)
             {
-                if (!stepsCollidable && (Input.MoveY.Value <= -1 || Input.Jump.Pressed || player.CollideCheck<Platform, Step>(player.Position + Vector2.UnitY)))
+                if (!stepsCollidable && (CollidableWhileHoldingDown || Input.MoveY.Value <= -1 || Input.Jump.Pressed || player.CollideCheck<Platform, Step>(player.Position + Vector2.UnitY)))
                 {
                     stepsCollidable = true;
                 }
@@ -212,6 +225,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 SnapDown();
             }
             FreezeCheck(scene as Level);
+            TowerHead = scene.Tracker.GetEntity<TowerHead>();
         }
         public bool PlayerOnGroundOrNonStepJumpThru(Player player)
         {
@@ -232,7 +246,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void ClimbCheck(Player player)
         {
-            bool canClimb = Math.Abs(Input.MoveX.Value) < 0.5f && Input.MoveY.Value == -1 && (climbTimer <= 0 || prevMoveY > -1);
+            bool canClimb = TryingToClimb;
             Step prev = null;
             bool prevIgnore = player.IgnoreJumpThrus;
             player.IgnoreJumpThrus = true;
@@ -261,6 +275,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         player.MoveToY(closestTo.Y);
                         climbTimer = Engine.DeltaTime * 5f;
+                        return;
                     }
                 }
                 else
@@ -271,9 +286,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         {
                             player.MoveToY(prev.Y);
                             climbTimer = Engine.DeltaTime * 5f;
-                            break;
+                            return;
                         }
                         prev = item;
+                    }
+                }
+
+                if (TopRung != null && TopRung.HasPlayerRider())
+                {
+                    foreach (Platform platform in SceneAs<Level>().Tracker.GetEntities<Platform>())
+                    {
+                        if (platform is not Solid && (platform is not Step || !rungs.Contains(platform)))
+                        {
+                            if (player.Bottom > platform.Top && player.CollideCheck(platform))
+                            {
+                                player.MoveToY(platform.Top);
+                                return;
+                            }
+                        }
                     }
                 }
             }
@@ -288,6 +318,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (y > bounds.Bottom) break;
                 if (y < bounds.Top) continue;
                 Step rung = new Step(this, TexturePath, Vector2.UnitY * (i + 3), 16, true);
+                if (TopRung == null)
+                {
+                    TopRung = rung;
+                }
                 rungs.Add(rung);
                 scene.Add(rung);
             }

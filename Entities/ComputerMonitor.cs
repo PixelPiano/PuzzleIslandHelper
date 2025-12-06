@@ -14,7 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/InterfaceMonitor")]
     [Tracked]
-    public class ComputerMonitor : AbstractMonitor
+    public class ComputerMonitor : TowerStairs
     {
         public Vector2 TextOffset = new Vector2(5, 3);
         public float TextWidth => Width - TextOffset.X * 2;

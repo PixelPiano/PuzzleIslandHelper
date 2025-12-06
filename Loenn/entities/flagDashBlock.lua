@@ -17,11 +17,13 @@ animatedDashBlock.placements =
         blendIn = true,
         width = 8,
         height = 8,
-        canDash = true,
         flagOnBreak = "",
         canDashFlag = "",
         canBoosterFlag = "",
-        visibleFlag = "",
+        flag = "",
+        flagAffectActive = true,
+        flagAffectVisible = true,
+        flagAffectCollision = true
     }
 }
 

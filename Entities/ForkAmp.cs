@@ -53,7 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public int Index;
 
-            public Oscillator(Vector2 position, Osc.Wave wave, int index) : base(position)
+            public Oscillator(Vector2 position, Components.Visualizers.DSPs.Osc.Wave wave, int index) : base(position)
             {
                 Index = index;
             }
@@ -101,7 +101,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Vector2 position = Position - Vector2.UnitX * space * 2.5f;
                 position.X += (i / 4f) * (space * 4);
-                Oscillators[i] = new(position, (Osc.Wave)i, i);
+                Oscillators[i] = new(position, (Components.Visualizers.DSPs.Osc.Wave)i, i);
             }
             Add(Sound = new SoundSource());
 

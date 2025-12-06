@@ -1,11 +1,13 @@
 ﻿using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Celeste.Mod.PuzzleIslandHelper.PianoModuleSession;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -303,6 +305,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static readonly Dictionary<string, List<string>> CollectableData = [];
         public static readonly Dictionary<string, HashSet<CompassNodeData>> CompassNodeData = [];
         public static readonly Dictionary<string, HashSet<CompassData>> CompassData = [];
+        public static readonly Dictionary<string, List<Ascwiit.Controller.Sequence.Data>> AscwiitCodes = [];
 
         public static void Reset<T>(Dictionary<string, List<T>> dict, string key)
         {
@@ -338,6 +341,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Reset(CollectableData, key);
             Reset(CompassNodeData, key);
             Reset(CompassData, key);
+            Reset(AscwiitCodes, key);
         }
         [Command("print_markers", "")]
         public static void PrintMarkers()
@@ -371,7 +375,27 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     MapData = MapData,
                 };
 
-                PianoMapDataProcessor.CompassNodeData[key].Add(nodeData);
+                CompassNodeData[key].Add(nodeData);
+            };
+            Action<BinaryPacker.Element> ascwiitSequenceData = data =>
+            {
+                Ascwiit.Controller.Sequence.Data sequence = new()
+                {
+                    Group = data.Attr("groupID"),
+                    PositionInRoom = data.Position(),
+                    Room = levelName
+                };
+                string[] steps = data.Attr("steps").Replace(" ", "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                List<int> stepsList = [];
+                foreach (string s in steps)
+                {
+                    if (int.TryParse(s, out int result))
+                    {
+                        stepsList.Add(result);
+                    }
+                }
+                sequence.Steps = stepsList.ToArray();
+                AscwiitCodes[key].Add(sequence);
             };
             Action<BinaryPacker.Element> compassData = data =>
             {
@@ -571,6 +595,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         if (levelName.StartsWith("lvl_")) {
                             levelName = levelName.Substring(4);
                         }
+                    }
+                },
+                {
+                    "entity:PuzzleIslandHelper/AscwiitSequence", sequence =>
+                    {
+                        ascwiitSequenceData(sequence);
                     }
                 },
                 {

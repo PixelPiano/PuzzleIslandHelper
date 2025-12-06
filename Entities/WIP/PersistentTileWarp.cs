@@ -106,7 +106,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             }
             if (!Teleported)
             {
-                Target.DrawToObject(DrawTiles, Matrix.Identity, true);
+                Target.ApplyDraw(DrawTiles, Matrix.Identity, true);
                 //level.SolidTiles.Visible = true;
             }
         }

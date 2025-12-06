@@ -89,6 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (player.DashAttacking)
             {
                 Add(new Coroutine(Collect(player, level)));
+                PianoModule.Session.KeysObtained++;
                 Collected = true;
             }
             else

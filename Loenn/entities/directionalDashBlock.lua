@@ -18,7 +18,8 @@ directionalDashBlock.placements =
         height = 8,
         blendin = true,
         permanent = false,
-        canDash = true
+        canDash = true,
+        flagOnBreak = ""
     }
 }
 directionalDashBlock.fieldInformation = function() 

@@ -9,7 +9,11 @@ firfilContainer.placements =
     {
         name = "Firfil Container",
         data = {
-            flag = ""
+            flag = "",
+            flagOnCollected = "",
+            collectable = false,
+            instantCollect = false,
+            persistent = true
         }
     }
 }

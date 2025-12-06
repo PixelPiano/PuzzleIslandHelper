@@ -15,7 +15,8 @@ statidPatch.placements = {
         spacing = 8,
         halfStepChance = 0.1,
         petals = 4,
-        petalRange = 0
+        petalRange = 0,
+        deadChance = 0
     }
 }
 statidPatch.depth = 0

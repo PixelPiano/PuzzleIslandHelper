@@ -6,7 +6,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
 {
     [CustomEntity("PuzzleIslandHelper/PassengerMapProcessorDummy")]
     [Tracked]
-    public class PMPDummy : Entity
+    internal class PMPDummy : Entity
     {
         public PMPDummy(EntityData data, Vector2 offset) : base(data.Position + offset)
         {

@@ -15,12 +15,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool OnScreen;
         public VirtualRenderTarget Target;
         public VirtualRenderTarget Light;
-        public static Vector2 Offset = Vector2.Zero;
+        public static Vector2 Offset = Vector2.One * 2;
         public EntityID ID;
         public bool Simple => VoidCritterWallHelper.Simple;
-        public string Flag;
-        public bool Inverted;
-        public bool FlagState;
+        public FlagList Flag;
         public VoidCritterWall(EntityData data, Vector2 offset, EntityID id)
         : base(data.Position + offset)
         {
@@ -30,8 +28,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Target = VirtualContent.CreateRenderTarget("voidCritterWallTarget", data.Width + (int)Offset.X * 2, data.Height + (int)Offset.Y * 2);
             Light = VirtualContent.CreateRenderTarget("voidCritterLightTarget", data.Width + (int)Offset.X * 2, data.Height + (int)Offset.Y * 2);
             Add(new BeforeRenderHook(BeforeRender));
-            Flag = data.Attr("flag");
-            Inverted = data.Bool("inverted");
+            Flag = data.FlagList("flag");
+            Flag.Inverted = data.Bool("inverted");
             Depth = data.Int("depth");
         }
         public override void DebugRender(Camera camera)
@@ -53,14 +51,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Draw.SpriteBatch.End();
             Target.SetAsTarget(Color.Black);
         }
-        public bool GetFlag(Level level)
-        {
-            return (string.IsNullOrEmpty(Flag) || level.Session.GetFlag(Flag)) != Inverted;
-        }
         public override void Render()
         {
             base.Render();
-            if (Scene is not Level level || !OnScreen || Simple || !FlagState) return;
+            if (Scene is not Level level || !OnScreen || Simple || !Flag) return;
             Effect effect = ShaderHelperIntegration.GetEffect("PuzzleIslandHelper/Shaders/voidCritterWall");
             if (effect != null)
             {
@@ -73,6 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Draw.SpriteBatch.End();
                 GameplayRenderer.Begin();
             }
+
         }
         public override void Added(Scene scene)
         {
@@ -83,11 +78,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
 
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            FlagState = GetFlag(scene as Level);
-        }
         public override void Update()
         {
             base.Update();
@@ -96,9 +86,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 OnScreen = false;
                 return;
             }
-            FlagState = GetFlag(level);
             OnScreen = Collider.Bounds.Colliding(level.Camera.GetBounds(), 16);
-            if (!FlagState) return;
+            if (!Flag) return;
             foreach (CritterLight cl in level.Tracker.GetComponents<CritterLight>())
             {
                 if (cl.Colliding(this))
@@ -111,7 +100,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (scene.Tracker.GetEntities<VoidCritterWall>().Count == 1)
             {
-                foreach(VoidCritterWallHelper helper in scene.Tracker.GetEntities<VoidCritterWallHelper>())
+                foreach (VoidCritterWallHelper helper in scene.Tracker.GetEntities<VoidCritterWallHelper>())
                 {
                     helper.RemoveSelf();
                 }

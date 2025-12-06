@@ -105,11 +105,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Mask);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
             Mask.SetRenderMask(DrawInsides, level.Camera.Matrix);
-            Target.DrawToObject(DrawScreen, level.Camera.Matrix, true);
-            Target2.DrawToObject(DrawScreen, level.Camera.Matrix, true, ShaderFX.MonitorDecal);
+            Target.ApplyDraw(DrawScreen, level.Camera.Matrix, true);
+            Target2.ApplyDraw(DrawScreen, level.Camera.Matrix, true, ShaderFX.MonitorDecal);
 
-            Target2.MaskToObject(Mask);
-            Target.MaskToObject(Mask);
+            Target2.ApplyMask(Mask);
+            Target.ApplyMask(Mask);
         }
         public override void Render()
         {

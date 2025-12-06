@@ -14,7 +14,50 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     [Tracked(true)]
     public abstract class WarpCapsule : Entity
     {
-        
+        [Tracked]
+        public class OnWarpComponent : Component
+        {
+            public Action<Player, WarpCapsule> OnWarpAction;
+            public Func<Player, WarpCapsule, IEnumerator> OnWarpRoutine;
+            public bool InRoutine;
+            public bool WaitForRoutineToFinish;
+            public float Delay;
+            public OnWarpComponent(Action<Player, WarpCapsule> onWarp) : base(true, false)
+            {
+                OnWarpAction = onWarp;
+            }
+            public OnWarpComponent(Func<Player, WarpCapsule, IEnumerator> onWarp, bool waitForRoutine = false) : base(true, false)
+            {
+                OnWarpRoutine = onWarp;
+                WaitForRoutineToFinish = waitForRoutine;
+            }
+            public OnWarpComponent(Action<Player, WarpCapsule> onWarp, Func<Player, WarpCapsule, IEnumerator> onWarpRoutine, bool waitForRoutine = false) : base(true, false)
+            {
+                OnWarpAction = onWarp;
+                OnWarpRoutine = onWarpRoutine;
+                WaitForRoutineToFinish = waitForRoutine;
+            }
+            public void Activate(Player player, WarpCapsule capsule)
+            {
+                OnWarpAction?.Invoke(player, capsule);
+                if (OnWarpRoutine != null)
+                {
+                    InRoutine = true;
+                    Entity.Add(new Coroutine(OnWarpRoutine.Invoke(player, capsule)));
+                }
+            }
+            public IEnumerator Routine(Player player, WarpCapsule capsule)
+            {
+                InRoutine = true;
+                if (OnWarpRoutine != null)
+                {
+                    if (Delay > 0) yield return Delay;
+                    yield return OnWarpRoutine.Invoke(player, capsule);
+                }
+                InRoutine = false;
+            }
+
+        }
         public string WarpID = "";
         public string TargetID = "";
         public bool WaitingForCutscene;
@@ -72,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public float DoorClosedPercent, DoorStallTimer, ShineAmount;
         public bool InCutscene, CanEnter = true, DoorsIdle = true, InvertFlag, Accessible, Blocked;
         public FlagList Flag;
-        
+
         public EntityID ID;
         public Image Bg, Fg;
         public DotX3 Talk;
@@ -296,7 +339,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             {
                 Engine.Scene.Add(Shade = new PlayerShade(0.5f));
             }
-            
+
             LeftDoor.MoveToFg();
             RightDoor.MoveToFg();
             InstantCloseDoors();

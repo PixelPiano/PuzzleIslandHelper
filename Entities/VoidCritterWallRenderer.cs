@@ -66,7 +66,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return;
             }
             VoidCritterWall collided = player.CollideFirst<VoidCritterWall>();
-            if (collided != null && collided.FlagState && !(CollidingWithLight(player, level) || VoidSafeZone.Check(player)))
+            if (collided != null && collided.Flag && !(CollidingWithLight(player, level) || VoidSafeZone.Check(player)))
             {
                 player.Die(Vector2.Zero);
             }
@@ -149,7 +149,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (Scene is not Level level) return;
             Draw.SpriteBatch.Draw((RenderTarget2D)Walls, level.Camera.Position, Color.MediumPurple);
         }
-
         [OnUnload]
         public static void Unload()
         {

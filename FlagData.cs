@@ -1,9 +1,7 @@
-﻿using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Monocle;
+﻿using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
-    
     public struct FlagData
     {
         public static implicit operator bool(FlagData value) => value.State;

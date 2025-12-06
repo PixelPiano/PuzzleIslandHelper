@@ -612,9 +612,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
                 var l = PianoMapDataProcessor.CalidusSpawners;
                 if (l != null)
                 {
-                    if(l.TryGetValue(key, out var dict))
+                    if (l.TryGetValue(key, out var dict))
                     {
-                        if(l[key].TryGetValue(level.Session.Level, out data))
+                        if (l[key].TryGetValue(level.Session.Level, out data))
                         {
                             return true;
                         }
@@ -1163,7 +1163,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.CustomCalidusEntities
         public void AddAfterImage()
         {
             Vector2 padding = Vector2.One * 4;
-            AfterImage image = new AfterImage(sprite.SpriteBox.Position - padding, sprite.SpriteBox.Width + padding.X * 2, sprite.SpriteBox.Height + padding.Y * 2, delegate { sprite.RenderAt((Position - sprite.SpriteBox.Position + padding).Floor()); });
+            AfterImage image = new AfterImage(sprite.SpriteBox.Position - padding, delegate { sprite.RenderAt((Position - sprite.SpriteBox.Position + padding).Floor()); }, sprite.SpriteBox.Width + padding.X * 2, sprite.SpriteBox.Height + padding.Y * 2);
             Scene.Add(image);
         }
         public void normalBegin()
