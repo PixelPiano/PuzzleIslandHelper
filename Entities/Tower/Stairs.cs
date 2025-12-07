@@ -16,13 +16,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
     [Tracked]
     public class Stairs : Entity
     {
+        [TrackedAs(typeof(JumpThru))]
+        public class CustomPlatform : JumpThru
+        {
+            public CustomPlatform(Vector2 position, int width) : base(position, width, true)
+            {
+
+            }
+            public override void Render()
+            {
+                base.Render();
+                Draw.Rect(Collider,Color.LightGray);
+            }
+        }
         public bool Enabled;
         public Tower Parent;
         public InvisibleBarrier[] Safeguards = new InvisibleBarrier[2];
         public int Floors;
         public bool RidingPlatform;
         public bool PlayerFading;
-        public JumpThru TopPlatform;
+        public CustomPlatform TopPlatform;
         public float TopPlatformCollisionTimer;
         public JumpThru Platform;
         private float NoCollideTimer;
@@ -55,52 +68,59 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public bool WaitForUpInput;
         public VirtualRenderTarget target;
         private bool rendered;
-        public Stairs(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height, data.Int("levels",3))
+        public int CurrentFloor;
+        public float CurrentZ;
+        public bool HidingEnabled;
+        public bool Initialized;
+        public Stairs(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height, data.Int("levels", 3))
         {
 
         }
         public Stairs(Vector2 position, float width, float height, int floors) : base(position)
         {
+            AddTag(Tags.TransitionUpdate);
             Collider = new Hitbox(width, height);
             Floors = floors;
             target = VirtualContent.CreateRenderTarget("stairs", (int)width + 32, (int)height);
-            Add(new BeforeRenderHook(() =>
-            {
-                if (rendered) return;
-                rendered = true;
-                target.SetAsTarget(true);
-                Draw.SpriteBatch.Begin();
-                DrawCurve(OuterPoints, new Vector2(Width / 2 + 16, 0), 1, Width / 2 + 4);
-                DrawCurve(Points, new Vector2(Width / 2 + 16, 0), 1, Width / 2);
-                DrawCurve(InnerPoints, new Vector2(Width / 2 + 16, 0), 1, Width / 2 - 4);
-                Draw.SpriteBatch.End();
-            }));
+            Add(new BeforeRenderHook(BeforeRender));
         }
-
-        public override void Added(Scene scene)
+        private void BeforeRender()
         {
-            base.Added(scene);
+            if (rendered || OuterPoints == null || InnerPoints == null || Points == null) return;
+            rendered = true;
+            target.SetAsTarget(true);
+            Draw.SpriteBatch.Begin();
+            DrawCurve(OuterPoints, new Vector2(Width / 2 + 16, 0), 1, Width / 2 + 4);
+            DrawCurve(Points, new Vector2(Width / 2 + 16, 0), 1, Width / 2);
+            DrawCurve(InnerPoints, new Vector2(Width / 2 + 16, 0), 1, Width / 2 - 4);
+            Draw.SpriteBatch.End();
+        }
+        public override void Render()
+        {
+            base.Render();
+            if (Enabled)
+            {
+                Draw.SpriteBatch.Draw(target, Position - Vector2.UnitX * 16, Color.White);
+            }
+        }
+        public void Initialize(Scene scene)
+        {
+            if (Initialized) return;
+            Initialized = true;
             Points = GetPoints(Width / 2, Height, Height / Floors);
             OuterPoints = GetPoints(Width / 2 + 4, Height, Height / Floors);
             InnerPoints = GetPoints(Width / 2 - 4, Height, Height / Floors);
-            Level level = scene as Level;
-            float bottom = level.Bounds.Bottom;
             Platform = new(Points[^1].XY() + TopCenter, 16, true);
-            scene.Add(Platform);
-            scene.Add(TopPlatform = new JumpThru(Position, (int)Parent.Width, true));
+            TopPlatform = new CustomPlatform(Position, (int)Width);
             Safeguards[0] = new InvisibleBarrier(TopLeft - Vector2.UnitX * (Platform.Width / 2f + 8), 8, Height);
             Safeguards[1] = new InvisibleBarrier(TopRight + Vector2.UnitX * (Platform.Width / 2f), 8, Height);
+            scene.Add(Platform);
+            scene.Add(TopPlatform);
             scene.Add(Safeguards);
         }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            Disable(true);
-        }
 
-        public void Disable(bool instant = false)
+        public void Disable()
         {
-            Parent.CanEnter = false;
             Enabled = false;
             SetSafeguards(false);
             RidingPlatform = false;
@@ -114,21 +134,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Parent.Col.HidesPlayer = false;
             Parent.Col.Collidable = false;
             forceAscentTimer = 0;
-            if (instant)
-            {
-                Parent.PlayerShade.Alpha = 0;
-                Parent.OutsideAlpha = 0;
-            }
-            else
-            {
-                Parent.PlayerShade.Alpha = Calc.Approach(Parent.PlayerShade.Alpha, 0, Engine.DeltaTime * 3f);
-                Parent.OutsideAlpha = Calc.Approach(Parent.OutsideAlpha, 1, Engine.DeltaTime * 3f);
-            }
         }
-        public void Enable(bool instant = false)
+        public void Enable()
         {
             SetSafeguards(true);
-            Col.Collidable = true;
             Enabled = true;
         }
         public void PlatformTo(float y, bool naive = false)
@@ -143,10 +152,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 Platform.MoveToY(Calc.Clamp(y, Top, Bottom));
             }
         }
-        public int CurrentFloor;
         public override void Update()
         {
-            if (Scene.GetPlayer() is not Player player) return;
+            if (Scene.GetPlayer() is not Player player || !Initialized) return;
             base.Update();
             if (Enabled)
             {
@@ -281,30 +289,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
                 Platform.Collidable = Collidable && NoCollideTimer == 0 && CollidableFlag && !DisablePlatform;
                 distFromCenter = Math.Abs(player.CenterX - CenterX);
-                float CurrentZ = GetZ(y);
+                CurrentZ = GetZ(y);
 
-                if (LastRodeFloor.HasValue && LastRodeFloor.Value % 2 == CurrentFloor % 2 && CurrentZ < 0)
+                HidingEnabled = false;
+                ShadeValue = 0;
+                if (player.Bottom >= Top && player.Top <= Bottom)
                 {
-                    PlayerShade.Alpha = Calc.Approach(PlayerShade.Alpha, Math.Abs(CurrentZ) / Radius, Engine.DeltaTime * 3f);
-                }
-                else
-                {
-                    PlayerShade.Alpha = Calc.Approach(PlayerShade.Alpha, 0, Engine.DeltaTime * 3f);
-                }
-                if (LastRodeFloor.HasValue)
-                {
-                    if (LastRodeFloor.Value % 2 != CurrentFloor % 2 && distFromCenter < Col.Width / 2)
+                    if (LastRodeFloor.HasValue && LastRodeFloor.Value % 2 == CurrentFloor % 2 && CurrentZ < 0)
                     {
-                        Platform.Collidable = false;
+                        ShadeValue = Math.Abs(CurrentZ) / Radius;
                     }
-                    Col.HidesPlayer = distFromCenter < Col.Width / 2 + 4 && LastRodeFloor.Value % 2 == 1 && !Col.InColumn;
-
+                    HidingEnabled = false;
+                    if (LastRodeFloor.HasValue)
+                    {
+                        if (LastRodeFloor.Value % 2 != CurrentFloor % 2 && distFromCenter < Parent.Col.Width / 2)
+                        {
+                            Platform.Collidable = false;
+                        }
+                        HidingEnabled = distFromCenter < Parent.Col.Width / 2 + 4 && LastRodeFloor.Value % 2 == 1 && !Parent.Col.InColumn;
+                    }
                 }
-                else
-                {
-                    Col.HidesPlayer = false;
-                }
-
 
                 Platform.CenterX = pos.X;
                 if (player.CollideCheck(Platform))
@@ -323,6 +327,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
                 LastFloor = CurrentFloor;
             }
+            else
+            {
+                ShadeValue = 0;
+                HidingEnabled = false;
+            }
             if (player.Bottom - 1 < Top)
             {
                 TopPlatform.Collidable = Collidable;
@@ -330,7 +339,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             if ((Input.MoveY == 1 && TopPlatform.HasPlayerRider() && player.CenterX >= CenterX && player.CenterX < CenterX + Platform.Width * 2))
             {
                 TopPlatformCollisionTimer = 0.3f;
-                Parent.CanEnter = true;
+                //Parent.CanEnter = true;
             }
             if (TopPlatformCollisionTimer > 0)
             {
@@ -346,14 +355,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 TopPlatform.Collidable = false;
             }
         }
-        public float CurrentZ;
-        public override void Render()
-        {
-            if (Enabled)
-            {
-                Draw.SpriteBatch.Draw(target, Position - Vector2.UnitX * 16, Color.White);
-            }
-        }
+        public float ShadeValue;
         public void DrawCurve(Vector3[] points, Vector2 topCenter, float scale, float radius)
         {
             float zThreshHigh = radius;
@@ -373,8 +375,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         {
             base.Removed(scene);
             Platform.RemoveSelf();
-            Col.RemoveSelf();
-            PlayerShade.RemoveSelf();
             TopPlatform.RemoveSelf();
             Safeguards.RemoveSelf();
             target?.Dispose();

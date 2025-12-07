@@ -44,11 +44,11 @@ end
 
 function towerStairs.sprite(room, entity)
     local sprites = {}
-    local radius = entity.width / 2
+    local radius = entity.width / 2.0
     local height = entity.height
     local halfWave = (height / entity.levels) / 2
     local origin = {x = entity.x + radius, y = entity.y}
-    table.insert(sprites,getRectangle(room, entity))
+    --table.insert(sprites,getRectangle(room, entity))
     for i = 0, entity.levels * 2 do
         local from = {x = radius * math.sin((i * halfWave) * math.pi / halfWave) + origin.x, y = i * halfWave + origin.y}
         for j = 1, halfWave do
@@ -74,7 +74,7 @@ local function getColors(from, fillAmount, borderAmount)
     return colors
 end
 local function getRectangle(room, entity)
-    local colors = getColors(0.3, 0.8)
+    local colors = getColors(black, 0.3, 0.8)
     local rectangle = utils.rectangle(entity.x, entity.y, entity.width, entity.height)
     return drawableRectangle.fromRectangle("bordered", rectangle, colors[1], colors[2])
 end

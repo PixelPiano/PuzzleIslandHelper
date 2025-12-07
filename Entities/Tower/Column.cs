@@ -38,8 +38,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             public Color Edge = Color.Black;
             public Color Middle = Color.White;
-            public bool Blendable;
-            public bool LeaveSpriteBatchAlone = false;
             public VirtualRenderTarget Target;
             private bool rendered;
             public bool RenderOnce;
@@ -49,6 +47,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public Color Middle2; //
             public float MiddleDist; //
             public float Alpha = 1;
+
             private BeforeRenderHook Hook;
             public VertexGradient(Vector2 position, int width, int height, Color edgeColor, Color middleColor) : base(true)
             {
@@ -68,7 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 UpdateVertices(ColVerts, Vector2.Zero, Width, Height, Edge, Middle, Alpha);
                 entity.Add(Hook = new BeforeRenderHook(() =>
                 {
-                    if (!Blendable && (!RenderOnce || !rendered))
+                    if (!RenderOnce || !rendered)
                     {
                         Target.SetAsTarget(Color.White);
                         GFX.DrawIndexedVertices(Matrix.Identity, ColVerts, 6, columnIndices, 4);
@@ -95,17 +94,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 {
                     Draw.SpriteBatch.Draw(Target, RenderPosition, Color.White * Alpha);
                 }
-
-                else if (LeaveSpriteBatchAlone)
-                {
-                    GFX.DrawIndexedVertices(SceneAs<Level>().Camera.Matrix, ColVerts, 6, columnIndices, 4);
-                }
-                else
-                {
-                    Draw.SpriteBatch.End();
-                    GFX.DrawIndexedVertices(SceneAs<Level>().Camera.Matrix, ColVerts, 6, columnIndices, 4);
-                    GameplayRenderer.Begin();
-                }
             }
             public static void CreateData(Vector2 position, float width, float height, Color edge, Color middle, out VertexPositionColor[] vertices, out int[] indices)
             {
@@ -131,6 +119,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 vertices[3].Position.Y = vertices[4].Position.Y = vertices[5].Position.Y = offset.Y + height;
                 vertices[0].Color = vertices[2].Color = vertices[3].Color = vertices[5].Color = edge * alpha;
                 vertices[1].Color = vertices[4].Color = middle * alpha;
+            }
+        }
+        public override void Render()
+        {
+            base.Render();
+            if (ColumnSolved)
+            {
+                Rectangle r = Talk.Bounds;
+                r.X += (int)X;
+                r.Y += (int)Y;
+                Draw.Rect(r, Color.Black);
+                if (Talk2 != null)
+                {
+                    Rectangle r2 = Talk2.Bounds;
+                    r2.X += (int)X;
+                    r2.Y += (int)Y;
+                    Draw.Rect(r2, Color.Black);
+                }
+            }
+            if (FadeAlpha > 0)
+            {
+                Camera c = SceneAs<Level>().Camera;
+                float top = Math.Max(c.Y, Top);
+                float bottom = Math.Min(c.Y + 180, Bottom);
+                float height = bottom - top;
+
+                Draw.Rect(new Vector2(c.X, top), Left - c.X, height, Color.Black * FadeAlpha);
+                Draw.Rect(new Vector2(Right, top), (c.X + 320) - Right, height, Color.Black * FadeAlpha);
             }
         }
         [Tracked]
@@ -180,7 +196,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public FlagData ColumnSolved = new FlagData("ColumnPuzzleSolved");
         public LightOcclude Occlude;
         public JumpThru Elevator;
-        public Stairs Parent;
+        public Tower Parent;
         public DotX3 Talk, Talk2;
         public bool InsideTower;
         public InvisibleBarrier[] Barriers = new InvisibleBarrier[3];
@@ -201,17 +217,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 PlayerHider.Disabled = !value;
             }
         }
+        private float occludeAlpha => Occlude.Alpha;
+        public bool hidingDisabled => PlayerHider.Disabled;
+        private float hidingAlpha => PlayerHider.Alpha;
         private float prevPlayerLightAlpha = 1;
         public float TrueBottom;
 
-        public Column(Stairs parent, Vector2 position, float width, float height) : base(position)
+        public Column(Tower parent, Vector2 position, float width, float height) : base(position)
         {
+            AddTag(Tags.TransitionUpdate);
             Parent = parent;
-            Depth = parent.Depth + 1;
             Collider = new Hitbox(width, height);
             Add(Occlude = new LightOcclude());
             Occlude.Alpha = 0;
             Add(Graphic = new VertexGradient(-Vector2.UnitY * 40, (int)width, (int)height + 40));
+            PlayerHider = new PlayerHider(Vector2.Zero, (int)Width, (int)Height);
 
         }
         public void Interact(Player p)
@@ -235,11 +255,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 InColumn = false;
                 CoverGraphic.Alpha = 0.5f;
                 HidesPlayer = true;
-                p.Bottom = Parent.TopPlatform.Top;
+                p.Bottom = Parent.Stairs[^1].TopPlatform.Top;
                 DisableBarriers();
             }
             Elevator.Collidable = InColumn;
-            Parent.DisablePlatform = InColumn;
+            foreach (var s in Parent.Stairs)
+            {
+                s.DisablePlatform = InColumn;
+            }
         }
         public void EnableBarriers()
         {
@@ -264,8 +287,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Elevator.Collidable = false;
             scene.Add(Elevator);
 
-            PlayerHider = new PlayerHider(Vector2.Zero, (int)Width, (int)Height);
-
 
             Cover = new Entity(Position);
             Cover.Depth = -3;
@@ -281,7 +302,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
 
         public void OnCode()
         {
-            Scene.Add(new Cutscene(Parent));
+            //Scene.Add(new Cutscene(Parent));
             Code.Input = "";
             foreach (Sigil key in Scene.Tracker.GetEntities<Sigil>())
             {
@@ -347,6 +368,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         public override void Update()
         {
+            if (HidesPlayer)
+            {
+                PlayerHider.Disabled = false;
+
+            }
             base.Update();
             foreach (Sigil key in Scene.Tracker.GetEntities<Sigil>())
             {
@@ -356,7 +382,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             {
                 if (InColumn)
                 {
-                    Parent.TopPlatformCollisionTimer = Math.Max(Parent.TopPlatformCollisionTimer + Engine.DeltaTime, Engine.DeltaTime * 2);
                     CoverGraphic.Alpha = Calc.Approach(CoverGraphic.Alpha, 0.5f, Engine.DeltaTime);
                     player.Light.Alpha = Calc.Approach(player.Light.Alpha, 0, Engine.DeltaTime);
                 }
@@ -392,35 +417,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     }
                 }
             }
-            Parent.PlayerFading = FadeAlpha != 0 && FadeAlpha != 1;
         }
-        public override void Render()
-        {
-            base.Render();
-            if (ColumnSolved)
-            {
-                Rectangle r = Talk.Bounds;
-                r.X += (int)X;
-                r.Y += (int)Y;
-                Draw.Rect(r, Color.Black);
-                if (Talk2 != null)
-                {
-                    Rectangle r2 = Talk2.Bounds;
-                    r2.X += (int)X;
-                    r2.Y += (int)Y;
-                    Draw.Rect(r2, Color.Black);
-                }
-            }
-            if (FadeAlpha > 0)
-            {
-                Camera c = SceneAs<Level>().Camera;
-                float top = Math.Max(c.Y, Top);
-                float bottom = Math.Min(c.Y + 180, Bottom);
-                float height = bottom - top;
 
-                Draw.Rect(new Vector2(c.X, top), Left - c.X, height, Color.Black * FadeAlpha);
-                Draw.Rect(new Vector2(Right, top), (c.X + 320) - Right, height, Color.Black * FadeAlpha);
-            }
-        }
     }
 }
