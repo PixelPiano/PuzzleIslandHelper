@@ -22,13 +22,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public float Gravity = 0;
             public float SpeedY = 0;
             public bool flashing;
-            private float interval = 25;
-
+            private float interval = 20;
+            public EyeLock Parent;
+            private float blackLerp;
+            private Image image;
             public Lock(EyeLock parent) : base(parent.Position)
             {
-                Depth = 2;
-                Collider = new Hitbox(10, 11, 11, 11);
-                Add(new Image(GFX.Game["objects/PuzzleIslandHelper/lock/eye"]));
+                Parent = parent;
+                Depth = parent.Depth - 1;
+                Collider = new Hitbox(10, 8, 11, 11);
+                Add(image = new Image(GFX.Game["objects/PuzzleIslandHelper/lock/eye"]));
             }
             public void Drop()
             {
@@ -37,6 +40,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public override void Update()
             {
                 base.Update();
+                if (Gravity != 0)
+                {
+                    blackLerp = Calc.Approach(blackLerp, 0.5f, Engine.DeltaTime * 8);
+                    image.Color = Color.Lerp(Color.White, Color.Black, blackLerp);
+                }
                 if (flashing)
                 {
                     if (Scene.OnInterval(interval * Engine.DeltaTime))
@@ -44,7 +52,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         Visible = !Visible;
                         if (Visible)
                         {
-                            interval -= 3;
+                            interval *= 0.7f;
                         }
                         if (interval <= 5)
                         {
@@ -58,6 +66,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     SpeedY = Calc.Approach(SpeedY, Gravity, 300f * Engine.DeltaTime);
                     MoveV(SpeedY * Engine.DeltaTime, OnCollideV);
                 }
+            }
+            public override void Removed(Scene scene)
+            {
+                base.Removed(scene);
             }
             public void OnCollideV(CollisionData data)
             {
@@ -76,21 +88,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             public float Alpha = 0;
             public Image Image;
+            public Image Image2;
             public Shine(EyeLock parent) : base(parent.Position)
             {
-                Depth = 1;
-                Add(Image = new Image(GFX.Game["objects/PuzzleIslandHelper/lock/flash"]));
-                Image.Color = Color.Transparent;
+                Depth = parent.Depth - 2;
+                Add(Image2 = new Image(GFX.Game["objects/PuzzleIslandHelper/lock/shine"]));
+                Image2.Scale = Vector2.One * 2f;
+                Image2.Origin = new Vector2(16);
+                Image2.Position += new Vector2(16);
+                Add(Image = new Image(GFX.Game["objects/PuzzleIslandHelper/lock/shine"]));
+                Image.Color = Image2.Color = Color.Transparent;
+                Collider = Image.Collider();
             }
             public override void Added(Scene scene)
             {
                 base.Added(scene);
-                Image.Color = Color.White * Alpha;
+                Image2.Color = (Image.Color = Color.White * Alpha) * 0.7f;
             }
             public override void Update()
             {
                 base.Update();
-                Image.Color = Color.White * Alpha;
+                Image2.Color = (Image.Color = Color.White * Alpha) * 0.7f;
             }
         }
         public FlagList Flag;
@@ -109,9 +127,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private string lockID;
         public string IDFlag => "EyeLock:" + lockID;
         private bool talked;
+        private float flagDelay;
+        private Alarm delayAlarm;
         public EyeLock(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
-            Depth = 3;
+            flagDelay = data.Float("flagSetDelay", 0.7f);
+            Depth = data.Int("depth", 3);
             ID = id;
             lockID = data.Attr("lockID");
             Flag = data.FlagList("flag");
@@ -129,12 +150,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     PianoModule.Session.KeysUsed++;
                 }
-                if (!FlagsToSet.Empty)
+                if (flagDelay > 0)
                 {
-                    FlagsToSet.State = true;
+                    delayAlarm = Alarm.Set(this, flagDelay, () =>
+                    {
+                        SetFlags(true);
+                    });
                 }
-                SceneAs<Level>().Session.SetFlag(IDFlag);
+                else
+                {
+                    SetFlags(true);
+                }
             }));
+        }
+        public void SetFlags(bool value)
+        {
+            if (!FlagsToSet.Empty)
+            {
+                FlagsToSet.State = value;
+            }
+            SceneAs<Level>().Session.SetFlag(IDFlag, value);
         }
         public override void Added(Scene scene)
         {
@@ -179,12 +214,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             FlagUpdate();
-            if(!Flag) return;
+            if (!Flag) return;
             base.Update();
             Talk.Enabled = !talked && Talkable();
             if (Talk.Enabled)
             {
-                ShineEntity.Alpha = Calc.Approach(ShineEntity.Alpha, (float)(Math.Sin(Scene.TimeActive * 0.8f) + 1) / 2, 10f * Engine.DeltaTime);
+                ShineEntity.Alpha = Calc.Approach(ShineEntity.Alpha, (float)(Math.Sin(Scene.TimeActive * 0.9f) + 1) / 2, 15f * Engine.DeltaTime);
             }
             else
             {
@@ -193,6 +228,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void Removed(Scene scene)
         {
+            if (delayAlarm != null && delayAlarm.TimeLeft > 0)
+            {
+                SetFlags(true);
+            }
             base.Removed(scene);
             ShineEntity?.RemoveSelf();
             LockActor?.RemoveSelf();

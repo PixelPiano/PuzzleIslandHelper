@@ -1,7 +1,6 @@
 local eyeLock= {}
 eyeLock.justification = { 0, 0 }
 eyeLock.name = "PuzzleIslandHelper/EyeLock"
-eyeLock.depth = 3
 eyeLock.texture = "objects/PuzzleIslandHelper/lock/sprite"
 local modes = {"Key","Flag"}
 eyeLock.placements =
@@ -14,10 +13,15 @@ eyeLock.placements =
             requiredFlags = "",
             flagsToSet = "",
             flag = "",
-            mode = "Key"
+            mode = "Key",
+            depth = 3,
+            flagDelay = 0.7
         }
     }
 }
+function eyeLock.depth(room, entity)
+    return entity.depth or 3
+end
 eyeLock.fieldInformation =
 {
     mode =

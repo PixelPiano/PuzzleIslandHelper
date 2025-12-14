@@ -10,12 +10,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
     public class PulseEntity : Entity
     {
-        public PulseEntity()
+        public Pulse Pulse;
+        public PulseEntity(Pulse pulse)
         {
+            Add(Pulse = pulse);
         }
         private static PulseEntity create(Vector2 position, int depth, Shapes shape, Fade fadeMode, Mode pulseMode, Vector2 to, float duration,
     float widthFrom, float widthTo, float heightFrom, float heightTo,
-    bool start, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null)
+    bool start, Color colorA = default, Color colorB = default, Ease.Easer colorEase = null, Ease.Easer sizeEase = null, int thickness = 1)
         {
             Pulse pulse = new()
             {
@@ -33,10 +35,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 ColorB = colorB,
                 ColorEase = colorEase ?? Ease.Linear,
                 SizeEase = sizeEase ?? Ease.Linear,
-                PulseMode = pulseMode
+                PulseMode = pulseMode,
+                Thickness = thickness
             };
-            PulseEntity entity = new PulseEntity();
-            entity.Add(pulse);
+            PulseEntity entity = new PulseEntity(pulse);
             entity.Position = position;
             entity.Depth = depth;
             Engine.Scene?.Add(entity);
@@ -283,7 +285,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 case Shapes.Circle:
                     Draw.Circle(RenderPosition, Math.Max(size.X, size.Y), Color * Alpha, Thickness, 20);
                     break;
-                default:
+                case Shapes.Diamond:
                     Draw.Circle(RenderPosition, Math.Max(size.X, size.Y), Color * Alpha, Thickness, 1);
                     break;
             }

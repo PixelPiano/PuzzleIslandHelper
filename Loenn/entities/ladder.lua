@@ -15,7 +15,8 @@ ladder.placements = {
         depth = 0,
         visible = true,
         texture = "objects/PuzzleIslandHelper/ladder",
-        suspendedFlags = ""
+        suspendedFlags = "",
+        extendFlag = ""
     }
 }
 

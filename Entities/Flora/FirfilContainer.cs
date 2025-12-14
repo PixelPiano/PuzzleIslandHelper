@@ -232,7 +232,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             {
                 scaleWiggle = f * 0.3f;
             }));
-            Add(GetItem = new GetItemComponent((p) =>
+            GetItem = new GetItemComponent((p) =>
             {
                 if (Persistent)
                 {
@@ -242,7 +242,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             {
                 EntityOffset = new Vector2(-1, 1),
                 RevertPlayerState = true,
-            });
+            };
+            if (Collectable)
+            {
+                Add(GetItem);
+            }
             /*Add(new PlayerCollider(player =>
             {
                 if (Collectable && ExistFlag)

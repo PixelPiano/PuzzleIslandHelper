@@ -39,16 +39,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 Add(new Coroutine(CameraTo(camPos - new Vector2(160, 90), 1, Ease.SineInOut)));
             }
             yield return Textbox.Say("VillageIntro", elderTurn);
-            yield return ChoicePrompt.Prompt("VillageIntroChoiceA", "VillageIntroChoiceB");
-            if (ChoicePrompt.Choice == 0)
-            {
-                yield return Textbox.Say("legend here as well as how you need 3 keys to enter the tower");
-                yield return Textbox.Say("VillageIntroYes");
-            }
-            else
-            {
-                yield return Textbox.Say("VillageIntroNo");
-            }
             EndCutscene(Level);
         }
         public override void OnEnd(Level level)

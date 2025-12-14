@@ -40,6 +40,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Collider = new Hitbox(data.Width, data.Height);
             Text = data.Attr("text");
         }
+        public DevComment(Vector2 position, string text, float width, float height) : base(position)
+        {
+            Collider = new Hitbox(width, height);
+            Text = text;
+        }
         public override void Added(Scene scene)
         {
             base.Added(scene);

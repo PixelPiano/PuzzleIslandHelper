@@ -5,9 +5,9 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
 {
     [CustomEntity("PuzzleIslandHelper/TransitTower")]
@@ -62,10 +62,149 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
             }
         }
+        public class RodEntity : Solid
+        {
+            public Tower Parent;
+            public float Lerp;
+            public RodEntity(Tower parent, Vector2 position, float width, float height) : base(position, width, height, true)
+            {
+                Parent = parent;
+            }
+            public override void Render()
+            {
+                base.Render();
+                Draw.Rect(Collider, Color.Lerp(Color.White, Color.Red, Lerp));
+            }
+        }
+        public class PortalEntity : Entity
+        {
+            public Image Circle;
+            public float Scale = 0;
+            public PortalEntity(Vector2 position) : base(position)
+            {
+                Add(Circle = new Image(GFX.Game["objects/PuzzleIslandHelper/circle"]));
+                Circle.CenterOrigin();
+                Circle.Scale = Vector2.Zero;
+                Depth = 1;
+            }
+            public override void Update()
+            {
+                base.Update();
+                Circle.Scale = Vector2.One * Scale;
+            }
+
+        }
+        public class EndingEntity : Entity
+        {
+            public class Cutscene : CutsceneEntity
+            {
+                public Tower Parent;
+                public Cutscene(Tower tower) : base(true, true)
+                {
+                    Parent = tower;
+                }
+                public override void OnBegin(Level level)
+                {
+                    if (level.GetPlayer() is Player player)
+                    {
+                        player.DisableMovement();
+                        Add(new Coroutine(cutscene(player)));
+                    }
+                }
+                private IEnumerator cutscene(Player player)
+                {
+                    for (float i = 0; i < 1; i += Engine.DeltaTime)
+                    {
+                        foreach (RodEntity rod in Parent.Rods)
+                        {
+                            rod.Lerp = i;
+                        }
+                        yield return null;
+                    }
+                    yield return 0.2f;
+                    for (float i = 0; i < 1; i += Engine.DeltaTime)
+                    {
+                        Parent.Portal.Scale = i * 4;
+                        yield return null;
+                    }
+                    yield return 0.5f;
+                    player.DummyGravity = false;
+                    float mult = 0;
+                    while (player.Center != Parent.Portal.Center)
+                    {
+                        player.Center = Calc.Approach(player.Center, Parent.Portal.Center, 40f * Engine.DeltaTime * mult);
+                        mult = Calc.Approach(mult, 1, Engine.DeltaTime);
+                        yield return null;
+                    }
+                    yield return 1;
+                    for (float i = 0; i < 1; i += Engine.DeltaTime)
+                    {
+                        player.Sprite.Scale = Vector2.One * Ease.BigBackIn(1 - i);
+                        yield return null;
+                    }
+                    player.Visible = false;
+                    Level.Flash(Color.White);
+                    var e = PulseEntity.Circle(Parent.Portal.Position, 2, Pulse.Fade.Linear, Pulse.Mode.Oneshot, 0, 54, 2, true, Color.White, default, null, Ease.CubeOut);
+                    e.Pulse.Thickness = 6;
+                    yield return 1;
+                    EndCutscene(Level);
+                }
+                public override void OnEnd(Level level)
+                {
+                    level.CompleteArea(true, false, false);
+                }
+            }
+            public TalkComponent Talk;
+            public Pulse Pulse;
+            public bool InCutscene;
+            public EndingEntity(Tower tower, float yOffset) : base(tower.Position + Vector2.UnitY * yOffset)
+            {
+                Collider = new Hitbox(tower.Width, Math.Abs(yOffset));
+                Rectangle bounds = new Rectangle(0, 0, (int)Width, (int)Height);
+                Pulse = Pulse.Diamond(this, Width - 16, Color.White, default, 0.7f, false, null, Ease.CubeOut);
+                Pulse.PulseMode = Pulse.Mode.Persist;
+                Pulse.Position = Collider.HalfSize;
+                Add(Talk = new TalkComponent(bounds, Collider.HalfSize, p =>
+                {
+                    Scene.Add(new Cutscene(tower));
+                    InCutscene = true;
+                }));
+                Pulse.Thickness = 8;
+                Add(new Coroutine(pulseRoutine()));
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (!InCutscene)
+                {
+                    Pulse.Alpha = Calc.Approach(Pulse.Alpha, 1, Engine.DeltaTime);
+                }
+                else
+                {
+                    Pulse.Alpha = Calc.Approach(Pulse.Alpha, 0, Engine.DeltaTime);
+                }
+            }
+            private IEnumerator pulseRoutine()
+            {
+                while (true)
+                {
+                    Pulse.Start();
+                    while (Pulse.Active)
+                    {
+                        yield return null;
+                    }
+                    yield return 0.8f;
+                }
+            }
+        }
+        public EndingEntity Ending;
+        public RodEntity[] Rods = new RodEntity[2];
+        public PortalEntity Portal;
         public List<Stairs> Stairs = [];
         public Entrance entrance;
         public Entity BgEntity;
         public Column.VertexGradient BackWall;
+        private List<Stairs.CustomPlatform> Floors = [];
         private VirtualRenderTarget outsideTarget;
         public float OutsideAlpha = 1;
         private bool outsideRendered;
@@ -86,9 +225,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             outsideTarget = VirtualContent.CreateRenderTarget("outsideOfTower", (int)Width, (int)Height);
             Add(new BeforeRenderHook(BeforeRender));
             AddTag(Tags.TransitionUpdate);
-            Depth = 1;
-        }
+            Depth = 3;
 
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            int height = 50;
+            Rods[0] = new RodEntity(this, Position - Vector2.UnitY * height, 16, height);
+            Rods[1] = new RodEntity(this, TopRight - new Vector2(16, height), 16, height);
+            Portal = new PortalEntity(TopCenter - Vector2.UnitY * 50);
+            Ending = new EndingEntity(this, -50);
+            scene.Add(Rods);
+            scene.Add(Portal, Ending);
+        }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
@@ -124,17 +274,53 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             {
                 stairs.Disable();
             }
+            int barrierWidth = 8;
             if (Stairs.Count > 0) ///
             {
                 Col.Depth = Stairs[0].Depth + 1;
+                barrierWidth = (int)(Stairs[0].Platform.Width / 2f);
             }
             Col.HidesPlayer = false;
+            Safeguards[0] = new InvisibleBarrier(TopLeft, 8, Height);
+            Safeguards[1] = new InvisibleBarrier(TopRight - Vector2.UnitX * 8, 8, Height);
+            scene.Add(Safeguards);
+            bool needsTopFloor = true;
+            foreach (Stairs stairs in Stairs)
+            {
+                Stairs.CustomPlatform floor = new Stairs.CustomPlatform(new Vector2(X, stairs.Bottom), (int)(Width));
+                scene.Add(floor);
+                Floors.Add(floor);
+                if (stairs.Y == Top)
+                {
+                    needsTopFloor = false;
+                }
+            }
+            if (needsTopFloor)
+            {
+                Stairs.CustomPlatform topFloor = new Stairs.CustomPlatform(new Vector2(X, Top), (int)(Width));
+                scene.Add(topFloor);
+                Floors.Add(topFloor);
+            }
+
         }
+        public InvisibleBarrier[] Safeguards = new InvisibleBarrier[2];
         public override void Update()
         {
             base.Update();
             if (Scene.GetPlayer() is not Player player) return;
-            if (player.Right > Right || player.Left < Left || player.Bottom <= Top)
+            if (Input.MoveY == 1 && Input.MoveX == 0)
+            {
+                foreach (var f in Floors)
+                {
+                    if (f.HasPlayerRider() && player.CollideCheck<Ladder>(player.Position + Vector2.UnitY))
+                    {
+                        f.Timer = Engine.DeltaTime * 15;
+                        break;
+                    }
+                }
+            }
+            bool prevState = InsideFlag;
+            if (player.Right > Right || player.Left < Left || (player.Bottom <= Top))
             {
                 InsideFlag.State = false;
             }
@@ -144,21 +330,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             bool inside = InsideFlag;
             entrance.Alpha = OutsideAlpha;
-            //if ((Input.MoveY == 1 && TopPlatform.HasPlayerRider() && player.CenterX >= CenterX && player.CenterX < CenterX + Platform.Width * 2))
-            //{
-            //   TopPlatformCollisionTimer = 0.3f;
-            //  Parent.CanEnter = true;
-            //}
             if (inside)
             {
-                Col.Collidable = true;
-                foreach (Stairs stairs in Stairs) ///
-                {
-                    if (!stairs.Enabled)
-                    {
-                        stairs.Enable();
-                    }
-                }
+                Enable();
                 bool hidePlayer = false;
                 float shade = 0;
                 foreach (Stairs s in Stairs) ///
@@ -176,18 +350,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             else
             {
-                Col.HidesPlayer = false;
-                foreach (Stairs stairs in Stairs) ///
-                {
-                    if (stairs.Enabled)
-                    {
-                        stairs.Disable();
-                    }
-                }
+                Disable();
                 OutsideAlpha = Calc.Approach(OutsideAlpha, 1, Engine.DeltaTime * 3f);
                 PlayerShade.Alpha = Calc.Approach(PlayerShade.Alpha, 0, Engine.DeltaTime * 3f);
             }
             WasInside = inside;
+        }
+        public void Enable()
+        {
+            Col.Collidable = true;
+            Safeguards[0].Collidable = Safeguards[0].Active = Safeguards[1].Collidable = Safeguards[1].Active = true;
+            foreach (Stairs stairs in Stairs) ///
+            {
+                if (!stairs.Enabled)
+                {
+                    stairs.Enable();
+                }
+            }
+        }
+        public void Disable()
+        {
+            Col.HidesPlayer = false;
+            Safeguards[0].Collidable = Safeguards[0].Active = Safeguards[1].Collidable = Safeguards[1].Active = false;
+            foreach (Stairs stairs in Stairs) ///
+            {
+                if (stairs.Enabled)
+                {
+                    stairs.Disable();
+                }
+            }
         }
         private void BeforeRender()
         {
@@ -212,9 +403,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         {
             base.Removed(scene);
             outsideTarget?.Dispose();
-            Stairs.RemoveSelf();
+            Stairs.RemoveSelves();
             entrance.RemoveSelf();
             Col.RemoveSelf();
+            Safeguards.RemoveSelves();
+            Rods.RemoveSelves();
+            Ending.RemoveSelf();
+            Portal.RemoveSelf();
         }
         public void OnEnter(Player player)
         {

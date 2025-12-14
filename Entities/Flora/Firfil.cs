@@ -15,7 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
     [Tracked]
     public class Firfil : Actor
     {
-        [Command("add_firfil", "Creates x firfils and make them follow the player")]
+        [Command("add_firfil", "Creates x firfils and makes them follow the player")]
         public static void CreateFirfils(int x)
         {
             if (Engine.Scene is not Level level)
@@ -98,7 +98,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public bool Stored => FirfilStorage.Stored.Contains(ID);
         public bool FollowingPlayer => Follower != null && Follower.HasLeader && Follower.Leader.Entity is Player;
-        public bool FollowingEnabled => !AvoidFlag;
+        public bool FollowingEnabled => CanFollowFlag;
         public bool AtNest;
         public Follower Follower;
         public Vector2 Offset;
@@ -124,7 +124,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public bool LastLeaderWasPlayer;
         public Circle AvoidCollider;
         public Collider NormalCollider;
-        public FlagList AvoidFlag;
+        public FlagList CanFollowFlag;
         public Vector2 AvoidOffset;
         public const float FleeDelayInterval = 0.05f;
         public Color ColorA => CurrentFlicker.ColorA;
@@ -144,7 +144,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         private Player dashingPlayer;
         public Firfil(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id)
         {
-            AvoidFlag = data.FlagList("avoidPlayerFlag");
+            CanFollowFlag = data.FlagList("canFollowFlag");
         }
         public Firfil(Vector2 position, EntityID id) : base(position)
         {

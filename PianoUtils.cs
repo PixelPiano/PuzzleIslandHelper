@@ -8,6 +8,7 @@ using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
+using Celeste.Mod.XaphanHelper.Effects;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -20,11 +21,18 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using static Celeste.Autotiler;
+using static Celeste.ClutterBlock;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.Pulse;
 using static Celeste.Player;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static void Cycle<T>(this Tuple<T, T> tuple)
+    {
+        var item1 = tuple.Item1;
+        var item2 = tuple.Item2;
+        tuple = new Tuple<T, T>(item2, item1);
+    }
     public static Hitbox Collider(this IEnumerable<Vector2> list)
     {
         float left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
@@ -1303,7 +1311,6 @@ public static class PianoUtils
     public static int Wrap<T>(this int i, T[] array, int move) => array == null ? i : i.Wrap(0, Math.Max(array.Length - 1, 0), move);
     public static int Wrap<T>(this int i, ICollection<T> array, int move) => array == null ? i : i.Wrap(0, Math.Max(array.Count - 1, 0), move);
     public static int Wrap<T>(this int i, ISet<T> array, int move) => array == null ? i : i.Wrap(0, Math.Max(array.Count - 1, 0), move);
-
     [Command("groundplayer", "")]
     public static void GroundPlayer(bool jumpthru = false, bool snapup = true)
     {
@@ -1931,7 +1938,7 @@ public static class PianoUtils
     {
         return new VertexPositionColor(new Vector3(position, 0), color);
     }
-    public static void RemoveSelf(this IEnumerable<Entity> entities)
+    public static void RemoveSelves(this IEnumerable<Entity> entities)
     {
         foreach (Entity e in entities)
         {

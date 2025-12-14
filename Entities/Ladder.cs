@@ -6,6 +6,7 @@ using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using static MonoMod.InlineRT.MonoModRule;
@@ -19,59 +20,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         [Tracked]
         public class Step : JumpThru
         {
-            /*            [OnLoad]
-                        public static void Load()
-                        {
-                            IL.Celeste.Actor.MoveVExact += Actor_MoveVExact;
-                        }
-                        [OnUnload]
-                        public static void Unload()
-                        {
-                            IL.Celeste.Actor.MoveVExact -= Actor_MoveVExact;
-                        }
-                        private static void Actor_MoveVExact(ILContext il)
-                        {
-                            ILCursor cursor = new ILCursor(il);
-                            bool findNext()
-                            {
-                                return cursor.TryGotoNext(MoveType.After,
-                                    item => item.Match(OpCodes.Brfalse_S),
-                                    item => item.MatchLdarg0(),
-                                    item => item.MatchLdfld<Vector2>("movementCounter"));
-                            }
-                            if (findNext() && findNext())
-                            {
-                                Engine.Commands.Log("GOT THROUGH 1");
-                                if (cursor.TryGotoPrev(MoveType.After, item => item.MatchLdloc3()))
-                                {
-                                    Engine.Commands.Log("GOT THROUGH 2");
-                                    cursor.EmitLdloc3();
-                                    cursor.EmitLdarg0();
-                                    cursor.EmitDelegate(CollideWithActor);
-                                    cursor.EmitAnd();
-                                }
-                            }
-                        }
-                        public static bool CollideWithActor(JumpThru jumpThru, Actor actor)
-                        {
-                            if(jumpThru is Step step && actor is Player player)
-                            {
-                                if(step.LetPlayerThrough) return false;
-                            }
-                            return true;
-                        }*/
-            public Image Image;
+            public Sprite Sprite;
             public Ladder Parent;
             public float CollidableTimer;
             public bool ForceCollidable;
             public Vector2 Offset;
-            public Step(Ladder parent, string path, Vector2 position, int width, bool safe) : base(parent.Position + position, width, safe)
+            public bool Extending;
+            public bool Extended;
+            public FlagList ExtendFlag;
+            public Step(Ladder parent, string path, Vector2 position, int width, bool safe, string flag = "") : base(parent.Position + position, width, safe)
             {
+                ExtendFlag = new FlagList(flag);
                 Offset = position;
                 Parent = parent;
-                Image = new Image(GFX.Game[path]);
-                Image.Y -= 3;
-                Add(Image);
+                Sprite = new Sprite(GFX.Game, path);
+                Sprite.AddLoop("idle", "ladder", 0.1f);
+                Sprite.Add("extend", "ladderExtend", 0.05f, "idle");
+                Sprite.AddLoop("hide", "reallyBadLadder", 0.1f);
+                Sprite.Y -= 3;
+                Add(Sprite);
+                Sprite.Play("idle");
+                Sprite.Origin = new Vector2(Sprite.Width / 2, Sprite.Height);
+                Sprite.Position += Sprite.Origin;
                 Visible = false;
                 Tag |= Tags.TransitionUpdate;
             }
@@ -89,12 +59,72 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     CollidableTimer -= Engine.DeltaTime;
                 }
-                Image.SetColor(Color.White * Parent.Alpha);
+                Sprite.SetColor(Color.White * Parent.Alpha);
             }
             public void DrawOutline()
             {
-                Image.DrawSimpleOutline();
+                Sprite.DrawSimpleOutline();
             }
+            public IEnumerator ExtendRoutine()
+            {
+                Extending = true;
+                Sprite.Play("extend");
+                while (Sprite.CurrentAnimationID != "idle")
+                {
+                    yield return null;
+                }
+                Extended = true;
+                Extending = false;
+
+            }
+            public void Extend(bool instant = false)
+            {
+                if (instant)
+                {
+                    Extended = true;
+                    Extending = false;
+                    Sprite.Play("idle");
+                    Collidable = true;
+                }
+                else
+                {
+                    Add(new Coroutine(ExtendRoutine()));
+                }
+            }
+        }
+        public bool Extending;
+        public bool Extended;
+        public void Extend(bool instant)
+        {
+            if (instant)
+            {
+                foreach (Step step in rungs)
+                {
+                    step.Extend(true);
+                }
+                Extended = true;
+                Extending = false;
+            }
+            else
+            {
+                Extending = true;
+                Add(new Coroutine(extendRoutine()));
+            }
+        }
+        private IEnumerator extendRoutine()
+        {
+            foreach (Step step in rungs)
+            {
+                step.Sprite.Play("hide");
+                step.Collidable = false;
+            }
+            foreach (Step step in rungs.Reverse<Step>())
+            {
+                yield return new SwapImmediately(step.ExtendRoutine());
+                step.Collidable = true;
+            }
+            Extended = true;
+            Extending = false;
         }
         public bool TryingToClimb => Math.Abs(Input.MoveX.Value) < 0.5f && Input.MoveY.Value == -1 && (climbTimer <= 0 || prevMoveY > -1);
         public List<Step> rungs = [];
@@ -105,12 +135,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public string TexturePath;
         private float climbTimer;
         private FlagList Suspended;
+        private FlagList ExtendFlag;
         public float YSpeed = 20;
         private int prevMoveY = 0;
         public bool CollidableWhileHoldingDown = false;
-        public Ladder(EntityData data, Vector2 offset) : this(data.Position + offset, data.Height, data.Attr("texture", "objects/PuzzleIslandHelper/ladder"), data.Bool("visible"), data.Int("depth"), data.FlagList("suspendedFlags")) { }
-        public Ladder(Vector2 position, int height, string texture, bool visible, int depth, FlagList suspendedFlags) : base(position)
+        public Ladder(EntityData data, Vector2 offset) : this(data.Position + offset, data.Height, data.Attr("texture", "objects/PuzzleIslandHelper/ladder"), data.Bool("visible"), data.Int("depth"), data.FlagList("suspendedFlags"), data.FlagList("extendFlag")) { }
+        public Ladder(Vector2 position, int height, string texture, bool visible, int depth, FlagList suspendedFlags, FlagList extendFlag) : base(position)
         {
+            ExtendFlag = extendFlag;
             IgnoreJumpThrus = true;
             Suspended = suspendedFlags;
             Collider = new Hitbox(16, height);
@@ -159,6 +191,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (SceneAs<Level>().Bounds.Bottom < Top)
                 {
                     RemoveSelf();
+                    break;
                 }
             }
         }
@@ -178,6 +211,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             playerColliding = false;
             base.Update();
             if (Scene is not Level level || level.GetPlayer() is not Player player) return;
+            if (ExtendFlag && !Extended && !Extending)
+            {
+                Extend(false);
+            }
             if (!Suspended.Empty && !Suspended)
             {
                 YSpeed = Calc.Approach(YSpeed, 300f, 900f * Engine.DeltaTime);
@@ -207,9 +244,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 climbTimer -= Engine.DeltaTime;
             }
             bool c = Collidable && !playerInTower;
+            bool extendFlag = ExtendFlag;
             foreach (var item in rungs)
             {
-                item.Collidable = c && item.CollidableTimer <= 0 && !(inputAimedDown || !stepsCollidable) || item.ForceCollidable;
+                item.Collidable = (extendFlag && (Extended || item.Extended)) && c && item.CollidableTimer <= 0 && !(inputAimedDown || !stepsCollidable) || item.ForceCollidable;
             }
             if (!inputAimedDown && c)
             {
@@ -226,6 +264,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             FreezeCheck(scene as Level);
             TowerHead = scene.Tracker.GetEntity<TowerHead>();
+            if (ExtendFlag)
+            {
+                Extended = true;
+                Extend(true);
+            }
+            else
+            {
+                foreach (Step s in rungs)
+                {
+                    s.Sprite.Play("hide");
+                    s.Collidable = false;
+                }
+            }
         }
         public bool PlayerOnGroundOrNonStepJumpThru(Player player)
         {
@@ -317,7 +368,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 float y = Y + (i + 3);
                 if (y > bounds.Bottom) break;
                 if (y < bounds.Top) continue;
-                Step rung = new Step(this, TexturePath, Vector2.UnitY * (i + 3), 16, true);
+                Step rung = new Step(this, "objects/PuzzleIslandHelper/", Vector2.UnitY * (i + 3), 16, true);
                 if (TopRung == null)
                 {
                     TopRung = rung;

@@ -359,7 +359,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             base.Removed(scene);
             Elevator.RemoveSelf();
             Cover.RemoveSelf();
-            Barriers.RemoveSelf();
+            Barriers.RemoveSelves();
             if (scene.GetPlayer() is Player player)
             {
                 player.Light.Alpha = prevPlayerLightAlpha;

@@ -56,9 +56,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     float y = 0;
                     if (Text != null)
                     {
-                        y = Text.Lines * Text.BaseSize * 6;
+                        y = Text.Lines * Text.BaseSize * 20;
                     }
-                    Sub.DrawOutlineJustifyPerLine(new Vector2(160 * 6, 180 + y), new Vector2(0.5f, 0), Vector2.One * 0.7f, 1, 0, SubEnd);
+                    Sub.DrawOutlineJustifyPerLine(new Vector2(160 * 6, 250 + y), new Vector2(0.5f, 0), Vector2.One * 0.7f, 1, 0, SubEnd);
                 }
             }
         }
@@ -90,6 +90,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public void End(Player player)
         {
             Scene.Remove(text);
+            player.DummyAutoAnimate = true;
+            player.DummyGravity = true;
+            player.EnableMovement();
             if (prevDepth.HasValue)
             {
                 Entity.Depth = prevDepth.Value;
@@ -141,7 +144,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
 
             fakeEntity.Add(Glimmer);
             Scene.Add(fakeEntity);
-            if(Entity.Collider != null)
+            if (Entity.Collider != null)
             {
                 Glimmer.Position = Entity.Collider.HalfSize;
             }
@@ -176,6 +179,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 while (text.TextEnd < fancyText.Count)
                 {
                     var node = fancyText[text.TextEnd];
+                    text.TextEnd++;
                     if (node is FancyText.Char)
                     {
                         yield return (node as FancyText.Char).Delay;
@@ -184,7 +188,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     {
                         yield return (node as FancyText.Wait).Duration;
                     }
-                    text.TextEnd++;
                     if (Input.MenuConfirm.Pressed)
                     {
                         text.TextEnd = fancyText.Count - 1;
@@ -199,6 +202,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 while (text.SubEnd < fancySubText.Count)
                 {
                     var node = fancySubText[text.SubEnd];
+                    text.SubEnd++;
                     if (node is FancyText.Char)
                     {
                         yield return (node as FancyText.Char).Delay;
@@ -207,7 +211,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     {
                         yield return (node as FancyText.Wait).Duration;
                     }
-                    text.SubEnd++;
                     if (Input.MenuConfirm.Pressed)
                     {
                         text.SubEnd = fancySubText.Count - 1;

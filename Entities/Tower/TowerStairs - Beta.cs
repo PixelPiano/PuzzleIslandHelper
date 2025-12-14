@@ -192,11 +192,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
-            Floors.RemoveSelf();
+            Floors.RemoveSelves();
             Col.RemoveSelf();
             PlayerShade.RemoveSelf();
             TopPlatform.RemoveSelf();
-            Safeguards.RemoveSelf();
+            Safeguards.RemoveSelves();
             FGRailing.RemoveSelf();
             BGRailing.RemoveSelf();
         }
