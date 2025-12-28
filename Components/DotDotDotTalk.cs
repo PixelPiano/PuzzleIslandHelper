@@ -11,6 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public DotX3(float x, float y, float width, float height, Vector2 drawAt, Action<Player> onTalk) : base(x, y, width, height, drawAt, onTalk, SpecialType.DotDotDot)
         {
         }
+        public DotX3(Vector2 position, float width, float height, Vector2 drawAt, Action<Player> onTalk) : this(position.X, position.Y, width, height, drawAt, onTalk) { }
         public DotX3(Collider collider, Action<Player> onTalk) : base(collider.Position.X, collider.Position.Y, collider.Width, collider.Height, collider.Position + Vector2.UnitX * collider.Width / 2, onTalk, SpecialType.DotDotDot)
         {
 

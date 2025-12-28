@@ -67,7 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             public static bool operator ==(Flicker left, Flicker right)
             {
-                return left == right;
+                return left.Equals(right);
             }
 
             public override int GetHashCode()
@@ -178,18 +178,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 }
             };
             Add(transitionListener);
-            DashListener dashListener = new DashListener(OnDash);
-            Add(dashListener);
+            //DashListener dashListener = new DashListener(OnDash);
+            //Add(dashListener);
             Add(dashFlickerCoroutine = new Coroutine(false));
-            Add(new PostUpdateHook(() =>
+/*            Add(new PostUpdateHook(() =>
             {
                 if (startDashFlickerCoroutine)
                 {
-                    dashFlickerCoroutine.Replace(dashFlicker(prevDashColor, dashingPlayer.Hair.Color));
+                    //dashFlickerCoroutine.Replace(dashFlicker(prevDashColor, dashingPlayer.Hair.Color));
                     dashingPlayer = null;
                     startDashFlickerCoroutine = false;
                 }
-            }));
+            }));*/
         }
         public override void DebugRender(Camera camera)
         {
@@ -330,6 +330,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 {
                     StatidColliderTimer = 2;
                     Colliding = null;
+                    if (FollowingPlayer && CurrentFlicker != Flicker.Follow)
+                    {
+                        CurrentFlicker = Flicker.Follow;
+                    }
                 }
             }
             if (Pollinating != null)

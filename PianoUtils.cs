@@ -27,12 +27,6 @@ using static Celeste.Player;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
-    public static void Cycle<T>(this Tuple<T, T> tuple)
-    {
-        var item1 = tuple.Item1;
-        var item2 = tuple.Item2;
-        tuple = new Tuple<T, T>(item2, item1);
-    }
     public static Hitbox Collider(this IEnumerable<Vector2> list)
     {
         float left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
@@ -2694,6 +2688,22 @@ public static class PianoUtils
         return toSwitch;
     }
 
+    public static List<T> SeekControllers<T>(Scene scene) where T : Entity
+    {
+        List<T> list = [];
+        foreach (var a in scene.Tracker.GetEntities<T>())
+        {
+            list.Add(a as T);
+        }
+        foreach (var a in scene.Entities.ToAdd)
+        {
+            if (a is T t)
+            {
+                list.Add(t);
+            }
+        }
+        return [.. list.Distinct()];
+    }
     public static T SeekController<T>(Scene scene, Func<T> factory = null) where T : Entity
     {
         T controller = scene.Tracker.GetEntity<T>();

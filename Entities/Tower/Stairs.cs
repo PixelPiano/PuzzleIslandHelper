@@ -9,7 +9,6 @@ using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using static Celeste.Mod.PuzzleIslandHelper.Beta.ArtifactSlot;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
 {
     [CustomEntity("PuzzleIslandHelper/TowerStairs")]
@@ -17,12 +16,34 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
     public class Stairs : Entity
     {
         public bool RenderOnce = true;
+        [CustomEntity("PuzzleIslandHelper/TowerPlatform")]
         [TrackedAs(typeof(JumpThru))]
+        [Tracked]
         public class CustomPlatform : JumpThru
         {
             public float Timer;
+            public bool Disabled;
+            public bool InElevator;
+            private bool timerBlocked;
+            public Tower Tower;
+
             public CustomPlatform(Vector2 position, int width) : base(position, width, true)
             {
+            }
+            public CustomPlatform(EntityData data, Vector2 offset) : base(data.Position + offset, data.Width, true)
+            {
+
+            }
+            public override void Awake(Scene scene)
+            {
+                base.Awake(scene);
+                Tower = scene.Tracker.GetEntity<Tower>();
+                if (Tower == null)
+                {
+                    RemoveSelf();
+                    return;
+                }
+                Collidable = Tower.Inside;
             }
             public override void Render()
             {
@@ -32,16 +53,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public override void Update()
             {
                 base.Update();
+
                 if (Timer > 0)
                 {
-                    Collidable = false;
+                    timerBlocked = true;
                     Timer -= Engine.DeltaTime;
-                    if(Timer <= 0)
+                    if (Timer <= 0)
                     {
                         Timer = 0;
-                        Collidable = true;
+                        timerBlocked = false;
                     }
                 }
+                Collidable = !timerBlocked && !Disabled && (Tower.Inside || Tower.Ending.CollideCheck<Player>());
+                if (Collidable)
+                {
+                    if (Input.MoveY == 1 && Input.MoveX == 0)
+                    {
+                        if (GetPlayerRider() is Player player && player.CollideCheck<Platform, CustomPlatform>(player.Position + Vector2.UnitY * player.Height))
+                        {
+                            Timer = Engine.DeltaTime * 15;
+                        }
+                    }
+                }
+
+
             }
         }
         public float AngleOffset
@@ -56,7 +91,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
             }
         }
-        public SineWave Sine;
+        public float FlowRateMult;
         private int stepOffset;
         private int stepSkip = 4;
         private float angleOffset;
@@ -64,7 +99,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public Tower Parent;
         public int Revolutions;
         public bool RidingPlatform;
-        public bool PlayerFading;
         public CustomPlatform TopPlatform;
         public float TopPlatformCollisionTimer;
         public JumpThru Platform;
@@ -93,7 +127,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         public Color BGColor = Color.Black;
         public Color FGColor = Color.White;
-        public int? LastRodeFloor;
+        public int? LastRiddenFloor;
         public int LastFloor;
         private float forceAscentTimer;
         public Vector2 LastSign;
@@ -227,6 +261,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         private float flowTimer;
         private Renderer[] Renderers = new Renderer[2];
+        public bool InElevator;
         public Stairs(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height, data.Int("halfRevolutions", 3), data.Bool("flipX") ? -1 : 1, data.Bool("flipZ") ? -1 : 1)
         {
 
@@ -296,7 +331,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 CurrentFloor = ((int)halfWavesFromTop);
                 if (RidingPlatform)
                 {
-                    LastRodeFloor = ((int)halfWavesFromTop);
+                    LastRiddenFloor = ((int)halfWavesFromTop);
                     if (distToInt < (3 / HalfWave))
                     {
                         if (Input.MoveY == 1 || (LastSign == new Vector2(-1, 1) && player.Facing == Facings.Left)
@@ -313,7 +348,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
                 else if (!Parent.CollideCheck<Player>())
                 {
-                    LastRodeFloor = null;
+                    LastRiddenFloor = null;
                 }
                 if (Input.MoveY == -1 || !RidingPlatform)
                 {
@@ -392,7 +427,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     }
                 }
 
-                Platform.Collidable = Collidable && NoCollideTimer == 0 && CollidableFlag && !DisablePlatform;
+                Platform.Collidable = !InElevator && Collidable && NoCollideTimer == 0 && CollidableFlag && !DisablePlatform;
                 distFromCenter = Math.Abs(player.CenterX - CenterX);
                 CurrentZ = GetZ(y);
 
@@ -400,19 +435,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 ShadeValue = 0;
                 if (player.Bottom >= Top && player.Top <= Bottom)
                 {
-                    if (LastRodeFloor.HasValue && LastRodeFloor.Value % 2 == CurrentFloor % 2 && CurrentZ < 0)
+                    if (LastRiddenFloor.HasValue && LastRiddenFloor.Value % 2 == CurrentFloor % 2 && CurrentZ < 0)
                     {
                         ShadeValue = Math.Abs(CurrentZ) / Radius;
                     }
                     HidingEnabled = false;
-                    if (LastRodeFloor.HasValue)
+                    if (LastRiddenFloor.HasValue)
                     {
-                        if (LastRodeFloor.Value % 2 != CurrentFloor % 2 && distFromCenter < Parent.Col.Width / 2)
+                        if (LastRiddenFloor.Value % 2 != CurrentFloor % 2 && distFromCenter < Parent.Col.Width / 2)
                         {
                             Platform.Collidable = false;
                         }
                         int val = Math.Max(0, XFlipScale);
-                        HidingEnabled = distFromCenter < Parent.Col.Width / 2 + 4 && LastRodeFloor.Value % 2 == val && !Parent.Col.InColumn;
+                        HidingEnabled = distFromCenter < Parent.Col.Width / 2 + 4 && LastRiddenFloor.Value % 2 == val && !Parent.Col.InElevator;
                     }
                 }
 
@@ -441,7 +476,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 {
                     player.Bottom = Platform.Top;
                     //prevents the player from magically falling through the stairs for no apparent reason
-                    //it's sloppy but i genuinely tried my best to fix it intuitively but I couldn't figure that shit out
+                    //it's sloppy but i genuinely tried my best to fix it intuitively and I couldn't figure that shit out
                 }
                 if (LastFloor != CurrentFloor && Platform.Collidable && !RidingPlatform)
                 {
@@ -470,7 +505,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 {
                     Platform.Collidable = true;
                     TopPlatformCollisionTimer = 0.3f;
-                    //Parent.CanEnter = true;
                 }
 
                 if (TopPlatformCollisionTimer > 0)
@@ -496,11 +530,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     }
                 }
             }
-            if (RidingPlatform)
+
+            if (RidingPlatform && !player.IsRiding(TopPlatform))
             {
                 FlowRateMult = Calc.Approach(FlowRateMult, 1, Engine.DeltaTime);
             }
-            else if (!RidingPlatform)
+            else
             {
                 FlowRateMult = Calc.Approach(FlowRateMult, 0, Engine.DeltaTime);
             }
@@ -513,7 +548,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             target?.Dispose();
             Renderers.RemoveSelves();
         }
-        public float FlowRateMult;
         public void Initialize(Scene scene)
         {
             if (Initialized) return;
@@ -538,15 +572,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             YOffset = 0;
             Enabled = false;
             RidingPlatform = false;
-            LastRodeFloor = null;
+            LastRiddenFloor = null;
             XMult = 1;
             LastSign = Vector2.Zero;
             PrevPosition = Vector2.Zero;
             LastFloor = 0;
             Platform.Collidable = false;
             TopPlatform.Collidable = true;
-            Parent.Col.HidesPlayer = false;
-            Parent.Col.Collidable = false;
+            if (Parent != null && Parent.Col != null)
+            {
+                Parent.Col.HidesPlayer = false;
+                Parent.Col.Collidable = false;
+            }
             forceAscentTimer = 0;
             AtTop = WasAtTop = false;
         }

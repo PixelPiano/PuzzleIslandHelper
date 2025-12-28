@@ -53,17 +53,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Lights[i].Play(flag ? "on" : "off");
                 Lights[i].Color = flag ? Color.Lime : Color.LightGray;
             }
+
             scene.Add(RewardRune = new RuneDisplay(
-                Pannel.RenderPosition + Vector2.One * 4, 
-                (int)Pannel.Width - 8, 
-                (int)Pannel.Height - 8, 
-                runeID, 
-                true, 
-                "", 
-                Depth + 1));
+                Pannel.RenderPosition + Vector2.One * 5,
+                (int)Pannel.Width - 10,
+                (int)Pannel.Height - 10,
+                runeID,
+                true,
+                "",
+                Depth + 1, false));
+            RewardRune.Visible = false;
             if (routineDone || allOn)
             {
-                Y = (float)Math.Floor(OrigY + Pannel.Height * 0.7f);
+                Y += Pannel.Height;
+                RewardRune.Visible = true;
                 if (!routineDone)
                 {
                     RoutineFlag.State = true;
@@ -73,6 +76,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private IEnumerator revealRune()
         {
+            RewardRune.Visible = true;
             Shaker.StartShaking(-1);
             yield return 1f;
             for (float i = 0; i < 1; i += Engine.DeltaTime / 3)
@@ -109,10 +113,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Lights[i].Play(flag ? "on" : "off");
                 Lights[i].Color = flag ? Color.Lime : Color.Gray;
             }
-            if (allOn && !RoutineFlag)
+            if (allOn)
             {
-                RoutineFlag.State = true;
-                Add(new Coroutine(revealRune()));
+                RewardRune.Visible = true;
+                if (!RoutineFlag)
+                {
+                    RoutineFlag.State = true;
+                    Add(new Coroutine(revealRune()));
+                }
             }
         }
     }

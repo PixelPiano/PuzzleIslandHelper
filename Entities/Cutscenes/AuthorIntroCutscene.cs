@@ -154,13 +154,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         public Author author;
         public Player Player;
-        public Calidus Calidus;
         public AuthorBook Book;
         private AuthorBookInspect BookInspect;
         private bool faceAuthor;
         private float bookYOffset;
         private float playerTo;
-        private Vector2 calidusTo;
         public bool BookCarried = true;
         public FlagData MentionedBook = new FlagData("AuthorIntroMentionedBook");
         public override void OnBegin(Level level)
@@ -168,24 +166,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             if (level.GetPlayer() is Player player)
             {
                 Player = player;
-                if (level.Tracker.GetEntity<Calidus>() is Calidus calidus)
+                if (level.Tracker.GetEntity<Author>() is Author author)
                 {
-                    Calidus = calidus;
-                    if (level.Tracker.GetEntity<Author>() is Author author)
+                    this.author = author;
+                    bookYOffset = author.Height / 2;
+                    if (level.Tracker.GetEntity<AuthorBook>() is AuthorBook book)
                     {
-                        this.author = author;
-                        bookYOffset = author.Height / 2;
-                        if (level.Tracker.GetEntity<AuthorBook>() is AuthorBook book)
+                        Book = book;
+                        if (Marker.TryFind("player", out var v))
                         {
-                            Book = book;
-                            if (Marker.TryFind("player", out var v))
-                            {
-                                playerTo = v.X;
-                                if (Marker.TryFind("calidus", out calidusTo))
-                                {
-                                    Add(new Coroutine(cutscene()));
-                                }
-                            }
+                            playerTo = v.X;
+                            Add(new Coroutine(cutscene()));
+
                         }
                     }
                 }
@@ -204,13 +196,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             }
             author.Facing = Facings.Right;
             author.HasGravity = true;
-            Calidus?.LookAt(Player);
-            Calidus.Emotion(Calidus.Mood.Normal);
             BookCarried = false;
             Book.HasGravity = true;
             Player.EnableMovement();
-            Calidus.StartFollowing();
-
         }
         public override void Update()
         {
@@ -218,7 +206,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             if (faceAuthor)
             {
                 Player?.Face(author);
-                Calidus?.LookAt(author);
             }
             if (Book != null && BookCarried && !Author.IntroOneWatched)
             {
@@ -241,16 +228,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             if (!Author.IntroOneWatched)
             {
                 Book.Depth = author.Depth - 1;
-                Calidus.StopFollowing();
-                Calidus.LookAt(this.calidusTo - Vector2.UnitX * 8);
-                Coroutine playerWalk;
-                Coroutine calidusTo;
-                Add(playerWalk = new Coroutine(Player.DummyWalkTo(playerTo)));
-                Add(calidusTo = new Coroutine(Calidus.FloatTo(this.calidusTo)));
-                while (!(calidusTo.Finished && playerWalk.Finished))
-                {
-                    yield return null;
-                }
+                yield return Player.DummyWalkTo(playerTo);
                 yield return Textbox.Say("AuthorIntro", authorEnter, authorFaceRight, authorToLeft, authorToRight, throwBook, allJump);
                 Author.IntroOneWatched.State = true;
             }
@@ -258,7 +236,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             {
                 yield return Player.DummyWalkTo(author.Right + 10);
                 Player.Facing = Facings.Left;
-                Calidus.LookAt(author);
             }
             bool abort = false;
             while (!abort)
@@ -357,7 +334,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         private IEnumerator allJump()
         {
             Player.Jump();
-            Calidus.Nudge(-Vector2.UnitY * 8, 0.3f, Ease.SineIn, true);
             author.Jump();
             yield return null;
         }

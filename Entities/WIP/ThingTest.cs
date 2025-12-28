@@ -8,7 +8,7 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 
 {
-    [CustomEntity("PuzzleIslandHelper/WipEntity")]
+    //[CustomEntity("PuzzleIslandHelper/WipEntity")]
     public class dummyWipEntity : Entity
     {
     }

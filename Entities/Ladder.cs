@@ -277,6 +277,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     s.Collidable = false;
                 }
             }
+
         }
         public bool PlayerOnGroundOrNonStepJumpThru(Player player)
         {

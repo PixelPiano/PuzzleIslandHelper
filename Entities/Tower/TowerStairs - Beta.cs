@@ -209,7 +209,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             {
                 PlayerShade.Alpha = 0;
             }
-            else if (!CollideCheck(player) || player.Bottom > Platform.Y || Col.InColumn)
+            else if (!CollideCheck(player) || player.Bottom > Platform.Y || Col.InElevator)
             {
                 PlayerShade.Alpha = Calc.Approach(PlayerShade.Alpha, 0, Engine.DeltaTime);
             }

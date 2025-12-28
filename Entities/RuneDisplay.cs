@@ -29,16 +29,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public bool DrawBounds = true;
         public bool DrawAllPoints = true;
         private readonly bool fromId;
+        private int Thickness = 1;
         private static Vector2[] indexOffsets = [new(1, 0), new(3, 0), new(5, 0), new(0, 1), new(2, 1), new(4, 1), new(6, 1), new(1, 2), new(3, 2), new(5, 2)];
 
         public RuneDisplay(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height,
             data.Attr("mode") == "From ID" ? data.Attr("runeId") : data.Attr("rune"), data.Attr("mode") == "From ID", data.Attr("flag"),
-            data.Int("depth", 1), data.Bool("drawBounds", true), data.Bool("drawAllPoints", true))
+            data.Int("depth", 1), data.Bool("drawBounds", true), data.Bool("drawAllPoints", true), data.Int("thickness", 1))
         {
         }
         public RuneDisplay(Vector2 position, int width, int height, string rune = "", bool fromid = false, string flag = "", int depth = 1,
-            bool drawBounds = true, bool drawAllPoints = true) : base(position)
+            bool drawBounds = true, bool drawAllPoints = true, int thickness = 1) : base(position)
         {
+            Thickness = thickness;
             Collider = new Hitbox(width, height);
             this.rune = rune;
             this.fromId = fromid;
@@ -47,6 +49,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Depth = depth;
             DrawBounds = drawBounds;
             DrawAllPoints = drawAllPoints;
+            Thickness = thickness;
         }
         public override void Added(Scene scene)
         {
@@ -103,7 +106,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     Vector2 start = indexOffsets[l.a] * scale;
                     Vector2 end = indexOffsets[l.b] * scale;
-                    Draw.Line(Position + start, Position + end, Color.Red);
+                    Draw.Line(Position + start, Position + end, Color.Red, Thickness);
                 }
             }
         }

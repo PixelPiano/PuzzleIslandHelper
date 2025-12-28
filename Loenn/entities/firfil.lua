@@ -13,7 +13,7 @@ firfil.placements =
         name = "Firfil",
         data = 
         {
-            avoidPlayerFlag = ""
+            canFollowFlag = ""
         }
     }
 }

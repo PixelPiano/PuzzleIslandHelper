@@ -26,12 +26,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public EyeLock Parent;
             private float blackLerp;
             private Image image;
+            public ImageShine Shine;
+            public bool Shining;
             public Lock(EyeLock parent) : base(parent.Position)
             {
                 Parent = parent;
                 Depth = parent.Depth - 1;
                 Collider = new Hitbox(10, 8, 11, 11);
                 Add(image = new Image(GFX.Game["objects/PuzzleIslandHelper/lock/eye"]));
+            }
+            public override void Added(Scene scene)
+            {
+                base.Added(scene);
+                Add(Shine = new ImageShine(GFX.Game["objects/PuzzleIslandHelper/lock/shine"], 0));
+                Shine.Position = Collider.Center;
             }
             public void Drop()
             {
@@ -40,31 +48,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public override void Update()
             {
                 base.Update();
+                if (Shining)
+                {
+                    Shine.Alpha = Calc.Approach(Shine.Alpha, (float)(Math.Sin(Scene.TimeActive * 0.9f) + 1) / 2, 15f * Engine.DeltaTime);
+                }
+                else
+                {
+                    Shine.Alpha = Calc.Approach(Shine.Alpha, 0, Engine.DeltaTime * 10);
+                }
+
                 if (Gravity != 0)
                 {
                     blackLerp = Calc.Approach(blackLerp, 0.5f, Engine.DeltaTime * 8);
                     image.Color = Color.Lerp(Color.White, Color.Black, blackLerp);
-                }
-                if (flashing)
-                {
-                    if (Scene.OnInterval(interval * Engine.DeltaTime))
+                    if (!flashing)
                     {
-                        Visible = !Visible;
-                        if (Visible)
-                        {
-                            interval *= 0.7f;
-                        }
-                        if (interval <= 5)
-                        {
-                            RemoveSelf();
-                            return;
-                        }
+                        SpeedY = Calc.Approach(SpeedY, Gravity, 300f * Engine.DeltaTime);
+                        MoveV(SpeedY * Engine.DeltaTime, OnCollideV);
                     }
-                }
-                else if (Gravity != 0)
-                {
-                    SpeedY = Calc.Approach(SpeedY, Gravity, 300f * Engine.DeltaTime);
-                    MoveV(SpeedY * Engine.DeltaTime, OnCollideV);
                 }
             }
             public override void Removed(Scene scene)
@@ -79,36 +80,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 else
                 {
-                    flashing = true;
+                    if (!flashing)
+                    {
+                        flashing = true;
+                        Add(new Coroutine(flashingRoutine()));
+                    }
+
                     SpeedY = 0;
                 }
             }
-        }
-        public class Shine : Entity
-        {
-            public float Alpha = 0;
-            public Image Image;
-            public Image Image2;
-            public Shine(EyeLock parent) : base(parent.Position)
+            private IEnumerator flashingRoutine()
             {
-                Depth = parent.Depth - 2;
-                Add(Image2 = new Image(GFX.Game["objects/PuzzleIslandHelper/lock/shine"]));
-                Image2.Scale = Vector2.One * 2f;
-                Image2.Origin = new Vector2(16);
-                Image2.Position += new Vector2(16);
-                Add(Image = new Image(GFX.Game["objects/PuzzleIslandHelper/lock/shine"]));
-                Image.Color = Image2.Color = Color.Transparent;
-                Collider = Image.Collider();
-            }
-            public override void Added(Scene scene)
-            {
-                base.Added(scene);
-                Image2.Color = (Image.Color = Color.White * Alpha) * 0.7f;
-            }
-            public override void Update()
-            {
-                base.Update();
-                Image2.Color = (Image.Color = Color.White * Alpha) * 0.7f;
+                int interval = 20;
+                while (interval > 5)
+                {
+                    yield return interval * Engine.DeltaTime;
+                    Visible = !Visible;
+                    if (Visible)
+                    {
+                        interval -= 3;
+                    }
+                }
+                RemoveSelf();
             }
         }
         public FlagList Flag;
@@ -122,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public FlagList RequiredFlags;
         public TalkComponent Talk;
         public Lock LockActor;
-        public Shine ShineEntity;
+        public ImageShine Shine;
         public EntityID ID;
         private string lockID;
         public string IDFlag => "EyeLock:" + lockID;
@@ -175,15 +168,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Added(scene);
             LockActor = new Lock(this);
-            ShineEntity = new Shine(this);
             if (!SceneAs<Level>().Session.GetFlag(IDFlag))
             {
                 scene.Add(LockActor);
                 if (CanUnlock())
                 {
-                    ShineEntity.Alpha = 1;
+                    LockActor.Shine.Alpha = 1;
                 }
-                scene.Add(ShineEntity);
             }
             else
             {
@@ -197,14 +188,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (!Flag)
             {
                 Talk.Enabled = false;
-                Visible = ShineEntity.Visible = LockActor.Visible = false;
-                ShineEntity.Active = LockActor.Active = false;
-                ShineEntity.Alpha = 0;
+                Visible = LockActor.Visible = false;
+                LockActor.Shine.Alpha = 0;
             }
             else
             {
-                Visible = ShineEntity.Visible = true;
-                ShineEntity.Active = LockActor.Active = true;
+                Visible = true;
                 if (!LockActor.flashing)
                 {
                     LockActor.Visible = true;
@@ -217,14 +206,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (!Flag) return;
             base.Update();
             Talk.Enabled = !talked && Talkable();
-            if (Talk.Enabled)
-            {
-                ShineEntity.Alpha = Calc.Approach(ShineEntity.Alpha, (float)(Math.Sin(Scene.TimeActive * 0.9f) + 1) / 2, 15f * Engine.DeltaTime);
-            }
-            else
-            {
-                ShineEntity.Alpha = Calc.Approach(ShineEntity.Alpha, 0, 10f * Engine.DeltaTime);
-            }
+            LockActor.Shining = Talk.Enabled;
         }
         public override void Removed(Scene scene)
         {
@@ -233,7 +215,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 SetFlags(true);
             }
             base.Removed(scene);
-            ShineEntity?.RemoveSelf();
             LockActor?.RemoveSelf();
         }
         public bool CanUnlock()

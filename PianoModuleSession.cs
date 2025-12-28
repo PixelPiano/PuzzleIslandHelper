@@ -27,6 +27,16 @@ namespace Celeste.Mod.PuzzleIslandHelper
     {
         public int KeysObtained;
         public int KeysUsed;
+        public bool CanUseKey => KeysObtained > KeysUsed;
+        public bool TryUseKey()
+        {
+            if (CanUseKey)
+            {
+                KeysUsed++;
+                return true;
+            }
+            return false;
+        }
         public Dictionary<EntityID, List<Statid.Data>> StatidPatchData = [];
         public HashSet<EntityID> AscwiitsWithFirfils = [];
         public List<Ascwiit.Controller.Sequence.Data> AscwiitSequences = [];

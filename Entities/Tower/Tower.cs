@@ -1,6 +1,5 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
-using Celeste.Mod.PuzzleIslandHelper.Entities.DEBUG;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -14,18 +13,162 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
     [Tracked]
     public class Tower : Entity
     {
+        [CustomEntity("PuzzleIslandHelper/TowerEntrance")]
+        [Tracked]
         public class Entrance : Entity
         {
+            private VirtualRenderTarget leftTarget;
             public TalkComponent Talk;
+            public Action<Player> OnInteract;
+            public MTexture Texture;
+            private MTexture halfTexture;
+            public FlagList Flag;
             public Rectangle Bounds => Talk.Bounds;
             public float Alpha = 1;
-            public Entrance(Vector2 position, float width, float height, Action<Player> interact) : base(position)
+            private float openPercent;
+            public bool CanInteract = true;
+            public bool Locked => !Flag;
+            public ImageShine Shine;
+            private Color iconColor = Color.Black;
+            private Color doorColor = Color.White;
+            public Entrance(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height)
+            {
+                Flag = data.FlagList("lockFlag");
+            }
+            public Entrance(Vector2 position, int width, int height) : base(position)
             {
                 Collider = new Hitbox(width, height);
-                Talk = new TalkComponent(new Rectangle(0, 0, (int)width, (int)height), Vector2.UnitX * width / 2, interact);
+                Depth = -1;
+                Add(new BeforeRenderHook(() =>
+                {
+                    float halfWidth = width / 2;
+                    if (openPercent < 1) //if door not completely open
+                    {
+                        Vector2 center = new Vector2(width, height) / 2;
+                        float xOffset = halfWidth * openPercent;
+
+                        leftTarget.SetAsTarget(true);
+                        Draw.SpriteBatch.Begin();
+                        Draw.Rect(-xOffset, 0, halfWidth, height, doorColor);
+                        Draw.Line(-xOffset + halfWidth + 1, 0, -xOffset + halfWidth + 1, height, Color.Black);
+                        Vector2 leftCenter = center - Vector2.UnitX * xOffset;
+                        halfTexture.DrawJustified(leftCenter, new Vector2(1, 0.5f), iconColor);
+                        Draw.SpriteBatch.End();
+                    }
+                    else
+                    {
+                        leftTarget.SetAsTarget(true);
+                    }
+
+                }));
+            }
+            public override void Added(Scene scene)
+            {
+                base.Added(scene);
+                Texture = GFX.Game["objects/PuzzleIslandHelper/tower/doorIcon"];
+                halfTexture = Texture.GetSubtexture(0, 0, Texture.Width / 2, Texture.Height);
+                leftTarget = VirtualContent.CreateRenderTarget("entranceDoorLeftTarget", (int)(Width / 2), (int)Height);
+                Add(Shine = new ImageShine(Texture, 0)
+                {
+                    Color = Color.Black,
+                    Position = Collider.HalfSize,
+                    PrePulseFrameOffset = -4,
+                    OnPrePulse = () =>
+                    {
+                        if (!Flag && PianoModule.Session.CanUseKey)
+                        {
+                            pulse(Shine.PulseDelay * 0.6f, 1);
+                        }
+                    },
+                });
+            }
+            private void pulse(float time, float doorMult)
+            {
+                iconColor = Color.Lerp(Color.Black, Color.White, doorMult);
+                doorColor = Color.Lerp(Color.White, Color.Black, doorMult);
+                Shine.Color = Color.White;
+                Color iconFrom = iconColor, doorFrom = doorColor;
+
+                Tween.Set(this, Tween.TweenMode.Oneshot, time, Ease.CubeOut, t =>
+                {
+                    iconColor = Color.Lerp(iconFrom, Color.Black, t.Eased);
+                    doorColor = Color.Lerp(doorFrom, Color.White, t.Eased);
+                    Shine.Color = Color.Lerp(Color.White, Color.Black, t.Eased);
+                }, t =>
+                {
+                    iconColor = Color.Black;
+                    doorColor = Color.White;
+                    Shine.Color = Color.Black;
+                });
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (!Flag && PianoModule.Session.CanUseKey)
+                {
+                    Shine.Alpha = Calc.Approach(Shine.Alpha, (float)(Math.Sin(Scene.TimeActive * 0.9f) + 1) / 2, 15f * Engine.DeltaTime);
+                }
+                else
+                {
+                    Shine.Alpha = Calc.Approach(Shine.Alpha, 0, Engine.DeltaTime * 10);
+                }
+            }
+            public override void Removed(Scene scene)
+            {
+                base.Removed(scene);
+                leftTarget.Dispose();
+            }
+            public void Initialize(Action<Player> interact)
+            {
+                OnInteract = interact;
+                Talk = new TalkComponent(new Rectangle(0, 0, (int)Width, (int)Height), Vector2.UnitX * Width / 2, Interact);
                 Talk.PlayerMustBeFacing = false;
                 Add(Talk);
-                Depth = -1;
+            }
+            public void Interact(Player player)
+            {
+                Add(new Coroutine(routine(player)));
+            }
+            private IEnumerator routine(Player player)
+            {
+                player.DisableMovement();
+                if (Locked)
+                {
+                    if (PianoModule.Session.CanUseKey)
+                    {
+                        PianoModule.Session.KeysUsed++;
+                        Flag.State = true;
+                        yield return new SwapImmediately(swap(player));
+                    }
+                    else
+                    {
+                        SceneAs<Level>().Session.SetFlag("TriedToOpenLockedTower");
+                        yield return new SwapImmediately(Textbox.Say("it's locked."));
+                    }
+                }
+                else
+                {
+                    yield return new SwapImmediately(swap(player));
+                }
+                player.EnableMovement();
+            }
+            private IEnumerator swap(Player player)
+            {
+                yield return 0.2f;
+                yield return new SwapImmediately(open());
+                yield return 0.3f;
+                OnInteract.Invoke(player);
+                yield return 0.7f;
+                yield return new SwapImmediately(close());
+            }
+            private IEnumerator open()
+            {
+                yield return new SwapImmediately(PianoUtils.Lerp(Ease.Linear, 1, f => openPercent = f, true));
+                openPercent = 1;
+            }
+            private IEnumerator close()
+            {
+                yield return new SwapImmediately(PianoUtils.Lerp(Ease.Linear, 1, f => openPercent = 1 - f, true));
             }
             public override void Render()
             {
@@ -35,9 +178,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     DrawDoor(Position, Width, Height, (1 - Alpha) * 0.5f);
                 }
             }
-            public static void DrawDoor(Vector2 position, float width, float height, float alpha)
+            public void DrawDoor(Vector2 position, float width, float height, float alpha)
             {
                 Draw.Rect(position, width, height, Color.Black * alpha);
+                Draw.SpriteBatch.Draw(leftTarget, position, Color.White * alpha);
+                Draw.SpriteBatch.Draw(leftTarget, position + Vector2.UnitX * ((int)(width / 2)), null, Color.White * alpha,
+                    0, Vector2.Zero, 1, SpriteEffects.FlipHorizontally, 0);
                 Draw.Rect(position.X - 1, position.Y + 1, 2, height - 1, Color.Gray * alpha);
                 Draw.Rect(position.X + width - 1, position.Y + 1, 2, height - 1, Color.Gray * alpha);
                 Draw.Rect(position - Vector2.One, width + 2, 2, Color.Gray * alpha);
@@ -204,16 +350,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public Entrance entrance;
         public Entity BgEntity;
         public Column.VertexGradient BackWall;
-        private List<Stairs.CustomPlatform> Floors = [];
+        public List<Stairs.CustomPlatform> Floors = [];
         private VirtualRenderTarget outsideTarget;
+        public Column Col;
+        public PlayerShade PlayerShade;
+        public InvisibleBarrier[] Safeguards = new InvisibleBarrier[2];
         public float OutsideAlpha = 1;
         private bool outsideRendered;
         public FlagList InsideFlag = new FlagList("insideTower");
         public bool Inside => InsideFlag;
         public bool WasInside;
-        public Entity Door;
-        public Column Col;
-        public PlayerShade PlayerShade;
         public bool CanEnter;
         public Tower(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset - Vector2.UnitX * 8, data.Width + 16, data.Height)
         {
@@ -226,7 +372,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Add(new BeforeRenderHook(BeforeRender));
             AddTag(Tags.TransitionUpdate);
             Depth = 3;
-
+            Add(new Column.Elevator.InteractComponent(OnEnterColumn, OnExitColumn));
+        }
+        public void OnEnterColumn(Player p)
+        {
+            foreach (var s in Stairs)
+            {
+                s.DisablePlatform = true;
+            }
+            foreach (var f in Floors)
+            {
+                f.Disabled = true;
+            }
+        }
+        public void OnExitColumn(Player p)
+        {
+            foreach (var s in Stairs)
+            {
+                s.DisablePlatform = false;
+            }
+            foreach (var f in Floors)
+            {
+                f.Disabled = false;
+            }
         }
         public override void Added(Scene scene)
         {
@@ -238,38 +406,64 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Ending = new EndingEntity(this, -50);
             scene.Add(Rods);
             scene.Add(Portal, Ending);
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
+
             BgEntity = new Entity(Position);
             BackWall = new Column.VertexGradient(Vector2.Zero, (int)Width, (int)Height, Color.Gray, Color.Black);
             BgEntity.Add(BackWall);
             BgEntity.Depth = Depth + 3;
             scene.Add(BgEntity);
             Rectangle b = new Rectangle((int)(Width / 2) - (int)Width / 6, (int)Height - 40, (int)Width / 3, 40);
-            entrance = new Entrance(Position + new Vector2(b.X, b.Y), b.Width, b.Height, OnEnter);
-            scene.Add(entrance);
-            foreach (Stairs stairs in scene.Tracker.GetEntities<Stairs>()) /// 
+            entrance = PianoUtils.SeekController(scene, () =>
+            {
+                return new Entrance(Position + new Vector2(b.X, b.Y), b.Width, b.Height);
+            });
+            entrance.Initialize(OnEnterOrExit);
+            foreach (Stairs stairs in PianoUtils.SeekControllers<Stairs>(scene)) /// 
             {
                 Stairs.Add(stairs);
                 stairs.Parent = this;
                 stairs.Depth = Depth + 1;
             }
+            bool needsTopFloor = true;
+            foreach (Stairs stairs in Stairs)
+            {
+                Stairs.CustomPlatform floor = new Stairs.CustomPlatform(new Vector2(X, stairs.Bottom), (int)(Width));
+                scene.Add(floor);
+                if (stairs.Y == Top)
+                {
+                    needsTopFloor = false;
+                }
+            }
+            if (needsTopFloor)
+            {
+                Stairs.CustomPlatform topFloor = new Stairs.CustomPlatform(new Vector2(X, Top), (int)(Width));
+                scene.Add(topFloor);
+            }
+        }
+        public void AddColumn(Scene scene, float height)
+        {
             float halfColWidth = 40;
             if (Stairs.Count > 0) ///
             {
                 Stairs = [.. Stairs.OrderByDescending(item => item.Bottom)];
                 halfColWidth = (int)(Stairs[0].Width * 0.3f);
             }
-            float levelBottom = (scene as Level).Bounds.Bottom;
-            Col = new Column(this, Position + Vector2.UnitX * (Width / 2 - halfColWidth), halfColWidth * 2, levelBottom - Top);
+            Col = new Column(this, Position + Vector2.UnitX * (Width / 2 - halfColWidth), halfColWidth * 2, height);
+            scene.Add(Col);
+
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+
+        }
+        public void FinalAwake(Scene scene)
+        {
             scene.Add(PlayerShade = new PlayerShade(0));
             foreach (Stairs stairs in Stairs) ///
             {
                 stairs.Initialize(scene);
             }
-            scene.Add(Col);
             foreach (Stairs stairs in Stairs) ///
             {
                 stairs.Disable();
@@ -284,41 +478,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Safeguards[0] = new InvisibleBarrier(TopLeft, 8, Height);
             Safeguards[1] = new InvisibleBarrier(TopRight - Vector2.UnitX * 8, 8, Height);
             scene.Add(Safeguards);
-            bool needsTopFloor = true;
-            foreach (Stairs stairs in Stairs)
+            foreach (Stairs.CustomPlatform a in scene.Tracker.GetEntities<Stairs.CustomPlatform>())
             {
-                Stairs.CustomPlatform floor = new Stairs.CustomPlatform(new Vector2(X, stairs.Bottom), (int)(Width));
-                scene.Add(floor);
-                Floors.Add(floor);
-                if (stairs.Y == Top)
-                {
-                    needsTopFloor = false;
-                }
+                Floors.Add(a);
             }
-            if (needsTopFloor)
-            {
-                Stairs.CustomPlatform topFloor = new Stairs.CustomPlatform(new Vector2(X, Top), (int)(Width));
-                scene.Add(topFloor);
-                Floors.Add(topFloor);
-            }
-
+            Floors = [.. Floors.OrderBy(item => item.Y)];
         }
-        public InvisibleBarrier[] Safeguards = new InvisibleBarrier[2];
         public override void Update()
         {
             base.Update();
             if (Scene.GetPlayer() is not Player player) return;
-            if (Input.MoveY == 1 && Input.MoveX == 0)
-            {
-                foreach (var f in Floors)
-                {
-                    if (f.HasPlayerRider() && player.CollideCheck<Ladder>(player.Position + Vector2.UnitY))
-                    {
-                        f.Timer = Engine.DeltaTime * 15;
-                        break;
-                    }
-                }
-            }
             bool prevState = InsideFlag;
             if (player.Right > Right || player.Left < Left || (player.Bottom <= Top))
             {
@@ -353,6 +522,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 Disable();
                 OutsideAlpha = Calc.Approach(OutsideAlpha, 1, Engine.DeltaTime * 3f);
                 PlayerShade.Alpha = Calc.Approach(PlayerShade.Alpha, 0, Engine.DeltaTime * 3f);
+            }
+            foreach (Stairs.CustomPlatform p in Scene.Tracker.GetEntities<Stairs.CustomPlatform>())
+            {
+                p.InElevator = Col.InElevator;
+            }
+            foreach (Stairs stairs in Scene.Tracker.GetEntities<Stairs>())
+            {
+                stairs.InElevator = Col.InElevator;
             }
             WasInside = inside;
         }
@@ -396,7 +573,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             if (OutsideAlpha > 0)
             {
                 Draw.SpriteBatch.Draw(outsideTarget, Position, Color.White * OutsideAlpha);
-                Entrance.DrawDoor(entrance.Position, entrance.Width, entrance.Height, OutsideAlpha);
+                entrance.DrawDoor(entrance.Position, entrance.Width, entrance.Height, OutsideAlpha);
             }
         }
         public override void Removed(Scene scene)
@@ -411,7 +588,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Ending.RemoveSelf();
             Portal.RemoveSelf();
         }
-        public void OnEnter(Player player)
+        public void OnEnterOrExit(Player player)
         {
             Input.Dash.ConsumePress();
             bool wasInside = InsideFlag;
