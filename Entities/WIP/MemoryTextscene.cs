@@ -48,7 +48,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         private bool _visible;
         private bool _forceHide;
         private Vector2 _position;
-        private FancyTextExt.Text FText;
+        private ExtraFancyText.Text FText;
 
         public MemoryTextscene(string dialogID, float segmentSpace = -1, float lineSpace = -1) : this(segmentSpace, lineSpace, dialogID) { }
         public MemoryTextscene(float segmentSpace, float lineSpace, params string[] dialogIDs) : base()
@@ -61,7 +61,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
         private void LoadText(int maxLineWidth, int linesPerPage, Vector2 offset)
         {
-            FText = FancyTextExt.Parse(Dialog.Get(DialogIDs[CurrentID]), maxLineWidth, linesPerPage, offset);
+            FText = ExtraFancyText.Parse(Dialog.Get(DialogIDs[CurrentID]), maxLineWidth, linesPerPage, offset);
         }
 
         public override void Added(Scene scene)
@@ -118,13 +118,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                         }
                         float _ypos = CurrentLine * LineSpace + CurrentSegment * SegmentSpace + XOffset - FText.BaseSize / 8;
 
-                        FancyTextExt.Node Node = FText.Nodes[i];
+                        ExtraFancyText.Node Node = FText.Nodes[i];
                         CurrentNode = i + 1;
-                        if(Node is FancyTextExt.Cue cue)
+                        if(Node is ExtraFancyText.Cue cue)
                         {
                             OnCue(cue.args);
                         }
-                        if (Node is FancyTextExt.Char c)
+                        if (Node is ExtraFancyText.Char c)
                         {
                             if (c.Character != ' ')
                             {
@@ -135,17 +135,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                             }
                             yield return c.Delay * (SpeedUp ? 0.1f : 1.5f);
                         }
-                        if (Node is FancyTextExt.Wait)
+                        if (Node is ExtraFancyText.Wait)
                         {
                             _forceHide = true;
-                            yield return (Node as FancyTextExt.Wait).Duration;
+                            yield return (Node as ExtraFancyText.Wait).Duration;
                             _forceHide = false;
                         }
-                        if (Node is FancyTextExt.NewLine)
+                        if (Node is ExtraFancyText.NewLine)
                         {
                             CurrentLine++;
                         }
-                        if (Node is FancyTextExt.NewSegment ns)
+                        if (Node is ExtraFancyText.NewSegment ns)
                         {
                             CurrentSegment++;
                             CurrentNode += (int)Calc.Max(ns.Lines - 1, 0);
@@ -221,7 +221,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             CurrentNode = 0;
             CurrentLine = 1;
             CurrentSegment = 0;
-            FText = FancyTextExt.Parse(Dialog.Get(DialogIDs[next]), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
+            FText = ExtraFancyText.Parse(Dialog.Get(DialogIDs[next]), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
             yield return null;
             for (float i = 0; i < 1f; i += Engine.DeltaTime)
             {

@@ -11,7 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class BorderRunePuzzle : Entity
     {
         public Sprite[] Lights = new Sprite[4];
-        public ShakeComponent Shaker;
+        public BetterShaker Shaker;
         public Image Pannel;
         private Entity backEntity;
         private static string path = "objects/PuzzleIslandHelper/borderRune/";
@@ -33,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Lights[i].AddLoop("off", "light" + spriteSuffix[i], 0.1f, 0);
                 Lights[i].AddLoop("on", "light" + spriteSuffix[i], 0.1f, 1);
             }
-            Add(Shaker = new ShakeComponent(OnShake));
+            Add(Shaker = new BetterShaker(OnShake));
             Tag |= Tags.TransitionUpdate;
         }
         public override void Added(Scene scene)

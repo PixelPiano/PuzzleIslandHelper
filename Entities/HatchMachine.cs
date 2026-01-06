@@ -19,6 +19,38 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class HatchMachine : Entity
     {
+        [CustomEvent("PuzzleIslandHelper/GetBook")]
+        public class GetBookCutscene : CutsceneEntity
+        {
+            private Entity book;
+            public override void OnBegin(Level level)
+            {
+                book = new Entity(level.GetPlayer().Position);
+                book.Add(new Image(GFX.Game[path + "book"]));
+                book.Add(new GetItemComponent(null, "HasLibraryBook", true, "You found a bright red book!", "Where could it have come from?"));
+                EndCutscene(level);
+            }
+            public override void OnEnd(Level level)
+            {
+
+            }
+        }
+        public class Book : Entity
+        {
+            private GetItemComponent component;
+            public Glimmer Glimmer => component.Glimmer;
+            public Book(Vector2 position) : base(position)
+            {
+                Image image;
+                Add(image = new Image(GFX.Game[path + "book"]));
+                Collider = image.Collider();
+                Add(component = new GetItemComponent(null, "HasLibraryBook", true, "You found a bright red book!", "Where could it belong?"));
+                component.GlimmerOffset = Vector2.One;
+                component.Glimmer.Active = false;
+                component.Glimmer.Visible = false;
+                Collidable = false;
+            }
+        }
         private const string path = "objects/PuzzleIslandHelper/machines/hatchMachine/";
         public class Hatch : GraphicsComponent
         {
@@ -79,11 +111,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Light[] lights = new Light[4];
         private Image machine;
         private string[] flags = new string[4];
+        private Book book;
         public HatchMachine(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Add(machine = new Image(GFX.Game[path + "machine"]));
             Collider = machine.Collider();
-
+            Depth = 2;
             hatch = new Hatch();
             Vector2 half = machine.HalfSize();
             Vector2[] hintOffsets = [new(-21, -16), new(13, -16), new(-21, 10), new(13, 10)];
@@ -100,9 +133,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(lights);
             Add(hatch);
         }
+
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            if (!(scene as Level).Session.GetFlag("HasLibraryBook"))
+            {
+                book = new Book(Position + Vector2.One * 18);
+                scene.Add(book);
+                book.Visible = false;
+            }
             scene.Add(Platform = new SnapSolid(Position + new Vector2(11, 45), 25, 3, true));
         }
         public override void Render()
@@ -116,9 +156,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             hatch.Open = true;
             for (int i = 0; i < 4; i++)
             {
-                bool flag1 = flags[i].GetFlag();
-                hatch.Open &= flag1;
-                lights[i].SetColor(flag1 ? Color.Lime : Color.Red);
+                bool flag = flags[i].GetFlag();
+                hatch.Open &= flag;
+                lights[i].SetColor(flag ? Color.Lime : Color.Red);
+            }
+            if (book != null && hatch.Open && !SceneAs<Level>().Session.GetFlag("HasLibraryBook"))
+            {
+                book.Glimmer.Active = true;
+                book.Glimmer.Visible = true;
+                book.Visible = true;
+                book.Collidable = true;
             }
             base.Update();
         }
@@ -126,6 +173,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             base.Removed(scene);
             Platform.RemoveSelf();
+            book?.RemoveSelf();
         }
     }
 }

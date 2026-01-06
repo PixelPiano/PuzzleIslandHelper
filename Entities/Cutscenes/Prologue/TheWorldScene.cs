@@ -41,9 +41,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
         private bool _visible;
         private bool _forceHide;
         private Vector2 _position;
-        private FancyTextExt.Text FText;
-        private FancyTextExt.Text WorldText;
-        private FancyTextExt.Text IsThatText;
+        private ExtraFancyText.Text FText;
+        private ExtraFancyText.Text WorldText;
+        private ExtraFancyText.Text IsThatText;
         private bool worldDrawing;
         private bool isThatDrawing;
         private bool scatterDrawing;
@@ -60,15 +60,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
         }
         private void LoadText(int maxLineWidth, int linesPerPage, Vector2 offset)
         {
-            FText = FancyTextExt.Parse(Dialog.Get(DialogIDs[CurrentID]), maxLineWidth, linesPerPage, offset);
+            FText = ExtraFancyText.Parse(Dialog.Get(DialogIDs[CurrentID]), maxLineWidth, linesPerPage, offset);
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
             _forceHide = true;
             LoadText(MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
-            IsThatText = FancyTextExt.Parse(Dialog.Get("pTF"), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
-            WorldText = FancyTextExt.Parse(Dialog.Get("pTWorld"), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
+            IsThatText = ExtraFancyText.Parse(Dialog.Get("pTF"), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
+            WorldText = ExtraFancyText.Parse(Dialog.Get("pTWorld"), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
             LineSpace = FText.BaseSize;
             Add(new Coroutine(Cutscene()));
         }
@@ -92,9 +92,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                         }
                         float _ypos = LineSpace + XOffset - FText.BaseSize / 8;
 
-                        FancyTextExt.Node Node = FText.Nodes[i];
+                        ExtraFancyText.Node Node = FText.Nodes[i];
                         CurrentNode = i + 1;
-                        if (Node is FancyTextExt.Char c)
+                        if (Node is ExtraFancyText.Char c)
                         {
                             if (c.Character != ' ')
                             {
@@ -105,10 +105,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                             }
                             yield return c.Delay * 1.5f;
                         }
-                        if (Node is FancyTextExt.Wait)
+                        if (Node is ExtraFancyText.Wait)
                         {
                             _forceHide = true;
-                            yield return (Node as FancyTextExt.Wait).Duration;
+                            yield return (Node as ExtraFancyText.Wait).Duration;
                             _forceHide = false;
                         }
                     }
@@ -139,7 +139,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                 yield return null;
             }
             CurrentNode = 0;
-            FText = FancyTextExt.Parse(Dialog.Get(DialogIDs[next]), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
+            FText = ExtraFancyText.Parse(Dialog.Get(DialogIDs[next]), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
             yield return null;
             for (float i = 0; i < 1f; i += Engine.DeltaTime)
             {
@@ -162,9 +162,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             {
                 float _ypos = LineSpace + XOffset - IsThatText.BaseSize / 8;
 
-                FancyTextExt.Node Node = IsThatText.Nodes[i];
+                ExtraFancyText.Node Node = IsThatText.Nodes[i];
                 CurrentIsThatNode = i + 1;
-                if (Node is FancyTextExt.Char c)
+                if (Node is ExtraFancyText.Char c)
                 {
                     if (c.Character != ' ')
                     {
@@ -176,10 +176,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                     }
                     yield return c.Delay * 1.5f;
                 }
-                if (Node is FancyTextExt.Wait)
+                if (Node is ExtraFancyText.Wait)
                 {
                     _forceHide = true;
-                    yield return (Node as FancyTextExt.Wait).Duration;
+                    yield return (Node as ExtraFancyText.Wait).Duration;
                     _forceHide = false;
                 }
             }
@@ -195,9 +195,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             {
                 float _ypos = LineSpace + XOffset - WorldText.BaseSize / 8;
 
-                FancyTextExt.Node Node = WorldText.Nodes[i];
+                ExtraFancyText.Node Node = WorldText.Nodes[i];
                 CurrentWorldNode = i + 1;
-                if (Node is FancyTextExt.Char c)
+                if (Node is ExtraFancyText.Char c)
                 {
                     if (c.Character != ' ')
                     {
@@ -208,10 +208,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                     }
                     yield return c.Delay * 1.5f;
                 }
-                if (Node is FancyTextExt.Wait)
+                if (Node is ExtraFancyText.Wait)
                 {
                     _forceHide = true;
-                    yield return (Node as FancyTextExt.Wait).Duration;
+                    yield return (Node as ExtraFancyText.Wait).Duration;
                     _forceHide = false;
                 }
             }
@@ -374,7 +374,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             }
             base.Render();
         }
-        public void DrawText(FancyTextExt.Text text, Vector2 offset, Color color, float opacity, int node)
+        public void DrawText(ExtraFancyText.Text text, Vector2 offset, Color color, float opacity, int node)
         {
             text.Draw(offset + Vector2.One * XOffset, Vector2.Zero, Vector2.One * SceneAs<Level>().Zoom, opacity, color, 0, node);
         }

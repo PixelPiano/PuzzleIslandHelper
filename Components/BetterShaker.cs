@@ -6,7 +6,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
 {
 
     [Tracked]
-    public class ShakeComponent : Component
+    public class BetterShaker : Component
     {
         public bool Shaking
         {
@@ -17,7 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         private float shakeTimer;
         private Vector2 shakeAmount;
         public Action<Vector2> OnShake;
-        public ShakeComponent(Action<Vector2> onShake) : base(true, false)
+        public BetterShaker(Action<Vector2> onShake) : base(true, false)
         {
             OnShake = onShake;
         }

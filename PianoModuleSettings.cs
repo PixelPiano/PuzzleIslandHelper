@@ -18,11 +18,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
         [SettingSubText("modoptions_PuzzleIslandHelperModule_InvToggle_desc")]
         public StickyHoldMode ToggleSticky { get; set; } = StickyHoldMode.Click;
         public string DebugShaderFolder { get; set; } = "PuzzleIslandHelper";
-        public enum WCDM
+/*        public enum WCDM
         {
             Hidden,
             Lined 
         }
-        public WCDM WarpCapsuleDisplayMode {get; set;} = WCDM.Lined;
+        public WCDM WarpCapsuleDisplayMode {get; set;} = WCDM.Lined;*/
     }
 }

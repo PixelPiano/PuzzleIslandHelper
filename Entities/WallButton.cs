@@ -14,6 +14,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities //Replace with your mod's name
     [Tracked]
     public class WallButton : Entity
     {
+        [Command("turn_on_wall_buttons", "turns on every WallButton in the current scene")]
+        public static void ActivateAllWallButtons()
+        {
+            if (Engine.Scene is Level level)
+            {
+                foreach(WallButton button in level.Tracker.GetEntities<WallButton>())
+                {
+                    button.Flag.State = true;
+                    button.Activate();
+                }
+            }
+            else
+            {
+                Engine.Commands.Log("Current scene is not a level", Color.Yellow);
+            }
+        }
         public FlagData Flag;
         public Image Image;
         public bool Persistent;

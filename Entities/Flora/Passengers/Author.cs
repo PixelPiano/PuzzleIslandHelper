@@ -19,25 +19,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            Engine.Commands.Log("THIS EXISTS");
             if (IntroOneWatched)
             {
-                Engine.Commands.Log("Cutscene watched");
                 Bake();
                 if (Marker.TryFind("authorDefault", out var position))
                 {
-                    Engine.Commands.Log("FOUND authorDefault");
                     X = position.X;
                     Facing = Facings.Right;
                 }
             }
             else
             {
-                Engine.Commands.Log("Cutscene not watched");
                 Bake();
                 if (Marker.TryFind("authorWait", out var position))
                 {
-                    Engine.Commands.Log("FOUND authorWait");
                     X = position.X;
                     Facing = Facings.Left;
                 }

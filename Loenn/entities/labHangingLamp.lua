@@ -12,7 +12,10 @@ labHangingLamp.placements = {
     data = {
         height = 16,
         opacity = 1,
-        staticOpacity = false
+        broken = false,
+        staticOpacity = false,
+        dependsOnLab = true,
+        onFlag = "",
     }
 }
 

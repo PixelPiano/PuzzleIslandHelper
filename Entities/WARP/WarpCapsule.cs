@@ -15,23 +15,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     public abstract class WarpCapsule : Entity
     {
         [Tracked]
-        public class OnWarpComponent : Component
+        public class OnWarpBeginComponent : Component
         {
             public Action<Player, WarpCapsule> OnWarpAction;
             public Func<Player, WarpCapsule, IEnumerator> OnWarpRoutine;
             public bool InRoutine;
             public bool WaitForRoutineToFinish;
             public float Delay;
-            public OnWarpComponent(Action<Player, WarpCapsule> onWarp) : base(true, false)
+            public OnWarpBeginComponent(Action<Player, WarpCapsule> onWarp) : base(true, false)
             {
                 OnWarpAction = onWarp;
             }
-            public OnWarpComponent(Func<Player, WarpCapsule, IEnumerator> onWarp, bool waitForRoutine = false) : base(true, false)
+            public OnWarpBeginComponent(Func<Player, WarpCapsule, IEnumerator> onWarp, bool waitForRoutine = false) : base(true, false)
             {
                 OnWarpRoutine = onWarp;
                 WaitForRoutineToFinish = waitForRoutine;
             }
-            public OnWarpComponent(Action<Player, WarpCapsule> onWarp, Func<Player, WarpCapsule, IEnumerator> onWarpRoutine, bool waitForRoutine = false) : base(true, false)
+            public OnWarpBeginComponent(Action<Player, WarpCapsule> onWarp, Func<Player, WarpCapsule, IEnumerator> onWarpRoutine, bool waitForRoutine = false) : base(true, false)
             {
                 OnWarpAction = onWarp;
                 OnWarpRoutine = onWarpRoutine;
@@ -58,6 +58,51 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             }
 
         }
+        [Tracked]
+        public class OnWarpEndComponent : Component
+        {
+            public Action<Player, WarpCapsule> OnWarpAction;
+            public Func<Player, WarpCapsule, IEnumerator> OnWarpRoutine;
+            public bool InRoutine;
+            public bool WaitForRoutineToFinish;
+            public float Delay;
+            public OnWarpEndComponent(Action<Player, WarpCapsule> action) : base(true, false)
+            {
+                OnWarpAction = action;
+            }
+            public OnWarpEndComponent(Func<Player, WarpCapsule, IEnumerator> routine, bool waitForRoutine = false) : base(true, false)
+            {
+                OnWarpRoutine = routine;
+                WaitForRoutineToFinish = waitForRoutine;
+            }
+            public OnWarpEndComponent(Action<Player, WarpCapsule> action, Func<Player, WarpCapsule, IEnumerator> onWarpRoutine, bool waitForRoutine = false) : base(true, false)
+            {
+                OnWarpAction = action;
+                OnWarpRoutine = onWarpRoutine;
+                WaitForRoutineToFinish = waitForRoutine;
+            }
+            public void Activate(Player player, WarpCapsule capsule)
+            {
+                OnWarpAction?.Invoke(player, capsule);
+                if (OnWarpRoutine != null)
+                {
+                    InRoutine = true;
+                    Entity.Add(new Coroutine(OnWarpRoutine.Invoke(player, capsule)));
+                }
+            }
+            public IEnumerator Routine(Player player, WarpCapsule capsule)
+            {
+                InRoutine = true;
+                if (OnWarpRoutine != null)
+                {
+                    if (Delay > 0) yield return Delay;
+                    yield return OnWarpRoutine.Invoke(player, capsule);
+                }
+                InRoutine = false;
+            }
+
+        }
+        public string GrandparentWarpID = "";
         public string WarpID = "";
         public string TargetID = "";
         public bool WaitingForCutscene;
@@ -126,6 +171,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public WarpData OwnWarpData;
         public bool UsesRune;
         public bool UsesBeam;
+        public bool Disabled;
+        public PlayerShade Shade;
         public WarpCapsule(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.FlagList(), data.Attr("warpID"), data.Attr("path"), false, false)
         {
         }
@@ -177,7 +224,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 InstantCloseDoors();
             }
         }
-        public bool Disabled;
         public void Disable()
         {
             Floor.Collidable = false;
@@ -332,7 +378,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             float from = DoorClosedPercent;
             yield return new SwapImmediately(MoveDoorsTo(from, 1, closeTime, null));
         }
-        public PlayerShade Shade;
         public virtual IEnumerator ReceivePlayerRoutine(Player player, bool? setPlayerStateToNormal)
         {
             if (Shade == null)

@@ -8,12 +8,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.Programs
     public class ChatLogProgram : WindowContent
     {
         public string DialogID;
-        public FancyTextExt.Text Text;
+        public ExtraFancyText.Text Text;
         private ChatText Helper;
         public ChatLogProgram(Window window) : base(window)
         {
             Name = "ChatLog";
-            Text = FancyTextExt.Parse(Dialog.Get(DialogID), (int)Width, 30, Vector2.Zero);
+            Text = ExtraFancyText.Parse(Dialog.Get(DialogID), (int)Width, 30, Vector2.Zero);
         }
         public override void Added(Scene scene)
         {

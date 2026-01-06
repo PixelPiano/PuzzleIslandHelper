@@ -28,8 +28,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         private Vector2? prevSpeed;
         private int? prevDepth;
         private renderer text;
-        private Entity fakeEntity;
+        public Entity fakeEntity;
         public bool Initialized;
+        private bool triggered;
+        public bool Collidable = true;
         public GetItemComponent(Action<Player> onCollect, string flag, bool removeEntity, string text = "", string subText = "") : base(null)
         {
             this.removeEntity = removeEntity;
@@ -45,22 +47,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             Text = text;
             Subtext = subText;
         }
-        public override void Update()
+        private IEnumerator runningUpdate()
         {
-            base.Update();
-            if (Running)
+            while (Running)
             {
+                if (Scene.GetPlayer() is Player player)
+                {
+                    player.Speed = Vector2.Zero;
+                    player.DummyGravity = false;
+                    Entity.Center = player.TopCenter - Vector2.UnitY * Entity.Height + EntityOffset;
+                    fakeEntity.Position = Entity.Position;
+                }
                 Glimmer.AlphaMult = Calc.Approach(Glimmer.AlphaMult, 1, Engine.DeltaTime * 5);
                 Glimmer.Size = Calc.Approach(Glimmer.Size, 20, Engine.DeltaTime * 10);
-                if (Glimmer.LineWidth < 3) Glimmer.LineWidth++;
-                if (Glimmer.LineWidthTarget < 8) Glimmer.LineWidthTarget++;
-                fakeEntity.Position = Entity.Position;
+                if (Glimmer.LineWidth < 2) Glimmer.LineWidth++;
+                if (Glimmer.LineWidthTarget < 4) Glimmer.LineWidthTarget++;
+                yield return null;
             }
         }
         public override void Added(Entity entity)
         {
             base.Added(entity);
-            if(entity != null && entity.Scene != null && !Initialized)
+            if (entity != null && entity.Scene != null && !Initialized)
             {
                 Initialize(entity);
             }
@@ -136,8 +144,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             Running = false;
             RemoveSelf();
         }
+
         public void Activate(Player player)
         {
+            if (triggered) return;
+            triggered = true;
             prevDepth = Entity.Depth;
             Entity.Depth = int.MinValue;
             Scene.Add(text = new renderer(Text, Subtext, -15f.ToRad()));
@@ -155,11 +166,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             player.Speed.Y = 0;
             player.Speed.X = 0;
             player.Sprite.Play("pickup");
-            Entity.Center = player.TopCenter - Vector2.UnitY * Entity.Height + EntityOffset;
             Audio.Play("event:/game/general/secret_revealed", player.Center);
-
+            Glimmer.Visible = true;
+            Glimmer.Active = true;
             OnCollect?.Invoke(player);
             fakeEntity.Add(new Coroutine(cutscene(player)));
+            fakeEntity.Add(new Coroutine(runningUpdate()));
         }
         private IEnumerator cutscene(Player player)
         {
@@ -454,18 +466,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 if (subBg != null)
                 {
                     subBg.DrawOffset(new Vector2(-40, 20), Matrix.Identity, Color.Black);
-                    if (subBg.AtTarget)
-                    {
-                        Draw.Rect(Vector2.Zero, 40, 40, Color.Red);
-                    }
                 }
                 if (textBg != null)
                 {
                     textBg.DrawOffset(new Vector2(-40, 20), Matrix.Identity, Color.Black);
-                    if (textBg.AtTarget)
-                    {
-                        Draw.Rect(Vector2.One * 40, 40, 40, Color.Lime);
-                    }
                 }
                 if (Sub != null && subBg != null)
                 {

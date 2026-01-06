@@ -26,6 +26,7 @@ runeDisplay.placements =
             depth = 1,
             drawBounds = true,
             drawAllPoints = true,
+            thickness = 1,
         }
     }
 }

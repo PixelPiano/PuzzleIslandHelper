@@ -23,6 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public MTexture Texture;
             private MTexture halfTexture;
             public FlagList Flag;
+            public FlagList FlagsToSet;
             public Rectangle Bounds => Talk.Bounds;
             public float Alpha = 1;
             private float openPercent;
@@ -34,6 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public Entrance(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height)
             {
                 Flag = data.FlagList("lockFlag");
+                FlagsToSet = data.FlagList("flagsToSet");
             }
             public Entrance(Vector2 position, int width, int height) : base(position)
             {
@@ -65,7 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public override void Added(Scene scene)
             {
                 base.Added(scene);
-                Texture = GFX.Game["objects/PuzzleIslandHelper/tower/doorIcon"];
+                Texture = GFX.Game["objects/PuzzleIslandHelper/towerDoorIcon"];
                 halfTexture = Texture.GetSubtexture(0, 0, Texture.Width / 2, Texture.Height);
                 leftTarget = VirtualContent.CreateRenderTarget("entranceDoorLeftTarget", (int)(Width / 2), (int)Height);
                 Add(Shine = new ImageShine(Texture, 0)
@@ -116,6 +118,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public override void Removed(Scene scene)
             {
                 base.Removed(scene);
+                EnsureShakeSettingReverted();
                 leftTarget.Dispose();
             }
             public void Initialize(Action<Player> interact)
@@ -138,6 +141,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     {
                         PianoModule.Session.KeysUsed++;
                         Flag.State = true;
+                        FlagsToSet.State = true;
                         yield return new SwapImmediately(swap(player));
                     }
                     else
@@ -154,12 +158,92 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             private IEnumerator swap(Player player)
             {
+                bool flag = SceneAs<Level>().Session.GetFlag("TowerEarthquake");
+                SceneAs<Level>().Session.SetFlag("TowerEarthquake");
                 yield return 0.2f;
                 yield return new SwapImmediately(open());
                 yield return 0.3f;
-                OnInteract.Invoke(player);
+                if (!flag)
+                {
+                    yield return new SwapImmediately(EarthquakeRoutine(player));
+                }
+                MidSwap(player);
                 yield return 0.7f;
                 yield return new SwapImmediately(close());
+            }
+            private IEnumerator lookAround(Player player)
+            {
+                while (true)
+                {
+                    player.Facing = (Facings)((int)player.Facing * -1);
+                    yield return 0.5f;
+                }
+            }
+            private bool? prevShakeState;
+            public override void SceneEnd(Scene scene)
+            {
+                base.SceneEnd(scene);
+                EnsureShakeSettingReverted();
+            }
+            public void EnsureShakeSettingReverted()
+            {
+                if (prevShakeState.HasValue)
+                {
+                    Settings.Instance.DisableScreenShake = prevShakeState.Value;
+                    prevShakeState = null;
+                }
+            }
+            public IEnumerator EarthquakeRoutine(Player player)
+            {
+                Camera camera = SceneAs<Level>().Camera;
+                Vector2 position = new Vector2(camera.Right + 40, camera.Top + 90);
+                player.DisableMovement();
+                Coroutine lookingAroundCoroutine;
+                Add(lookingAroundCoroutine = new Coroutine(false));
+                lookingAroundCoroutine.Replace(lookAround(player));
+                prevShakeState = Settings.Instance.DisableScreenShake;
+                Settings.Instance.DisableScreenShake = false;
+                LevelShaker.Intensity = 0.3f;
+                yield return 0.4f;
+                LevelShaker.Intensity = 0.7f;
+                yield return 0.4f;
+                LevelShaker.Intensity = 1;
+                lookingAroundCoroutine.Cancel();
+                player.DummyAutoAnimate = false;
+                player.Sprite.Play(PlayerSprite.SitDown);
+                player.Sprite.Rate = 6;
+                yield return 2;
+                if (!SceneAs<Level>().Session.GetFlag("brokeDumbBlock"))
+                {
+                    Audio.Play("event:/game/general/wall_break_stone", position); //dashBlock breaks
+                    yield return 0.5f;
+                }
+                Audio.Play("event:/game/general/fallblock_shake", position); //ledge shakes
+                yield return 0.5f;
+                for (int i = 0; i < 5; i++)
+                {
+                    Audio.Play("event:/game/general/debris_stone", position, "debris-velocity", 80); //ledge snaps
+                    yield return Calc.Random.NextFloat() * 8 * Engine.DeltaTime;
+                }
+                yield return 0.7f;
+                Audio.Play("event:/game/general/fallblock_impact", position + Vector2.UnitY * 48);
+                yield return 2;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
+                {
+                    LevelShaker.Intensity = 1 - i;
+                    yield return null;
+                }
+                LevelShaker.Intensity = 0;
+                yield return 1;
+                player.Sprite.Rate = 1;
+                player.Sprite.Reverse(PlayerSprite.SitDown, true);
+                yield return player.Sprite.PlayUtil();
+                player.DummyAutoAnimate = true;
+                EnsureShakeSettingReverted();
+            }
+            public void MidSwap(Player player)
+            {
+                OnInteract.Invoke(player);
             }
             private IEnumerator open()
             {
@@ -579,6 +663,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
+
             outsideTarget?.Dispose();
             Stairs.RemoveSelves();
             entrance.RemoveSelf();

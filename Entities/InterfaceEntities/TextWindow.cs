@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
 using System.Reflection;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.FancyTextExt;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.ExtraFancyText;
 using Color = Microsoft.Xna.Framework.Color;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
@@ -11,7 +11,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities
     public class TextWindow : Entity
     {
         private static readonly Dictionary<string, List<string>> fontPaths;
-        public FancyTextExt.Text activeText;
+        public ExtraFancyText.Text activeText;
         private static string fontName = "alarm clock";
         public bool Drawing = false;
         public string CurrentID = "";

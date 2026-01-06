@@ -67,7 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 p += "Digi";
             }
-            else
+            if (Broken)
             {
                 p += "Broken";
             }
@@ -251,7 +251,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             trackDash = false;
             if (!usedDash && TakeAwayDash)
             {
-                player.Dashes = Math.Max(player.Dashes - 1, 0);  
+                player.Dashes = Math.Max(player.Dashes - 1, 0);
             }
             usedDash = false;
         }

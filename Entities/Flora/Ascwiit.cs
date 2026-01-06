@@ -124,59 +124,54 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         [CustomEntity("PuzzleIslandHelper/AscwiitController")]
         public class Controller : Entity
         {
-            [CustomEntity("PuzzleIslandHelper/AscwiitSequence")]
-            [Tracked]
-            public class Sequence : Entity
+            public class Data
             {
-                public class Data
-                {
-                    public string Group;
-                    public int[] Steps;
-                    public Vector2 PositionInRoom;
-                    public string Room;
-                }
-                public Vector2? Node;
                 public string Group;
-                public int[] Steps;
-                public int Step => SceneAs<Level>().Session.GetCounter("AscwiitSequence:" + Group);
-                public bool LastDirectionRight = true;
-                public Sequence(EntityData data, Vector2 offset) : base(data.Position + offset)
-                {
-                    Collider = new Hitbox(32, 32);
-                    Group = data.Attr("groupID");
-                    string[] steps = data.Attr("steps").Replace(" ", "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                    List<int> stepsList = [];
-                    foreach (string s in steps)
-                    {
-                        if (int.TryParse(s, out int result))
-                        {
-                            stepsList.Add(result);
-                        }
-                    }
-                    Steps = stepsList.ToArray();
-                    Vector2[] nodes = data.NodesOffset(offset);
-                    Node = nodes.Length > 0 ? nodes[0] : null;
-                    LastDirectionRight = data.Bool("lastDirectionRight");
-                }
+                public Directions[] Steps;
+                public Vector2 PositionInRoom;
+                public string Room;
             }
             public bool RemoveAscwiitsIfWrongWay;
             public bool RemoveAscwiitsIfDisabled;
             public FlagList DisableFlag;
-            public Sequence.Data Data;
-            public int Direction;
+            public Data data;
+            public Directions Direction;
             public string Group;
             public static bool Incorrect;
+            public Directions EndDirection;
+            public bool Start;
+            public bool End;
             public string Flag => "AscwiitSequence:" + Group;
             public int Step => SceneAs<Level>().Session.GetCounter(Flag);
             public bool Finished => SceneAs<Level>().Session.GetFlag("AscwiitSequenceFinished:" + Group);
             public bool Started => SceneAs<Level>().Session.GetFlag("AscwiitSequenceStarted:" + Group);
+            public Directions[] Steps;
+            public Dictionary<Directions, Vector2> Targets = [];
             public Controller(EntityData data, Vector2 offset) : base(data.Position + offset)
             {
+                string[] steps = data.Attr("steps").Replace(" ", "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                List<Directions> stepsList = [];
+                foreach (string s in steps)
+                {
+                    if (Enum.TryParse(s, true, out Directions d))
+                    {
+                        stepsList.Add(d);
+                    }
+                }
+                Steps = stepsList.ToArray();
+                Start = data.Bool("isStart");
+                End = data.Bool("isEnd");
                 Group = data.Attr("groupID");
                 Collider = new Hitbox(32, 32);
                 DisableFlag = data.FlagList("disableFlag");
                 DisableFlag.Inverted = true;
                 Tag |= Tags.TransitionUpdate;
+                EndDirection = data.Enum<Directions>("endDirection");
+                Vector2[] nodes = data.NodesWithPosition(offset);
+                Targets.Add(Directions.Up, nodes[1]);
+                Targets.Add(Directions.Down, nodes[2]);
+                Targets.Add(Directions.Left, nodes[3]);
+                Targets.Add(Directions.Right, nodes[4]);
             }
             public override void Added(Scene scene)
             {
@@ -185,17 +180,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 {
                     if (d.Group == Group)
                     {
-                        Data = d;
+                        data = d;
                         break;
                     }
                 }
-                if (Data == null) RemoveSelf();
+                if (data == null) RemoveSelf();
             }
             public override void Awake(Scene scene)
             {
                 base.Awake(scene);
 
-                if (Finished || (!Started && scene.Tracker.GetEntity<Sequence>() == null) || (Incorrect && RemoveAscwiitsIfWrongWay))
+                if ((Finished && !End) || (!Started && !Start) || (Incorrect && RemoveAscwiitsIfWrongWay))
                 {
                     RemoveAllNotFleeing(scene);
                 }
@@ -227,49 +222,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             {
                 Level level = SceneAs<Level>();
                 Session session = level.Session;
-                if (session.GetFlag(Flag))
+                int stepsPassed = session.GetCounter(Flag);
+                if (stepsPassed < data.Steps.Length)
                 {
-                    if (level.Tracker.GetEntity<Sequence>() is var entity)
-                    {
-                        Direction = entity.LastDirectionRight ? 1 : -1;
-                    }
-                    else
-                    {
-                        Vector2 roomPosition = level.LevelOffset;
-                        if (session.MapData.Get(Data.Room) is var data)
-                        {
-                            Direction = data.Position.X > roomPosition.X ? 1 : -1;
-                        }
-                    }
+                    Direction = data.Steps[stepsPassed];
                 }
                 else
                 {
-                    int counter = session.GetCounter(Flag);
-                    if (Data.Steps.Length > counter)
-                    {
-                        Direction = Data.Steps[counter];
-                    }
-                    else
-                    {
-                        RemoveSelf();
-                    }
+                    RemoveSelf();
                 }
             }
+
+
             private static void Level_OnTransitionTo(Level level, LevelData next, Vector2 direction)
             {
                 foreach (Controller c in level.Tracker.GetEntities<Controller>())
                 {
-                    c.OnTransition(level, Math.Sign(direction.X));
+                    c.OnTransition(level, direction);
                 }
             }
-            public void OnTransition(Level level, int xDir)
+            public void OnTransition(Level level, Vector2 direction)
             {
                 Session s = level.Session;
-                if (xDir != 0 && xDir == Direction)
+                if (direction == Direction.ToVector2())
                 {
                     s.IncrementCounter(Flag);
                     int count = s.GetCounter(Flag);
-                    if (count >= Data.Steps.Length)
+                    if (count >= data.Steps.Length)
                     {
                         s.SetFlag(Flag);
                     }
@@ -369,6 +348,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public bool OnlyCheckFlagOnAdded;
         public const float HopSpeedX = 110f;
         public const float HopSpeedY = -80f;
+        public float Alpha = 1;
         public enum FleeFacings
         {
             Default,
@@ -732,6 +712,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                     {
                         BodyVertices[i + j].Color = Color.Lerp(BodyVertices[i + j].Color, Color.White, whiteLerp);
                     }
+                    BodyVertices[i + j].Color *= Alpha;
                 }
             }
             BodyPoints[0] = beakPoint;
@@ -754,7 +735,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 }
                 point.X += ScaredXOffset;
                 WingVertices[i].Position = new Vector3(Position + point, 0);
+                WingVertices[i].Color *= Alpha;
             }
+
         }
         public override void Render()
         {
@@ -779,7 +762,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             if (PathNode != null)
             {
-                //PathNode.Collider.Render(camera, Color.Red);
                 Draw.Point(PathNode.Position + PathNodeOffset, Color.White);
             }
             foreach (HopData data in hopDatas)
@@ -890,6 +872,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             statid.IsSapped = true;
             FirfilEated = true;
             PianoModule.Session.AscwiitsWithFirfils.Add(id);
+            yield return OnEatSap(statid);
             Gravity = NormalGravity;
         }
         public Vector2 SimulateSpeedChange(Vector2 position, Vector2 inputSpeed, Vector2 friction, float gravity, out bool onGround, out bool floating)
@@ -1116,6 +1099,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             public List<(Vector2, Color)> Points = [];
             public HopData() { }
         }
+        public bool FadingOut;
         public bool TryFindHopTarget(Vector2 from, Vector2 speed, Vector2 friction, float gravity, Rectangle bounds, out HopData hopData)
         {
             bool onNewGround = false;
@@ -1180,16 +1164,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 NoFlapTimer -= Engine.DeltaTime;
                 return StFlee;
             }
-            if (fleeSpeedLerp > 0.5f)
+            if (SequenceFleeing)
+            {
+                Depth = -10001;
+            }
+            if (fleeSpeedLerp > 0.5f && !fleeTarget.HasValue)
             {
                 ColorLerp += Engine.DeltaTime;
             }
             fleeSpeedLerp = Calc.Min(fleeSpeedLerp + Engine.DeltaTime, 1);
 
             Friction = Vector2.One * FlyingFrictionMult;
-            Speed.Y += FleeSpeedY * fleeSpeedLerp;
-            Speed.X += FleeSpeedX * (int)Facing * fleeSpeedLerp * fleeXAmount;
-
+            if (fleeTarget.HasValue)
+            {
+                if (!FlyApproach(fleeTarget.Value, MaxFlySpeedY, 8))
+                {
+                    if (!FadingOut)
+                    {
+                        Tag |= Tags.Persistent;
+                        FadeOut(true);
+                    }
+                }
+            }
+            else
+            {
+                Speed.Y += FleeSpeedY * fleeSpeedLerp;
+                Speed.X += FleeSpeedX * (int)Facing * fleeSpeedLerp * fleeXAmount;
+            }
             Collider c = Collider;
             Collider = DetectHitbox;
             if (!this.OnScreen(8))
@@ -1211,6 +1212,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             return StFlee;
 
+        }
+        public void FadeOut(bool removeSelfOnFinished)
+        {
+            FadingOut = true;
+            Tween.Set(this, Tween.TweenMode.Oneshot, 1.2f, Ease.SineInOut, t =>
+            {
+                Alpha = 1 - t.Eased;
+            }, t =>
+            {
+                if (removeSelfOnFinished) RemoveSelf();
+            });
         }
         public void IdleFlap()
         {
@@ -1272,6 +1284,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             return StFlyTo;
 
         }
+        public bool SequenceFleeing;
+        private Vector2? fleeTarget;
         public void FleeBegin()
         {
             switch (FleeFacing)
@@ -1295,14 +1309,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             if (UseSequenceDirection)
             {
                 Controller controller = Scene.Tracker.GetEntity<Controller>();
-                if (controller != null && controller.Direction != 0)
+                if (controller != null)
                 {
-                    Facing = (Facings)controller.Direction;
-                }
-                Controller.Sequence sequence = Scene.Tracker.GetEntity<Controller.Sequence>();
-                if (sequence != null)
-                {
-                    SceneAs<Level>().Session.SetFlag("AscwiitSequenceStarted:" + sequence.Group);
+                    Facing = controller.Direction switch
+                    {
+                        Directions.Left => Facings.Left,
+                        Directions.Right => Facings.Right,
+                        _ => Calc.Random.Choose(Facings.Left, Facings.Right)
+                    };
+                    fleeTarget = controller.Targets[controller.Direction];
+                    SequenceFleeing = true;
+                    if (controller.Start)
+                    {
+                        SceneAs<Level>().Session.SetFlag("AscwiitSequenceStarted:" + controller.Group);
+                    }
                 }
             }
             SceneAs<Level>().ParticlesFG.Emit(Calc.Random.Choose(ParticleTypes.Dust), BottomCenter, -(float)Math.PI / 2f);
@@ -1321,7 +1341,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                     WingState = WingStates.Up;
                 });
             });
-            if (Calc.Random.Chance(0.5f))
+            if (!SequenceFleeing && Calc.Random.Chance(0.5f))
             {
                 Depth = -10001;
             }
@@ -1535,6 +1555,152 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 
             Facing = (Facings)Math.Sign(target.X - CenterX);
             return true;
+        }
+        public IEnumerator OnEatSap(Statid flower)
+        {
+            Squawk();
+            if (!string.IsNullOrEmpty(flower.ThoughtPath))
+            {
+                Thought thought = Say(flower.ThoughtPath);
+                while (!thought.Finished)
+                {
+                    yield return null;
+                }
+            }
+            yield return null;
+        }
+        public Thought Say(string path)
+        {
+            Thought thought = new Thought(this, path);
+            Scene.Add(thought);
+            return thought;
+        }
+        public class Thought : Entity
+        {
+            private const string defaultPath = "objects/PuzzleIslandHelper/Ascwiit/";
+            public Entity Track;
+            public string Path;
+            public Sprite Sprite;
+            private MTexture small, med, large;
+            private MTexture main;
+            private float progress;
+            private float rotation;
+            private bool canConfirm;
+            private int dir = 1;
+            public bool Finished;
+            private SineWave sine;
+            private float smallOffset, medOffset, largeOffset;
+            public Thought(Vector2 position, string path) : base(position)
+            {
+                Path = path;
+                sine = new SineWave(1);
+                Add(sine);
+            }
+            public Thought(Entity entity, string path) : this(entity.Position, path)
+            {
+                Track = entity;
+            }
+            public override void Added(Scene scene)
+            {
+                base.Added(scene);
+
+                Sprite = new Sprite(GFX.Game, Path);
+                Sprite.AddLoop("idle", Path, 0.1f);
+                Sprite.Play("idle");
+                Sprite.Scale = Vector2.Zero;
+                Sprite.CenterOrigin();
+                Add(Sprite);
+                small = GFX.Game[defaultPath + "smallBubble"];
+                med = GFX.Game[defaultPath + "mediumBubble"];
+                large = GFX.Game[defaultPath + "largeBubble"];
+                main = GFX.Game[defaultPath + "thought"];
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (Finished) return;
+                if (Track != null)
+                {
+                    Position = Track.Position;
+                }
+                float prevProgress = progress;
+                progress = Math.Clamp(progress + Engine.DeltaTime * dir, 0, 4);
+                switch (progress)
+                {
+                    case 0:
+                        if (prevProgress > 0)
+                        {
+                            RemoveSelf();
+                            return;
+                        }
+                        break;
+                    case 4:
+                        if (prevProgress < 4)
+                        {
+                            Alarm.Set(this, 1, () =>
+                            {
+                                canConfirm = true;
+                            });
+                            Sprite.Play("idle");
+                        }
+                        Sprite.Scale = Calc.Approach(Sprite.Scale, Vector2.One, Engine.DeltaTime * 3);
+                        break;
+                }
+                if (progress == 4)
+                {
+                    if (prevProgress < 4)
+                    {
+                        Alarm.Set(this, 1, () =>
+                        {
+                            canConfirm = true;
+                        });
+                        Sprite.Play("idle");
+                    }
+                    Sprite.Scale = Calc.Approach(Sprite.Scale, Vector2.One, Engine.DeltaTime * 3);
+                }
+                Sprite.Scale = Vector2.One * Math.Clamp(progress - 4, 0, 1);
+                rotation = ((int)Scene.TimeActive % 4) * 90;
+                if (canConfirm && Input.MenuConfirm.Pressed)
+                {
+                    dir = -1;
+                }
+                smallOffset = sine.Value;
+                medOffset = sine.ValueOffset(0.5f) * 2;
+                largeOffset = sine.ValueOffset(1) * 3;
+
+            }
+            public override void Render()
+            {
+                Vector2 center = Position;
+                if (progress > 0) //small
+                {
+                    small.DrawCentered(center + Vector2.UnitX * smallOffset, Color.White, Math.Min(progress, 1));
+                }
+                center -= new Vector2(small.Width, small.Height - 1);
+                if (progress > 1) //med
+                {
+                    med.DrawCentered(center + Vector2.UnitX * medOffset, Color.White, Math.Min(progress - 1, 1));
+                }
+                center -= new Vector2(med.Width, med.Height - 1);
+                if (progress > 2) //large
+                {
+                    large.DrawCentered(center + Vector2.UnitX * largeOffset, Color.White, Math.Min(progress - 2, 1));
+                }
+                center -= new Vector2(large.Width / 2 + main.Width / 2, large.Height + main.Height / 2);
+                if (progress > 3) //thought
+                {
+                    main.DrawCentered(center, Color.White, Math.Min(progress - 3, 1), rotation);
+                }
+                if (progress > 4) //sprite
+                {
+                    Sprite.RenderAt(center);
+                }
+            }
+            public override void Removed(Scene scene)
+            {
+                Finished = true;
+                base.Removed(scene);
+            }
         }
     }
 }

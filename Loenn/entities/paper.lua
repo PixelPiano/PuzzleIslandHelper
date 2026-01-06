@@ -16,7 +16,9 @@ paper.placements = {
         height = 8,
         dialogID = "put_id_here",
         texturePath = "objects/PuzzleIslandHelper/noteSprites/paperA",
-        usesTexture = true
+        usesTexture = true,
+        interactableFlag = "",
+        visibleFlag = ""
     }
 }
 function paper.nodeTexture(room, entity, node, nodeIndex, viewport)

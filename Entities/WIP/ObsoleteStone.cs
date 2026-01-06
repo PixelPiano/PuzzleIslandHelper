@@ -41,8 +41,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Add(new Coroutine(GlitchRoutine()));
             if (!string.IsNullOrEmpty(Dialog))
             {
-                Add(new DotX3(Collider, p => Scene.Add(new ReadGravestoneCutscene(Dialog))));
+                Add(new DotX3(Collider, p =>
+                {
+                    // Scene.Add(new ReadGravestoneCutscene(Dialog)))
+                    Add(new Coroutine(cutscene()));
+                }));
             }
+            Tag |= Tags.TransitionUpdate;
+        }
+        private IEnumerator cutscene()
+        {
+            SceneAs<Level>().GetPlayer()?.DisableMovement();
+            yield return Textbox.Say(Dialog);
+            SceneAs<Level>().GetPlayer()?.EnableMovement();
         }
         /*        private IEnumerator Cutscene(Player player)
                 {

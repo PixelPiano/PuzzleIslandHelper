@@ -6,11 +6,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
     {
         public static implicit operator bool(FlagData value) => value.State;
         public static implicit operator FlagData(string s) => new(s);
+        public bool TrueIfEmpty = true;
         public string Flag = "";
         public bool Inverted;
         public bool Ignore;
         public bool? ForcedValue;
-        public readonly bool Empty => string.IsNullOrEmpty(Flag);
+        public readonly bool Empty => string.IsNullOrEmpty(Flag) == TrueIfEmpty;
         public bool State
         {
             readonly get => GetState(Engine.Scene);

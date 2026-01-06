@@ -24,7 +24,9 @@ statid.placements =
             petalSize = 1,
             scaleRange = 0,
             shadeBasedOnDepth = true,
-            big = false
+            thoughtPath = "",
+            flagOnSapped = "",
+            canProduceSap = false
         }
     }
 }

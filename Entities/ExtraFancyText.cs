@@ -21,7 +21,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
      * 
      * future future me here, THE OFFSET FEATURE CAME IN CLUTCH LETS GO
      */
-    public class FancyTextExt
+    public class ExtraFancyText
     {
         public class Node
         {
@@ -45,13 +45,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return "{Confirm}";
             }
         }
-        public class Choice : Node
+        public class ConsoleChoice : Node
         {
             public class Option
             {
                 public string Text;
                 public Advance Advance;
-                private FancyTextExt.Text fancyText;
+                private ExtraFancyText.Text fancyText;
                 public bool Selected;
                 public Vector2 Size;
                 private string underline = "";
@@ -89,7 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             public List<Option> Options = [];
-            public Choice(params (string, string)[] choices)
+            public ConsoleChoice(params (string, string)[] choices)
             {
                 foreach (var a in choices)
                 {
@@ -592,7 +592,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-
+        public class DialogueChoice : Node
+        {
+            public string Choice;
+            public string Target;
+        }
         public static Color DefaultColor = Color.LightGray;
 
         public const float CharacterDelay = 0.01f;
@@ -648,12 +652,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float tabOffset;
         public static Text Parse(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade = 1f, Color? defaultColor = null, Language language = null)
         {
-            return new FancyTextExt(text, maxLineWidth, linesPerPage, offset, startFade, defaultColor.HasValue ? defaultColor.Value : DefaultColor, language).Parse();
+            return new ExtraFancyText(text, maxLineWidth, linesPerPage, offset, startFade, defaultColor.HasValue ? defaultColor.Value : DefaultColor, language).Parse();
         }
         public static string[] ParseSplit(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade = 1f, Color? defaultColor = null, Language language = null)
         {
             //i don't fucking know man i've rewritten dialog parsing logic 6 times in the past 5 hours and this works
-            return new FancyTextExt(text, maxLineWidth, linesPerPage, offset, startFade, defaultColor.HasValue ? defaultColor.Value : DefaultColor, language).ParseSplit();
+            return new ExtraFancyText(text, maxLineWidth, linesPerPage, offset, startFade, defaultColor.HasValue ? defaultColor.Value : DefaultColor, language).ParseSplit();
         }
         private string[] ParseSplit()
         {
@@ -735,7 +739,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-        public FancyTextExt(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade, Color defaultColor, Language language)
+        public ExtraFancyText(string text, int maxLineWidth, int linesPerPage, Vector2 offset, float startFade, Color defaultColor, Language language)
         {
 
             this.text = text;
@@ -912,7 +916,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                                         choices.Add((list[k - 1], list[k + 1]));
                                     }
                                 }
-                                group.Nodes.Add(new Choice([.. choices]));
+                                group.Nodes.Add(new ConsoleChoice([.. choices]));
                             }
                             break;
                         case "calidus":

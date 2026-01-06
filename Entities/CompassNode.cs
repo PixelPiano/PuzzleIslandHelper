@@ -36,7 +36,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public EntityID EntityID;
         private float maxShakeTime = 1.3f;
         private float shakeMult => shakeTime / maxShakeTime;
-        private ShakeComponent shaker;
+        private BetterShaker shaker;
         public Vector2 ShakeOffset;
         private Vector2 shakeOffset;
 
@@ -65,7 +65,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     lockTimer = Engine.DeltaTime * 30;
                 }
             }, holdCollider));
-            Add(shaker = new ShakeComponent(OnShake));
+            Add(shaker = new BetterShaker(OnShake));
         }
         public CompassNode(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Enum<Directions>("direction", default), data.Attr("nodeID"), data.Attr("compassID"), data.Bool("startEmpty"))
         {

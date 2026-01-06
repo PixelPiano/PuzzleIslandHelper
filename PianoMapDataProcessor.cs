@@ -305,7 +305,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static readonly Dictionary<string, List<string>> CollectableData = [];
         public static readonly Dictionary<string, HashSet<CompassNodeData>> CompassNodeData = [];
         public static readonly Dictionary<string, HashSet<CompassData>> CompassData = [];
-        public static readonly Dictionary<string, List<Ascwiit.Controller.Sequence.Data>> AscwiitCodes = [];
+        public static readonly Dictionary<string, Dictionary<string, Ascwiit.Controller.Data>> AscwiitCodes = [];
 
         public static void Reset<T>(Dictionary<string, List<T>> dict, string key)
         {
@@ -379,23 +379,23 @@ namespace Celeste.Mod.PuzzleIslandHelper
             };
             Action<BinaryPacker.Element> ascwiitSequenceData = data =>
             {
-                Ascwiit.Controller.Sequence.Data sequence = new()
+                Ascwiit.Controller.Data sequence = new()
                 {
                     Group = data.Attr("groupID"),
                     PositionInRoom = data.Position(),
                     Room = levelName
                 };
                 string[] steps = data.Attr("steps").Replace(" ", "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                List<int> stepsList = [];
+                List<Directions> stepsList = [];
                 foreach (string s in steps)
                 {
-                    if (int.TryParse(s, out int result))
+                    if (Enum.TryParse(s, true, out Directions result))
                     {
                         stepsList.Add(result);
                     }
                 }
                 sequence.Steps = stepsList.ToArray();
-                AscwiitCodes[key].Add(sequence);
+                AscwiitCodes[key].TryAdd(sequence.Group, sequence);
             };
             Action<BinaryPacker.Element> compassData = data =>
             {
@@ -598,7 +598,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     }
                 },
                 {
-                    "entity:PuzzleIslandHelper/AscwiitSequence", sequence =>
+                    "entity:PuzzleIslandHelper/AscwiitController", sequence =>
                     {
                         ascwiitSequenceData(sequence);
                     }

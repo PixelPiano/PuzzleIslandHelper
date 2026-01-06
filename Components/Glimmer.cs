@@ -23,11 +23,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public float BaseAlpha = 1;
         public float FadeThresh;
         public float RotationInterval;
-        public float FlashMult = 0;
-        public float FadeMult = 1;
+        private float FlashMult = 0;
+        private float FadeMult = 1;
         public float LineOffset = 4;
-        public int MinAngle = 0;
-        public int MaxAngle = 360;
+        public float MinAngle = 0;
+        public float MaxAngle = 360;
         public bool FadeX;
         public bool FadeY;
         public bool Flashes;
@@ -157,18 +157,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             Lines = lines;
             LineOffset = lineOffset;
             RotationRate = rotateRate;
-        }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            if (Alpha > 0)
-            {
-                Draw.Point(RenderPosition, Color.Cyan);
-            }
-            else
-            {
-                Draw.Point(RenderPosition, Color.Red);
-            }
         }
         public override void Update()
         {

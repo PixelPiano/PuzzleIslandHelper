@@ -14,7 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             {
                 player.DisableMovement();
             }
-            level.Add(Poem);
+                level.Add(Poem);
             Add(new Coroutine(Cutscene()));
         }
         private IEnumerator Cutscene()
@@ -82,7 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             {
                 yield return null;
             }
-            yield return PianoUtils.Lerp(Ease.SineIn, 1, f=> Alpha = 1 - f);
+            yield return PianoUtils.Lerp(Ease.SineIn, 1, f => Alpha = 1 - f);
             Alpha = 0;
             InCutscene = false;
             RemoveSelf();

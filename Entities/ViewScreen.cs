@@ -77,7 +77,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
 
             private List<string> DialogIDs = new();
 
-            private FancyTextExt.Text FText;
+            private ExtraFancyText.Text FText;
             public Vector2 Scale;
             public float Size;
             public int MaxLines;
@@ -145,7 +145,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
             #endregion
             private void LoadText(int maxLineWidth, int linesPerPage, Vector2 offset)
             {
-                FText = FancyTextExt.Parse(Dialog.Get(DialogIDs[CurrentID]), maxLineWidth, linesPerPage, offset);
+                FText = ExtraFancyText.Parse(Dialog.Get(DialogIDs[CurrentID]), maxLineWidth, linesPerPage, offset);
                 LineSpace = FText.BaseSize * Size;
             }
             public override void Awake(Scene scene)
@@ -167,7 +167,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                 StartNode = 0;
                 CurrentNode = 0;
                 CurrentLine = 0;
-                FText = FancyTextExt.Parse(Dialog.Get(DialogIDs[next]), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
+                FText = ExtraFancyText.Parse(Dialog.Get(DialogIDs[next]), MaxLineWidth, 16, Vector2.UnitX * MaxLineWidth);
             }
             private IEnumerator Cutscene()
             {
@@ -185,11 +185,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                             bool hitChar = false;
                             for (int i = 0; i < FText.Nodes.Count; i++)
                             {
-                                FancyTextExt.Node Node = FText.Nodes[i];
+                                ExtraFancyText.Node Node = FText.Nodes[i];
 
                                 CurrentNode = i + 1;
 
-                                if (Node is FancyTextExt.Char c)
+                                if (Node is ExtraFancyText.Char c)
                                 {
 
                                     if (charSkipCount < charSkip)
@@ -203,7 +203,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Helpers
                                         charSkipCount = 0;
                                     }
                                 }
-                                if (Node is FancyTextExt.NewLine)
+                                if (Node is ExtraFancyText.NewLine)
                                 {
                                     CurrentLine++;
                                 }

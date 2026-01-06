@@ -3,7 +3,7 @@ machine.justification = { 0, 0 }
 
 machine.name = "PuzzleIslandHelper/HatchMachine"
 
-machine.depth = -8500
+machine.depth = 2
 
 machine.texture = "objects/PuzzleIslandHelper/machines/hatchMachine/lonn"
 

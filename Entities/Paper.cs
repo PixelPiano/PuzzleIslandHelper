@@ -14,9 +14,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private string DialogID;
         private DotX3 Talk;
         private bool UsesTexture;
+        private FlagList VisibleFlag;
+        private FlagList InteractableFlag;
         public Paper(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
+            Tag |= Tags.TransitionUpdate;
+            VisibleFlag = data.FlagList("visibleFlag");
+            InteractableFlag = data.FlagList("interactableFlag");
             UsesTexture = data.Bool("usesTexture", true);
             Depth = 9000;
             path = data.Attr("texturePath", "objects/PuzzleIslandHelper/noteSprites/paperA");
@@ -33,6 +38,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Talk.VisibleFromDistance = true;
             Talk.AlphaAtDistance = 0.5f;
 
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            Talk.Enabled = InteractableFlag;
+            Visible = VisibleFlag;
+        }
+        public override void Update()
+        {
+            base.Update();
+            Talk.Enabled = InteractableFlag;
+            Visible = VisibleFlag;
         }
         private void Interact(Player player)
         {

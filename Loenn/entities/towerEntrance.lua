@@ -18,7 +18,8 @@ towerEntrance.placements =
         {
             width = 8,
             height = 8,
-            lockFlag = ""
+            lockFlag = "",
+            flagsToSet = ""
         }
     }
 }

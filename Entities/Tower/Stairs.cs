@@ -104,7 +104,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public JumpThru Platform;
         private float NoCollideTimer;
         private float allowDescentTimer;
-        private FlagList CollidableFlag;
         public bool DisablePlatform;
         private Vector2 PrevPosition;
         public Vector3[] Points = [];
@@ -427,7 +426,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     }
                 }
 
-                Platform.Collidable = !InElevator && Collidable && NoCollideTimer == 0 && CollidableFlag && !DisablePlatform;
+                if (Platform != null)
+                {
+                    Platform.Collidable = !InElevator && Collidable && NoCollideTimer == 0 && !DisablePlatform;
+                }
                 distFromCenter = Math.Abs(player.CenterX - CenterX);
                 CurrentZ = GetZ(y);
 

@@ -17,12 +17,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private TileGrid tileGrid;
         private AnimatedTiles animatedTiles;
         private bool useAnimatedTiles;
+
         public FlagConditionBlock(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset, data.Width, data.Height, true)
         {
             tileType = data.Char("tileType", '3');
             Flag = data.FlagList();
             blendIn = data.Bool("blendIn");
-            Depth = -12999;
+            Depth = data.Int("depth", -12999);
             this.id = id;
             useAnimatedTiles = data.Bool("useAnimatedTiles");
             Tag |= Tags.TransitionUpdate;

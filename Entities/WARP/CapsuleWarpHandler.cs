@@ -51,12 +51,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         {
             Player = player;
             Calidus = Scene.Tracker.GetEntity<Calidus>();
-            List<Component> components = Scene.Tracker.GetComponents<WarpCapsule.OnWarpComponent>();
-            foreach (WarpCapsule.OnWarpComponent component in components)
+            List<Component> beginComponents = Engine.Scene.Tracker.GetComponents<WarpCapsule.OnWarpBeginComponent>();
+            foreach (WarpCapsule.OnWarpBeginComponent component in beginComponents)
             {
                 component.Activate(player, Parent);
             }
-            foreach (WarpCapsule.OnWarpComponent component in components)
+            foreach (WarpCapsule.OnWarpBeginComponent component in beginComponents)
             {
                 if (component.WaitForRoutineToFinish)
                 {
@@ -99,7 +99,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 }
             }
             yield return warp(player, WarpTime);
-
+            List<Component> endComponents = Engine.Scene.Tracker.GetComponents<WarpCapsule.OnWarpEndComponent>();
+            foreach (WarpCapsule.OnWarpEndComponent component in endComponents)
+            {
+                component.Activate(player, Parent);
+            }
+            foreach (WarpCapsule.OnWarpEndComponent component in endComponents)
+            {
+                if (component.WaitForRoutineToFinish)
+                {
+                    while (component.InRoutine) yield return null;
+                }
+            }
             WarpCapsuleCutscene outroCutscene = null;
             foreach (OutroWarpCutsceneTrigger trigger in Engine.Scene.Tracker.GetEntities<OutroWarpCutsceneTrigger>())
             {
@@ -255,6 +266,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             level.Camera.Position = player.CameraTarget;
             if (nextParent != null)
             {
+                nextParent.GrandparentWarpID = Parent.WarpID;
                 Parent = nextParent;
                 WARPData.Scale = Vector2.One;
                 nextParent.DoorClosedPercent = DoorPercentSave;

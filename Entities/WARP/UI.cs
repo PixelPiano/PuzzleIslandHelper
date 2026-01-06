@@ -255,7 +255,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             }
         }
         public const string Path = "objects/PuzzleIslandHelper/runeUI/";
-        public static bool Lined => PianoModule.Settings.WarpCapsuleDisplayMode == PianoModuleSettings.WCDM.Lined;
+        public static bool Lined => true;//PianoModule.Settings.WarpCapsuleDisplayMode == PianoModuleSettings.WCDM.Lined;
         public enum Control
         {
             None,
@@ -266,7 +266,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         public static char?[,] map = new char?[3, 5]
         {
             {'h', '0','1','2',null},
-            {null,'3','4','5','6'},
+            {'e','3','4','5','6'},
             {'s', '7','8','9',null},
         };
         public int MapX;
@@ -774,21 +774,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 }
             }
         }
-        public abstract class Button
+        public class Button
         {
             public bool DrawBounds;
             public bool Disabled;
             public Vector2 Offset;
             public bool ClickedFirstFrame;
             public bool Colliding;
+            public bool CursorOver;
             public MTexture IdleTex => GFX.Game[Path + TexturePath];
             public MTexture PressedTex => GFX.Game[Path + TexturePath + "Pressed"];
             public MTexture Texture => ClickedFirstFrame && Colliding ? PressedTex : IdleTex;
             public string TexturePath;
-            public Button(Vector2 offset, string path)
+            public Action OnClicked;
+            public char ID;
+            public Button(Vector2 offset, string path, Action onClicked, char id)
             {
+                ID = id;
                 Offset = offset;
                 TexturePath = path;
+                OnClicked = onClicked;
             }
             public void Render()
             {
@@ -814,13 +819,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 return false;
             }
         }
-        public class SubmitButton(Vector2 offset) : Button(offset, "button") { }
-        public class HomeButton(Vector2 offset) : Button(offset, "homeButton") { }
         public VirtualRenderTarget Buffer, Buffer2;
         public List<Node> Nodes = new();
+        public List<Button> Buttons = [];
         public ConnectionList Connections;
-        public SubmitButton Submit;
-        public HomeButton Home;
+        public Button Submit;
+        public Button Home;
+        public Button Exit;
         public MouseComponent Mouse;
         public Inventory Inventory;
         public float Alpha = 1;
@@ -830,16 +835,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             set
             {
                 standby = value;
-                if (Submit != null) Submit.Disabled = standby;
-                if (Home != null) Home.Disabled = standby;
+                foreach(Button b in Buttons)
+                {
+                    b.Disabled = standby;
+                }
                 if (Mouse != null) Mouse.Active = !standby;
 
             }
         }
         private bool standby;
         public bool Finished;
-        public bool CollidingWithSubmit;
-        public bool CollidingWithHome;
         public WarpCapsule Parent;
         public AreaKey AreaKey => SceneAs<Level>().Session.Area;
 
@@ -852,6 +857,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             Add(new BeforeRenderHook(BeforeRender));
             Add(Mouse = new MouseComponent(OnLeftClick, OnRightClick, OnLeftRelease, OnRightRelease, OnLeftIdle, OnRightIdle, OnLeftHeld, OnRightHeld));
             Mouse.MethodsEnabled = false;
+
+            Submit = AddButton(new Vector2(50, 1080 - 209), "button", CheckRune, 's');
+            Home = AddButton(new Vector2(50, 209), "homeButton", GoHome, 'h');
+            Exit = AddButton(new Vector2(50, 418), "exitButton", () => FadeOut(), 'e');
+
+        }
+        public Button AddButton(Vector2 position, string path, Action action, char id)
+        {
+            Button button = new Button(position, path, action, id);
+            Buttons.Add(button);
+            return button;
         }
         public void FadeIn()
         {
@@ -890,9 +906,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 Nodes.Add(n);
             }
             Connections = new(Nodes);
-            Submit = new SubmitButton(new Vector2(50, 1080 - 209));
-            Home = new HomeButton(new Vector2(50, 209));
             Home.Offset += Home.Texture.HalfSize();
+            Exit.Offset += Exit.Texture.HalfSize();
             Inventory = new(Connections, 60);
             FadeIn();
         }
@@ -919,7 +934,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 switch (ControlMode)
                 {
                     case Control.Pad:
-                       
+
                         Mouse.MethodsEnabled = false;
                         if (padBuffer <= 0)
                         {
@@ -972,8 +987,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                         int mY = MapY;
                         char? selected = map[MapY, MapX];
 
-                        CollidingWithSubmit = Submit.DrawBounds = selected == 's';
-                        CollidingWithHome = Home.DrawBounds = selected == 'h';
+                        foreach(Button b in Buttons)
+                        {
+                            b.CursorOver = b.DrawBounds = selected == b.ID;
+                        }
                         int? index = selected.HasValue && int.TryParse(selected.Value.ToString(), out int result) ? result : null;
                         for (int i = 0; i < Nodes.Count; i++)
                         {
@@ -1006,9 +1023,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                     case Control.Mouse:
                         Mouse.MethodsEnabled = true;
                         Vector2 pos = Mouse.MousePosition;
-                        CollidingWithSubmit = Submit.Check(pos);
-                        CollidingWithHome = Home.Check(pos);
-                        Submit.DrawBounds = Home.DrawBounds = false;
+                        foreach(Button b in Buttons)
+                        {
+                            b.CursorOver = b.Check(pos);
+                            b.DrawBounds = false;
+                        }
                         for (int i = 0; i < Nodes.Count; i++)
                         {
                             Nodes[i].DrawBounds = false;
@@ -1027,22 +1046,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void OnLeftClick()
         {
-            Submit.ClickedFirstFrame = CollidingWithSubmit;
-            Home.ClickedFirstFrame = CollidingWithHome;
+            foreach(Button b in Buttons)
+            {
+                b.ClickedFirstFrame = b.CursorOver;
+            }
             Connections.OnLeftClick(GetFirstCollided());
         }
         public void OnLeftRelease()
         {
-            if (Submit.ClickedFirstFrame && CollidingWithSubmit)
+            foreach(Button b in Buttons)
             {
-                CheckRune();
+                if(b.ClickedFirstFrame && b.CursorOver)
+                {
+                    b.OnClicked.Invoke();
+                    break;
+                }
             }
-            else if (Home.ClickedFirstFrame && CollidingWithHome)
+            foreach(Button b in Buttons)
             {
-                GoHome();
+                b.ClickedFirstFrame = false;
             }
-            Home.ClickedFirstFrame = false;
+/*            Home.ClickedFirstFrame = false;
             Submit.ClickedFirstFrame = false;
+            Exit.ClickedFirstFrame = false;*/
             Connections.OnLeftRelease(GetFirstCollided());
         }
         public void GoHome()
@@ -1056,8 +1082,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void OnLeftHeld()
         {
-            Submit.Colliding = Submit.ClickedFirstFrame && CollidingWithSubmit;
-            Home.Colliding = Home.ClickedFirstFrame && CollidingWithHome;
+            foreach(Button b in Buttons)
+            {
+                b.Colliding = b.ClickedFirstFrame && b.CursorOver;
+            }
             Connections.OnLeftHeld(Mouse.MousePosition, GetFirstCollided());
         }
         public Node GetFirstCollided()
@@ -1105,10 +1133,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void ResetButton()
         {
-            Submit.Colliding = false;
-            Submit.ClickedFirstFrame = false;
-            Home.Colliding = false;
-            Home.ClickedFirstFrame = false;
+            foreach(Button b in Buttons)
+            {
+                b.Colliding = false;
+                b.ClickedFirstFrame = false;
+            }
         }
         public WarpRune CreateRune()
         {
@@ -1159,10 +1188,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             {
                 SetRune(data.Rune);
             }
-            else if (Connections.Connections.Count == 0)
-            {
-                SetRune(WarpRune.Default);
-            }
+            /*            else if (Connections.Connections.Count == 0)
+                        {
+                            SetRune(WarpRune.Default);
+                        }*/
             else
             {
                 foreach (Node n in Nodes)
@@ -1210,8 +1239,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 {
                     node.DrawTexture();
                 }
-                Submit.Render();
-                Home.Render();
+                foreach(Button b in Buttons)
+                {
+                    b.Render();
+                }
                 Draw.SpriteBatch.Draw(Buffer2, Vector2.Zero, Color.White);
                 Inventory.Render();
                 Cursor.DrawCentered(p, Color.White * MouseIconAlpha);

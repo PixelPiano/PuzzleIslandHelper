@@ -32,7 +32,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             inverted = data.Bool("invertFlag");
             oncePerSession = data.Bool("onlyOncePerSession");
             tileType = data.Char("tileType");
-            Collider = new Hitbox(data.Width,data.Height);
+            Collider = new Hitbox(data.Width, data.Height);
         }
         public override void Update()
         {
@@ -42,15 +42,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 EmitDebris();
             }
         }
-        private void EmitDebris()
+        public static void SpawnDebrisBox(Scene scene, Vector2 position, Vector2 blastFrom, float width, float height, char tileType, bool playSound = true)
         {
-            for (int i = 0; i < Width / 8f; i++)
+            for (int i = 0; i < width / 8f; i++)
             {
-                for (int j = 0; j < Height / 8f; j++)
+                for (int j = 0; j < height / 8f; j++)
                 {
-                    Scene.Add(Engine.Pooler.Create<Debris>().Init(Position + new Vector2(4 + i * 8, 4 + j * 8), tileType).BlastFrom(Center));
+                    SpawnDebrisSingle(scene, position + new Vector2(4 + i * 8, 4 + j * 8), blastFrom, tileType, playSound);
                 }
             }
+        }
+        public static void SpawnDebrisSingle(Scene scene, Vector2 position, Vector2 blastFrom, char tileType, bool playSound = true)
+        {
+            scene.Add(Engine.Pooler.Create<Debris>().Init(position, tileType, playSound).BlastFrom(blastFrom));
+        }
+        private void EmitDebris()
+        {
+            SpawnDebrisBox(Scene, Position, Center, Width, Height, tileType, true);
             if (oncePerSession)
             {
                 SceneAs<Level>().Session.DoNotLoad.Add(id);

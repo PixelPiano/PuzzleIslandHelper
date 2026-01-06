@@ -122,6 +122,7 @@ for _, type in ipairs(types) do
         name = "Talking Decal ("..type..")",
         data = {
             flag = "",
+            hidden = false,
             disableIfTrue = false,
             disableIfFalse = false,
             flagMode = "SetTrue",

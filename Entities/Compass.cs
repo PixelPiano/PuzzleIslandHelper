@@ -96,7 +96,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public TalkComponent DotX3;
         public string ID;
         public FlagList Flag;
-        private ShakeComponent shaker;
+        private BetterShaker shaker;
         private Vector2 OrigPosition;
         public CompassData Data;
         public string debug => Data.ToString();
@@ -155,7 +155,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(Image);
             }
             Collider = new Hitbox(half.X * 2, half.Y * 2);
-            Add(shaker = new ShakeComponent(onShake));
+            Add(shaker = new BetterShaker(onShake));
             rotateMultTween = Tween.Create(Tween.TweenMode.Persist, Ease.SineIn, 1f);
             Add(rotateMultTween);
         }
@@ -364,7 +364,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 foreach (var d in data)
                 {
-                    PianoModule.Session.AscwiitSequences.Add(d);
+                    PianoModule.Session.AscwiitSequences.Add(d.Value);
                 }
             }
         }

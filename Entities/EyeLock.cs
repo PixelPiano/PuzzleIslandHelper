@@ -171,10 +171,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (!SceneAs<Level>().Session.GetFlag(IDFlag))
             {
                 scene.Add(LockActor);
-                if (CanUnlock())
-                {
-                    LockActor.Shine.Alpha = 1;
-                }
             }
             else
             {
@@ -182,6 +178,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Talk.Enabled = !talked && Talkable();
             FlagUpdate();
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            if (CanUnlock() && LockActor.Shine != null)
+            {
+                LockActor.Shine.Alpha = 1;
+            }
         }
         public void FlagUpdate()
         {

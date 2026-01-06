@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
@@ -135,6 +136,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public string String2;
         public string MarkerID;
         public TalkComponent Talk;
+        public DotX3 CustomTalk;
         public bool FlagState(string flag)
         {
             return string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag);
@@ -158,10 +160,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private string flag;
         private bool disableIfTrue;
         private bool disableIfFalse;
+        private bool useHiddenTalk;
         public TalkingDecal(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
             flag = data.Attr("flag");
+            useHiddenTalk = data.Bool("hidden");
             flagMode = data.Enum<FlagModes>("flagMode");
             disableIfTrue = data.Bool("disableIfTrue");
             disableIfFalse = data.Bool("disableIfFalse");
@@ -177,6 +181,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             TalkMode = data.Enum<TalkModes>("mode");
             RenderingEnabled = new FlagList(data.Attr("visibilityFlag"));
             TalkEnabled = new FlagList(data.Attr("talkEnabledFlag"));
+            Add(new PassengerHouse.PatternBlocker());
             switch (data.Attr("visibleMode"))
             {
                 case "Visible":
@@ -217,7 +222,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     break;
                 case TalkModes.Cutscene:
                     String = data.Attr("onCutscene");
-                    String = data.Attr("offCutscene");
+                    String2 = data.Attr("offCutscene");
                     break;
             }
             Outline = data.Bool("outline");
@@ -259,9 +264,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             int height = (int)(Height + extendUp + extendDown);
             TalkBounds = new Rectangle(x, y, width, height);
             DrawAt = Vector2.UnitX * TalkBounds.Width / 2;
+            CustomTalk = new DotX3(TalkBounds, DrawAt, Interact);
             Talk = new TalkComponent(TalkBounds, DrawAt, Interact);
             Talk.PlayerMustBeFacing = false;
-            Add(Talk);
+            CustomTalk.PlayerMustBeFacing = false;
+            if (useHiddenTalk)
+            {
+                Add(CustomTalk);
+            }
+            else
+            {
+                Add(Talk);
+            }
         }
         public override void Awake(Scene scene)
         {
@@ -460,13 +474,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            bool enabled = true;
             if (TalkMode is TalkModes.Flag)
             {
-                bool flagstate2 = string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag);
+                bool flagstate2 = (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag));
 
                 if ((disableIfTrue && flagstate2) || (disableIfFalse && !flagstate2))
                 {
-                    Talk.Enabled = false;
+                    enabled = false;
+                }
+                else
+                {
+                    enabled = TalkEnabled;
                 }
                 UpdateSprites(flagstate2);
             }
@@ -475,11 +494,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 bool flagstate = TalkEnabled;
                 targetString = flagstate ? String : String2;
                 targetString ??= "";
-                Talk.Enabled = !string.IsNullOrEmpty(targetString);
+                enabled = !string.IsNullOrEmpty(targetString);
                 UpdateSprites(flagstate);
             }
+            if(useHiddenTalk) CustomTalk.Enabled = enabled;
+            else Talk.Enabled = enabled;
             UpdateHoverUIAlpha();
         }
+
         public void UpdateSprites(bool value)
         {
             if (onSprite != null)

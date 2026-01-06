@@ -347,7 +347,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     Barriers[1] = new InvisibleBarrier(new Vector2(t.Col.Right, Entrances[0].Top), 8, height);
                     Barriers[2] = new InvisibleBarrier(Barriers[0].TopLeft - Vector2.UnitY * 8, Barriers[1].Right - Barriers[0].Left, 8);
                     scene.Add(Barriers);
-                    BarrierState(false);
                     Platform = new JumpThru(new Vector2(t.Col.X, Entrances[0].Bottom), (int)t.Col.Width, true);
                     scene.Add(Platform);
                     Platform.Collidable = false;
@@ -361,6 +360,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public override void Update()
             {
                 base.Update();
+                BarrierState(Tower.Col.InElevator);
+
                 if (!Tower.CollideCheck<Player>() || !InRoutine)
                 {
                     Shade.Alpha = Calc.Approach(Shade.Alpha, 0, Engine.DeltaTime);

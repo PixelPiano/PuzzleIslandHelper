@@ -665,15 +665,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                     int indexB = indices[i];
                     Draw.Line(Vertices[indexA].Position.XY(), Vertices[indexB].Position.XY(), Color.Magenta);
                 }
-                /*                for (int i = 1; i < Vertices.Length; i++)
-                                {
-                                    Draw.Line(Vertices[i - 1].Position.XY(), Vertices[i].Position.XY(), Color.Magenta);
-                                }
-                                Draw.Line(Vertices[0].Position.XY(), Vertices[^1].Position.XY(), Color.Magenta);*/
-                foreach (Vertex v in VertexList.Vertices)
-                {
-                    Draw.Line(Position + v.Group.Center * Scale * ScaleApproach * -(int)Facing, v.WorldPosition, Color.White);
-                }
             }
         }
         public void Bake(bool recreateHitbox = false)

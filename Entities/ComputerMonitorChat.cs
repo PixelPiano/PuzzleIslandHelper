@@ -31,7 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public Vector2 Position;
             public string ID;
             public bool Raw;
-            public FancyTextExt.Text Text;
+            public ExtraFancyText.Text Text;
             public int End = 0;
             public int Index;
             public Vector2 Scale = Vector2.One;
@@ -42,7 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 ID = id;
                 Raw = raw;
                 Scale = scale;
-                Text = FancyTextExt.Parse(raw ? id : Dialog.Get(id), maxLineWidth, maxLines, offset);
+                Text = ExtraFancyText.Parse(raw ? id : Dialog.Get(id), maxLineWidth, maxLines, offset);
                 Text.Font = font;
                 Text.BaseSize = height;
             }
@@ -50,7 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return string.IsNullOrEmpty(ID) ? Text.ToString() : Raw ? ID : Dialog.Get(ID);
             }
-            public List<Line> AdvanceToNext(FancyTextExt.Advance advance)
+            public List<Line> AdvanceToNext(ExtraFancyText.Advance advance)
             {
                 int w = (int)Chat.MaxWidth;
                 return Chat.AddChunk(advance.ID, w, 1, Vector2.UnitX * w);
@@ -60,27 +60,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 for (int i = 0; i < Text.Nodes.Count; i++)
                 {
                     End = i + 1;
-                    FancyTextExt.Node node = Text.Nodes[i];
-                    if (node is FancyTextExt.Wait wait)
+                    ExtraFancyText.Node node = Text.Nodes[i];
+                    if (node is ExtraFancyText.Wait wait)
                     {
                         yield return wait.Duration;
                     }
-                    if (node is FancyTextExt.Char c)
+                    if (node is ExtraFancyText.Char c)
                     {
                         yield return c.Delay * (Chat.SpeedUp ? 0.5f : 1.5f);
                     }
-                    if (node is FancyTextExt.Confirm confirm)
+                    if (node is ExtraFancyText.Confirm confirm)
                     {
                         Chat.InControl = true;
                         while (!Input.DashPressed) yield return null;
                         Chat.InControl = false;
                     }
-                    if (node is FancyTextExt.Choice choice)
+                    if (node is ExtraFancyText.ConsoleChoice choice)
                     {
                         float keyBuffer = 0.2f;
                         float timer = keyBuffer;
                         int index = 0;
-                        FancyTextExt.Advance advance2 = null;
+                        ExtraFancyText.Advance advance2 = null;
 
                         while (advance2 == null)
                         {
@@ -115,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         yield return 0.2f;
                         yield return ScrollThroughLines(next);
                     }
-                    if (node is FancyTextExt.Advance advance)
+                    if (node is ExtraFancyText.Advance advance)
                     {
                         List<Line> next = AdvanceToNext(advance);
                         yield return ScrollThroughLines(next);
@@ -131,7 +131,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static List<Line> CreateLines(ComputerMonitorChat chat, PixelFont font, float height, Vector2 scale, string dialogID, int maxLineWidth, int maxLinesPerPage, Vector2 offset)
         {
             List<Line> list = [];
-            var lines = FancyTextExt.ParseSplit(Dialog.Get(dialogID), maxLineWidth, maxLinesPerPage, offset);
+            var lines = ExtraFancyText.ParseSplit(Dialog.Get(dialogID), maxLineWidth, maxLinesPerPage, offset);
             foreach (var text in lines)
             {
                 list.Add(new Line(chat, chat.Lines.Count + list.Count, font, height, scale, text, true, int.MaxValue, maxLinesPerPage, offset));
@@ -150,7 +150,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
         private readonly List<Line> Lines = [];
-        public FancyTextExt.Choice CurrentChoice;
+        public ExtraFancyText.ConsoleChoice CurrentChoice;
         public int LinesPerPage;
         public float LineHeight;
         public bool InControl;

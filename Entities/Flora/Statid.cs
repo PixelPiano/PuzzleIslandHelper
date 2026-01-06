@@ -48,7 +48,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 startRotation = rotation;
                 Scale = scale;
                 Vertices = new VertexPositionColor[PetalPoints.Length];
-
                 for (int i = 0; i < PetalPoints.Length; i++)
                 {
                     Vertices[i] = new VertexPositionColor(new Vector3(PetalPoints[i] * Scale, 0), Color.White);
@@ -95,7 +94,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public float MaxAngleOffset;
         public float Mult;
         public float TargetMult;
-
+        public bool CanProduceSap;
         public bool Sleeping;
         public bool IsInView;
         public Vector2 Orig;
@@ -129,10 +128,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public HashSet<Firfil> Firfils = [];
         public bool Single;
+        public float PlayerCollidingTimer = 3f;
+        public string ThoughtPath;
+        public FlagList FlagOnSapped;
         public Statid(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, data.Int("petals"), data.Bool("digital"), Vector2.One * 4, 0, id, data.Int("depth", 2), data.HexColor("color"), data.HexColor("shadeColor"), data.Bool("dead"))
         {
             Single = true;
-            Big = data.Bool("big");
+            ThoughtPath = data.Attr("thoughtPath");
+            FlagOnSapped = data.FlagList("flagOnSapped");
+            CanProduceSap = data.Bool("canProduceSap");
         }
         public Statid(Vector2 position, int petals, bool digital, Vector2 petalScale, int scaleRange, EntityID id, int depth, Color aliveColor, Color shadeColor, bool dead, bool modifyColorBasedOnDepth = true) : base(position)
         {
@@ -162,6 +166,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public void OnPlayer(Player player)
         {
             playerColliding = true;
+            if (PlayerCollidingTimer > 0)
+            {
+                PlayerCollidingTimer -= Engine.DeltaTime;
+            }
             if (!playerWasColliding)
             {
                 float speed = (player.Speed.X) * Engine.DeltaTime * 0.06f;
@@ -214,7 +222,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             bulbOffset = 0;
             HeightOffset = 0;
         }
-        public bool Big;
         private class loneAscwiitCutscene : CutsceneEntity
         {
             private Statid statid;
@@ -269,6 +276,82 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 }
             }
         }
+        private class ascwiitSapCutscene : CutsceneEntity
+        {
+            public Ascwiit Bird;
+            public Statid Flower;
+            private Entity collisionChecker;
+            private bool removeBird;
+            public ascwiitSapCutscene(Ascwiit bird, Statid flower) : base()
+            {
+                Bird = bird;
+                Flower = flower;
+            }
+            public override void Added(Scene scene)
+            {
+                base.Added(scene);
+                scene.Add(collisionChecker = new Entity());
+                collisionChecker.Collider = new Hitbox(1, 1);
+            }
+            public override void OnBegin(Level level)
+            {
+                if (Bird == null)
+                {
+                    removeBird = true;
+                    Vector2 p = level.Camera.Position;
+                    List<float> possibleSpawns = [];
+                    for (int x = 0; x < 320; x++)
+                    {
+                        if (!Scene.CollideCheck<Solid>(p + Vector2.UnitX * x, Flower.TopCenter))
+                        {
+                            possibleSpawns.Add(p.X + x);
+                        }
+
+                    }
+                    if (possibleSpawns.Count > 0)
+                    {
+                        float spawnX = possibleSpawns.Random();
+                        float spawnY = level.Camera.Y - 8;
+                        Bird = new Ascwiit(new Vector2(spawnX, spawnY), Ascwiit.StFlyTo);
+                    }
+                    else
+                    {
+                        RemoveSelf();
+                    }
+                }
+                level.GetPlayer()?.DisableMovement();
+                Add(new Coroutine(cutscene()));
+            }
+            private IEnumerator cutscene()
+            {
+                Vector2 position = Bird.Position;
+                Bird.StateMachine.State = Ascwiit.StDummy;
+                Bird.DummyGravity = false;
+                Bird.DummyFlap = false;
+                Bird.DummyPeck = true;
+                yield return Bird.EatSap(Flower);
+                yield return Bird.FlyToRoutine(position);
+                if (removeBird)
+                {
+                    Bird.RemoveSelf();
+                }
+                EndCutscene(Level);
+            }
+            public override void OnEnd(Level level)
+            {
+                Bird.RemoveSelf();
+                level.GetPlayer()?.EnableMovement();
+            }
+            public override void Removed(Scene scene)
+            {
+                base.Removed(scene);
+                collisionChecker.RemoveSelf();
+                if (removeBird)
+                {
+                    Bird?.RemoveSelf();
+                }
+            }
+        }
         private IEnumerator ascwiitEatSequence(Ascwiit bird)
         {
             Vector2 position = bird.Position;
@@ -308,23 +391,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 if (HasSap && !IsSapped && !Occupied)
                 {
                     Camera camera = SceneAs<Level>().Camera;
+                    bool foundBaby = false;
                     if (Left > camera.X + 30 && Right < camera.X + 290)
                     {
-                        foreach (Ascwiit bird in Scene.Tracker.GetEntities<Ascwiit>())
+                        List<Entity> birds = Scene.Tracker.GetEntities<Ascwiit>();
+                        if (birds.Count == 1 && (birds[0] as Ascwiit).Scale < 1 && !(birds[0] as Ascwiit).FirfilEated)
                         {
-                            if (!bird.FirfilEated)
+                            foundBaby = string.IsNullOrEmpty(ThoughtPath);
+                        }
+                        if (foundBaby)
+                        {
+                            Scene.Add(new loneAscwiitCutscene(this, birds[0] as Ascwiit));
+                            Occupied = true;
+                        }
+                        else
+                        {
+                            if (!string.IsNullOrEmpty(ThoughtPath))
                             {
-                                if (Big)
-                                {
-                                    Scene.Add(new loneAscwiitCutscene(this, bird));
-                                }
-                                else
-                                {
-                                    Add(new Coroutine(ascwiitEatSequence(bird)));
-                                }
+                                Scene.Add(new ascwiitSapCutscene(null, this));
                                 Occupied = true;
-                                break;
                             }
+                        }
+                        if (Occupied && !FlagOnSapped.Empty)
+                        {
+                            FlagOnSapped.State = true;
                         }
                     }
                 }
@@ -375,6 +465,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             StemConnect = Ground + Calc.AngleToVector(Angle, Height);
 
             playerWasColliding = playerColliding;
+            if (!playerColliding)
+            {
+                PlayerCollidingTimer = 3f;
+            }
             playerColliding = false;
             base.Update();
 

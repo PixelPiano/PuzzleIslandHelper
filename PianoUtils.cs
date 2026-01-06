@@ -27,6 +27,16 @@ using static Celeste.Player;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static Vector2 ToVector2(this Directions direction)
+    {
+        return direction switch
+        {
+            Directions.Right => Vector2.UnitX,
+            Directions.Up => -Vector2.UnitY,
+            Directions.Left => -Vector2.UnitX,
+            Directions.Down => Vector2.UnitY
+        };
+    }
     public static Hitbox Collider(this IEnumerable<Vector2> list)
     {
         float left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
@@ -1993,9 +2003,23 @@ public static class PianoUtils
     {
         return new Color(color.R - amount, color.G - amount, color.B - amount);
     }
+    public static void DisableMovement(this Scene scene)
+    {
+        if (scene is Level level)
+        {
+            level.GetPlayer()?.DisableMovement();
+        }
+    }
     public static void DisableMovement(this Player player)
     {
         player.StateMachine.State = Player.StDummy;
+    }
+    public static void EnableMovement(this Scene scene)
+    {
+        if (scene is Level level)
+        {
+            level.GetPlayer()?.EnableMovement();
+        }
     }
     public static void EnableMovement(this Player player)
     {

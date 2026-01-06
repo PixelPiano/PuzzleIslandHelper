@@ -119,31 +119,245 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private LHLData LampData;
         private float LastRotation;
         private bool HomeRun;
+        public bool DependsOnLab = true;
+        public FlagList OnFlag;
+        private MTexture onTexture => GFX.Game["objects/PuzzleIslandHelper/hangingLamp"];
+        private MTexture brokenTexture => GFX.Game["objects/PuzzleIslandHelper/hangingLampBroken"];
+        private MTexture flickerTexture => GFX.Game["objects/PuzzleIslandHelper/hangingLampFlicker"];
+        private bool disableLight;
         public VertexPositionColor[] vertices = new VertexPositionColor[3];
-
-        public LabHangingLamp(Vector2 position, int length, EntityID id, EntityData data) : base(position + Vector2.UnitX * 4)
+        public LabHangingLamp(Vector2 position, EntityID id, int length, float alpha, bool staticOpacity, bool dependsOnLab, bool broken, FlagList flag = default) : base(position + Vector2.UnitX * 4)
         {
             Tag |= Tags.TransitionUpdate;
             this.id = id;
-            Opacity = data.Float("alpha", 1);
-            FixedOpacity = data.Bool("staticOpacity");
+            Opacity = alpha;
+            FixedOpacity = staticOpacity;
+            Broken = broken;
+            OnFlag = flag;
+            Length = Math.Max(16, length);
+            Depth = -1;
+            DependsOnLab = dependsOnLab;
             if (PianoModule.Session.BrokenLamps.TryGetValue(id, out LHLData value))
             {
                 LampData = value;
                 Broken = true;
                 Falling = true;
             }
-            Length = Math.Max(16, length);
-            Depth = -1;
             Add(new Coroutine(randomFlickerRoutine(), false));
         }
-
-
         public LabHangingLamp(EntityData data, Vector2 offset, EntityID id)
-            : this(data.Position + offset, Math.Max(16, data.Height), id, data)
+            : this(data.Position + offset, id, Math.Max(16, data.Height), data.Float("alpha", 1), data.Bool("staticOpacity"), data.Bool("dependsOnLab", true), data.Bool("broken"), data.FlagList("onFlag"))
         {
         }
-        private bool disableLight;
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            MTexture mTexture = GFX.Game["objects/PuzzleIslandHelper/hangingLampChains"];
+            Image image;
+            for (int i = 0; i < Length - 8; i += 8)
+            {
+                Add(image = new Image(mTexture.GetSubtexture(0, 8, 8, 8)));
+                image.Origin.X = 4f;
+                image.Origin.Y = -i;
+                images.Add(image);
+            }
+
+            Add(image = new Image(mTexture.GetSubtexture(0, 0, 8, 8)));
+            image.Origin.X = 4f;
+            images.Add(image);
+
+
+            Add(Lamp = new Image(GFX.Game["objects/PuzzleIslandHelper/hangingLamp"]));
+            Add(bloom = new BloomPoint(Vector2.UnitY * (Length - 4), 1f * Opacity, 10f));
+            Add(light = new VertexLight(Color.White, 1, 16, 32));
+
+
+            Add(sfx = new SoundSource());
+            Collider = new Hitbox(8f, Length, -4f);
+            Vector2 pos = !Broken ? new Vector2(Position.X - 4, Position.Y + Length - 8) : LampData.ImpactPosition;
+            scene.Add(Head = new Actor(pos));
+            Head.Collider = new Hitbox(8, 8);
+            Head.Add(new StaticMover());
+            if (!Broken)
+            {
+                Lamp.Origin.X = 4f;
+                Lamp.Position.X--;
+                Lamp.Origin.Y = -(Length - 8);
+            }
+            else if (LampData.Lost)
+            {
+                Lamp.Visible = bloom.Visible = light.Visible = Head.Visible = Head.Active = false;
+            }
+            else
+            {
+                Lamp.Origin = LampData.Origin;
+                Lamp.Position = LampData.Position;
+                Lamp.Rotation = LampData.Rotation;
+                light.Position = LampData.LightPosition;
+            }
+
+            if (Lamp.Visible)
+            {
+                images.Add(Lamp);
+            }
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            /*            Renderer = PianoUtils.SeekController<LabLightRenderer>(scene);
+                        if (Renderer == null)
+                        {
+                            scene.Add(Renderer = new LabLightRenderer());
+                        }*/
+            HandleVertices();
+            updateLight();
+            vertices[0].Color = Color.White;
+        }
+        public override void Update()
+        {
+            base.Update();
+            updateLight();
+            if (Broken)
+            {
+                Lamp.Texture = brokenTexture;
+                Lamp.Position = Head.Position - Position + new Vector2(4, 6);
+            }
+            else
+            {
+                Lamp.Texture = disableLight ? flickerTexture : onTexture;
+            }
+            if (!Falling && !Broken)
+            {
+                Head.Position.Y = Position.Y + (Length - 8);
+            }
+            soundDelay -= Engine.DeltaTime;
+            Player entity = Scene.Tracker.GetEntity<Player>();
+            if (entity != null && Collider.Collide(entity))
+            {
+                speed = (0f - entity.Speed.X) * 0.005f * ((entity.Y - Y) / Length);
+                if (!(Falling || Broken))
+                {
+                    LampSpeed.X = entity.Speed.X / 100;
+                    LampSpeed.Y = entity.Speed.Y / 200;
+                }
+                if (Math.Abs(speed) < 0.1f)
+                {
+                    speed = 0f;
+                }
+                else if (soundDelay <= 0f)
+                {
+                    sfx.Play("event:/game/02_old_site/lantern_hit");
+                    soundDelay = 0.25f;
+
+                    if (!Falling && !Broken)
+                    {
+                        WearAndTearGrade++;
+                        Degradation += (Math.Abs(entity.Speed.X) + Math.Abs(entity.Speed.Y) + WearAndTearGrade) * 0.005f;
+                        if (Degradation > BreakingPoint)
+                        {
+                            Add(new Coroutine(Fall()));
+                        }
+                    }
+                }
+            }
+
+            float num = Math.Sign(rotation) == Math.Sign(speed) ? 8f : 6f;
+            if (Math.Abs(rotation) < 0.5f)
+            {
+                num *= 0.5f;
+            }
+            if (Math.Abs(rotation) < 0.25f)
+            {
+                num *= 0.5f;
+            }
+
+            float value = rotation;
+            speed += -Math.Sign(rotation) * num * Engine.DeltaTime;
+            rotation += speed * Engine.DeltaTime;
+            rotation = Calc.Clamp(rotation, -0.4f, 0.4f);
+            if (Math.Abs(rotation) < 0.02f && Math.Abs(speed) < 0.2f)
+            {
+                rotation = speed = 0f;
+            }
+            else if (Math.Sign(rotation) != Math.Sign(value) && soundDelay <= 0f && Math.Abs(speed) > 0.5f)
+            {
+                sfx.Play("event:/game/02_old_site/lantern_hit");
+                soundDelay = 0.25f;
+            }
+
+            if (!Falling && !Broken)
+            {
+                LastRotation = rotation;
+            }
+            else if (Falling)
+            {
+                LastRotation += 0.1f;
+            }
+
+            foreach (Image image in images)
+            {
+                if (image == Lamp)
+                {
+                    if (!Broken)
+                    {
+                        Lamp.Rotation = LastRotation;
+                    }
+                }
+                else
+                {
+                    image.Rotation = rotation;
+                }
+            }
+
+            Vector2 vector = Calc.AngleToVector(rotation + (float)Math.PI / 2f, Length - 4f);
+            if (!Falling && !Broken)
+            {
+                light.Position = bloom.Position = vector;
+            }
+            sfx.Position = vector;
+
+            if ((!DependsOnLab || !PianoModule.Session.RestoredPower) && !disableLight && OnFlag)
+            {
+                light.Visible = true;
+                bloom.Visible = true;
+                HandleVertices();
+            }
+            else
+            {
+                bloom.Visible = false;
+                light.Visible = false;
+            }
+        }
+        public override void Render()
+        {
+            foreach (Image image in Components.GetAll<Image>())
+            {
+                if (image != Lamp || Lamp.Visible)
+                {
+                    image.DrawOutline();
+                }
+            }
+            if (!PianoModule.Session.RestoredPower && !disableLight && !Broken && !NormalLight && Scene is Level level)
+            {
+                Draw.SpriteBatch.End();
+                vertices[0].Color = Color.LightYellow * Opacity * FlickerScalar * FlickerScalar2;
+                GFX.DrawVertices(level.Camera.Matrix, vertices, vertices.Length, null, BlendState.Additive);
+                GameplayRenderer.Begin();
+            }
+
+            base.Render();
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            /*            foreach (var v in vertices)
+                        {
+                            Draw.Rect(v.Position.XY() - Vector2.One, 3, 3, Color.Blue);
+                            Draw.Point(v.Position.XY(), Color.Orange);
+                            Draw.Line(v.Position.XY(), v.Position.XY() + (Vector2.UnitX * 80).Rotate(Lamp.Rotation + MathHelper.PiOver2), Color.Magenta);
+                            Draw.Line(v.Position.XY(), v.Position.XY() + (Vector2.UnitX * 80).Rotate(Lamp.Rotation - MathHelper.PiOver2), Color.Cyan);
+                        }*/
+        }
         private IEnumerator randomFlickerRoutine()
         {
             NumRange shortRange = new NumRange(Engine.DeltaTime, 9 * Engine.DeltaTime);
@@ -262,124 +476,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 LampSpeed.Y = 1;
             }
         }
-        private MTexture onTexture => GFX.Game["objects/PuzzleIslandHelper/hangingLamp"];
-        private MTexture brokenTexture => GFX.Game["objects/PuzzleIslandHelper/hangingLampBroken"];
-        private MTexture flickerTexture => GFX.Game["objects/PuzzleIslandHelper/hangingLampFlicker"];
-        public override void Update()
-        {
-            base.Update();
-            updateLight();
-            if (Broken)
-            {
-                Lamp.Texture = brokenTexture;
-                Lamp.Position = Head.Position - Position + new Vector2(4, 6);
-            }
-            else
-            {
-                Lamp.Texture = disableLight ? flickerTexture : onTexture;
-            }
-            if (!Falling && !Broken)
-            {
-                Head.Position.Y = Position.Y + (Length - 8);
-            }
-            soundDelay -= Engine.DeltaTime;
-            Player entity = Scene.Tracker.GetEntity<Player>();
-            if (entity != null && Collider.Collide(entity))
-            {
-                speed = (0f - entity.Speed.X) * 0.005f * ((entity.Y - Y) / Length);
-                if (!(Falling || Broken))
-                {
-                    LampSpeed.X = entity.Speed.X / 100;
-                    LampSpeed.Y = entity.Speed.Y / 200;
-                }
-                if (Math.Abs(speed) < 0.1f)
-                {
-                    speed = 0f;
-                }
-                else if (soundDelay <= 0f)
-                {
-                    sfx.Play("event:/game/02_old_site/lantern_hit");
-                    soundDelay = 0.25f;
-
-                    if (!Falling && !Broken)
-                    {
-                        WearAndTearGrade++;
-                        Degradation += (Math.Abs(entity.Speed.X) + Math.Abs(entity.Speed.Y) + WearAndTearGrade) * 0.005f;
-                        if (Degradation > BreakingPoint)
-                        {
-                            Add(new Coroutine(Fall()));
-                        }
-                    }
-                }
-            }
-
-            float num = Math.Sign(rotation) == Math.Sign(speed) ? 8f : 6f;
-            if (Math.Abs(rotation) < 0.5f)
-            {
-                num *= 0.5f;
-            }
-            if (Math.Abs(rotation) < 0.25f)
-            {
-                num *= 0.5f;
-            }
-
-            float value = rotation;
-            speed += -Math.Sign(rotation) * num * Engine.DeltaTime;
-            rotation += speed * Engine.DeltaTime;
-            rotation = Calc.Clamp(rotation, -0.4f, 0.4f);
-            if (Math.Abs(rotation) < 0.02f && Math.Abs(speed) < 0.2f)
-            {
-                rotation = speed = 0f;
-            }
-            else if (Math.Sign(rotation) != Math.Sign(value) && soundDelay <= 0f && Math.Abs(speed) > 0.5f)
-            {
-                sfx.Play("event:/game/02_old_site/lantern_hit");
-                soundDelay = 0.25f;
-            }
-
-            if (!Falling && !Broken)
-            {
-                LastRotation = rotation;
-            }
-            else if (Falling)
-            {
-                LastRotation += 0.1f;
-            }
-
-            foreach (Image image in images)
-            {
-                if (image == Lamp)
-                {
-                    if (!Broken)
-                    {
-                        Lamp.Rotation = LastRotation;
-                    }
-                }
-                else
-                {
-                    image.Rotation = rotation;
-                }
-            }
-
-            Vector2 vector = Calc.AngleToVector(rotation + (float)Math.PI / 2f, Length - 4f);
-            if (!Falling && !Broken)
-            {
-                light.Position = bloom.Position = vector;
-            }
-            sfx.Position = vector;
-
-            if (!PianoModule.Session.RestoredPower && !disableLight)
-            {
-                light.Visible = true;
-                bloom.Visible = true;
-                HandleVertices();
-            }
-            else
-            {
-                bloom.Visible = false;
-                light.Visible = false;
-            }
-        }
         private void updateLight()
         {
             float scalar = FlickerScalar * FlickerScalar2;
@@ -396,17 +492,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 light.EndRadius = 20 * scalar;
             }
         }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            /*            foreach (var v in vertices)
-                        {
-                            Draw.Rect(v.Position.XY() - Vector2.One, 3, 3, Color.Blue);
-                            Draw.Point(v.Position.XY(), Color.Orange);
-                            Draw.Line(v.Position.XY(), v.Position.XY() + (Vector2.UnitX * 80).Rotate(Lamp.Rotation + MathHelper.PiOver2), Color.Magenta);
-                            Draw.Line(v.Position.XY(), v.Position.XY() + (Vector2.UnitX * 80).Rotate(Lamp.Rotation - MathHelper.PiOver2), Color.Cyan);
-                        }*/
-        }
         private void HandleVertices()
         {
             if (Head is null || Broken || NormalLight) return;
@@ -422,90 +507,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             vertices[1].Position = new Vector3(top + dist.Rotate(rot + angleOffset), 0);//RotatePoint(Vector2.UnitX * 80, top, 120 + deg), 0);
             vertices[2].Position = new Vector3(top + dist.Rotate(rot - angleOffset), 0);//new Vector3(RotatePoint(top + Vector2.UnitX * 80, top, 60 + deg), 0);
         }
-        public override void Render()
-        {
-            foreach (Image image in Components.GetAll<Image>())
-            {
-                if (image != Lamp || Lamp.Visible)
-                {
-                    image.DrawOutline();
-                }
-            }
-            if (!PianoModule.Session.RestoredPower && !disableLight && !Broken && !NormalLight && Scene is Level level)
-            {
-                Draw.SpriteBatch.End();
-                vertices[0].Color = Color.LightYellow * Opacity * FlickerScalar * FlickerScalar2;
-                GFX.DrawVertices(level.Camera.Matrix, vertices, vertices.Length, null, BlendState.Additive);
-                GameplayRenderer.Begin();
-            }
 
-            base.Render();
-        }
-
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            MTexture mTexture = GFX.Game["objects/PuzzleIslandHelper/hangingLampChains"];
-            Image image;
-            for (int i = 0; i < Length - 8; i += 8)
-            {
-                Add(image = new Image(mTexture.GetSubtexture(0, 8, 8, 8)));
-                image.Origin.X = 4f;
-                image.Origin.Y = -i;
-                images.Add(image);
-            }
-
-            Add(image = new Image(mTexture.GetSubtexture(0, 0, 8, 8)));
-            image.Origin.X = 4f;
-            images.Add(image);
-
-
-            Add(Lamp = new Image(GFX.Game["objects/PuzzleIslandHelper/hangingLamp"]));
-            Add(bloom = new BloomPoint(Vector2.UnitY * (Length - 4), 1f * Opacity, 10f));
-            Add(light = new VertexLight(Color.White, 1, 16, 32));
-
-
-            Add(sfx = new SoundSource());
-            Collider = new Hitbox(8f, Length, -4f);
-            Vector2 pos = !Broken ? new Vector2(Position.X - 4, Position.Y + Length - 8) : LampData.ImpactPosition;
-            scene.Add(Head = new Actor(pos));
-            Head.Collider = new Hitbox(8, 8);
-            Head.Add(new StaticMover());
-            if (!Broken)
-            {
-                Lamp.Origin.X = 4f;
-                Lamp.Position.X--;
-                Lamp.Origin.Y = -(Length - 8);
-            }
-            else if (LampData.Lost)
-            {
-                Lamp.Visible = bloom.Visible = light.Visible = Head.Visible = Head.Active = false;
-            }
-            else
-            {
-                Lamp.Origin = LampData.Origin;
-                Lamp.Position = LampData.Position;
-                Lamp.Rotation = LampData.Rotation;
-                light.Position = LampData.LightPosition;
-            }
-
-            if (Lamp.Visible)
-            {
-                images.Add(Lamp);
-            }
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            /*            Renderer = PianoUtils.SeekController<LabLightRenderer>(scene);
-                        if (Renderer == null)
-                        {
-                            scene.Add(Renderer = new LabLightRenderer());
-                        }*/
-            HandleVertices();
-            updateLight();
-            vertices[0].Color = Color.White;
-        }
         private IEnumerator HoldCamera()
         {
             for (int i = 0; i < 300; i++)

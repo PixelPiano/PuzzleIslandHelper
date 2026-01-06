@@ -8,6 +8,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
     {
         public int Count => List.Count;
         public List<FlagData> List = [];
+        public bool TrueIfEmpty = true;
         public string Flag;
         public bool Inverted;
         public bool Ignore;
@@ -22,10 +23,10 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 {
                     foreach (var item in List)
                     {
-                        if (!item.Empty) return false;
+                        if (!item.Empty) return !TrueIfEmpty;
                     }
                 }
-                return true;
+                return TrueIfEmpty;
             }
         }
         public static bool operator true(FlagList list)

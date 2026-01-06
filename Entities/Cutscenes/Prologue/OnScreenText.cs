@@ -29,7 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
         private bool _visible;
         private bool _forceHide;
         private Vector2 _position;
-        private FancyTextExt.Text FText;
+        private ExtraFancyText.Text FText;
         private int CurrentNode;
         private Vector2 TextPosition;
         private Color TextColor;
@@ -47,7 +47,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
         }
         private void LoadText(int maxLineWidth, int linesPerPage, Vector2 offset)
         {
-            FText = FancyTextExt.Parse(Dialog.Get(TextID), maxLineWidth, linesPerPage, offset);
+            FText = ExtraFancyText.Parse(Dialog.Get(TextID), maxLineWidth, linesPerPage, offset);
 
         }
         public override void Awake(Scene scene)
@@ -90,9 +90,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
             {
                 float _ypos = LineSpace - FText.BaseSize / 8;
 
-                FancyTextExt.Node Node = FText.Nodes[i];
+                ExtraFancyText.Node Node = FText.Nodes[i];
                 CurrentNode = i + 1;
-                if (Node is FancyTextExt.Char c)
+                if (Node is ExtraFancyText.Char c)
                 {
                     if (c.Character != ' ')
                     {

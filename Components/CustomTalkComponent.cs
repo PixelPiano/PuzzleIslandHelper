@@ -8,7 +8,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
     [TrackedAs(typeof(TalkComponent))]
     public class CustomTalkComponent : TalkComponent
     {
-
         public bool CanHover;
         public bool VisibleFromDistance;
         private Sprite sprite;
@@ -46,11 +45,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public float Alpha;
         public float AlphaUpClose = 1;
         public float AlphaAtDistance = 1;
-
         public float Delay;
         public bool Muted;
         public bool Loop;
         public Vector2 SpriteOffset;
+        public bool HideUnderSolids = true;
         internal enum SpecialType
         {
             DotDotDot,
@@ -95,6 +94,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             Alpha = AlphaAtDistance;
             SingleGraphic = true;
         }
+        public CustomTalkComponent(Rectangle r, Vector2 drawAt, Action<Player> onTalk) : this(r.X, r.Y, r.Width, r.Height, drawAt, onTalk) { }
         internal CustomTalkComponent(float x, float y, float width, float height, Vector2 drawAt, Action<Player> onTalk)
 : base(new Rectangle((int)x, (int)y, (int)width, (int)height), drawAt, onTalk, null)
         {
@@ -155,6 +155,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             }
             Player entity = Scene.Tracker.GetEntity<Player>();
             bool flag = disableDelay < 0.05f && entity != null && entity.CollideRect(new Rectangle((int)(base.Entity.X + (float)Bounds.X), (int)(base.Entity.Y + (float)Bounds.Y), Bounds.Width, Bounds.Height)) && entity.OnGround() && entity.Bottom < base.Entity.Y + (float)Bounds.Bottom + 4f && entity.StateMachine.State == 0 && (!PlayerMustBeFacing || Math.Abs(entity.X - base.Entity.X) <= 16f || entity.Facing == (Facings)Math.Sign(base.Entity.X - entity.X)) && (PlayerOver == null || PlayerOver == this);
+
             Focused = flag;
             if (flag)
             {
@@ -212,28 +213,73 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             public int CurrentFrame;
             private float buffer;
             public bool started;
-
+            private float blockAlphaMult = 1;
             public CustomTalkComponentUI(CustomTalkComponent handler) : base(handler)
             {
                 Handler = handler;
             }
+            public override void Awake(Scene scene)
+            {
+                base.Awake(scene);
+                if (Handler.HideUnderSolids)
+                {
+                    if (Handler.Entity?.Collider != null)
+                    {
+                        if (CollideCheckAdditionalBlockedTypes())
+                        {
+                            blockAlphaMult = 0f;
+                        }
+                    }
+                    else if (Handler.Entity == null || CollidePointAdditionalBlockedTypes())
+                    {
+                        blockAlphaMult = 0f;
+                    }
+                }
+            }
+            public bool CollideCheckAdditionalBlockedTypes()
+            {
+                return Scene.CollideCheck<Solid>(Handler.Entity.Collider.Bounds);
+            }
+            public bool CollidePointAdditionalBlockedTypes()
+            {
+                return Scene.CollideCheck<Solid>(Handler.Entity.Position);
+            }
             public override void Update()
             {
+                float prevAlpha = alpha;
                 base.Update();
+                bool fakeWallDetected = prevAlpha < alpha;
                 if ((Highlighted || (!Highlighted && Handler.VisibleFromDistance)) && started && Handler.UsesSprite)
                 {
                     buffer += Engine.DeltaTime;
                 }
+                if (Handler.HideUnderSolids)
+                {
+                    if (Handler.Entity?.Collider != null)
+                    {
+                        if (blockAlphaMult < 1f)
+                        {
+                            if (!CollideCheckAdditionalBlockedTypes())
+                            {
+                                blockAlphaMult = Calc.Approach(alpha, 1f, 2f * Engine.DeltaTime);
+                            }
+                        }
+                    }
+                    else if (blockAlphaMult < 1f && Handler.Entity != null && !CollidePointAdditionalBlockedTypes())
+                    {
+                        blockAlphaMult = Calc.Approach(blockAlphaMult, 1f, 2f * Engine.DeltaTime);
+                    }
+                }
+
             }
             public override void Render()
             {
-
                 Level level = Scene as Level;
                 if (level.FrozenOrPaused || !(slide > 0f) || Handler.Entity == null)
                 {
                     return;
                 }
-                float alpha = this.alpha * Handler.Alpha;
+                float alpha = this.alpha * Handler.Alpha * blockAlphaMult;
                 Vector2 vector = level.Camera.Position.Floor();
                 Vector2 vector2 = Handler.Entity.Position + Handler.DrawAt - vector + Handler.SpriteOffset;
                 if (SaveData.Instance != null && SaveData.Instance.Assists.MirrorMode)

@@ -39,7 +39,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public Dictionary<EntityID, List<Statid.Data>> StatidPatchData = [];
         public HashSet<EntityID> AscwiitsWithFirfils = [];
-        public List<Ascwiit.Controller.Sequence.Data> AscwiitSequences = [];
+        public List<Ascwiit.Controller.Data> AscwiitSequences = [];
         public HashSet<CompassData> CompassData = [];
         public Dictionary<EntityID, int> StoredStoolDashes = [];
         public Dictionary<EntityID, int> CrystalElevatorFurthestLevelReached = new();
