@@ -14,7 +14,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
     [Tracked]
     public class Column : Entity
     {
-
         [CustomEntity("PuzzleIslandHelper/TowerElevator")]
         [Tracked]
         public class Elevator : Entity
@@ -37,6 +36,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 public void Enable()
                 {
                     Enabled = true;
+                    Talk.Enabled = true;
+                }
+                public void Disable()
+                {
+                    Enabled = false;
+                    Talk.Enabled = false;
+                }
+                public void Hide()
+                {
+                    Visible = false;
                 }
                 internal class DoorsComponent : GraphicsComponent
                 {
@@ -309,14 +318,52 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     Finished = true;
                 }
             }
+            private class platform : JumpThru
+            {
+                public float Alpha = 1;
+                public bool Broken;
+                private Vector2 shake;
+                public platform(Vector2 position, int width, bool safe) : base(position, width, safe)
+                {
+                }
+                public override void Render()
+                {
+                    base.Render();
+                    if (Broken)
+                    {
+                        Draw.Line(CenterLeft, Center + new Vector2(Width / 2 - 8, 10), Color.Gray, Height / 2);
+                        Draw.Line(CenterRight, Center + new Vector2(Width / 2 + 8, 10), Color.Gray, Height / 2);
+                    }
+                    else
+                    {
+                        Draw.Rect(Position + shake, Width, Height, Color.White * Alpha);
+                    }
+                }
+                public void Break()
+                {
+                    Depth = 1;
+                    Broken = true;
+                    Collidable = false;
+                    shake = Vector2.Zero;
+                }
+                public override void OnShake(Vector2 amount)
+                {
+                    base.OnShake(amount);
+                    shake += amount;
+                }
+            }
             private bool InRoutine;
             public PlayerShade Shade;
             public Vector2 Start, End;
-            public JumpThru Platform;
+            private platform Platform;
             public bool Inside;
             private UI ui;
+            public Tower Tower;
+            public static bool CrashVariant = true;
             internal Entrance[] Entrances = new Entrance[2];
             public InvisibleBarrier[] Barriers = new InvisibleBarrier[3];
+            private whiteFade fader;
+            private TimeRateModifier timeRateModifier;
             public Elevator(EntityData data, Vector2 offset) : base(data.Position + offset)
             {
                 Vector2[] nodes = data.NodesWithPosition(offset);
@@ -326,10 +373,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 Entrances[0] = new Entrance(this, Start, data.Width, data.Height, TopInteract);
                 Entrances[1] = new Entrance(this, End, data.Width, data.Height, BottomInteract);
             }
-            public void Enable()
+            public override void Added(Scene scene)
             {
-                Entrances[0].Enable();
-                Entrances[1].Enable();
+                base.Added(scene);
+                scene.Add(Shade = new PlayerShade(0));
             }
             public override void Awake(Scene scene)
             {
@@ -347,10 +394,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     Barriers[1] = new InvisibleBarrier(new Vector2(t.Col.Right, Entrances[0].Top), 8, height);
                     Barriers[2] = new InvisibleBarrier(Barriers[0].TopLeft - Vector2.UnitY * 8, Barriers[1].Right - Barriers[0].Left, 8);
                     scene.Add(Barriers);
-                    Platform = new JumpThru(new Vector2(t.Col.X, Entrances[0].Bottom), (int)t.Col.Width, true);
+                    Platform = new platform(new Vector2(t.Col.X, Entrances[0].Bottom), (int)t.Col.Width, true);
                     scene.Add(Platform);
                     Platform.Collidable = false;
                     t.FinalAwake(scene);
+                    if (CrashVariant)
+                    {
+                        Entrances[1].Disable();
+                        Entrances[1].Hide();
+                    }
                 }
                 else
                 {
@@ -375,6 +427,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 Barriers.RemoveSelves();
                 ui.RemoveSelf();
                 Shade.RemoveSelf();
+                fader?.RemoveSelf();
+                timeRateModifier?.RemoveSelf();
+            }
+            public void Enable()
+            {
+                Entrances[0].Enable();
+                if (CrashVariant)
+                {
+                    Entrances[1].Disable();
+                }
+                else
+                {
+                    Entrances[1].Enable();
+                }
             }
             public void TopInteract(Player player)
             {
@@ -387,6 +453,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public void Interact(bool top, Player player)
             {
                 Add(new Coroutine(Routine(top, player)));
+            }
+            public void BarrierState(bool value)
+            {
+                foreach (var b in Barriers)
+                {
+                    b.Active = b.Collidable = value;
+                }
             }
             public IEnumerator EnterRoutine(bool top, Player player)
             {
@@ -405,6 +478,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 Entrance entrance = top ? Entrances[0] : Entrances[1];
                 Entrance other = top ? Entrances[1] : Entrances[0];
                 yield return entrance.EnterRoutine(player, other);
+            }
+            public void InvokeEntranceActions(Player player)
+            {
+                foreach (InteractComponent c in Scene.Tracker.GetComponents<InteractComponent>())
+                {
+                    c.OnEnter?.Invoke(player);
+                }
+            }
+            public void InvokeExitActions(Player player)
+            {
+                foreach (InteractComponent c in Scene.Tracker.GetComponents<InteractComponent>())
+                {
+                    c.OnExit?.Invoke(player);
+                }
             }
             public IEnumerator ExitRoutine(bool top, Player player)
             {
@@ -436,28 +523,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     player.Hair.MoveHairBy(Vector2.UnitY * (Platform.Top - prev));
                     yield return null;
                 }
+                if (CrashVariant)
+                {
+                    Platform.StartShaking(0.5f);
+                    yield return 0.5f;
+                }
                 yield return 1;
             }
-            public IEnumerator Routine(bool top, Player player)
+            public IEnumerator Routine(bool moveToTop, Player player)
             {
                 InRoutine = true;
                 player.DisableMovement();
                 player.ForceCameraUpdate = true;
                 Inside = false;
-                yield return new SwapImmediately(EnterRoutine(top, player));
+                yield return new SwapImmediately(EnterRoutine(moveToTop, player));
                 Inside = true;
                 while (true)
                 {
-                    yield return new SwapImmediately(ui.Routine(top));
+                    yield return new SwapImmediately(ui.Routine(moveToTop));
                     if (ui.MoveConfirmed)
                     {
-                        yield return new SwapImmediately(MoveRoutine(!top, player));
-                        yield return ExitRoutine(!top, player);
+                        yield return new SwapImmediately(MoveRoutine(!moveToTop, player));
+                        if (!moveToTop && CrashVariant)
+                        {
+                            yield return new SwapImmediately(CrashRoutine(player));
+                        }
+                        else
+                        {
+                            yield return ExitRoutine(!moveToTop, player);
+                        }
                         break;
                     }
                     else
                     {
-                        yield return ExitRoutine(top, player);
+                        yield return ExitRoutine(moveToTop, player);
                         break;
                     }
                 }
@@ -465,21 +564,68 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 Inside = false;
                 InRoutine = false;
             }
-            public override void Added(Scene scene)
+            public IEnumerator CrashRoutine(Player player)
             {
-                base.Added(scene);
-                scene.Add(Shade = new PlayerShade(0));
-            }
-            public Tower Tower;
-            public void BarrierState(bool value)
-            {
-                foreach (var b in Barriers)
+                Platform.StartShaking(0.5f);
+                player.DummyAutoAnimate = false;
+                yield return 1.5f;
+                for (int i = 0; i < 3; i++)
                 {
-                    b.Active = b.Collidable = value;
+                    player.Facing = (Facings)(-(int)player.Facing);
+                    yield return 0.4f;
+                }
+                yield return 1f;
+                player.StateMachine.State = Player.StNormal;
+                for (int i = 0; i < 180; i++)
+                {
+                    Input.Grab.ConsumePress();
+                    Input.Dash.ConsumePress();
+                    Input.Jump.ConsumePress();
+                    yield return null;
+                }
+                player.StateMachine.State = Player.StDummy;
+                player.ForceCameraUpdate = true;
+                Platform.Break();
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 1)
+                {
+                    player.Sprite.Rotation = i * 90f.ToRad();
+                    yield return null;
+                }
+                player.DummyAutoAnimate = false;
+                player.Sprite.Play("bigFall");
+                FallEffects.Show(true);
+                yield return 1f;
+                fader = new whiteFade();
+                timeRateModifier = new TimeRateModifier(1);
+                Add(timeRateModifier);
+                for (float i = 0; i < 1; i += Engine.RawDeltaTime / 2f)
+                {
+                    fader.Alpha = Math.Min(i + 0.08f, 1);
+                    timeRateModifier.Multiplier = Math.Max(0.5f, 1 - i);
+                    yield return null;
+                }
+                yield return 1;
+                SceneAs<Level>().CompleteArea(false, false);
+                while (true)
+                {
+                    yield return null;
+                }
+            }
+            private class whiteFade : Entity
+            {
+                public float Alpha;
+                public whiteFade() : base()
+                {
+                    Depth = int.MinValue;
+                }
+                public override void Render()
+                {
+                    base.Render();
+                    Camera camera = SceneAs<Level>().Camera;
+                    Draw.Rect(camera.Left, camera.Top, camera.Right - camera.Left, camera.Bottom - camera.Top, Color.White * Alpha);
                 }
             }
         }
-
         [Tracked]
         public class VertexGradient : GraphicsComponent
         {

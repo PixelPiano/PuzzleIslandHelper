@@ -15,8 +15,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         public bool Moving;
         public bool CanBeMoved => !reliesOnLabPower || PianoModule.Session.RestoredPower;
-        private readonly CustomTalkComponent upButton;
-        private readonly CustomTalkComponent downButton;
+        private readonly DotX3 upButton;
+        private readonly DotX3 downButton;
         private readonly float moveSpeed;
         private readonly Sprite doorSprite;
         private Sprite buttonPanel;
@@ -85,7 +85,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(new LightOcclude());
 
             upButton.PlayerMustBeFacing = false;
+            upButton.HideUnderSolids = false;
             downButton.PlayerMustBeFacing = false;
+            downButton.HideUnderSolids = false;
             doorSprite.AddLoop("idle", "idle", 0.1f);
             doorSprite.Rate = 1.5f;
             Collider = new Hitbox(48, 8, 0, 0);
@@ -126,14 +128,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             CurrentFloor = floor;
             ResetPlatforms(GetFloor(floor));
-        }
-        [Command("testttttt", "ttt")]
-        public static void Test()
-        {
-            foreach (LabElevator e in Engine.Scene.Tracker.GetEntities<LabElevator>())
-            {
-                e.SetStartingPosition(Engine.Scene);
-            }
         }
         public void SetStartingPosition(Scene scene)
         {

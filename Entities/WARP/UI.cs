@@ -389,6 +389,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public class ConnectionList
         {
+            public bool HasConnection => Connections.Count > 0;
             public List<Connection> Connections = new();
             public List<Connection> Held = new();
             public List<int> NodeConnects = new();
@@ -835,7 +836,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             set
             {
                 standby = value;
-                foreach(Button b in Buttons)
+                foreach (Button b in Buttons)
                 {
                     b.Disabled = standby;
                 }
@@ -860,7 +861,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
 
             Submit = AddButton(new Vector2(50, 1080 - 209), "button", CheckRune, 's');
             Home = AddButton(new Vector2(50, 209), "homeButton", GoHome, 'h');
-            Exit = AddButton(new Vector2(50, 418), "exitButton", () => FadeOut(), 'e');
+            Exit = AddButton(new Vector2(50, 418), "exitButton", () =>
+            {
+                Connections.ClearHeld();
+                if (Connections.HasConnection)
+                {
+                    Connections.RemoveAll();
+                }
+                else
+                {
+                    FadeOut(true);
+                }
+            }, 'e');
 
         }
         public Button AddButton(Vector2 position, string path, Action action, char id)
@@ -987,7 +999,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                         int mY = MapY;
                         char? selected = map[MapY, MapX];
 
-                        foreach(Button b in Buttons)
+                        foreach (Button b in Buttons)
                         {
                             b.CursorOver = b.DrawBounds = selected == b.ID;
                         }
@@ -1023,7 +1035,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                     case Control.Mouse:
                         Mouse.MethodsEnabled = true;
                         Vector2 pos = Mouse.MousePosition;
-                        foreach(Button b in Buttons)
+                        foreach (Button b in Buttons)
                         {
                             b.CursorOver = b.Check(pos);
                             b.DrawBounds = false;
@@ -1046,7 +1058,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void OnLeftClick()
         {
-            foreach(Button b in Buttons)
+            foreach (Button b in Buttons)
             {
                 b.ClickedFirstFrame = b.CursorOver;
             }
@@ -1054,21 +1066,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void OnLeftRelease()
         {
-            foreach(Button b in Buttons)
+            foreach (Button b in Buttons)
             {
-                if(b.ClickedFirstFrame && b.CursorOver)
+                if (b.ClickedFirstFrame && b.CursorOver)
                 {
                     b.OnClicked.Invoke();
                     break;
                 }
             }
-            foreach(Button b in Buttons)
+            foreach (Button b in Buttons)
             {
                 b.ClickedFirstFrame = false;
             }
-/*            Home.ClickedFirstFrame = false;
-            Submit.ClickedFirstFrame = false;
-            Exit.ClickedFirstFrame = false;*/
+            /*            Home.ClickedFirstFrame = false;
+                        Submit.ClickedFirstFrame = false;
+                        Exit.ClickedFirstFrame = false;*/
             Connections.OnLeftRelease(GetFirstCollided());
         }
         public void GoHome()
@@ -1082,7 +1094,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void OnLeftHeld()
         {
-            foreach(Button b in Buttons)
+            foreach (Button b in Buttons)
             {
                 b.Colliding = b.ClickedFirstFrame && b.CursorOver;
             }
@@ -1133,7 +1145,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         }
         public void ResetButton()
         {
-            foreach(Button b in Buttons)
+            foreach (Button b in Buttons)
             {
                 b.Colliding = false;
                 b.ClickedFirstFrame = false;
@@ -1239,7 +1251,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
                 {
                     node.DrawTexture();
                 }
-                foreach(Button b in Buttons)
+                foreach (Button b in Buttons)
                 {
                     b.Render();
                 }

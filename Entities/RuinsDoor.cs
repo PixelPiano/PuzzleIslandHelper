@@ -50,12 +50,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Depth = data.Int("depth");
             Add(talk = new TalkComponent(new Rectangle(0, 0, (int)Width, (int)Height), Vector2.UnitX * Width / 2, Interact));
         }
+        private bool resetState = true;
         private void Transition(Player player)
         {
             AddTag(Tags.Global);
             talk.Enabled = false;
             this.player = player;
             player.StateMachine.State = 11;
+            resetState = false;
             Transitioning = true;
             new FallWipe(SceneAs<Level>(), false, OnComplete)
             {
@@ -126,7 +128,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 Transition(player);
             }
-            player.StateMachine.State = 0;
+            if (resetState)
+            {
+                player.StateMachine.State = 0;
+            }
             yield return null;
 
         }

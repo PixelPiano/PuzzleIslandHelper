@@ -68,13 +68,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Update();
             if (Scene is not Level level || level.GetPlayer() is not Player player) return;
 
-            if (FadeFlagsState || (fadeWhenInside && !Collidable && Collider.Collide(player.Collider.Bounds)))
+            if ((!fadeFlags.Empty && fadeFlags) || (fadeWhenInside && !Collidable && Collider.Collide(player.Collider.Bounds)))
             {
                 alpha = Calc.Approach(alpha, FadeAlpha, Engine.DeltaTime);
             }
             else
             {
-
                 alpha = Calc.Approach(alpha, 1, Engine.DeltaTime);
             }
             bool c = CollideCheck<Player>();

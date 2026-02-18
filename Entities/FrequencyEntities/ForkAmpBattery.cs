@@ -4,7 +4,7 @@ using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.GearEntities;
 using System.Collections;
 
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
 {
     [CustomEntity("PuzzleIslandHelper/ForkAmpBattery")]
     [Tracked]

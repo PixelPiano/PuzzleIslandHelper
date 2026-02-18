@@ -17,6 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         private float shakeTimer;
         private Vector2 shakeAmount;
         public Action<Vector2> OnShake;
+        public bool UseRawDeltaTime;
         public BetterShaker(Action<Vector2> onShake) : base(true, false)
         {
             OnShake = onShake;
@@ -26,6 +27,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             Shaking = true;
             shakeTimer = time;
         }
+        private event Action onStop = () => { };
+        public void StartShaking(Action onStop, float time = -1f)
+        {
+            Shaking = true;
+            shakeTimer = time;
+            this.onStop += onStop;
+        }
         public void StopShaking()
         {
             Shaking = false;
@@ -34,6 +42,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 OnShake.Invoke(-shakeAmount);
                 shakeAmount = Vector2.Zero;
             }
+            onStop?.Invoke();
+            onStop = () => { };
         }
 
         public override void Update()
@@ -43,7 +53,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             {
                 return;
             }
-            if (Scene.OnInterval(0.04f))
+            if (UseRawDeltaTime ? Scene.OnRawInterval(0.04f) : Scene.OnInterval(0.04f))
             {
                 Vector2 vector = shakeAmount;
                 shakeAmount = Calc.Random.ShakeVector();
@@ -51,7 +61,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             }
             if (shakeTimer > 0f)
             {
-                shakeTimer -= Engine.DeltaTime;
+                shakeTimer -= (UseRawDeltaTime ? Engine.RawDeltaTime : Engine.DeltaTime);
                 if (shakeTimer <= 0f)
                 {
                     Shaking = false;

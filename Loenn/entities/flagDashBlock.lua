@@ -12,6 +12,7 @@ animatedDashBlock.placements =
     data = 
     {
         tiletype = "3",
+        centerSprite = "",
         allowAnimatedTiles = true,
         permanent = false,
         blendIn = true,
@@ -20,10 +21,14 @@ animatedDashBlock.placements =
         flagOnBreak = "",
         canDashFlag = "",
         canBoosterFlag = "",
+        spriteVisibleFlag = "",
+        spriteActiveFlag = "",
         flag = "",
         flagAffectActive = true,
         flagAffectVisible = true,
-        flagAffectCollision = true
+        flagAffectCollision = true,
+        disableLightsInside = true
+
     }
 }
 

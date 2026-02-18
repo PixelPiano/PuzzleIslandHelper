@@ -1,4 +1,6 @@
-﻿using Monocle;
+﻿using Microsoft.Xna.Framework;
+using Monocle;
+using System;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -6,16 +8,21 @@ namespace Celeste.Mod.PuzzleIslandHelper
     {
         public static implicit operator bool(FlagData value) => value.State;
         public static implicit operator FlagData(string s) => new(s);
-        public bool TrueIfEmpty = true;
         public string Flag = "";
         public bool Inverted;
         public bool Ignore;
         public bool? ForcedValue;
-        public readonly bool Empty => string.IsNullOrEmpty(Flag) == TrueIfEmpty;
+        public readonly bool Empty => string.IsNullOrEmpty(Flag);
         public bool State
         {
-            readonly get => GetState(Engine.Scene);
-            set => Flag.SetFlag(value);
+            get => GetState(Engine.Scene);
+            set
+            {
+                if (!Empty)
+                {
+                    Flag.SetFlag(value);
+                }
+            }
         }
         public void Set(bool value)
         {
@@ -31,8 +38,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
             {
                 if (flag.StartsWith('!'))
                 {
-                    Inverted = !Inverted;
-                    Flag = flag[1..];
+                    if (flag.Length == 1)
+                    {
+                        ForcedValue = false;
+                    }
+                    else
+                    {
+                        Inverted = !Inverted;
+                        Flag = flag[1..];
+                    }
                 }
                 else
                 {
@@ -52,10 +66,15 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             return "{Flag:" + Flag + "=" + State + "}";
         }
-        public readonly bool GetState(Scene scene) => scene != null && scene is Level level && GetState(level);
-        public readonly bool GetState(Level scene)
+        public bool GetState(Scene scene)
         {
-            return ForcedValue ?? (Ignore || Empty ? !Inverted : scene.Session.GetFlag(Flag) != Inverted);
+            if (scene == null || scene is not Level level) return false;
+            if (ForcedValue.HasValue) return ForcedValue.Value;
+            if (Ignore || Empty)
+            {
+                return !Inverted;
+            }
+            return level.Session.GetFlag(Flag) != Inverted;
         }
     }
 }

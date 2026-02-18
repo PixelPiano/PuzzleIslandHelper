@@ -110,7 +110,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float flashMult;
         private float colorLerp = 0;
         public Color Color = Color.Gray;
-
+        private float interactTimer;
+        private int consecutiveInteracts;
         public Compass(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Depth = 1;
@@ -236,9 +237,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Image.Color = Sub.Color = Color = Color.Lerp(Color.Gray, Color.White, Ease.SineInOut(colorLerp));
             Flash.Color = Color.White * flashMult;
-            if (rotateTarget != 0 && rotationAdded != rotateTarget)
+            float rotateSpeed = (4f + 10f * rotateMultTween.Eased) * Engine.DeltaTime;
+            if (interactTimer > 0)
             {
-                rotationAdded = Calc.Approach(rotationAdded, rotateTarget, (4f + (10f * rotateMultTween.Eased)) * Engine.DeltaTime);
+                interactTimer -= Engine.DeltaTime;
+                if (interactTimer <= 0)
+                {
+                    consecutiveInteracts = 0;
+                    interactTimer = 0;
+                }
+            }
+            if (consecutiveInteracts >= 4 && interactTimer > 0)
+            {
+                rotationAdded += rotateSpeed;
+                while (rotationAdded > rotateTarget)
+                {
+                    //prevents compass from rotating in opposite direction
+                    //prevents compass from doing more than one full rotation at the end
+                    rotateTarget += MathHelper.TwoPi;
+                }
+                Image.Rotation = prevRotation + rotationAdded;
+            }
+            else if (rotateTarget != 0 && rotationAdded != rotateTarget)
+            {
+                rotationAdded = Calc.Approach(rotationAdded, rotateTarget, rotateSpeed);
                 Image.Rotation = prevRotation + rotationAdded;
             }
             else
@@ -246,9 +268,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (rotateTarget != 0)
                 {
                     Image.Rotation = prevRotation + rotateTarget;
-                    rotateTarget = 0;
                     shaker.StartShaking(0.1f);
+                    foreach (CompassController controller in Scene.Tracker.GetEntities<CompassController>())
+                    {
+                        if (controller.Flipping)
+                        {
+                            controller.SnapFlip();
+                        }
+                    }
                 }
+                interactTimer = 0;
+                rotateTarget = 0;
                 rotationAdded = 0;
                 rotateRate = 0;
                 rotateMultTween.Stop();
@@ -271,6 +301,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void Interact(Player player)
         {
+            if (interactTimer > 0)
+            {
+                consecutiveInteracts++;
+            }
+            interactTimer = 0.5f;
             Input.Dash.ConsumePress();
             Scene.Add(new CompassPulse(this));
             Direction = (Directions)(((int)Direction + 1) % 4);
@@ -284,6 +319,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             rotateTarget += (float)MathHelper.Pi / 2f;
             flashTween.Start();
         }
+        private float rotateAdd;
         [OnLoad]
         public static void Load()
         {

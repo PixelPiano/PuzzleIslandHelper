@@ -15,7 +15,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
     [Tracked]
     public class FluidMachine : Entity
     {
-
+        public class test : Trigger
+        {
+            public test(EntityData data, Vector2 offset) : base(data, offset)
+            {
+            }
+        }
         private static Color ColorState;
         private bool Climbing;
         private static float HairAlpha;
@@ -29,7 +34,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         private float Duration = 15;
         private Player player;
         private bool Bouncing;
-        private static ILHook speedHook;
         private static ILHook wallJumpHook;
         private ParticleSystem system;
         private List<Player> Players = new();
@@ -235,6 +239,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         }
 
 
+        private static ILHook speedHook;
         public static void Load()
         {
             speedHook = new ILHook(typeof(Player).GetMethod("orig_Update", BindingFlags.Public | BindingFlags.Instance), modSpeed);
@@ -250,6 +255,49 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             wallJumpHook = null;
             On.Celeste.PlayerSprite.Render -= RenderHook;
             IL.Celeste.Player.Jump -= modJump;
+        }
+        private static float getSpeedYMultiplier()
+        {
+            if (!ShouldContinue())
+            {
+                return 1;
+            }
+            return PianoModule.Session.SpeedMult.Y;
+        }
+        private static float getSpeedXMultiplier()
+        {
+            if (!ShouldContinue())
+            {
+                return 1;
+            }
+            return PianoModule.Session.SpeedMult.X;
+        }
+        private static void modSpeed(ILContext il)
+        {
+            ILCursor cursor = new ILCursor(il);
+
+            if (cursor.TryGotoNext(MoveType.After, instr => instr.MatchCallOrCallvirt<Actor>("MoveH")))
+            {
+                if (cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("X")))
+                {
+                    Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at index {cursor.Index} in CIL code for {cursor.Method.Name}");
+
+                    cursor.EmitDelegate(getSpeedXMultiplier);
+                    cursor.Emit(OpCodes.Mul);
+
+                }
+            }
+            if (cursor.TryGotoNext(MoveType.After, instr => instr.MatchCallOrCallvirt<Actor>("MoveV")))
+            {
+                if (cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("Y")))
+                {
+                    Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at index {cursor.Index} in CIL code for {cursor.Method.Name}");
+
+                    cursor.EmitDelegate(getSpeedYMultiplier);
+                    cursor.Emit(OpCodes.Mul);
+
+                }
+            }
         }
         public override void SceneEnd(Scene scene)
         {
@@ -313,22 +361,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             }
             return PianoModule.Session.JumpMult;
         }
-        private static float getSpeedYMultiplier()
-        {
-            if (!ShouldContinue())
-            {
-                return 1;
-            }
-            return PianoModule.Session.SpeedMult.Y;
-        }
-        private static float getSpeedXMultiplier()
-        {
-            if (!ShouldContinue())
-            {
-                return 1;
-            }
-            return PianoModule.Session.SpeedMult.X;
-        }
         private bool ChooseEffect(int variant, Player player)
         {
             if (variant != 4)
@@ -344,55 +376,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             }
             Add(new Coroutine(Effect(variant, player)));
             return true;
-        }
-        private static void modSpeed(ILContext il)
-        {
-            ILCursor cursor = new ILCursor(il);
-
-            if (cursor.TryGotoNext(MoveType.After, instr => instr.MatchCallOrCallvirt<Actor>("MoveH")))
-            {
-                if (cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("X")))
-                {
-                    Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at index {cursor.Index} in CIL code for {cursor.Method.Name}");
-
-                    cursor.EmitDelegate(getSpeedXMultiplier);
-                    cursor.Emit(OpCodes.Mul);
-
-                }
-            }
-            if (cursor.TryGotoNext(MoveType.After, instr => instr.MatchCallOrCallvirt<Actor>("MoveV")))
-            {
-                if (cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("Y")))
-                {
-                    Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at index {cursor.Index} in CIL code for {cursor.Method.Name}");
-
-                    cursor.EmitDelegate(getSpeedYMultiplier);
-                    cursor.Emit(OpCodes.Mul);
-
-                }
-            }
-            /*            if (Cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdfld<bool>("IsRendering")))
-                        {
-                            if (Cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("X")))
-                            {
-                                Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at startIndex {Cursor.Index} in CIL code for {Cursor.Method.Name}");
-
-                                Cursor.EmitDelegate(getScaleMultiplier);
-                                Cursor.Emit(OpCodes.Mul);
-
-                            }
-                        }
-                        if (Cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdfld<bool>("IsRendering")))
-                        {
-                            if (Cursor.TryGotoPrev(MoveType.After, instr => instr.MatchLdfld<Vector2>("X")))
-                            {
-                                Logger.Log("PuzzleIslandHelper/FluidMachine", $"Modding dash speed at startIndex {Cursor.Index} in CIL code for {Cursor.Method.Name}");
-
-                                Cursor.EmitDelegate(getScaleMultiplier);
-                                Cursor.Emit(OpCodes.Mul);
-
-                            }
-                        }*/
         }
         private static void RenderHook(On.Celeste.PlayerSprite.orig_Render orig, PlayerSprite self)
         {

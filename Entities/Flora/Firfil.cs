@@ -114,8 +114,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 return 0;
             }
         }
+        private int firfilsFollowing => FirfilsFollowing;
         private static List<Firfil> storedFollowers = [];
         private static List<Vector2> storedOffsets = [];
+        private int stored => storedFollowers.Count;
         public bool InDanger => dangerTimer > 0 || Fleeing;
         public bool Pollenating;
         public bool AtNest;
@@ -148,7 +150,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         private Wiggler wiggler;
         private Coroutine scaleCoroutine;
         public WarpCapsule.OnWarpBeginComponent OnWarp;
-        private Alarm startPollinatingAlarm;
+        private Alarm startPollenatingAlarm;
         public Vector2 Offset;
         public Vector2 OffsetTarget;
         public Vector2 AvoidOffset;
@@ -177,7 +179,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         private float pulseRateTarget = 1;
         public float OffsetMult = 1;
         public bool collidingStatid;
-        public bool startAlarmActive => startPollinatingAlarm.Active;
+        public bool startAlarmActive => startPollenatingAlarm.Active;
         private Vector2 origPosition;
         private float origApproachSpeed;
         private float dangerTimer;
@@ -716,7 +718,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         {
             StoreFollowers(player.Leader, true);
             orig(self, player, nextLevel, introType, nearestSpawn);
-            RestoreFollowers(player.Leader);
+            RestoreFollowers(Engine.Scene.GetPlayer().Leader);
         }
         private static int Player_StartDash(On.Celeste.Player.orig_StartDash orig, Player self)
         {
@@ -725,8 +727,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public static void StoreFollowers(Leader leader, bool spawnAtPlayer = false)
         {
-            storedFollowers = new List<Firfil>();
-            storedOffsets = new List<Vector2>();
             foreach (Follower follower in leader.Followers)
             {
                 if (follower.Entity is Firfil)
@@ -747,15 +747,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public static void RestoreFollowers(Leader leader)
         {
             leader.PastPoints.Clear();
+/*            for(int i = 0; i<10; i++)
+            {
+                leader.PastPoints.Add(leader.Entity.Position);
+            }*/
             for (int i = 0; i < storedFollowers.Count; i++)
             {
                 Firfil firfil = storedFollowers[i];
-                leader.GainFollower(firfil.Follower);
+                firfil.StartFollowing(leader, false);
                 firfil.Position = leader.Entity.Center + storedOffsets[i];
                 firfil.RemoveTag(Tags.Global);
             }
+            storedFollowers.Clear();
+            storedOffsets.Clear();
         }
-
     }
     [CustomEntity("PuzzleIslandHelper/FirfilNest")]
     [Tracked]

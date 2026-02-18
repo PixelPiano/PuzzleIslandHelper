@@ -88,7 +88,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public int PetalCount;
         public int Direction;
         private int scaleRange;
-        private int bulbSize;
+        public int BulbSize;
         public float Angle;
         public float AngleOffset;
         public float MaxAngleOffset;
@@ -267,7 +267,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                     bird.FirfilEated = true;
                     bird.PathFlag.State = true;
                     statid.HasSap = false;
-                    statid.IsSapped = true;
+                    //statid.IsSapped = true;
                     if (bird.Persistent)
                     {
                         Level.Session.DoNotLoad.Add(bird.id);
@@ -276,11 +276,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 }
             }
         }
+        [Command("test_sap", "")]
+        public static void TestSap()
+        {
+            if (Engine.Scene?.GetPlayer() is Player player)
+            {
+                Statid closest = player.Closest<Statid>();
+                if (closest != null)
+                {
+                    closest.HasSap = true;
+                }
+            }
+        }
         private class ascwiitSapCutscene : CutsceneEntity
         {
             public Ascwiit Bird;
             public Statid Flower;
-            private Entity collisionChecker;
             private bool removeBird;
             public ascwiitSapCutscene(Ascwiit bird, Statid flower) : base()
             {
@@ -290,8 +301,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             public override void Added(Scene scene)
             {
                 base.Added(scene);
-                scene.Add(collisionChecker = new Entity());
-                collisionChecker.Collider = new Hitbox(1, 1);
             }
             public override void OnBegin(Level level)
             {
@@ -306,13 +315,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                         {
                             possibleSpawns.Add(p.X + x);
                         }
-
                     }
                     if (possibleSpawns.Count > 0)
                     {
                         float spawnX = possibleSpawns.Random();
                         float spawnY = level.Camera.Y - 8;
-                        Bird = new Ascwiit(new Vector2(spawnX, spawnY), Ascwiit.StFlyTo);
+                        Bird = new Ascwiit(new Vector2(spawnX, spawnY));
+                        Scene.Add(Bird);
                     }
                     else
                     {
@@ -329,6 +338,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 Bird.DummyGravity = false;
                 Bird.DummyFlap = false;
                 Bird.DummyPeck = true;
+                yield return null;
                 yield return Bird.EatSap(Flower);
                 yield return Bird.FlyToRoutine(position);
                 if (removeBird)
@@ -345,28 +355,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             public override void Removed(Scene scene)
             {
                 base.Removed(scene);
-                collisionChecker.RemoveSelf();
                 if (removeBird)
                 {
                     Bird?.RemoveSelf();
                 }
             }
         }
-        private IEnumerator ascwiitEatSequence(Ascwiit bird)
-        {
-            Vector2 position = bird.Position;
-            int state = bird.State;
-            yield return bird.EatSap(this);
-            if (bird.PathFlag)
-            {
-                bird.StateMachine.State = Ascwiit.StPath;
-            }
-            else
-            {
-                yield return bird.FlyToRoutine(position, state);
-            }
-        }
         public bool Occupied;
+        public bool Distracted;
         public override void Update()
         {
             Color = Dead ? DeadColor : AliveColor;
@@ -429,8 +425,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                         }
                         if (!Dead)
                         {
-                            bulbOffset = Calc.Approach(bulbOffset, 2 * Math.Sign(player.CenterX - CenterX), Engine.DeltaTime * turnRate);
-                            HeightOffset = Calc.Approach(HeightOffset, heightOffsetTarget, heightOffsetRate);
+                            if (!Distracted)
+                            {
+                                bulbOffset = Calc.Approach(bulbOffset, 2 * Math.Sign(player.CenterX - CenterX), Engine.DeltaTime * turnRate);
+                                HeightOffset = Calc.Approach(HeightOffset, heightOffsetTarget, heightOffsetRate);
+                            }
                         }
                         else
                         {
@@ -501,7 +500,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             turnRate = Calc.Random.Range(5f, 7f);
             heightOffsetTarget = Calc.Random.Range(0, 1f) * 7;
             heightOffsetRate = Calc.Random.Range(4, 10) * Engine.DeltaTime;
-            bulbSize = Calc.Random.Chance(0.1f) ? 0 : Calc.Random.Range(2, 4);
+            BulbSize = Calc.Random.Chance(0.1f) ? 0 : Calc.Random.Range(2, 4);
             Thickness = Calc.Random.Choose(1, 2);
             if (!this.HasGroundBelow(out Ground))
             {
@@ -569,14 +568,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             PetalTarget?.Dispose();
             PetalTarget = null;
         }
+        public Vector2 BulbPosition
+        {
+            get
+            {
+                return Ground + GroundOffset + Calc.AngleToVector(Angle, Height + HeightOffset + 2) + Vector2.UnitX * (-BulbSize + bulbOffset);
+            }
+        }
         public override void Render()
         {
             if (Sleeping || !IsInView) return;
-            if (Digital)
-            {
-                Draw.LineAngle(Ground + GroundOffset, Angle, Height + HeightOffset, Color, Thickness);
-                DrawPoint(Ground + GroundOffset + Calc.AngleToVector(Angle, Height + HeightOffset + 2) + Vector2.UnitX * (-bulbSize + bulbOffset), Color, bulbSize);
-            }
+
+            Draw.LineAngle(Ground + GroundOffset, Angle, Height + HeightOffset, Color, Thickness);
+            DrawPoint(BulbPosition, Color, BulbSize);
+
             /*            else
                         {
                             Draw.LineAngle(Ground + GroundOffset, Angle, Height + HeightOffset, Color, Thickness);

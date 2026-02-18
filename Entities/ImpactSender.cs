@@ -22,7 +22,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public ImpactSignaller Signaller;
         private float pulseDuration;
         private Vector2 pulsePosition;
-        private Color pulseColor;
+        private Color pulseColor = Color.White;
+        private Color pulseColor2 = Color.Transparent;
         private bool shakes;
         private TileGrid tiles;
         private Color tileColor = Color.White;
@@ -33,7 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             OnDashCollide = NewOnDashed;
             pulseDuration = data.Float("pulseDuration");
             pulsePosition = data.NodesOffset(offset)[0];
-            pulseColor = data.HexColor("pulseColor");
+            pulseColor = data.HexColor("pulseColor", Color.White);
             shakes = data.Bool("shakes");
 
         }
@@ -77,7 +78,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 StartShaking(0.3f);
             }
             EmitKey();
-            PulseEntity.Circle(pulsePosition, Depth + 1, Pulse.Fade.InAndOut, Pulse.Mode.Oneshot,0, Width, pulseDuration,true,pulseColor,pulseColor,null,Ease.CubeIn);
+            PulseEntity.Circle(Position + pulsePosition, Depth + 1, Pulse.Fade.InAndOut, Pulse.Mode.Oneshot,0, Width, pulseDuration,true,pulseColor,pulseColor2,null,Ease.CubeIn);
             if (playSound)
             {
                 if (tileType == '1')
@@ -122,7 +123,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 for (int i = 0; i < Height / 8f; i++)
                 {
-                    Scene.Add(Engine.Pooler.Create<Debris>().Init(Position + new Vector2(4, 4 + i * 8), tileType, playDebrisSound).BlastFrom(from + Vector2.UnitX * -8));
+                    Scene.Add(Engine.Pooler.Create<Debris>().Init(Position + new Vector2(Width + 4, 4 + i * 8), tileType, playDebrisSound).BlastFrom(from + Vector2.UnitX * -8));
                 }
             }
             else

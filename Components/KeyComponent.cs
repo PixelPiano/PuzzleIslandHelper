@@ -71,6 +71,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         {
             return [Left(left, true), Up(up, true), Right(right, true), Down(down, true)];
         }
+        public static KeyComponent[] Arrows(Entity entity, object left = null, object up = null, object right = null, object down = null)
+        {
+            var array = Arrows(left, up, right, down);
+            entity.Add(array);
+            return array;
+        }
+        public static KeyComponent[] Wasd(Entity entity, object left = null, object up = null, object right = null, object down = null)
+        {
+            var array = Wasd(left, up, right, down);
+            entity.Add(array);
+            return array;
+        }
         public static KeyComponent ForMousePosition(Entity entity, Action<Vector2> onMove, bool onlyInRender = false)
         {
             KeyComponent dc = new()

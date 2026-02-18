@@ -50,7 +50,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             for (int i = 0; i < TotalBabies; i++)
             {
                 Vector2 position = Platform.Position - Vector2.UnitY * 4 + Vector2.UnitX * Calc.Random.Range(0, Platform.Width - 4);
-                Ascwiit bird = new Ascwiit(position, Ascwiit.StIdle, 0.5f);
+                Ascwiit bird = new Ascwiit(position, Ascwiit.StIdle, false, "", 0.5f);
                 bird.IgnoreJumpThrus = false;
                 bird.AvoidNoHopZones = true;
                 bird.FleesFromPlayer = false;

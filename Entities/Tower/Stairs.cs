@@ -292,6 +292,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             y = Calc.Clamp(y, 0, Height);
             return y;
         }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            if (Scene.GetPlayer() is Player player)
+            {
+                Draw.Rect(X, Bottom - HalfWave / 2, Width, HalfWave / 2, player.Bottom > Bottom  - HalfWave / 2 ? Color.Lime : Color.Red);
+
+            }
+        }
         public override void Update()
         {
             if (Scene.GetPlayer() is not Player player || !Initialized) return;
@@ -303,10 +312,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 {
                     WaitForUpInput = true;
                 }
+                WasRidingPlatform = RidingPlatform;
                 if (WaitForUpInput)
                 {
                     PlatformTo(Bottom, true);
-                    if (Input.MoveY == -1 && Math.Abs(Platform.CenterX - player.CenterX) < Platform.Width)
+                    if (Input.MoveY == -1 && player.Bottom > Bottom  - HalfWave / 2)
                     {
                         WaitForUpInput = false;
                     }
@@ -315,7 +325,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                         return;
                     }
                 }
-                WasRidingPlatform = RidingPlatform;
                 RidingPlatform = player.IsRiding(Platform);
                 if (WasRidingPlatform && RidingPlatform)
                 {
@@ -494,6 +503,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             else
             {
+                float posInCollider = Math.Clamp(player.Bottom - Y, 0, Height);
+                LastFloor = CurrentFloor = (int)Math.Max(0, (posInCollider + HalfWave / 2) / HalfWave);
+                LastRiddenFloor = LastFloor;
+                WasRidingPlatform = false;
+                RidingPlatform = false;
+                CurrentZ = GetZ(posInCollider);
+                LastSign.X = Math.Sign(GetX(posInCollider - 1));
+                LastSign.Y = -1;
+                PrevPosition = BottomCenter;
                 ShadeValue = 0;
                 HidingEnabled = false;
             }

@@ -23,7 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             VisibleFlag = data.FlagList("visibleFlag");
             InteractableFlag = data.FlagList("interactableFlag");
             UsesTexture = data.Bool("usesTexture", true);
-            Depth = 9000;
+            Depth = 8999;
             path = data.Attr("texturePath", "objects/PuzzleIslandHelper/noteSprites/paperA");
             image = new Image(GFX.Game[path]);
             image.Position = data.Nodes[0] - data.Position;
@@ -37,7 +37,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Talk.SpriteOffset = Vector2.UnitX;
             Talk.VisibleFromDistance = true;
             Talk.AlphaAtDistance = 0.5f;
-
         }
         public override void Awake(Scene scene)
         {

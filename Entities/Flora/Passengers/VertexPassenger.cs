@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
-
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
 {
 
@@ -44,7 +43,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 if (Shifter != null && !Shifter.HasBeenAdded)
                 {
                     entity.Add(Shifter);
-
                     Shifter.HasBeenAdded = true;
                 }
             }
@@ -113,14 +111,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 updated = false;
             }
         }
-        public class VertexGroupData
+        //[TrackedAs(typeof(PostUpdateHook))]
+        public class VertexGroupData : PostUpdateHook
         {
+            public Vector2 Position;
+            public bool Baked;
             public int Count => Vertices.Count;
             public List<Vertex> Vertices = [];
             public Vertex this[int i]
             {
                 get => Vertices[i];
                 set => Vertices[i] = value;
+            }
+            public VertexGroupData() : base(null)
+            {
+                OnPostUpdate = PostUpdate;
+                Active = true;
+            }
+            public void PostUpdate()
+            {
+                foreach (var v in Vertices)
+                {
+                    v.Group?.PostUpdate();
+                }
             }
             public override string ToString()
             {
@@ -138,6 +151,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 {
                     v.Bake(entity, minWiggleTime, maxWiggleTime);
                 }
+                Baked = true;
             }
             public void AddGroup(params Vertex[] vertices) => AddGroup(null, vertices);
             public void AddGroup(Group data, params Vertex[] vertices)
@@ -155,6 +169,41 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                         v.Group = data;
                         data.Vertices.Add(v);
                         Vertices.Add(v);
+                    }
+                }
+            }
+            public override void Update()
+            {
+                foreach (var v in Vertices)
+                {
+                    v.Group?.Update();
+                }
+            }
+
+            public virtual void EditVertice(int index)
+            {
+
+            }
+            public void UpdateVertices()
+            {
+                if (Baked)
+                {
+                    for (int i = 0; i < Count; i++)
+                    {
+                        Vertex vertex = this[i];
+                        Group group = vertex.Group;
+                        Vector2 point;
+                        if (group.Angle == 0)
+                        {
+                            point = vertex.Position;
+                        }
+                        else
+                        {
+                            point = PianoUtils.RotateAroundRad(vertex.Position, group.Center, group.Angle);
+                        }
+                        vertex.WorldPosition = Position + (point * group.Scale);
+                        Vertices[i].Color = group.ModifyColor != null ? group.ModifyColor.Invoke(vertex) : vertex.Color;
+                        EditVertice(i);
                     }
                 }
             }
@@ -193,7 +242,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
                 DefaultColor = defaultColor;
             }
         }
-
         public Color DefaultColor = Color.Lime;
         public VertexGroupData VertexList = new();
         public int VertexCount => VertexList.Count;
@@ -247,7 +295,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
         public bool Outline = true;
         public int Lines;
         public Facings Facing = Facings.Left;
-        public static Effect Effect;
+        public static Effect Effect => ShaderHelperIntegration.TryGetEffect("PuzzleIslandHelper/Shaders/vertexPassengerShader");
         public bool DummyBreath;
         public bool DummyGravity;
         public VertexPassenger(EntityData data, Vector2 offset, EntityID id) : base(data, offset, id)
@@ -370,28 +418,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             Position.X = x;
         }
         public Tween BreathTween;
-        /*        private IEnumerator breathRoutine()
-                {
-                    int skip = Calc.Random.Range(0, 30);
-                    Vector2 a = Vector2.Zero;
-                    Vector2 b = BreathDirection;
-                    void swap()
-                    {
-                        (b, a) = (a, b);
-                    }
-                    while (true)
-                    {
-                        while (!Breathes || BreathDuration <= 0) yield return null;
-                        for (float i = 0; i < 1 && Breathes; i += Engine.DeltaTime / BreathDuration / 2f)
-                        {
-                            BreathOffset = Vector2.Lerp(a, b, Ease.QuadInOut(i));
-                            if (skip > 0) skip--;
-                            else yield return null;
-                        }
-                        BreathOffset = a;
-                        swap();
-                    }
-                }*/
         [Obsolete("Use PointData functions")]
         protected void AddTriangle(Vector2 a, Vector2 b, Vector2 c, float multiplier, Vector2 wiggleMult, ColorShifter shifter = null, Group group = null, bool mergePoints = false)
         {
@@ -531,7 +557,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             }
             return t;
         }
-        private List<Vertex> vertexList = [];
         private bool TryCreateVertex(PointData data, out Vertex vertex, bool mergePoints = false)
         {
             vertex = null;
@@ -568,6 +593,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             vertexList.Add(vertex);
             return true;
         }
+        private List<Vertex> vertexList = [];
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
@@ -706,7 +732,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             base.Render();
             if (!Baked || Scene is not Level level || !IsInView) return;
             Draw.SpriteBatch.End();
-            Effect = ShaderHelperIntegration.TryGetEffect("PuzzleIslandHelper/Shaders/vertexPassengerShader");
             if (Outline)
             {
                 DrawOutline(level, Effect);

@@ -1,17 +1,12 @@
 ﻿using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Components;
-using ExtendedVariants.Variants;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using Monocle;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Ascwiit;
-using static Celeste.Mod.PuzzleIslandHelper.PianoModuleSession;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 {
@@ -190,7 +185,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             {
                 base.Awake(scene);
 
-                if ((Finished && !End) || (!Started && !Start) || (Incorrect && RemoveAscwiitsIfWrongWay))
+                if (!Finished && (!End || (!Started && !Start) || (Incorrect && RemoveAscwiitsIfWrongWay)))
                 {
                     RemoveAllNotFleeing(scene);
                 }
@@ -229,7 +224,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 }
                 else
                 {
-                    RemoveSelf();
+                    if (!Finished)
+                    {
+                        Direction = EndDirection;
+                    }
+                    else
+                    {
+                        RemoveSelf();
+                    }
                 }
             }
 
@@ -275,6 +277,121 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
         }
 
+        public class Thought : Entity
+        {
+            private const string defaultPath = "objects/PuzzleIslandHelper/ascwiit/";
+            public Entity Track;
+            public string Path;
+            private MTexture small, med, large;
+            private MTexture main;
+            private float progress;
+            private float rotation;
+            private bool canConfirm;
+            private int dir = 1;
+            public bool Finished;
+            private SineWave sine;
+            private float smallOffset, medOffset, largeOffset, mainOffset;
+            private MTexture[] frames;
+            private int frame;
+            private int rotationStep;
+            private float scale = 0;
+            public Thought(Vector2 position, string path) : base(position)
+            {
+                Path = path;
+                sine = new SineWave(0.4f);
+                Add(sine);
+            }
+            public Thought(Entity entity, string path) : this(entity.Position, path)
+            {
+                Track = entity;
+            }
+            public override void Added(Scene scene)
+            {
+                base.Added(scene);
+
+                frames = GFX.Game.GetAtlasSubtextures(Path).ToArray();
+                small = GFX.Game[defaultPath + "bubbleSmall"];
+                med = GFX.Game[defaultPath + "bubbleMedium"];
+                large = GFX.Game[defaultPath + "bubbleLarge"];
+                main = GFX.Game[defaultPath + "thought"];
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (Finished) return;
+                if (Track != null)
+                {
+                    Position = Track.Position - small.Size();
+                }
+                float prevProgress = progress;
+                progress = Math.Clamp(progress + (Engine.DeltaTime / 1.3f) * 4 * dir, 0, 4);
+                switch (progress)
+                {
+                    case 0:
+                        if (prevProgress > 0)
+                        {
+                            RemoveSelf();
+                            return;
+                        }
+                        break;
+                    case 4:
+                        if (prevProgress < 4)
+                        {
+                            Alarm.Set(this, 1, () =>
+                            {
+                                canConfirm = true;
+                            });
+                        }
+                        break;
+                }
+                if (Scene.OnInterval(0.3f))
+                {
+                    rotationStep = (rotationStep + 1) % 4;
+                    rotation = (rotationStep * 90f).ToRad();
+                    frame = (frame + 1) % frames.Length;
+                }
+                if (canConfirm && Input.MenuConfirm.Pressed)
+                {
+                    dir = -1;
+                }
+                smallOffset = sine.Value * 0.5f;
+                medOffset = sine.ValueOffset(0.5f);
+                largeOffset = sine.ValueOffset(0.7f) * 1.5f;
+                mainOffset = sine.ValueOffset(1) * 2;
+
+            }
+            public override void Render()
+            {
+                Vector2 center = Position;
+                if (progress > 0) //small
+                {
+                    small.DrawCentered(center + Vector2.UnitX * smallOffset, Color.White, Math.Min(progress, 1));
+                }
+                center -= new Vector2(small.Width + 2, small.Height + 1);
+                if (progress > 1) //med
+                {
+                    med.DrawCentered(center + Vector2.UnitX * medOffset, Color.White, Math.Min(progress - 1, 1));
+                }
+                center -= new Vector2(med.Width + 1, med.Height + 1);
+                if (progress > 2) //large
+                {
+                    large.DrawCentered(center + Vector2.UnitX * largeOffset, Color.White, Math.Min(progress - 2, 1));
+                }
+                center -= new Vector2(large.Width / 2 + main.Width / 2 - 2, large.Height + main.Height / 2 - 2);
+                center += Vector2.UnitX * mainOffset;
+                if (progress > 3) //thought
+                {
+                    float scale = Math.Min(progress - 3, 1);
+                    main.DrawCentered(center, Color.White, scale, rotation);
+                    frames[frame].DrawCentered(center, Color.White, scale);
+                }
+            }
+            public override void Removed(Scene scene)
+            {
+                Finished = true;
+                base.Removed(scene);
+            }
+        }
         [Command("spawn_ascwiit", "")]
         public static void SpawnAscwiit(int state, string marker)
         {
@@ -309,13 +426,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public const int StDummy = 4;
         public Tween colorTween;
         public float colorLerp;
+        public float OutlineStroke = 1.5f;
         public static readonly Vector2[] WingPoints = new Vector2[] { new(0, 0), new(0, 2), new(2, 0) };
         public static readonly Vector2[] BodyPoints = new Vector2[] { new(0, 0), new(1, 0), new(2, 0), new(3, 0), new(1, 1), new(2, 1), new(3, 1), new(4, 1) };
+        public static readonly Vector2[] BodyOutlineOffsets = new Vector2[] { new(-1, -1), new(0, -1), new(0, -1), new(0, -1), new(-1, 1), new(0, 1), new(0, 1), new(1, 1) };
         public static readonly int[] WingIndices = new int[] { 0, 1, 2 };
         public static readonly int[] BodyIndices = new int[] { 0, 1, 4, 4, 1, 5, 1, 2, 5, 2, 3, 6, 5, 2, 6, 6, 3, 7 };
-
         public VertexPositionColor[] WingVertices;
         public VertexPositionColor[] BodyVertices;
+        public VertexPositionColor[] OutlineVertices;
         public List<float> BodyAlphas = new();
         public List<Color> BodyColors = new();
         public bool IdleHops = true;
@@ -365,8 +484,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public bool UseSequenceDirection;
         public FleeFacings FleeFacing;
-        public FlagList Flag;
-        private float peckTimer;
+        public FlagList Flag = default;
+        private float inPeckTimer;
+        public float PeckFrequency = 1;
         private float flapTimer;
         private float chirpTimer;
         private bool idleFlapping;
@@ -409,12 +529,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public bool Naive => IgnoreSolids || (Fleeing && !onGround) || (State == StPath && FollowPath != null && FollowPath.NaiveFly) || State == StFlee;
         private bool onGround;
         private float ColorLerp;
-        private float firstPeckTimer;
         public EntityID id;
         private float whiteLerp, whiteLerpTarget, whiteLerpSpeed;
         public bool FleesFromPlayer = true;
-        public FlagList PathFlag;
-        public FlagList FirfilFlag;
+        public FlagList PathFlag = default;
+        public FlagList FirfilFlag = default;
         public string PathID
         {
             get => _pathID;
@@ -430,7 +549,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 }
             }
         }
-        private string _pathID;
+        private string _pathID = "";
         public Path FollowPath;
         public Path.Node PathNode;
         public Vector2 PathNodeOffset;
@@ -456,7 +575,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         private bool canPeck = true;
         private bool canChirp = true;
         private bool canHop = true;
-        public FlagList FlagOnEatSap;
+        public FlagList FlagOnEatSap = default;
         private Vector2 flyTo;
         private Action<Ascwiit> onFlyToEnd;
         private float flapSpeed;
@@ -474,10 +593,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public bool DummyFlap;
         public bool DummyFriction;
         public bool Hopping;
-        public bool SnapToGround;
+        public bool SnapToGround = true;
         public float FlyingStability = 0;
         public Firfil.Flicker FirfilFlicker = Firfil.Flicker.Default;
         private List<HopData> hopDatas = [];
+        private bool idFromMap;
         public enum HopResult
         {
             Success,
@@ -485,6 +605,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             HitWall,
             HitNoHopZone
         }
+        public float DummySpeedMultX = 1;
+        public float DummySpeedMultY = 1;
+        private float peckDelay = 0.1f;
+        private float flyToSpeedMult = 1;
+        private float startFlyToDist;
+        public bool IdlePeckEvenIfInAir;
+        public bool FadingOut;
+        private float peckDelayTimer;
+        private bool easeFlyToSpeed;
+        public bool SequenceFleeing;
+        private Vector2? fleeTarget;
+        public bool Frozen
+        {
+            get => frozen;
+            set
+            {
+                StateMachine.Active = !value;
+                frozen = value;
+            }
+        }
+        private bool frozen;
+        private bool forceOnScreenCheck;
+        private bool transitioningAway;
         private static string[] stateNames = ["Idle", "Flee", "Path", "FlyTo", "Dummy"];
         private static int getStateIndex(string name)
         {
@@ -494,11 +637,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             return StIdle;
         }
-        public Ascwiit(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, getStateIndex(data.Attr("startingState", "Idle")), data.Float("scale", 1))
+        public Ascwiit(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, getStateIndex(data.Attr("startingState", "Idle")), data.Bool("snapToGround", true), data.Attr("flag"), data.Float("scale", 1))
         {
             FlyingStability = data.Float("flyingStability");
-            SnapToGround = data.Bool("snapToGround", true);
-            Flag = data.FlagList("flag");
             FirfilFlag = data.FlagList("firfilFlag");
             FlagOnEatSap = data.FlagList("sapFlag");
             PathFlag = data.FlagList("pathFlag");
@@ -516,15 +657,26 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             _scared = data.Bool("scared");
             AvoidNoHopZones = data.Bool("avoidNoHopZones");
             this.id = id;
+            idFromMap = true;
         }
-        public Ascwiit(Vector2 position) : this(position, StIdle) { }
-        public Ascwiit(Vector2 position, int state, float scale = 1) : base(position)
+        public Ascwiit(Vector2 position, int state = 0, bool snapToGround = false, string flag = "", float scale = 1) : base(position)
         {
+            if (!idFromMap)
+            {
+                id = new EntityID(Guid.NewGuid().ToString(), 0);
+            }
+            SnapToGround = snapToGround;
+            Flag = new FlagList(flag);
             colorTween = Tween.Set(this, Tween.TweenMode.Looping, Firfil.Flicker.Default.Interval * 2, Ease.SineInOut, t => colorLerp = t.Eased);
             Scale = scale;
             Depth = 1;
             WingVertices = PianoUtils.Initialize((VertexPositionColor)default, WingPoints.Length);
             BodyVertices = PianoUtils.Initialize((VertexPositionColor)default, BodyPoints.Length);
+            OutlineVertices = PianoUtils.Initialize((VertexPositionColor)default, BodyPoints.Length);
+            for (int i = 0; i < OutlineVertices.Length; i++)
+            {
+                OutlineVertices[i].Color = Color.Black;
+            }
             DefaultHitbox = new Hitbox(BirdWidth, BirdHeight);
             DetectHitbox = new Hitbox(DetectXRange * 2, DetectYRange * 2, -DetectXRange + BirdWidth / 2, -DetectYRange + BirdHeight / 2);
             Collider = DefaultHitbox;
@@ -535,7 +687,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             IgnoreJumpThrus = true;
             Add(Flickers);
-            AddTag(Tags.TransitionUpdate);
             Add(CritterLight = new CritterLight(32, null, FirfilEated));
             Add(ScaredWiggler = Wiggler.Create(0.4f, 7, (f) => { ScaredXOffset = f * 2f; }));
             ScaredWiggler.StartZero = true;
@@ -548,18 +699,42 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             Add(StateMachine);
             Tag |= Tags.TransitionUpdate;
             StartingState = state;
-        }
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            if (!Flag)
+            Add(new TransitionListener()
             {
-                RemoveSelf();
+                OnInBegin = () =>
+                {
+                    forceOnScreenCheck = true;
+                },
+                OnInEnd = () =>
+                {
+                    forceOnScreenCheck = false;
+                },
+                OnOutBegin = () =>
+                {
+                    if (Fleeing)
+                    {
+                        Frozen = true;
+                        DynamicRemove();
+                    }
+                }
+            });
+        }
+        public void DynamicRemove()
+        {
+            if (!FadingOut)
+            {
+                Tag |= Tags.Persistent;
+                FadeOut(true);
             }
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            if (!Flag)
+            {
+                RemoveSelf();
+                return;
+            }
             if (PianoModule.Session.AscwiitsWithFirfils.Contains(id))
             {
                 FirfilEated = true;
@@ -572,7 +747,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 BodyAlphas.Add(Calc.Random.Range(0.4f, 0.8f));
                 BodyColors.Add(Calc.Random.Choose(Color.LightGreen, Color.ForestGreen));
             }
-            firstPeckTimer = Calc.Random.Range(0, 10f);
             fleeXAmount = Calc.Random.Range(0.3f, 1f);
             FleeSpeedX = Calc.Random.Range(8f, 30f);
             FleeSpeedY = Calc.Random.Range(-6f, -2f);
@@ -584,6 +758,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                     if (Position.Y > (scene as Level).Bounds.Bottom)
                     {
                         RemoveSelf();
+                        return;
                     }
                 }
             }
@@ -617,7 +792,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 RefreshPath();
             }
             CritterLight.Enabled = FirfilEated;
-            if (Scene.OnInterval(0.3f))
+            if (forceOnScreenCheck || Scene.OnInterval(0.3f))
             {
                 Collider = DetectHitbox;
                 OnScreen = this.OnScreen(16);
@@ -653,27 +828,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 ScaredWiggler.StopAndClear();
             }
             base.Update();
-            if (Naive)
+            if (!Frozen)
             {
-                Position.X += Speed.X * Engine.DeltaTime;
-                Position.Y += (Speed.Y + flapSpeed + sinSpeed * (1 - FlyingStability)) * Engine.DeltaTime;
-            }
-            else
-            {
-                MoveH(Speed.X * Engine.DeltaTime, OnCollideH);
-                MoveV((Speed.Y + flapSpeed + sinSpeed * (1 - FlyingStability)) * Engine.DeltaTime, OnCollideV);
-            }
-
-            if (!skipWingUpdate)
-            {
-                WingUpdate();
+                if (Naive)
+                {
+                    Position.X += Speed.X * Engine.DeltaTime * DummySpeedMultX;
+                    Position.Y += (Speed.Y + flapSpeed + sinSpeed * (1 - FlyingStability)) * Engine.DeltaTime * DummySpeedMultY;
+                }
+                else
+                {
+                    MoveH(Speed.X * Engine.DeltaTime * DummySpeedMultX, OnCollideH);
+                    MoveV((Speed.Y + flapSpeed + sinSpeed * (1 - FlyingStability)) * Engine.DeltaTime * DummySpeedMultY, OnCollideV);
+                }
+                if (!skipWingUpdate)
+                {
+                    WingUpdate();
+                }
             }
             UpdateVertices();
-            if (FirfilEated && Scene.OnInterval(Engine.DeltaTime * 4))
+            if (!Frozen && FirfilEated && Scene.OnInterval(Engine.DeltaTime * 4))
             {
                 AfterImage image = AfterImage.Create(this, RenderZero, 2f, 0.3f, null, Depth + 1);
                 image.ScaleOut = true;
             }
+
         }
         public void UpdateVertices()
         {
@@ -682,7 +860,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             scale *= Calc.LerpClamp(1, Depth > 0 ? 0.3f : 2, ColorLerp);
 
             Vector2 beakPoint = BodyPoints[0];
-            if (peckTimer > 0)
+            if (inPeckTimer > 0)
             {
                 BodyPoints[0].Y += 1;
             }
@@ -737,14 +915,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 WingVertices[i].Position = new Vector3(Position + point, 0);
                 WingVertices[i].Color *= Alpha;
             }
-
+            /*            for (int i = 0; i < OutlineVertices.Length; i++)
+                        {
+                            OutlineVertices[i].Position.X = (float)Math.Floor(BodyVertices[i].Position.X + -(int)Facing * BodyOutlineOffsets[i].X);
+                            OutlineVertices[i].Position.Y = (float)Math.Floor(BodyVertices[i].Position.Y + BodyOutlineOffsets[i].Y * OutlineStroke);
+                        }*/
         }
         public override void Render()
         {
             base.Render();
             if (Scene is not Level level || (!OnlyCheckFlagOnAdded && !Flag) || (!OnScreen && !Fleeing)) return;
             Draw.SpriteBatch.End();
+            //GFX.DrawIndexedVertices(level.Camera.Matrix, OutlineVertices, OutlineVertices.Length, BodyIndices, 6);
+
             GFX.DrawIndexedVertices(level.Camera.Matrix, BodyVertices, BodyVertices.Length, BodyIndices, 6);
+
             GFX.DrawIndexedVertices(level.Camera.Matrix, WingVertices, WingVertices.Length, WingIndices, 1);
             GameplayRenderer.Begin();
             if (FirfilEated)
@@ -801,8 +986,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 WingVertices[i].Position += new Vector3(offset, 0);
             }
         }
-        public bool FlyTo(Vector2 position, bool revertStateAtEnd = false, Action<Ascwiit> onEnd = null)
+        public bool FlyTo(Vector2 position, bool revertStateAtEnd = false, Action<Ascwiit> onEnd = null, bool easeSpeed = false)
         {
+            startFlyToDist = Vector2.Distance(Center, position);
+            easeFlyToSpeed = easeSpeed;
+            flyToSpeedMult = 1;
             ReturnToPreviousStateAtArrival = revertStateAtEnd;
             if (!revertStateAtEnd)
             {
@@ -836,10 +1024,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             StateMachine.State = StFlyTo;
             return true;
         }
-        public IEnumerator FlyToRoutine(Vector2 position, bool revertStateAtEnd = false, Action<Ascwiit> onEnd = null)
+        public IEnumerator FlyToRoutine(Vector2 position, bool revertStateAtEnd = false, Action<Ascwiit> onEnd = null, bool easeSpeed = false)
         {
-
-            if (FlyTo(position, revertStateAtEnd, onEnd))
+            if (FlyTo(position, revertStateAtEnd, onEnd, easeSpeed))
             {
                 while (!AtFlyToTarget)
                 {
@@ -861,18 +1048,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         {
             Depth = -100000;
             Vector2 position = Position;
+            Vector2 target = statid.BulbPosition + Vector2.UnitX * statid.BulbSize / 2;
+            Facing = (Facings)Math.Sign(target.X - CenterX);
+            target += new Vector2(-(int)Facing * statid.BulbSize / 2, -(Height / 2 + 1));
             IgnoreSolids = true;
-            yield return FlyToRoutine(statid.Center);
+            statid.Distracted = true;
+            yield return FlyToRoutine(target, easeSpeed: true);
+            Center = target;
+            StateMachine.State = StDummy;
+            DummySpeedMultY = 0;
+            DummyFlap = false;
+            DummyGravity = false;
+            DummyPeck = true;
             Gravity = 0;
             Speed.Y = 0;
             Speed.X = 0;
+            PeckFrequency = 60;
+            Peck();
             yield return 1f;
             Scared = false;
             statid.HasSap = false;
-            statid.IsSapped = true;
+            //statid.IsSapped = true;
             FirfilEated = true;
             PianoModule.Session.AscwiitsWithFirfils.Add(id);
             yield return OnEatSap(statid);
+            PeckFrequency = 1;
+            statid.Distracted = false;
             Gravity = NormalGravity;
         }
         public Vector2 SimulateSpeedChange(Vector2 position, Vector2 inputSpeed, Vector2 friction, float gravity, out bool onGround, out bool floating)
@@ -951,10 +1152,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                     WingState = (WingStates)(-(int)WingState);
                 }
             }
-            else if (!idleFlapping || (StateMachine.State == StDummy && !DummyFlap))
+            else if (!idleFlapping)
             {
                 WingState = WingStates.AtRest;
                 flapTimer = 0;
+                flapSpeed = 0;
+            }
+            if (StateMachine.State == StDummy && !DummyFlap)
+            {
+                WingState = WingStates.AtRest;
+                flapTimer = 0;
+                flapSpeed = 0;
             }
         }
         public void OnCollideV(CollisionData data)
@@ -1012,7 +1220,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public void Peck()
         {
-            peckTimer = 0.1f;
+            inPeckTimer = 0.1f;
+            peckDelayTimer = peckDelay;
         }
         public void FleeFromPlayer(Player player)
         {
@@ -1099,7 +1308,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             public List<(Vector2, Color)> Points = [];
             public HopData() { }
         }
-        public bool FadingOut;
         public bool TryFindHopTarget(Vector2 from, Vector2 speed, Vector2 friction, float gravity, Rectangle bounds, out HopData hopData)
         {
             bool onNewGround = false;
@@ -1179,11 +1387,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             {
                 if (!FlyApproach(fleeTarget.Value, MaxFlySpeedY, 8))
                 {
-                    if (!FadingOut)
-                    {
-                        Tag |= Tags.Persistent;
-                        FadeOut(true);
-                    }
+                    DynamicRemove();
                 }
             }
             else
@@ -1211,12 +1415,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 RemoveSelf();
             }
             return StFlee;
-
         }
-        public void FadeOut(bool removeSelfOnFinished)
+        public void FadeOut(bool removeSelfOnFinished, bool freeze = false)
         {
+            if (freeze)
+            {
+                Frozen = true;
+            }
             FadingOut = true;
-            Tween.Set(this, Tween.TweenMode.Oneshot, 1.2f, Ease.SineInOut, t =>
+            Tween.Set(this, Tween.TweenMode.Oneshot, 0.7f, Ease.SineInOut, t =>
             {
                 Alpha = 1 - t.Eased;
             }, t =>
@@ -1284,8 +1491,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             return StFlyTo;
 
         }
-        public bool SequenceFleeing;
-        private Vector2? fleeTarget;
         public void FleeBegin()
         {
             switch (FleeFacing)
@@ -1306,11 +1511,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                     Facing = Facings.Right;
                     break;
             }
+            fleeTarget = null;
             if (UseSequenceDirection)
             {
                 Controller controller = Scene.Tracker.GetEntity<Controller>();
-                if (controller != null)
+                if (controller != null && !controller.Finished)
                 {
+                    Directions targetDirection = controller.Direction;
+
                     Facing = controller.Direction switch
                     {
                         Directions.Left => Facings.Left,
@@ -1358,12 +1566,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         {
             Friction = Vector2.One;
             IdleHops = true;
+            IdlePeckEvenIfInAir = false;
         }
         public int IdleUpdate()
         {
             sinSpeed = 0;
-            firstPeckTimer = Calc.Max(firstPeckTimer - Engine.DeltaTime, 0);
-
             if (FleesFromPlayer && Scene.GetPlayer() is Player player)
             {
                 Collider = DetectHitbox;
@@ -1399,27 +1606,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                 {
                     IdleFlap();
                 }
-                if (chirpTimer > 0)
-                {
-                    chirpTimer -= Engine.DeltaTime;
-                }
-                else if (CanChirp && Calc.Random.Chance(0.005f))
-                {
-                    Chirp();
-                }
-                if (peckTimer > 0)
-                {
-                    peckTimer -= Engine.DeltaTime;
-                }
-                else if (CanPeck && Calc.Random.Chance(0.01f))
-                {
-                    Peck();
-                }
-                if (Scared || peckTimer > 0 || firstPeckTimer > 0)
+                ChirpUpdate();
+                if (Scared)
                 {
                     return StIdle;
                 }
-
+                PeckUpdate();
+                if (inPeckTimer > 0)
+                {
+                    return StIdle;
+                }
                 if (hopTimer > 0)
                 {
                     hopTimer -= Engine.DeltaTime;
@@ -1434,9 +1630,42 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             }
             else
             {
-                peckTimer = 0;
+                if (IdlePeckEvenIfInAir)
+                {
+                    PeckUpdate();
+                }
+                else
+                {
+                    inPeckTimer = 0;
+                }
             }
             return StIdle;
+        }
+        public void PeckUpdate()
+        {
+            if (inPeckTimer > 0)
+            {
+                inPeckTimer -= Engine.DeltaTime;
+            }
+            else if (peckDelayTimer > 0)
+            {
+                peckDelayTimer -= Engine.DeltaTime;
+            }
+            else if (CanPeck && Calc.Random.Chance(0.01f * PeckFrequency))
+            {
+                Peck();
+            }
+        }
+        public void ChirpUpdate()
+        {
+            if (chirpTimer > 0)
+            {
+                chirpTimer -= Engine.DeltaTime;
+            }
+            else if (CanChirp && Calc.Random.Chance(0.005f))
+            {
+                Chirp();
+            }
         }
         public void PathBegin()
         {
@@ -1505,7 +1734,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public void DummyBegin()
         {
-
+            DummySpeedMultX = 1;
+            DummySpeedMultY = 1;
             idleFlapping = false;
             DummyGravity = true;
             DummyFlap = true;
@@ -1521,10 +1751,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
                     Facing = (Facings)Math.Sign(player.CenterX - CenterX);
                 }
             }
+            if (DummyPeck)
+            {
+                PeckUpdate();
+            }
+            if (DummyChirp)
+            {
+                ChirpUpdate();
+            }
             return StDummy;
         }
         public void DummyEnd()
         {
+            DummySpeedMultX = 1;
+            DummySpeedMultY = 1;
             DummyGravity = false;
             DummyFlap = false;
             DummyFriction = false;
@@ -1534,14 +1774,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public bool FlyApproach(Vector2 target, float maxYSpeed, float escapeDistance = -1)
         {
             float dist = Vector2.DistanceSquared(Center, target);
-            if (escapeDistance >= 0 && dist <= escapeDistance * escapeDistance)
+            if (easeFlyToSpeed)
+            {
+                flyToSpeedMult = 0.1f + (0.9f * (dist * dist) / startFlyToDist);
+            }
+            if ((!easeFlyToSpeed || flyToSpeedMult < 0.11f) && escapeDistance >= 0 && dist <= escapeDistance * escapeDistance)
             {
                 return false;
             }
             float angle = (target - Center).Angle();
-            Vector2 offset = Calc.AngleToVector(angle, Math.Max(dist, 25));
+            Vector2 offset = Calc.AngleToVector(angle, Math.Max(dist, 25) * flyToSpeedMult);
             DebugOffset = offset * Engine.DeltaTime;
-            float stabilityBuff = 500f * FlyingStability;
             Speed = Calc.Approach(Speed, offset, 500f * Engine.DeltaTime);
             if (Speed.Y > maxYSpeed)
             {
@@ -1575,132 +1818,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             Scene.Add(thought);
             return thought;
         }
-        public class Thought : Entity
-        {
-            private const string defaultPath = "objects/PuzzleIslandHelper/Ascwiit/";
-            public Entity Track;
-            public string Path;
-            public Sprite Sprite;
-            private MTexture small, med, large;
-            private MTexture main;
-            private float progress;
-            private float rotation;
-            private bool canConfirm;
-            private int dir = 1;
-            public bool Finished;
-            private SineWave sine;
-            private float smallOffset, medOffset, largeOffset;
-            public Thought(Vector2 position, string path) : base(position)
-            {
-                Path = path;
-                sine = new SineWave(1);
-                Add(sine);
-            }
-            public Thought(Entity entity, string path) : this(entity.Position, path)
-            {
-                Track = entity;
-            }
-            public override void Added(Scene scene)
-            {
-                base.Added(scene);
 
-                Sprite = new Sprite(GFX.Game, Path);
-                Sprite.AddLoop("idle", Path, 0.1f);
-                Sprite.Play("idle");
-                Sprite.Scale = Vector2.Zero;
-                Sprite.CenterOrigin();
-                Add(Sprite);
-                small = GFX.Game[defaultPath + "smallBubble"];
-                med = GFX.Game[defaultPath + "mediumBubble"];
-                large = GFX.Game[defaultPath + "largeBubble"];
-                main = GFX.Game[defaultPath + "thought"];
-            }
-            public override void Update()
-            {
-                base.Update();
-                if (Finished) return;
-                if (Track != null)
-                {
-                    Position = Track.Position;
-                }
-                float prevProgress = progress;
-                progress = Math.Clamp(progress + Engine.DeltaTime * dir, 0, 4);
-                switch (progress)
-                {
-                    case 0:
-                        if (prevProgress > 0)
-                        {
-                            RemoveSelf();
-                            return;
-                        }
-                        break;
-                    case 4:
-                        if (prevProgress < 4)
-                        {
-                            Alarm.Set(this, 1, () =>
-                            {
-                                canConfirm = true;
-                            });
-                            Sprite.Play("idle");
-                        }
-                        Sprite.Scale = Calc.Approach(Sprite.Scale, Vector2.One, Engine.DeltaTime * 3);
-                        break;
-                }
-                if (progress == 4)
-                {
-                    if (prevProgress < 4)
-                    {
-                        Alarm.Set(this, 1, () =>
-                        {
-                            canConfirm = true;
-                        });
-                        Sprite.Play("idle");
-                    }
-                    Sprite.Scale = Calc.Approach(Sprite.Scale, Vector2.One, Engine.DeltaTime * 3);
-                }
-                Sprite.Scale = Vector2.One * Math.Clamp(progress - 4, 0, 1);
-                rotation = ((int)Scene.TimeActive % 4) * 90;
-                if (canConfirm && Input.MenuConfirm.Pressed)
-                {
-                    dir = -1;
-                }
-                smallOffset = sine.Value;
-                medOffset = sine.ValueOffset(0.5f) * 2;
-                largeOffset = sine.ValueOffset(1) * 3;
-
-            }
-            public override void Render()
-            {
-                Vector2 center = Position;
-                if (progress > 0) //small
-                {
-                    small.DrawCentered(center + Vector2.UnitX * smallOffset, Color.White, Math.Min(progress, 1));
-                }
-                center -= new Vector2(small.Width, small.Height - 1);
-                if (progress > 1) //med
-                {
-                    med.DrawCentered(center + Vector2.UnitX * medOffset, Color.White, Math.Min(progress - 1, 1));
-                }
-                center -= new Vector2(med.Width, med.Height - 1);
-                if (progress > 2) //large
-                {
-                    large.DrawCentered(center + Vector2.UnitX * largeOffset, Color.White, Math.Min(progress - 2, 1));
-                }
-                center -= new Vector2(large.Width / 2 + main.Width / 2, large.Height + main.Height / 2);
-                if (progress > 3) //thought
-                {
-                    main.DrawCentered(center, Color.White, Math.Min(progress - 3, 1), rotation);
-                }
-                if (progress > 4) //sprite
-                {
-                    Sprite.RenderAt(center);
-                }
-            }
-            public override void Removed(Scene scene)
-            {
-                Finished = true;
-                base.Removed(scene);
-            }
-        }
     }
 }

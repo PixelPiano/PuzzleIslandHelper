@@ -13,6 +13,7 @@ using Celeste.Mod.PuzzleIslandHelper.Cutscenes;
 using System;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using YamlDotNet.Core.Tokens;
+using Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -37,6 +38,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             }
             return false;
         }
+        public HashSet<string> CompletedFrequencyCodeIDs = [];
         public Dictionary<EntityID, List<Statid.Data>> StatidPatchData = [];
         public HashSet<EntityID> AscwiitsWithFirfils = [];
         public List<Ascwiit.Controller.Data> AscwiitSequences = [];
@@ -58,7 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public Dictionary<string, string> LevelMusic { get; set; } = new();
         public Dictionary<FluidBottle.Side, List<Vector2>> Tiles = new();
         public List<FadeWarpKey.KeyData> Keys { get; set; } = new();
-        public List<EntityID> DoorIds { get; set; } = new();
+        public HashSet<EntityID> DoorIds { get; set; } = new();
         public List<Vector2> PotionTiles { get; set; } = new();
         public List<string> UsedCutscenes = new();
         public List<string> BrokenPillars = new();
@@ -95,7 +97,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public string DEBUGSTRING { get; set; }
         public int TimesMetWithCalidus;
         public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
-        public ForkAmpState ForkAmpState = new();
         public bool MonitorActivated;
         public bool FixedElevator;
         public int FurthestElevatorLevel;

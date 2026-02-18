@@ -35,8 +35,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public float ActivatedTime;
         public ColorShifter swap = new ColorShifter(Color.Cyan, Color.LightBlue, Color.Blue);
         public ColorShifter scatter = new ColorShifter(Color.Cyan, Color.LightBlue);
-
         public ColorShifter glowSwap = [Color.Cyan, Color.Teal, Color.LightBlue];
+        public enum SigilTypes
+        {
+            Time,
+            Space,
+            Memory,
+            Void,
+            History,
+            Truth,
+            Life,
+            Death
+        }
+        public Vector2 DashDirection;
         public Sigil(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Collider = data.Collider();
@@ -52,6 +63,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             swap.Pause();
             scatter.Pause();
             glowSwap.Pause();
+
         }
         public override void DebugRender(Camera camera)
         {
@@ -80,7 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         public void OnDashed(Vector2 dir)
         {
-            if (dir.Y == -1 && CollideCheck(Scene.GetPlayer()))
+            if (dir == DashDirection && CollideCheck(Scene.GetPlayer()))
             {
                 Activate(false);
             }

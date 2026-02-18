@@ -5,3 +5,6 @@ dotnet_diagnostic.CS0618.severity = silent
 
 # IDE0055: Fix formatting
 dotnet_diagnostic.IDE0055.severity = silent
+
+# CS8981: The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
+dotnet_diagnostic.CS8981.severity = none

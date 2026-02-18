@@ -24,9 +24,37 @@ using static Celeste.Autotiler;
 using static Celeste.ClutterBlock;
 using static Celeste.Mod.PuzzleIslandHelper.Entities.Pulse;
 using static Celeste.Player;
+using Component = Monocle.Component;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static IEnumerator Routine(this ScreenWipe wipe)
+    {
+        while (!wipe.ending)
+        {
+            yield return null;
+        }
+    }
+    public static T Closest<T>(this Entity entity) where T : Entity
+    {
+        List<Entity> entities = entity.Scene.Tracker.GetEntities<T>();
+        if (entities.Count == 0)
+        {
+            return null;
+        }
+        Entity closest = entities[0];
+        float maxDist = Vector2.DistanceSquared(entity.Position, closest.Position);
+        for (int i = 1; i < entities.Count; i++)
+        {
+            float dist = Vector2.DistanceSquared(entities[i].Position, entity.Position);
+            if (dist < maxDist)
+            {
+                maxDist = dist;
+                closest = entities[i];
+            }
+        }
+        return closest as T;
+    }
     public static Vector2 ToVector2(this Directions direction)
     {
         return direction switch
@@ -283,13 +311,13 @@ public static class PianoUtils
     }
     public static Vector2 Size(this VirtualRenderTarget target) => new Vector2(target.Width, target.Height);
     public static Vector2 HalfSize(this VirtualRenderTarget target) => new Vector2(target.Width, target.Height) / 2f;
-    public static FlagData GetFlagData(this BinaryPacker.Element element, string flagname = "flag", string invertedname = "inverted")
+    public static FlagData GetFlagData(this BinaryPacker.Element element, string flagname = "", string invertedname = "")
         => (new FlagData(element.Attr(flagname), element.AttrBool(invertedname)));
     public static FlagData Flag(this EntityData data, string flagname, bool inverted)
     => new FlagData(data.Attr(flagname), inverted);
-    public static FlagData Flag(this EntityData data, string flagname = "flag", string invertedname = "inverted")
+    public static FlagData Flag(this EntityData data, string flagname = "", string invertedname = "")
         => new FlagData(data.Attr(flagname), data.Bool(invertedname));
-    public static FlagList FlagList(this EntityData data, string flagname = "flag", string invertedname = "inverted") => new FlagList(data.Attr(flagname), data.Bool(invertedname));
+    public static FlagList FlagList(this EntityData data, string flagname = "", string invertedname = "") => new FlagList(data.Attr(flagname), data.Bool(invertedname));
     public static Vector2 Position(this BinaryPacker.Element element) => new Vector2(element.AttrFloat("x"), element.AttrFloat("y"));
     public static IEnumerator TextboxSayClean(string text, params Func<IEnumerator>[] events)
     {
@@ -411,7 +439,19 @@ public static class PianoUtils
     {
         return entity.Collider != null && entity.Collider.OnScreen(Engine.Scene as Level ?? entity.SceneAs<Level>(), pad);
     }
-
+    public static bool InLevelBounds(this Entity entity, float pad = 0)
+    {
+        if (entity.Collider != null)
+        {
+            Rectangle r = entity.Collider.Bounds;
+            r.X -= (int)pad;
+            r.Y -= (int)pad;
+            r.Width += (int)(pad * 2);
+            r.Height += (int)(pad * 2);
+            return (Engine.Scene as Level ?? entity.SceneAs<Level>()).Bounds.Intersects(entity.Collider.Bounds);
+        }
+        return (Engine.Scene as Level ?? entity.SceneAs<Level>()).Bounds.Contains(entity.Position);
+    }
     public static bool OnScreen(this Vector2 v, float pad = 0)
     {
         Collider c = new Hitbox(1, 1, v.X, v.Y);
@@ -1219,16 +1259,45 @@ public static class PianoUtils
     }
     public static void RenderAt(this Image image, Vector2 at)
     {
-        Vector2 orig = image.RenderPosition;
-        image.RenderPosition = at;
-        image.Render();
-        image.RenderPosition = orig;
+        if (image.Texture != null)
+        {
+            image.Texture.Draw(at, image.Origin, image.Color, image.Scale, image.Rotation, image.Effects);
+        }
     }
     public static void RenderOffset(this Image image, Vector2 offset)
     {
-        image.Position += offset;
-        image.Render();
-        image.Position -= offset;
+        if (image.Texture != null)
+        {
+            image.Texture.Draw(image.RenderPosition + offset, image.Origin, image.Color, image.Scale, image.Rotation, image.Effects);
+        }
+    }
+    public static void RenderAt(this Image image, Vector2 at, Vector2 scale)
+    {
+        if (image.Texture != null)
+        {
+            image.Texture.Draw(at, image.Origin, image.Color, scale, image.Rotation, image.Effects);
+        }
+    }
+    public static void RenderOffset(this Image image, Vector2 offset, Vector2 scale)
+    {
+        if (image.Texture != null)
+        {
+            image.Texture.Draw(image.RenderPosition + offset, image.Origin, image.Color, scale, image.Rotation, image.Effects);
+        }
+    }
+    public static void RenderAt(this Image image, Vector2 at, Vector2 scale, Color color)
+    {
+        if (image.Texture != null)
+        {
+            image.Texture.Draw(at, image.Origin, color, scale, image.Rotation, image.Effects);
+        }
+    }
+    public static void RenderOffset(this Image image, Vector2 offset, Vector2 scale, Color color)
+    {
+        if (image.Texture != null)
+        {
+            image.Texture.Draw(image.RenderPosition + offset, image.Origin, color, scale, image.Rotation, image.Effects);
+        }
     }
     public static List<T> GetFollowerEntities<T>(this Leader leader) where T : Entity
     {
@@ -1287,6 +1356,10 @@ public static class PianoUtils
     public static IEnumerator ZoomToWorld(this Level level, Vector2 worldPos, float zoom, float duration)
     {
         yield return new SwapImmediately(level.ZoomTo(worldPos - level.Camera.Position, zoom, duration));
+    }
+    public static void ZoomSnapWorld(this Level level, Vector2 worldPos, float zoom)
+    {
+        level.ZoomSnap(worldPos - level.Camera.Position, zoom);
     }
     public static IEnumerator ZoomAcrossWorld(this Level level, Vector2 worldPos, float zoom, float duration)
     {
@@ -1947,6 +2020,13 @@ public static class PianoUtils
         foreach (Entity e in entities)
         {
             e.RemoveSelf();
+        }
+    }
+    public static void RemoveSelves(this IEnumerable<Component> components)
+    {
+        foreach (Component c in components)
+        {
+            c.RemoveSelf();
         }
     }
     public static Collider Collider(this IEnumerable<Vector2> positions, Vector2 offset = default, int mult = 1)

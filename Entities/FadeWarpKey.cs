@@ -25,7 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(new TalkComponent(new Rectangle(0, 0, (int)sprite.Width, (int)sprite.Height), new Vector2(sprite.Width / 2, 0), Collect));
             sprite.Play("idle");
         }
-        public struct KeyData
+        public class KeyData
         {
             public int id;
             public KeyData(FadeWarpKey Key)

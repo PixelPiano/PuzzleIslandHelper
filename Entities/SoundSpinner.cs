@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities;
 using FrostHelper;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -14,7 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public string Flag;
         private string inputFlag;
         public bool InvertFlag;
-        
+
         public bool KeepInScene => string.IsNullOrEmpty(inputFlag) || SceneAs<Level>().Session.GetFlag(inputFlag) == InvertFlag || SceneAs<Level>().Session.GetFlag(Flag);
         private bool prevFlagState;
         public bool Shattered;
@@ -29,7 +30,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Color origColor;
         private Color FlashColor;
         private Coroutine flashRoutine;
-        public float[] Amps;
+        public float[] Targets;
         private float AmpTimer;
         private float ShakeAddAmount;
         public const float AmpRange = 0.2f;
@@ -57,7 +58,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Active = true;
             origColor = Tint;
             FlashColor = Tint;
-            Amps = new float[4]
+            Targets = new float[4]
             {
                 data.Int("freq1"),data.Int("freq2"),data.Int("freq3"),data.Int("freq4")
             };
@@ -69,17 +70,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void SetAmplitude()
         {
-            float[] rates = PianoModule.Session.ForkAmpState.Rates;
+            float[] rates = FrequencyData.GetRates(Scene);
             if (rates is null || rates.Length <= 0) return;
             int count = 0;
             float amount = 0;
             float maxRange = 15;
-            ForkAmpSpeaker speaker = SceneAs<Level>().Tracker.GetEntity<ForkAmpSpeaker>();
-            float mult = speaker is null ? 1 : speaker.Amount;
+            float mult = 1 * (SceneAs<Level>().Tracker.GetEntity<AlphaForkAmpSpeaker>()?.Distortion ?? 1);
             for (int i = 0; i < 4; i++)
             {
-                if (Amps[i] < 0) continue;
-                float dist = MathHelper.Distance(rates[i], Amps[i]);
+                if (Targets[i] < 0) continue;
+                float dist = MathHelper.Distance(rates[i], Targets[i]);
                 amount += UserAmpLimit - (Calc.Clamp(dist, 0, maxRange) / maxRange) * UserAmpLimit;
                 count++;
             }

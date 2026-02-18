@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using Monocle;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -6,10 +8,9 @@ namespace Celeste.Mod.PuzzleIslandHelper
 {
     public struct FlagList : IEnumerable<FlagData>, IEnumerable
     {
-        public int Count => List.Count;
+        public readonly int Count => List.Count;
         public List<FlagData> List = [];
-        public bool TrueIfEmpty = true;
-        public string Flag;
+        public string Flag = "";
         public bool Inverted;
         public bool Ignore;
         public bool? ForcedValue;
@@ -19,14 +20,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             get
             {
-                if (!(List == null || List.Count == 0))
+                if (List == null || Count == 0) return true;
+                foreach (var item in List)
                 {
-                    foreach (var item in List)
-                    {
-                        if (!item.Empty) return !TrueIfEmpty;
-                    }
+                    if (!item.Empty) return false;
                 }
-                return TrueIfEmpty;
+                return true;
             }
         }
         public static bool operator true(FlagList list)
@@ -56,6 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             get
             {
+
                 if (ForcedValue.HasValue) return ForcedValue.Value;
                 if (Ignore || Empty) return !Inverted;
                 else
@@ -67,6 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 }
                 return true;
             }
+
             set
             {
                 foreach (FlagData data in List)
@@ -99,19 +100,27 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             Raw = flags;
             Inverted = inverted;
-            foreach (var item in flags)
+            if (flags != null && flags.Length == 1 && flags[0] == "!")
             {
-                RawSingle += item + ',';
-                if (item[0] == '!' && item.Length > 1)
-                {
-                    List.Add(new FlagData(item.Substring(1), true));
-                }
-                else
-                {
-                    List.Add(new FlagData(item, false));
-                }
+                ForcedValue = false;
+                RawSingle = "!";
             }
-            RawSingle = RawSingle.TrimEnd(',');
+            else
+            {
+                foreach (var item in flags)
+                {
+                    RawSingle += item + ',';
+                    if (item[0] == '!' && item.Length > 1)
+                    {
+                        List.Add(new FlagData(item.Substring(1), true));
+                    }
+                    else
+                    {
+                        List.Add(new FlagData(item, false));
+                    }
+                }
+                RawSingle = RawSingle.TrimEnd(',');
+            }
         }
         public static string[] format(string input)
         {
