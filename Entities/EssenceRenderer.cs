@@ -46,7 +46,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void ApplyParameters(Level level)
         {
-            Shader.ApplyCameraParams(level);
+            Shader.ApplyCameraParameters(level);
             Shader.Parameters["Positions"]?.SetValue(positions);
             Shader.Parameters["Radiuses"]?.SetValue(radiuses);
             Shader.Parameters["InUse"]?.SetValue(inUse);

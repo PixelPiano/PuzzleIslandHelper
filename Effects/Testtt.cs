@@ -44,7 +44,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 return;
             }
-            Shader.ApplyVectorZeroParams(level);
+            Shader.ApplyIdentityParameters(level);
 
 
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);

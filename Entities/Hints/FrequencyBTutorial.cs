@@ -19,7 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Hints
             public float MorphPercent = 1;
             public float Rotation = -MathHelper.PiOver2;
             private VirtualRenderTarget target;
-            private float angle;
+            public float anglePercent;
             public Hint(Vector2 position, float radius, float angleDegrees, float[] rates, FlagList flagOnFinish)
                 : base(position, radius, angleDegrees, true, false, rates, flagOnFinish)
             {
@@ -39,13 +39,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Hints
             public override void Update()
             {
                 base.Update();
-                MorphPercent = (float)(Math.Sin(Scene.TimeActive) + 1) / 2f;
             }
             public override void Render()
             {
-                Draw.Rect(X - 40, Y - 40, Width + 80, Height + 80, Color.Brown);
                 Draw.Rect(Collider, Color.DarkGray);
-                Draw.SpriteBatch.Draw(target, Center, null, Color.White, Rotation, target.HalfSize(), 1, SpriteEffects.None, 0);
+                Draw.SpriteBatch.Draw(target, Center + Vector2.UnitY * (Height / 4) * (MorphPercent), null, Color.White, Rotation + Angle * anglePercent, target.HalfSize(), 1, SpriteEffects.None, 0);
             }
             public struct Involute
             {
@@ -117,13 +115,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Hints
                         p: morphPercent);
                     r += inc;
                 }
-                DrawWalls(center,radius,morphPercent);
+                DrawWalls(center, radius, morphPercent);
             }
             public override void UpdateOrbs()
             {
                 for (int i = 0; i < 4; i++)
                 {
-                    Orbs[i].From = Orbs[i].To = Orbs[i].Position = Involute.Point(Vector2.One * Radius, Targets[i], Radius, MorphPercent, 0.1f + i * 0.2f);
+                    Orbs[i].From = Orbs[i].To = Orbs[i].Position = Vector2.UnitX + Involute.Point(Vector2.One * Radius, Targets[i], Radius, MorphPercent, 0.1f + i * 0.2f);
                 }
             }
             public override void Removed(Scene scene)
@@ -198,8 +196,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Hints
                 yield return 1;
                 for (float i = 0; i < 1; i += Engine.DeltaTime / 4f)
                 {
-                    Parent.Percent = Ease.SineInOut(i);
+                    Parent.Percent = 1 - Ease.SineInOut(i);
+                    yield return null;
                 }
+                Parent.Percent = 0;
+                yield return 0.5f;
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 1)
+                {
+                    Parent.hint.anglePercent = Ease.SineInOut(i);
+                    yield return null;
+                }
+                Parent.hint.anglePercent = 1;
                 yield return 1f;
                 yield return Level.ZoomBack(1);
                 EndCutscene(Level);
@@ -210,7 +217,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Hints
                 level.EnableMovement();
                 if (WasSkipped)
                 {
-                    Parent.hint.MorphPercent = 1;
+                    Parent.hint.MorphPercent = 0;
+                    Parent.hint.anglePercent = 1;
                     Level.ResetZoom();
                 }
             }
@@ -222,13 +230,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Hints
         private float[] rates;
         private string[] ids;
         private float angleDegrees;
-        private bool on;
-        private bool wasOn;
+        private bool puzzleSolved;
+        private bool wasSolved;
         public float Percent
         {
             get => hint.MorphPercent;
             set => hint.MorphPercent = value;
         }
+        private GlobalFrequencyReceiver code;
         public FrequencyBTutorial(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Depth = 10;
@@ -243,15 +252,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Hints
             }
             rates = [data.Float("rateA"), data.Float("rateB"), data.Float("rateC"), data.Float("rateD")];
             angleDegrees = data.Float("angleDegrees");
-            /*            Add(new FrequencyCodeComponent(rates)
-                        {
-                            MarginOfError = 0,
-                            RequiresAudibleSound = true,
-                            OnFullPower = () =>
-                            {
-                                on = true;
-                            }
-                        });*/
+            Add(code = new GlobalFrequencyReceiver(rates)
+            {
+                MarginOfError = 0,
+                RequiresAudibleSound = true,
+                OnFullPower = () =>
+                {
+                    puzzleSolved = true;
+                }
+            });
         }
         public override void Added(Scene scene)
         {
@@ -276,7 +285,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Hints
         }
         public override void Awake(Scene scene)
         {
-            ConfigureVisibility(true);
+            hint.UseLines = lights[0].On;
+            hint.Orbs[0].Hidden = hint.Orbs[1].Hidden = !lights[1].On;
+            hint.Orbs[2].Hidden = hint.Orbs[3].Hidden = !lights[2].On;
+            bool puzzleSolved = this.puzzleSolved;
+            if (puzzleSolved)
+            {
+                hint.MorphPercent = 0;
+                hint.anglePercent = 1;
+            }
+            wasSolved = puzzleSolved;
             foreach (var orb in hint.Orbs)
             {
                 orb.CanMove = false;
@@ -285,7 +303,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Hints
         }
         public override void Update()
         {
-            ConfigureVisibility(false);
+            hint.UseLines = lights[0].On;
+            hint.Orbs[0].Hidden = hint.Orbs[1].Hidden = !lights[1].On;
+            hint.Orbs[2].Hidden = hint.Orbs[3].Hidden = !lights[2].On;
+            code.Active = lights[0].On && lights[1].On && lights[2].On;
+            bool puzzleSolved = this.puzzleSolved;
+            if (puzzleSolved)
+            {
+                if (!wasSolved && cutscene == null)
+                {
+                    Scene.Add(cutscene = new Cutscene(this));
+                }
+                else if (!cutscene.Active)
+                {
+                    hint.MorphPercent = 0;
+                    hint.anglePercent = 1;
+                }
+            }
+            wasSolved = puzzleSolved;
             base.Update();
         }
         public override void Render()
@@ -297,28 +332,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Hints
         {
             base.Removed(scene);
             hint.RemoveSelf();
-        }
-        public void ConfigureVisibility(bool adding = false)
-        {
-            if (lights[0].On)
-            {
-                hint.UseLines = true;
-            }
-            hint.Orbs[0].Hidden = hint.Orbs[1].Hidden = !lights[1].On;
-            hint.Orbs[2].Hidden = hint.Orbs[3].Hidden = !lights[2].On;
-            bool on = this.on;
-            if (on)
-            {
-                if (!adding && !wasOn && cutscene == null)
-                {
-                    Scene.Add(cutscene = new Cutscene(this));
-                }
-                else if (adding || !cutscene.Active)
-                {
-                    hint.MorphPercent = 1;
-                }
-            }
-            wasOn = on;
         }
 
     }

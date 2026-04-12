@@ -26,9 +26,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         public static ForkAmpSound GlobalSound;
         public static void Start(bool fadeIn = true)
         {
-            if(GlobalSound == null)
+            if (GlobalSound == null)
             {
-                Engine.Scene.Add(GlobalSound = new ForkAmpSound(true,true));
+                Engine.Scene.Add(GlobalSound = new ForkAmpSound(true, true));
             }
             else
             {
@@ -64,13 +64,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         public string ID;
         public bool Playing;
         private bool startImmediately;
+        [OnLoad]
+        public static void Load()
+        {
+            Everest.Events.Level.OnLoadLevel += Level_OnLoadLevel;
+        }
+        [OnUnload]
+        public static void Unload()
+        {
+            Everest.Events.Level.OnLoadLevel -= Level_OnLoadLevel;
+        }
+        private static void Level_OnLoadLevel(Level level, Player.IntroTypes playerIntro, bool isFromLoader)
+        {
+            if (playerIntro != Player.IntroTypes.Transition)
+            {
+                Stop(false);
+            }
+        }
+
         public ForkAmpSound(bool global = true, bool start = false) : base()
         {
+            Depth = int.MinValue;
             startImmediately = start;
             if (global)
             {
                 Tag |= Tags.Global;
                 GlobalSound = this;
+                Add(new LevelEndingHook(RemoveGlobal));
             }
             Tag |= Tags.TransitionUpdate;
             Sources = new SoundSource[4];
@@ -78,14 +98,49 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             {
                 Add(Sources[i] = new SoundSource());
             }
-            Add(new LevelEndingHook(() =>
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            if (GlobalSound == this && GlobalPlaying)
             {
-                Volume = 0;
-                StopAllSources(false);
-                fadeTween?.RemoveSelf();
-                GlobalSound?.RemoveSelf();
-                GlobalSound = null;
-            }));
+                Draw.HollowRect(camera.Position, 6, 3, Color.Magenta);
+                for (int i = 0; i < Sources.Length; i++)
+                {
+                    SoundSource source = Sources[i];
+                    Color color;
+                    if (source.Playing) color = Color.Lime;
+                    else if (source.InstancePlaying) color = Color.Cyan;
+                    else if (source.instance != null) color = Color.White;
+                    else color = Color.Red;
+                    Draw.Point(camera.Position + new Vector2(1 + i, 1), color);
+                }
+            }
+        }
+        public void Silence()
+        {
+            Volume = 0;
+            StopAllSources(false);
+        }
+        public static void SilenceGlobal()
+        {
+            GlobalSound?.Silence();
+        }
+        public static void RemoveGlobal()
+        {
+            SilenceGlobal();
+            GlobalSound?.RemoveSelf();
+            GlobalSound = null;
+        }
+        public override void SceneEnd(Scene scene)
+        {
+            base.SceneEnd(scene);
+            Silence();
+        }
+        public override void SceneBegin(Scene scene)
+        {
+            base.SceneBegin(scene);
+            Silence();
         }
         public override void Added(Scene scene)
         {
@@ -167,9 +222,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         }
         public void StopAllSources(bool fadeOut = true)
         {
+            fadeTween?.RemoveSelf();
             if (fadeOut)
             {
-                fadeTween?.RemoveSelf();
                 fadeTween = Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.Linear, t =>
                 {
                     Volume = Calc.LerpClamp(1, 0, t.Eased);
@@ -185,7 +240,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                 Volume = 0;
                 foreach (SoundSource source in Sources)
                 {
-                    if (source.Playing || source.InstancePlaying)
+                    if (source.instance != null)
                     {
                         source.Stop(fadeOut);
                     }
@@ -200,10 +255,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             {
                 source.Play("event:/PianoBoy/Soundwaves/tuningForkLoop2");
             }
+            fadeTween?.RemoveSelf();
             if (fadeIn)
             {
                 Volume = 0;
-                fadeTween?.RemoveSelf();
                 fadeTween = Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.Linear, t =>
                 {
                     Volume = Calc.LerpClamp(0, 1, t.Eased);

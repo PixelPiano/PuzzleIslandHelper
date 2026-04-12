@@ -2,6 +2,7 @@
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.Meta;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes;
 using Iced.Intel;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -20,68 +21,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [TrackedAs(typeof(DashBlock))]
     public class RemoteDashBlock : FlagDashBlock
     {
-        [Pooled]
-        public class TimeUnlockedDebris : Debris
-        {
-            private void orig_update()
-            {
-                orig_orig_update();
-                LiftSpeed = Vector2.Zero;
-                if (liftSpeedTimer > 0f)
-                {
-                    liftSpeedTimer -= Engine.DeltaTime;
-                    if (liftSpeedTimer <= 0f)
-                    {
-                        lastLiftSpeed = Vector2.Zero;
-                    }
-                }
-            }
-            private void orig_orig_update()
-            {
-                Components.Update();
-            }
-            public override void Update()
-            {
-                orig_update();
-                image.Rotation += Math.Abs(speed.X) * (float)rotateSign * Engine.RawDeltaTime;
-                if (fadeLerp < 1f)
-                {
-                    fadeLerp = Calc.Approach(fadeLerp, 1f, 2f * Engine.RawDeltaTime);
-                }
-
-                MoveH(speed.X * Engine.RawDeltaTime, collideH);
-                MoveV(speed.Y * Engine.RawDeltaTime, collideV);
-                if (dreaming)
-                {
-                    speed.X = Calc.Approach(speed.X, 0f, 50f * Engine.RawDeltaTime);
-                    speed.Y = Calc.Approach(speed.Y, 6f * dreamSine.Value, 100f * Engine.RawDeltaTime);
-                }
-                else
-                {
-                    bool flag = OnGround();
-                    speed.X = Calc.Approach(speed.X, 0f, (flag ? 50f : 20f) * Engine.RawDeltaTime);
-                    if (!flag)
-                    {
-                        speed.Y = Calc.Approach(speed.Y, 100f, 400f * Engine.RawDeltaTime);
-                    }
-                }
-
-                if (lifeTimer > 0f)
-                {
-                    lifeTimer -= Engine.RawDeltaTime;
-                }
-                else if (alpha > 0f)
-                {
-                    alpha -= 4f * Engine.RawDeltaTime;
-                    if (alpha <= 0f)
-                    {
-                        RemoveSelf();
-                    }
-                }
-
-                image.Color = Color.Lerp(Color.White, Color.Gray, fadeLerp) * alpha;
-            }
-        }
         private FlagList remoteShakeFlag;
         private FlagList remoteBreakFlag;
 
@@ -159,12 +98,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     else if (cutsceneOnTransition)
                     {
                         canShake = false;
-                        Scene.Add(new cutscene(this));
+                        FreezeTimeBreak.Begin(this, tileType, shakeTime, flagOnBreak);
                     }
                 }
             };
             Add(listener);
         }
+
         public void ShakeSfx()
         {
             if (tileType == '3')
@@ -197,7 +137,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 canShake = false;
                 if (useCutscene)
                 {
-                    Scene.Add(new cutscene(this));
+                    FreezeTimeBreak.Begin(this, tileType, shakeTime, flagOnBreak);
                     return;
                 }
                 else if (shakeTime > 0)
@@ -212,47 +152,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             Break(Center, Vector2.Zero, true);
-        }
-        public void TimelessBreak(Vector2 from, Vector2 direction, bool playSound = true, bool playDebrisSound = true)
-        {
-            if (playSound)
-            {
-                if (tileType == '1')
-                {
-                    Audio.Play("event:/game/general/wall_break_dirt", Position);
-                }
-                else if (tileType == '3')
-                {
-                    Audio.Play("event:/game/general/wall_break_ice", Position);
-                }
-                else if (tileType == '9')
-                {
-                    Audio.Play("event:/game/general/wall_break_wood", Position);
-                }
-                else
-                {
-                    Audio.Play("event:/game/general/wall_break_stone", Position);
-                }
-            }
-
-            for (int i = 0; (float)i < base.Width / 8f; i++)
-            {
-                for (int j = 0; (float)j < base.Height / 8f; j++)
-                {
-                    base.Scene.Add(Engine.Pooler.Create<TimeUnlockedDebris>().Init(Position + new Vector2(4 + i * 8, 4 + j * 8), tileType, playDebrisSound).BlastFrom(from));
-                }
-            }
-
-            Collidable = false;
-            flagOnBreak.State = true;
-            if (permanent)
-            {
-                RemoveAndFlagAsGone();
-            }
-            else
-            {
-                RemoveSelf();
-            }
         }
         public override void Update()
         {
@@ -276,88 +175,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             prevBreakState = breakFlag;
             prevShakeState = shakeFlag;
 
-        }
-        private class cutscene : CutsceneEntity
-        {
-            private RemoteDashBlock block;
-            private TimeRateModifier timeModifier;
-            public cutscene(RemoteDashBlock block) : base()
-            {
-                this.block = block;
-                Add(timeModifier = new TimeRateModifier(1));
-            }
-            public override void OnBegin(Level level)
-            {
-                level.DisableMovement();
-                Vector2 position = (block.Center - new Vector2(160, 90)).Clamp(level.Bounds);
-                Add(new Coroutine(routine(position)) { UseRawDeltaTime = true });
-            }
-            public static IEnumerator CameraToRaw(Vector2 target, float duration, Ease.Easer ease = null, float delay = 0f)
-            {
-                if (ease == null)
-                {
-                    ease = Ease.CubeInOut;
-                }
-
-                if (delay > 0f)
-                {
-                    yield return delay;
-                }
-
-                Level level = Engine.Scene as Level;
-                Vector2 from = level.Camera.Position;
-                for (float p = 0f; p < 1f; p += Engine.RawDeltaTime / duration)
-                {
-                    level.Camera.Position = from + (target - from) * ease(p);
-                    yield return null;
-                }
-
-                level.Camera.Position = target;
-            }
-            private IEnumerator routine(Vector2 camPos)
-            {
-                Player player = Level.GetPlayer();
-                if (player != null)
-                {
-                    player.DisableMovement();
-                    while (!player.onGround)
-                    {
-                        yield return null;
-                    }
-                }
-                timeModifier.Multiplier = 0;
-                Vector2 prev = Level.Camera.Position;
-
-                yield return CameraToRaw(camPos, 1, Ease.CubeOut);
-                yield return 0.5f;
-                if (block.shakeTime > 0)
-                {
-                    block.ShakeSfx();
-                    block.StartShaking(-1);
-                    yield return block.shakeTime;
-                }
-                block.TimelessBreak(block.Center, Vector2.Zero, true);
-                yield return 1;
-                yield return CameraToRaw(prev, 1, Ease.CubeOut);
-                yield return 0.8f;
-                EndCutscene(Level);
-            }
-            public override void OnEnd(Level level)
-            {
-                timeModifier.Multiplier = 1;
-                if (WasSkipped)
-                {
-                    if (block.permanent)
-                    {
-                        block.RemoveAndFlagAsGone();
-                    }
-                    else
-                    {
-                        block.RemoveSelf();
-                    }
-                }
-                level.EnableMovement();
-            }
         }
     }
     [CustomEntity("PuzzleIslandHelper/FlagDashBlock")]

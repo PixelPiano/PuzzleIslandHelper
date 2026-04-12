@@ -9,10 +9,94 @@ using System.Collections.Generic;
 using Celeste.Mod.PuzzleIslandHelper.Triggers;
 using Microsoft.Xna.Framework;
 using System;
+using Celeste.Mod.PuzzleIslandHelper.Components;
+using System.Reflection;
 namespace Celeste.Mod.PuzzleIslandHelper
 {
     internal sealed class RegistryHandlers
     {
+        [OnLoad]
+        public static void Load()
+        {
+            DecalRegistry.AddPropertyHandler<MonumentComponentDecalRegistryHandler>();
+        }
+        internal sealed class MonumentComponentDecalRegistryHandler : DecalRegistryHandler
+        {
+            public string Room;
+            public string[] IDs;
+            public int PadY;
+            public int PadX;
+            public float MOEPercent;
+            public float Width;
+            public float Height;
+            private bool useEntityWidth;
+            private bool useEntityHeight;
+            public Vector2 Offset;
+            public int CellSize = 8;
+            public bool RetainCollision;
+            public override string Name => "PuzzleIslandHelper_monumentComponentDecal";
+
+            public override void ApplyTo(Decal decal)
+            {
+                string levelName = decal.SceneAs<Level>().Session.Level;
+                if (string.IsNullOrEmpty(Room) || levelName == Room)
+                {
+                    if (useEntityWidth)
+                    {
+                        Width = decal.textures[(int)decal.frame].Width;
+                    }
+                    if (useEntityHeight)
+                    {
+                        Height = decal.textures[(int)decal.frame].Height;
+                    }
+                    decal.Add(new MonumentComponent()
+                    {
+                        IDs = IDs,
+                        PadY = PadY,
+                        PadX = PadX,
+                        MOEPercent = MOEPercent,
+                        Width = Width,
+                        Height = Height,
+                        useEntityWidth = useEntityWidth,
+                        useEntityHeight = useEntityHeight,
+                        Offset = Offset,
+                        CellSize = CellSize,
+                        RetainCollision = RetainCollision,
+                    });
+                }
+            }
+
+            public override void Parse(XmlAttributeCollection xml)
+            {
+                string id = GetString(xml, "ids", "");
+                Room = GetString(xml, "room", "");
+                IDs = id.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                PadY = Get<int>(xml, "padY", 0);
+                PadX = Get<int>(xml, "padX", 0);
+                MOEPercent = Get<float>(xml, "moe", 0);
+                string w = GetString(xml, "width", "");
+                string h = GetString(xml, "height", "");
+                useEntityWidth = string.IsNullOrEmpty(w);
+                useEntityHeight = string.IsNullOrEmpty(h);
+                if (!useEntityWidth)
+                {
+                    if (float.TryParse(w, out float result))
+                    {
+                        Width = result;
+                    }
+                }
+                if (!useEntityHeight)
+                {
+                    if (float.TryParse(h, out float result))
+                    {
+                        Height = result;
+                    }
+                }
+                Offset = GetVector2(xml, "offsetX", "offsetY", default);
+                CellSize = Get(xml, "cellSize", 8);
+                RetainCollision = GetBool(xml, "retainCollision", false);
+            }
+        }
         internal sealed class BlowAwayDecalRegistryHandler : DecalRegistryHandler
         {
             public Vector2? Speed;
@@ -55,7 +139,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                 if (decal.textures != null && decal.textures.Count > 0)
                 {
                     float width = decal.textures[0].Width;
-                    float height = decal.textures[1].Height;
+                    float height = decal.textures[0].Height;
                     BlowAwayComponent component = new()
                     {
                         Speed = Speed ?? default,
@@ -74,7 +158,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
                     PlayerCollider collider = new PlayerCollider(p =>
                     {
 
-                    },new Hitbox(width, height));
+                    }, new Hitbox(width, height));
                 }
                 else
                 {

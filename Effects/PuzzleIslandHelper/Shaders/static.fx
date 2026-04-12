@@ -9,7 +9,7 @@ uniform float2 CamPos; // level.Camera.Position
 uniform float2 Dimensions; // new Vector2(320, 180)
 uniform float4x4 TransformMatrix;
 uniform float4x4 ViewMatrix;
-
+uniform float Amplitude;
 DECLARE_TEXTURE(text, 0);
 
 float length(float2 pos) {
@@ -20,11 +20,8 @@ float4 SpritePixelShader(float2 uv : TEXCOORD0) : COLOR0
 {
     float2 worldPos = (uv * Dimensions) + CamPos;
     float4 color = SAMPLE_TEXTURE(text, uv);
-
-    color.rgb *= max(length(uv * Time * 300) % sin(100 + Time),0.15) * 1.5;
-	//color.rgb *= length(uv * Time * 300) %36 * 30 /1000. * 2;
-	
-    return color;
+    float4 adjust = float4(color.rgb * max(length(uv * Time * 300) % sin(100 + Time),0.15) * 1.5,color.a);
+	return lerp(color, adjust, Amplitude);
 }
 void SpriteVertexShader(inout float4 color    : COLOR0,
 	inout float2 texCoord : TEXCOORD0,

@@ -100,30 +100,34 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             Raw = flags;
             Inverted = inverted;
-            if (flags != null && flags.Length == 1 && flags[0] == "!")
+            if (flags != null)
             {
-                ForcedValue = false;
-                RawSingle = "!";
-            }
-            else
-            {
-                foreach (var item in flags)
+                if (flags.Length == 1 && flags[0] == "!")
                 {
-                    RawSingle += item + ',';
-                    if (item[0] == '!' && item.Length > 1)
-                    {
-                        List.Add(new FlagData(item.Substring(1), true));
-                    }
-                    else
-                    {
-                        List.Add(new FlagData(item, false));
-                    }
+                    ForcedValue = false;
+                    RawSingle = "!";
                 }
-                RawSingle = RawSingle.TrimEnd(',');
+                else
+                {
+                    foreach (var item in flags)
+                    {
+                        RawSingle += item + ',';
+                        if (item[0] == '!' && item.Length > 1)
+                        {
+                            List.Add(new FlagData(item.Substring(1), true));
+                        }
+                        else
+                        {
+                            List.Add(new FlagData(item, false));
+                        }
+                    }
+                    RawSingle = RawSingle.TrimEnd(',');
+                }
             }
         }
         public static string[] format(string input)
         {
+            if (input == null) return [];
             return input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
         public FlagList(string flags, bool inverted = false) : this(format(flags), inverted)

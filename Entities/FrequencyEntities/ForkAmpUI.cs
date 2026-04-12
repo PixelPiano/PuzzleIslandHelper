@@ -239,6 +239,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             public float SelectTimer;
             public float SelectDelay = 0.3f;
             private int previousIndex;
+            public int CurrentSet;
             public int CurrentIndex
             {
                 get => currentIndex;
@@ -358,6 +359,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             public bool TransitioningOut;
             public IEnumerator OnBegin()
             {
+                ForkAmpSound.Stop(true);
                 Scene.Add(Oscillators);
                 foreach (osc osc in Oscillators)
                 {
@@ -458,18 +460,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             ui?.OnEndInstant();
             Finished = true;
             level.EnableMovement();
+            OnEndCallback?.Invoke();
         }
+        public static bool ForceOff;
+        public static IEnumerator EndingSequence;
+        public static Action OnEndCallback;
         public IEnumerator Routine(Player player)
         {
             UIActive = true;
             yield return ui.OnBegin();
-            while (!Input.MenuCancel)
+            while (!Input.MenuCancel && !ForceOff)
             {
                 yield return null;
             }
+            ForceOff = false;
             Input.Dash.ConsumePress();
             yield return ui.OnEnd();
             UIActive = false;
+            if(EndingSequence != null)
+            {
+                yield return new SwapImmediately(EndingSequence);
+            }
+            EndingSequence = null;
             EndCutscene(Level, true);
         }
         public override void Removed(Scene scene)

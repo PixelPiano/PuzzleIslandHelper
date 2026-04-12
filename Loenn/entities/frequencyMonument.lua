@@ -19,7 +19,8 @@ frequencyMonument.placements =
             rateB = 0,
             rateC = 0,
             rateD = 0,
-            centerTexture = "objects/PuzzleIslandHelper/monument/defaultCenter"
+            centerTexture = "objects/PuzzleIslandHelper/monument/defaultCenter",
+            componentID = ""
         }
     }
 }

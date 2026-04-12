@@ -3,9 +3,11 @@ using Celeste;
 using Celeste.Mod;
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.CommunalHelper.Utils;
+using Celeste.Mod.Entities;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Attributes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using Celeste.Mod.XaphanHelper.Effects;
@@ -28,6 +30,34 @@ using Component = Monocle.Component;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static void RemoveAll<T>(this ExtraFancyText.Text text) where T : ExtraFancyText.Node
+    {
+        List<ExtraFancyText.Node> nodes = [];
+        foreach (ExtraFancyText.Node node in text.Nodes)
+        {
+            if (node is not T)
+            {
+                nodes.Add(node);
+            }
+        }
+        text.Nodes = nodes;
+    }
+    public static void ReplaceAll<T, T2>(this ExtraFancyText.Text text, Func<T2> factory) where T : ExtraFancyText.Node where T2 : ExtraFancyText.Node
+    {
+        List<ExtraFancyText.Node> nodes = [];
+        foreach (ExtraFancyText.Node node in text.Nodes)
+        {
+            if (node is not T)
+            {
+                nodes.Add(node);
+            }
+            else
+            {
+                nodes.Add(factory.Invoke());
+            }
+        }
+        text.Nodes = nodes;
+    }
     public static IEnumerator Routine(this ScreenWipe wipe)
     {
         while (!wipe.ending)
@@ -245,6 +275,66 @@ public static class PianoUtils
             Draw.SpriteBatch.Draw(t.Texture.Texture.Texture_Safe, t.RenderPosition + offset, t.Color);
         }
         Draw.SpriteBatch.End();
+    }
+    [Command("load_cutscene", "try to load a custom cutscene")]
+    internal static void LoadCustomCutscene(string name)
+    {
+        if (!string.IsNullOrEmpty(name))
+        {
+            if (Engine.Scene is Level level)
+            {
+                level.LoadCustomCutscene(name);
+            }
+            else
+            {
+                Engine.Commands.Log("Current Scene is not a level!", Color.Red);
+            }
+        }
+        else
+        {
+            Engine.Commands.Log("Cutscene name must not be null or empty.", Color.Yellow);
+        }
+    }
+    public static CutsceneEntity LoadCustomCutscene(this Scene scene, string name) => scene.LoadCustomCutscene<CutsceneEntity>(name);
+    public static T LoadCustomCutscene<T>(this Scene scene, string name) where T : CutsceneEntity
+    {
+        if (EventTrigger.CutsceneLoaders.TryGetValue(name, out var value))
+        {
+            Entity entity = value(null, null, null);
+            if (entity != null)
+            {
+                if (entity is not T)
+                {
+                    Engine.Commands.Log("CutsceneLoader found but unable to load CutsceneEntity as type {" + typeof(T) + "}", Color.Red);
+                }
+                else
+                {
+                    scene.Add(entity);
+                    return entity as T;
+                }
+            }
+            else
+            {
+                Engine.Commands.Log("CutsceneLoader found, but unable to load CutsceneEntity {" + typeof(T) + "}", Color.Red);
+            }
+        }
+        else
+        {
+            Engine.Commands.Log("Unable to find CutsceneLoader with key {" + name + "}", Color.Red);
+        }
+        return null;
+    }
+    public static T CreateCutscene<T>(string name) where T : CutsceneEntity
+    {
+        if (EventTrigger.CutsceneLoaders.TryGetValue(name, out var value))
+        {
+            Entity entity = value(null, null, null);
+            if (entity != null)
+            {
+                return entity as T;
+            }
+        }
+        return null;
     }
     public static IEnumerator CutAtEnd(string dialog, params Func<IEnumerator>[] events)
     {
@@ -622,7 +712,7 @@ public static class PianoUtils
     /// <summary>Splits a string into segments of size <paramref name="count"/>.</summary>
     /// <param name="str">The <see cref="string"/> to split.</param>
     /// <param name="count">The maximum size of each segment.</param>
-    /// <param name="includeLeftover">Whether to include the last segment if it's length is less than the maximum segment size.</param>
+    /// <param name="includeLeftover">Whether to include the last segment if its length is less than the maximum segment size.</param>
     /// <remarks>Aka System.Linq.Chunk but better</remarks>
     public static List<string> Segment(this string str, int count, bool includeLeftover)
     {
@@ -701,6 +791,10 @@ public static class PianoUtils
                 Engine.Commands.Log(adding);
                 Engine.Commands.Log(added);*/
         return !failed;
+    }
+    public static Vector2 Direction(this Random random, bool allowZero = false)
+    {
+        return new Vector2(Calc.Random.Sign(allowZero), Calc.Random.Sign(allowZero));
     }
     public static int Sign(this Random random, bool allowZero = false)
     {
@@ -844,6 +938,36 @@ public static class PianoUtils
     public static bool Contains(this Rectangle rect, Vector2 point)
     {
         return rect.Contains((int)point.X, (int)point.Y);
+    }
+    public static Rectangle ExtendHorizontally(this Rectangle rect, int amount, int dir)
+    {
+        if (dir == 0) return rect;
+        return dir > 0 ? rect.ExtendRight(amount) : rect.ExtendLeft(amount);
+    }
+    public static Rectangle ExtendVertically(this Rectangle rect, int amount, int dir)
+    {
+        if (dir == 0) return rect;
+        return dir > 0 ? rect.ExtendDown(amount) : rect.ExtendUp(amount);
+    }
+    public static Rectangle ExtendLeft(this Rectangle rect, int amount)
+    {
+        if (amount < 0) return rect.ExtendRight(Math.Abs(amount));
+        return new Rectangle(rect.X - amount, rect.Y, rect.Width + amount, rect.Height);
+    }
+    public static Rectangle ExtendRight(this Rectangle rect, int amount)
+    {
+        if (amount < 0) return rect.ExtendLeft(Math.Abs(amount));
+        return new Rectangle(rect.X, rect.Y, rect.Width + amount, rect.Height);
+    }
+    public static Rectangle ExtendUp(this Rectangle rect, int amount)
+    {
+        if (amount < 0) return rect.ExtendDown(Math.Abs(amount));
+        return new Rectangle(rect.X, rect.Y - amount, rect.Width, rect.Height + amount);
+    }
+    public static Rectangle ExtendDown(this Rectangle rect, int amount)
+    {
+        if (amount < 0) return rect.ExtendUp(Math.Abs(amount));
+        return new Rectangle(rect.X, rect.Y, rect.Width, rect.Height + amount);
     }
     public static Rectangle Pad(this Rectangle rect, int pad)
     {
@@ -1748,7 +1872,6 @@ public static class PianoUtils
         {
             check = check.Pad(padding);
         }
-
         return check.Right > rect.Left && check.Bottom > rect.Top && check.Left < rect.Right && check.Top < rect.Bottom;
     }
     public static Vector2 HalfSize(this MTexture texture)
@@ -1784,15 +1907,32 @@ public static class PianoUtils
     {
         return new Vector2(vec.X - vec.X % mod.X, vec.Y - vec.Y % mod.Y);
     }
-    public static void DrawOutlineOnly(this MTexture texture, Vector2 position, Vector2 origin, Color color, float scale, float rotation)
+    public static void DrawOutlineOnly(this MTexture texture, Vector2 position, Vector2 origin, Color color, float scale, float rotation, int outline = 1)
     {
         float scaleFix = texture.ScaleFix;
         scale *= scaleFix;
         Rectangle clipRect = texture.ClipRect;
         Vector2 origin2 = (origin - texture.DrawOffset) / scaleFix;
-        for (int i = -1; i <= 1; i++)
+        for (int i = -outline; i <= outline; i++)
         {
-            for (int j = -1; j <= 1; j++)
+            for (int j = -outline; j <= outline; j++)
+            {
+                if (i != 0 || j != 0)
+                {
+                    Draw.SpriteBatch.Draw(texture.Texture.Texture_Safe, position + new Vector2(i, j), clipRect, color, rotation, origin2, scale, SpriteEffects.None, 0f);
+                }
+            }
+        }
+    }
+    public static void DrawOutlineOnly(this MTexture texture, Vector2 position, Vector2 origin, Color color, Vector2 scale, float rotation, int outline = 1)
+    {
+        float scaleFix = texture.ScaleFix;
+        scale *= scaleFix;
+        Rectangle clipRect = texture.ClipRect;
+        Vector2 origin2 = (origin - texture.DrawOffset) / scaleFix;
+        for (int i = -outline; i <= outline; i++)
+        {
+            for (int j = -outline; j <= outline; j++)
             {
                 if (i != 0 || j != 0)
                 {
@@ -1838,6 +1978,11 @@ public static class PianoUtils
     {
         Engine.Graphics.GraphicsDevice.SetRenderTarget(source);
         Engine.Graphics.GraphicsDevice.Clear(clear);
+    }
+    public static void SetAsTarget(this VirtualRenderTarget source, Color? clear)
+    {
+        Engine.Graphics.GraphicsDevice.SetRenderTarget(source);
+        if (clear.HasValue) Engine.Graphics.GraphicsDevice.Clear(clear.Value);
     }
 
     public static void SetAsTarget(this VirtualRenderTarget source, bool clear)

@@ -11,13 +11,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private readonly FlagList renderFlag;
         private readonly FlagList displacementFlag;
         private readonly FlagList audioFlag;
-        
+
         private readonly bool passThrough;
         private float height;
         private Water water;
         private Solid solid;
         private SoundSource loopingSfx;
         private SoundSource enteringSfx;
+        private readonly bool muteWhenInvisible;
         public CustomWaterfall(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
             Depth = -9999;
@@ -26,6 +27,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             displacementFlag = data.FlagList("displacementFlag", "invertDisplacementFlag");
             audioFlag = data.FlagList("audioFlag", "invertAudioFlag");
             passThrough = data.Bool("goesThroughSolids");
+            muteWhenInvisible = data.Bool("muteWhenInvisible", true);
         }
 
         public override void Awake(Scene scene)
@@ -62,19 +64,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             Vector2 position = (Scene as Level).Camera.Position;
+            bool render = renderFlag;
+            bool audio = audioFlag;
+
+            if (audio && (!muteWhenInvisible || render))
+            {
+                loopingSfx.Resume();
+                enteringSfx.Resume();
+            }
+            else
+            {
+                loopingSfx.Pause();
+                enteringSfx.Pause();
+            }
+            loopingSfx.Position.Y = Calc.Clamp(position.Y + 90f, Y, height);
             if (renderFlag)
             {
-                if (audioFlag)
-                {
-                    loopingSfx.Pause();
-                    enteringSfx.Pause();
-                }
-                else
-                {
-                    loopingSfx.Resume();
-                    enteringSfx.Resume();
-                }
-                loopingSfx.Position.Y = Calc.Clamp(position.Y + 90f, Y, height);
                 if (water != null && Scene.OnInterval(0.3f))
                 {
                     water.TopSurface.DoRipple(new Vector2(X + 4f, water.Y), 0.75f);
@@ -84,11 +89,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Vector2 position2 = new(X + 4f, Y + height + 2f);
                     (Scene as Level).ParticlesFG.Emit(Water.P_Splash, 1, position2, new Vector2(8f, 2f), new Vector2(0f, -1f).Angle());
                 }
-            }
-            else
-            {
-                loopingSfx.Pause();
-                enteringSfx.Pause();
             }
             base.Update();
         }

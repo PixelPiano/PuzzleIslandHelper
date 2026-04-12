@@ -15,6 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private float Opacity;
         private bool isFG;
         public Color Color;
+        private bool rendered;
         private VirtualRenderTarget Target = VirtualContent.CreateRenderTarget("WindowDecal", 320, 180);
         public string CustomTag;
         public WindowDecal(EntityData data, Vector2 offset) : base(data.Position + offset)
@@ -24,8 +25,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Sprite.AddLoop("idle", "pane", 1f);
             Add(Sprite);
             isFG = data.Bool("fg");
-            Depth = isFG? -10501:9001;
-            Opacity = data.Float("opacity",0.8f);
+            Depth = isFG ? -10501 : 9001;
+            Opacity = data.Float("opacity", 0.8f);
             if (isFG)
             {
                 Opacity += 0.2f;
@@ -41,7 +42,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void BeforeRender()
         {
-            Target.DrawThenMask(Sprite, (Action)DrawWindow,level.Camera.Matrix);
+            if (this.OnScreen())
+            {
+                Target.DrawThenMask(Sprite, (Action)DrawWindow, level.Camera.Matrix);
+            }
         }
         private void DrawWindow()
         {

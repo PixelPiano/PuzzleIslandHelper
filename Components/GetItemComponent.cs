@@ -19,7 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public string Text = "";
         public string Subtext = "";
         public Action<Player> OnCollect;
-        private string flag;
+        private FlagList flag;
         private bool removeEntity;
         private Vector2? prevPosition;
         public bool RevertPlayerState;
@@ -35,7 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public GetItemComponent(Action<Player> onCollect, string flag, bool removeEntity, string text = "", string subText = "") : base(null)
         {
             this.removeEntity = removeEntity;
-            this.flag = flag;
+            this.flag = new FlagList(flag);
             OnCollide = Activate;
             Glimmer = new Glimmer(Vector2.Zero, Color.White, 10, 8, 2, 3)
             {
@@ -154,10 +154,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             Scene.Add(text = new renderer(Text, Subtext, -15f.ToRad()));
             Running = true;
             prevState = player.StateMachine.State;
-            if (!string.IsNullOrEmpty(flag))
-            {
-                SceneAs<Level>().Session.SetFlag(flag);
-            }
+            flag.State = !flag.Inverted;
             prevPosition = Entity.Position;
             player.DisableMovement();
             player.DummyAutoAnimate = false;

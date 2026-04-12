@@ -8,7 +8,9 @@ detectArea.placements =
         name = "Decontam",
         data = {
             areaID = "",
-            prefix = ""
+            prefix = "",
+            flagOnActive = "",
+            activateFlag = "",
         }
     },
 }

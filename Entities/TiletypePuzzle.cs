@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -22,17 +23,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             public TileGrid Grid;
             public TileInterceptor Interceptor;
+            public TileGrid Overlay;
+            public TileInterceptor OverlayInterceptor;
             public VertexLight Light;
             public char[] Tiles;
             public char CorrectTile;
             public char CurrentTile => Tiles[Index];
             public bool IsCorrect => CurrentTile == CorrectTile;
             public int Index;
+            private Coroutine coroutine;
             public TiletypeNode(Vector2 position, float width, float height, char[] tiles, char correctTile, int startIndex) : base(position, width, height, false)
             {
                 Index = startIndex;
                 Tiles = tiles;
                 CorrectTile = correctTile;
+                Add(coroutine = new Coroutine(false));
             }
             public override void Awake(Scene scene)
             {
@@ -51,20 +56,50 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             public void GenerateGrid(char tile)
             {
-                //WHY THE HELL DOES THIS WORK??????????????????????????
-                //WHY DO I HAVE TO REMOVE THE GRID AND INTERCEPTOR AND REPLACE THEM BOTH WHY WHYWHYWHYWHYWHYWHYWYHWHYWHYWHWHYWYHWHYW
                 Grid?.RemoveSelf();
                 Interceptor?.RemoveSelf();
-                Grid = GFX.FGAutotiler.GenerateBox(tile, (int)Width / 8, (int)Height / 8).TileGrid;
+                Grid = GFX.FGAutotiler.GenerateBox(tile, (int)(Width / 8), (int)(Height / 8)).TileGrid;
                 Interceptor = new TileInterceptor(Grid, false);
                 Add(Grid, Interceptor);
             }
+            public void GenerateTopLayerGrid(char tile, int swap)
+            {
+                Overlay?.RemoveSelf();
+                OverlayInterceptor?.RemoveSelf();
+                next = tile;
+                Overlay = GFX.FGAutotiler.GenerateCustomBox(0, 0, (int)(Width / 8), (int)(Height / 8), swap, swap, default, Condition).TileGrid;
+                OverlayInterceptor = new TileInterceptor(Overlay, false);
+                Add(Overlay, OverlayInterceptor);
+            }
+            public char Condition(int x, int y, int swapX, int swapY)
+            {
+                if ((x + y) / 2 < swapX)
+                {
+                    return next;
+                }
+                return '0';
+            }
+            private char next;
             public void Advance()
             {
                 if (Tiles.Length < 1) return;
+                next = Tiles[(Index + 1) % Tiles.Length];
+                coroutine.Replace(routine(CurrentTile, next));
                 Index++;
                 Index %= Tiles.Length;
-                GenerateGrid(CurrentTile);
+            }
+            private IEnumerator routine(char prev, char next)
+            {
+                char current = prev;
+                int min = (int)(Math.Min(Width, Height) / 8);
+                for (int i = 0; i < min; i++)
+                {
+                    GenerateTopLayerGrid(next, i);
+                    yield return 0.1f;
+                }
+                Overlay.RemoveSelf();
+                OverlayInterceptor.RemoveSelf();
+                GenerateGrid(next);
             }
         }
         public List<TiletypeNode> Nodes = [];

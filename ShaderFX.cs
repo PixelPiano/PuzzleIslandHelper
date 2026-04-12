@@ -5,9 +5,11 @@ using Celeste.Mod.PuzzleIslandHelper;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
+using System.Collections.Generic;
 
 public class ShaderFX
 {
+    private static HashSet<Effect> effects = [];
     public static Effect Jitter;
     public static Effect MonitorDecal;
     public static Effect Static;
@@ -23,10 +25,13 @@ public class ShaderFX
     public static Effect InvertOrb;
     public static Effect BitrailAbsorb;
     public static Effect Scroll;
+    public static Effect Monument;
+    public static Effect WhiteOut;
 
     [OnLoadContent]
     public static void LoadFx()
     {
+        Monument = LoadEffect("monument");
         Scroll = LoadEffect("scroll");
         Jitter = LoadEffect("jitter");
         InvertOrb = LoadEffect("invertOrb");
@@ -42,25 +47,16 @@ public class ShaderFX
         Sway = LoadEffect("huskSway");
         GlitchAura = LoadEffect("glitchAura");
         BitrailAbsorb = LoadEffect("bitrailAbsorb");
+        WhiteOut = LoadEffect("whiteOut");
 
     }
     public static void DisposeFXs()
     {
-        Scroll?.Dispose();
-        Jitter?.Dispose();
-        MonitorDecal?.Dispose();
-        Static?.Dispose();
-        LCD?.Dispose();
-        SineLines?.Dispose();
-        CurvedScreen?.Dispose();
-        FuzzyNoise?.Dispose();
-        FuzzyAppear?.Dispose();
-        Shine?.Dispose();
-        PlayerStatic?.Dispose();
-        Sway?.Dispose();
-        GlitchAura?.Dispose();
-        InvertOrb?.Dispose();
-        BitrailAbsorb?.Dispose();
+        foreach(Effect effect in effects)
+        {
+            effect?.Dispose();
+        }
+        effects.Clear();
     }
     [OnLoad]
     public static void Load()
@@ -77,14 +73,13 @@ public class ShaderFX
     public static Effect LoadEffect(string id, bool fullPath = false)
     {
         id = id.Replace('\\', '/');
-
+        Effect effect = null;
         string name = fullPath ? $"Effects/{id}.cso" : $"Effects/PuzzleIslandHelper/Shaders/{id}.cso";
         if (Everest.Content.TryGet(name, out var effectAsset, true))
         {
             try
             {
-                Effect effect = new Effect(Engine.Graphics.GraphicsDevice, effectAsset.Data);
-                return effect;
+                effect = new Effect(Engine.Graphics.GraphicsDevice, effectAsset.Data);
             }
             catch (Exception ex)
             {
@@ -93,7 +88,11 @@ public class ShaderFX
                                 Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Exception: \n" + ex.ToString());*/
             }
         }
-        return null;
+        if(effect != null)
+        {
+            effects.Add(effect);
+        }
+        return effect;
     }
     private static void Content_OnUpdate(ModAsset from, ModAsset to)
     {

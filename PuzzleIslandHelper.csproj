@@ -96,6 +96,9 @@
         <SubType>Component</SubType>
       </Compile>
     </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Boss\OrbActions\" />
+    </ItemGroup>
 
     <Target Name="CopyFiles" AfterTargets="Build" Inputs="$(OutputPath)\$(AssemblyName).dll;$(OutputPath)\$(AssemblyName).pdb" Outputs="..\bin\$(AssemblyName).dll;..\bin\$(AssemblyName).pdb">
         <Copy SourceFiles="$(OutputPath)\$(AssemblyName).dll" DestinationFolder="..\bin" />

@@ -14,7 +14,9 @@ ruinsPole.placements = {
         forElevator = false,
         crystalized = false,
         topNum = -1,
-        bottomNum = -1
+        bottomNum = -1,
+        monument = false,
+        requiredForMonument = false
     }
 }
 function ruinsPole.ignoredFields(entity)

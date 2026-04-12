@@ -22,7 +22,8 @@ customFallingBlock.placements =
         height = 8,
         finalBoss = false,
         behind = false,
-        climbFall = true
+        climbFall = true,
+        onlySnapOnAdded = false
     }
 }
 

@@ -3,28 +3,57 @@ using Monocle;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
+    public static class CounterExt
+    {
+        public static void Increment(this Session.Counter counter)
+        {
+            counter.Value++;
+        }
+        public static void Decrement(this Session.Counter counter)
+        {
+            counter.Value--;
+        }
+        public static void Set(this Session.Counter counter, int value)
+        {
+            counter.Value = value;
+        }
+        public static Session.Counter GetCounterObject(this Session session, string key)
+        {
+            foreach (Session.Counter counter in session.Counters)
+            {
+                if (counter.Key == key)
+                {
+                    return counter;
+                }
+            }
+            Session.Counter newCounter = new Session.Counter() { Key = key };
+            session.Counters.Add(newCounter);
+            return newCounter;
+        }
+    }
     public struct CounterData
     {
-        public CounterData(string flag = "", bool ignore = false)
+        public CounterData(string counter = "", bool ignore = false)
         {
-            Flag = flag;
+            Key = counter;
             Ignore = ignore;
         }
-        public string Flag;
+        public string Key;
         public bool Ignore;
-        public int Increment(int? mod = null) => Flag.IncrementCounter(mod);
-        public int Decrement(int? mod = null) => Flag.DecrementCounter(mod);
+        public Session.Counter Counter;
+        public int Increment(int? mod = null) => Key.IncrementCounter(mod);
+        public int Decrement(int? mod = null) => Key.DecrementCounter(mod);
         public int Value
         {
             get
             {
-                return Ignore || string.IsNullOrEmpty(Flag) || Engine.Scene is not Level level ? 0 : level.Session.GetCounter(Flag);
+                return Ignore || string.IsNullOrEmpty(Key) || Engine.Scene is not Level level ? 0 : level.Session.GetCounter(Key);
             }
             set
             {
-                if (!string.IsNullOrEmpty(Flag) && Engine.Scene is Level level)
+                if (!string.IsNullOrEmpty(Key) && Engine.Scene is Level level)
                 {
-                    level.Session.SetCounter(Flag, value);
+                    level.Session.SetCounter(Key, value);
                 }
             }
         }

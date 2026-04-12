@@ -25,6 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
     }
     public static class FrequencyData
     {
+        public static float[] TempleRates = [10, 20, 30, 40];
         public const float Interval = 24;
         public const float Max = 96;
         public const float Min = 0;
@@ -81,7 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             float[] rates = new float[4];
             for (int i = 0; i < 4; i++)
             {
-                rates[i] = level.Session.GetSlider((id ?? "") + "ForkAmpRate" + i);
+                rates[i] = GetRate(scene, i, id);
             }
             return rates;
         }
@@ -94,7 +95,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             float[] rates = new float[4];
             for (int i = 0; i < 4; i++)
             {
-                rates[i] = level.Session.GetSlider((id ?? "") + "PrevForkAmpRate" + i);
+                rates[i] = GetPrevRate(scene, i, id);
             }
             return rates;
         }
@@ -125,41 +126,119 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         }
     }
     [Tracked]
-    public class FrequencyCodeComponent : Component
+    public class FrequencySender : Component
     {
-        public bool Instant;
-        public bool RequiresAudibleSound;
-        public bool StopAtFullPower = true;
-        public int MarginOfError = 0;
-        public float ApproachMult = 1;
-        public readonly float[] Rates;
-        public float[] RatePower;
-        public float Radius = -1;
-        public float Duration = -1;
-        public Action<float> OnStayInside;
-        public Action OnExit;
-        public Action OnEnter;
-        public Action OnStayOutside;
-        public Action<float, float> OnPowerChange;
-        public Action OnFullPower;
-        public Action<float> PowerUpdate;
-        public bool InRange { get; private set; }
-        private bool wasInRange;
-        public float Power { get; private set; }
-        private float prevPower;
-        public FrequencyCodeComponent(params float[] rates) : base(true, false)
+        /*public float Radius
         {
-            Rates = rates;
-            RatePower = new float[rates.Length];
+            get => Collider.Radius;
+            set => Collider.Radius = value;
+        }*/
+        /*        public Vector2 AbsolutePosition
+                {
+                    get => Collider.Position + Entity.Position;
+                    set => Collider.Position = value - Entity.Position;
+                }
+                public Vector2 Position
+                {
+                    get => Collider.Position;
+                    set => Collider.Position = value;
+                }*/
+        //public Circle Collider;
+        public float[] Rates;
+        public enum SendModes
+        {
+            Manual,
+            Always,
+            Interval
         }
-        public static float CalculatePercent(Scene scene, float[] rates, float moe = 1)
+        public SendModes SendMode;
+        public float Interval;
+        public bool EvenIfRadiusZero = true;
+        public FrequencySender(float radius, Vector2 position = default, params float[] rates) : base(true, false)
         {
-            float[] realRates = FrequencyData.GetRates(scene);
+            //Collider = new Circle(radius, position.X, position.Y);
+            Rates = new float[4];
+            if (rates != null)
+            {
+                for (int i = 0; i < 4 && i < rates.Length; i++)
+                {
+                    Rates[i] = rates[i];
+                }
+            }
+        }
+        public override void Update()
+        {
+            base.Update();
+
+            switch (SendMode)
+            {
+                case SendModes.Always:
+                    Send();
+                    break;
+                case SendModes.Interval:
+                    if (Scene.OnInterval(Interval))
+                    {
+                        Send();
+                    }
+                    break;
+            }
+        }
+        public static bool Collide(FrequencySender sender, FrequencyReceiver receiver)
+        {
+            return sender.Entity.CollideCheck(receiver.Entity);
+            /*
+                        Collider sPrev = sender.Entity.Collider;
+                        Collider rPrev = receiver.Entity.Collider;
+                        sender.Entity.Collider = sender.Collider ?? sender.Entity.Collider;
+                        receiver.Entity.Collider = receiver.Collider ?? receiver.Entity.Collider;
+                        bool colliding = sender.Entity.CollideCheck(receiver.Entity);
+                        sender.Entity.Collider = sPrev;
+                        receiver.Entity.Collider = rPrev;
+                        return colliding;*/
+        }
+        public void Send()
+        {
+            foreach (FrequencyReceiver f in Scene.Tracker.GetComponents<FrequencyReceiver>())
+            {
+                if ((f.CustomCollideFunction != null && f.CustomCollideFunction.Invoke(this)) || Collide(this, f))
+                {
+                    f.ReceiveSignal(this);
+                }
+            }
+        }
+
+    }
+    [Tracked(false)]
+    public class FrequencyReceiver : Component
+    {
+        public int MarginOfError = 0;
+        public float[] Rates;
+        public bool Colliding { get; private set; }
+        public bool wasColliding;
+        public Func<FrequencySender, bool> CustomCollideFunction;
+        public Action<FrequencySender> OnReceiveSignal;
+        public FrequencyReceiver(params float[] rates) : base(true, false)
+        {
+            //Collider = new Hitbox(radius * 2, radius * 2, -radius, -radius);
+            Rates = rates;
+        }
+       
+        public override void Update()
+        {
+            base.Update();
+
+            wasColliding = Colliding;
+            Colliding = Entity.CollideCheck<Player>();
+        }
+        public static float CalculatePercent(float[] rates, float[] compare, float moe = 1)
+        {
             int count = 0;
             int valid = 0;
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < compare.Length; i++)
             {
-                float dist = MathHelper.Distance(rates[i], realRates[i]);
+                float a = compare[i];
+                float b = i >= rates.Length ? 0 : rates[i];
+                float dist = MathHelper.Distance(a, b);
                 if (dist <= moe)
                 {
                     valid++;
@@ -172,60 +251,151 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             }
             return 0;
         }
-        public override void Update()
+        public virtual void ReceiveSignal(FrequencySender sender)
         {
-            base.Update();
-            float mult = 1;
-            if (Radius > 0)
+            OnReceiveSignal?.Invoke(sender);
+        }
+    }
+    [Tracked]
+    public class GlobalFrequencyReceiver : FrequencyReceiver
+    {
+        public bool Instant;
+        public bool RequiresAudibleSound;
+        public bool StopAtFullPower = true;
+        public bool StopAtZeroPower = false;
+        public float ApproachMult = 1;
+        public float ApproachUpMult = 1;
+        public float ApproachDownMult = 1;
+        public float[] RatePower;
+        public float Duration = -1;
+        public Action<float> OnStayInside;
+        public Action OnExit;
+        public Action OnEnter;
+        public Action OnStayOutside;
+        public Action<float, float> OnPowerChange;
+        public Action OnFullPower;
+        public Action OnZeroPower;
+        public Action<float> PowerUpdate;
+        public float Power { get; internal set; }
+        private float prevPower;
+        public float Delay;
+        public bool Inside { get; private set; }
+        public bool OnlyIfInside;
+        public bool Disabled;
+        public GlobalFrequencyReceiver(params float[] rates) : base(rates)
+        {
+            RatePower = new float[rates.Length];
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            Draw.HollowRect(Entity.Collider, Colliding ? Color.Lime : Color.Red);
+        }
+        public void Reset(bool on, bool start = false)
+        {
+            Active = start;
+            float target = on ? 1 : 0;
+            if (Power != target)
             {
-                if (Scene.GetPlayer() is Player player)
-                {
-                    float playerDist = Vector2.DistanceSquared(player.Center, Entity.Center);
-                    mult = playerDist / (Radius * Radius);
-                    bool prev = InRange;
-                    InRange = playerDist < Radius * Radius;
-                    if (wasInRange != InRange)
-                    {
-                        if (wasInRange) OnExit?.Invoke();
-                        else OnEnter?.Invoke();
-                    }
-                    else
-                    {
-                        if (InRange) OnStayInside?.Invoke(mult);
-                        else OnStayOutside?.Invoke();
-                    }
-                }
+                OnPowerChange?.Invoke(Power, target);
             }
-            Power = 0;
-            float[] rates = FrequencyData.GetRates(Scene);
-            if (rates is null || rates.Length <= 0) return;
-            if (RequiresAudibleSound && !ForkAmpSound.GlobalPlaying)
+            Power = target;
+            if (on)
             {
-                Power = 0;
+                if (StopAtFullPower)
+                {
+                    Active = false;
+                }
+                FullPower();
             }
             else
             {
-                int count = 0;
-                for (int i = 0; i < 4; i++)
+                if (StopAtZeroPower)
                 {
-                    if (Rates[i] < 0) continue;
-                    float dist = MathHelper.Distance(rates[i], Rates[i]);
-                    if (dist <= MarginOfError)
-                    {
-                        RatePower[i] = Instant ? 1 : Calc.Approach(RatePower[i], 1, Engine.DeltaTime * mult * ApproachMult);
-                    }
-                    else
-                    {
-                        RatePower[i] = Instant ? 0 : Calc.Approach(RatePower[i], 0, Engine.DeltaTime * mult * ApproachMult);
-                    }
-                    Power += RatePower[i];
-                    count++;
+                    Active = false;
                 }
-                if (count > 0)
+                ZeroPower();
+            }
+        }
+        protected virtual void OnPlayerEnter(Player player)
+        {
+            OnEnter?.Invoke();
+        }
+        protected virtual void OnPlayerExit(Player player)
+        {
+            OnExit?.Invoke();
+        }
+        protected virtual void OnPlayerStayOutside(Player player)
+        {
+            OnStayOutside?.Invoke();
+        }
+        protected virtual void OnPlayerStayInside(Player player, float mult)
+        {
+            OnStayInside?.Invoke(mult);
+        }
+        public override void Update()
+        {
+            base.Update();
+            if(Disabled) return;
+            float mult = 1;
+            /*            if (Collider != null || Entity.Collider != null)
+                        {
+                            if (Scene.GetPlayer() is Player player)
+                            {
+                                if (wasColliding != Colliding)
+                                {
+                                    if (wasColliding) OnPlayerExit(player);
+                                    else OnPlayerEnter(player);
+                                }
+                                else
+                                {
+                                    if (Colliding) OnPlayerStayInside(player, 1);
+                                    else OnPlayerStayOutside(player);
+                                }
+                            }
+                        }
+                        else
+                        {*/
+            //Inside = true;
+            //}
+            if (!OnlyIfInside || Colliding)
+            {
+                if (Delay > 0)
                 {
-                    Power /= count;
+                    Delay -= Engine.DeltaTime;
+                }
+                Power = 0;
+                float[] rates = FrequencyData.GetRates(Scene);
+                if (rates is null || rates.Length <= 0) return;
+                if (Delay <= 0 && (!RequiresAudibleSound || ForkAmpSound.GlobalPlaying))
+                {
+                    int count = 0;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (Rates[i] < 0) continue;
+                        float dist = MathHelper.Distance(rates[i], Rates[i]);
+                        if (dist <= MarginOfError)
+                        {
+                            RatePower[i] = Instant ? 1 : Calc.Approach(RatePower[i], 1, Engine.DeltaTime * mult * ApproachUpMult * ApproachMult);
+                        }
+                        else
+                        {
+                            RatePower[i] = Instant ? 0 : Calc.Approach(RatePower[i], 0, Engine.DeltaTime * mult * ApproachDownMult * ApproachMult);
+                        }
+                        Power += RatePower[i];
+                        count++;
+                    }
+                    if (count > 0)
+                    {
+                        Power /= count;
+                    }
                 }
             }
+            else
+            {
+                Power = Calc.Approach(Power, 0, Engine.DeltaTime * ApproachDownMult * ApproachMult);
+            }
+
             if (Power != prevPower)
             {
                 OnPowerChange?.Invoke(prevPower, Power);
@@ -236,11 +406,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                 {
                     Active = false;
                 }
-                OnFullPower?.Invoke();
+                FullPower();
+            }
+            else if (Power == 0)
+            {
+                if (StopAtZeroPower)
+                {
+                    Active = false;
+                }
+                ZeroPower();
             }
             PowerUpdate?.Invoke(Power);
-            wasInRange = InRange;
+            wasColliding = Colliding;
             prevPower = Power;
+        }
+        protected virtual void FullPower()
+        {
+            OnFullPower?.Invoke();
+        }
+        protected virtual void ZeroPower()
+        {
+            OnZeroPower?.Invoke();
         }
     }
 

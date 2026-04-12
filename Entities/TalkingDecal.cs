@@ -540,7 +540,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
     }
 
-    [CustomEvent("PuzzleIslandHelper/TestEvent")]
+    //[CustomEvent("PuzzleIslandHelper/TestEvent")]
     public class TestEvent : CutsceneEntity
     {
         private Player player;

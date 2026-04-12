@@ -16,15 +16,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         public string Prefix;
         public enum DoorStates
         {
-            None,
-            Automatic,
+            Closed,
             Open,
-            Closed
+            Automatic,
         }
         public bool CanActivate = true;
+        public FlagList ActiveFlag;
+        public FlagList FlagOnActivate;
+        private bool wasActive;
         public bool CheckForArea;
-        public DoorStates DoorState;
-        public Dictionary<LabDoor, bool> Doors = [];
+        public DoorStates DoorState = DoorStates.Closed;
+        public List<LabDoor> Doors = [];
         public class Cutscene : CutsceneEntity
         {
             public Decontam Trigger;
@@ -77,20 +79,29 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         {
             AreaID = data.Attr("areaID");
             Prefix = data.Attr("prefix");
+            ActiveFlag = data.FlagList("activateFlag");
+            FlagOnActivate = data.FlagList("flagOnActivate");
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            if (ActiveFlag)
+            {
+                wasActive = true;
+                DoorState = DoorStates.Automatic;
+            }
             foreach (DetectArea area in scene.Tracker.GetEntities<DetectArea>())
             {
                 if (area.ID == AreaID)
                 {
                     foreach (LabDoor door in area.CollideAll<LabDoor>())
                     {
-                        Doors.Add(door, door.automatic);
+                        Doors.Add(door);
+                        door.InstantClose();
                     }
                 }
             }
+            SetDoorState(DoorState);
         }
         public override void OnEnter(Player player)
         {
@@ -102,9 +113,48 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
                 CanActivate = false;
             }
         }
+        private class panCutscene : CutsceneEntity
+        {
+            private FlagList flagOnActivate;
+            private Decontam decontam;
+            public panCutscene(Decontam parent, FlagList flag) : base()
+            {
+                decontam = parent;
+                flagOnActivate = flag;
+            }
+            public override void OnBegin(Level level)
+            {
+                Add(new Coroutine(cutscene()));
+            }
+
+            private IEnumerator cutscene()
+            {
+                Level.DisableMovement();
+                Rectangle bounds = Level.Bounds;
+                Vector2 pos = Level.GetPlayer().CameraTarget;
+                yield return CameraTo((decontam.Position - new Vector2(160, 90)).Clamp(bounds), 1, null, 1f);
+                yield return 1f;
+                flagOnActivate.State = true;
+                decontam.DoorState = DoorStates.Automatic;
+                yield return CameraTo(pos, 1, null, 1.5f);
+                EndCutscene(Level);
+            }
+            public override void OnEnd(Level level)
+            {
+                level.EnableMovement();
+                flagOnActivate.State = true;
+                decontam.DoorState = DoorStates.Automatic;
+            }
+        }
         public override void Update()
         {
             base.Update();
+            bool isActive = ActiveFlag;
+            if (isActive && !wasActive)
+            {
+                Scene.Add(new panCutscene(this, FlagOnActivate));
+            }
+            wasActive = isActive;
             if (CheckForArea && !DetectArea.InArea(SceneAs<Level>(), AreaID))
             {
                 Reset();
@@ -113,7 +163,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         }
         public void SetDoorState(DoorStates state)
         {
-            foreach (LabDoor door in Doors.Keys)
+            foreach (LabDoor door in Doors)
             {
                 switch (state)
                 {
@@ -144,11 +194,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         {
             CanActivate = true;
             CheckForArea = false;
-            DoorState = DoorStates.None;
-            foreach (KeyValuePair<LabDoor, bool> pair in Doors)
+            DoorState = DoorStates.Closed;
+            foreach (LabDoor door in Doors)
             {
-                pair.Key.automatic = pair.Value;
-                pair.Key.Manual = false;
+                door.Manual = false;
             }
         }
         public override void Removed(Scene scene)

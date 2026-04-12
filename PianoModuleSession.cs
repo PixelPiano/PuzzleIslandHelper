@@ -14,6 +14,7 @@ using System;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using YamlDotNet.Core.Tokens;
 using Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -26,6 +27,30 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
     public class PianoModuleSession : EverestModuleSession
     {
+        [Obsolete("Beta prologue not currently in use")]
+        public List<PrologueGlitchBlock> ActiveGlitchBlocks = new();
+        [Obsolete("Chained Monitors not part of active map")]
+        public List<string> ChainedMonitorsActivated = new();
+        [Obsolete("Potion effects not implemented")]
+        public List<Vector2> PotionTiles { get; set; } = new();
+        [Obsolete("Potion effects not implemented")]
+        public Dictionary<FluidBottle.Side, List<Vector2>> Tiles = new();
+        [Obsolete("Lights icon puzzle deprecated")]
+        public Dictionary<string, List<LightsIcon.LightsIconData>> IconDictionary { get; set; } = new();
+        [Obsolete("Additional transit sub areas not in use")]
+        public Dictionary<EntityID, Vector2> PressedTSwitches = new();
+        [Obsolete("Drill replaced with lasers")]
+        public List<string> DrillBatteryIds = new();
+        [Obsolete("Gameshow scrapped from mod")]
+        public int WasherSwitchAttempts;
+        [Obsolete("Gameshow scrapped from mod")]
+        public int GameshowLivesLost;
+        [Obsolete("Calidus actor scrapped from mod")]
+        public int TimesMetWithCalidus;
+        [Obsolete("Gameshow scrapped from mod")]
+        public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
+        [Obsolete("Doctor office scrapped")]
+        public bool BathroomStallOpened { get; set; }
         public int KeysObtained;
         public int KeysUsed;
         public bool CanUseKey => KeysObtained > KeysUsed;
@@ -50,23 +75,17 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public Dictionary<EntityID, string> PersistentWarpLinks = new();
         public Dictionary<EntityID, bool> MiniGenStates = new();
         public Dictionary<EntityID, float> GearDoorStates = new();
-        public Dictionary<EntityID, Vector2> PressedTSwitches = new();
         public Dictionary<EntityID, LHLData> BrokenLamps { get; set; } = new Dictionary<EntityID, LHLData>();
         public Dictionary<string, List<int>> DestroyedVanillaSpinnerIDs = [];
         public Dictionary<string, HashSet<int>> DestroyedCustomSpinnerIDs = [];
         public Dictionary<string, Vector2> PortalNodePositions = new();
         public Dictionary<string, bool> LoggedCapsules = new();
-        public Dictionary<string, List<LightsIcon.LightsIconData>> IconDictionary { get; set; } = new();
         public Dictionary<string, string> LevelMusic { get; set; } = new();
-        public Dictionary<FluidBottle.Side, List<Vector2>> Tiles = new();
         public List<FadeWarpKey.KeyData> Keys { get; set; } = new();
         public HashSet<EntityID> DoorIds { get; set; } = new();
-        public List<Vector2> PotionTiles { get; set; } = new();
         public List<string> UsedCutscenes = new();
         public List<string> BrokenPillars = new();
-        public List<string> ChainedMonitorsActivated = new();
         public List<DashCodeCollectable> CollectedIDs = new();
-        public List<PrologueGlitchBlock> ActiveGlitchBlocks = new();
         public List<FloppyDisk> CollectedDisks = new();
         public HashSet<string> HoldableGroupIDs = new();
         public HashSet<string> HoldableCheckpointIDs = new();
@@ -74,7 +93,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public List<int> FixedFloors = new();
         public List<string> GearCheckpointIDs = new();
         public List<string> ContinuousGearIDs = new();
-        public List<string> DrillBatteryIds = new();
         public List<EntityID> BathroomStallsOpen = new();
         public HashSet<EntityID> CollectedFirfilIDs = new();
         public List<string> VoidLampGroups = new();
@@ -82,7 +100,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public bool RestorePowerFirst { get; set; }
         public bool DEBUG { get; set; }
         public bool HasPiano { get; set; }
-        public bool BathroomStallOpened { get; set; }
         public HeartInventory HeartInventory = new();
 
         public int TimesUsedCapsuleWarpWithRunes { get; set; }
@@ -95,8 +112,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public float DEBUGFLOAT1 { get; set; }
         public Vector2 DEBUGVECTOR { get; set; }
         public string DEBUGSTRING { get; set; }
-        public int TimesMetWithCalidus;
-        public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
         public bool MonitorActivated;
         public bool FixedElevator;
         public int FurthestElevatorLevel;
@@ -106,11 +121,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public bool FountainCanOpen;
         public bool ForceFountainOpen;
         public GearData GearData = new();
-        public int GameshowLivesLost;
         public HoldableData HoldableData = new();
-
-        public int WasherSwitchAttempts;
-
         public bool TryAddDisk(FloppyDisk disk)
         {
             if (CollectedDisks.Find(item => item.Preset == disk.Preset) == null)

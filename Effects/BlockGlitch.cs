@@ -92,7 +92,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             {
                 return;
             }
-            ShaderFX.Jitter.ApplyVectorZeroParams(level);
+            ShaderFX.Jitter.ApplyIdentityParameters(level);
 
 
             Engine.Graphics.GraphicsDevice.SetRenderTarget(Target);

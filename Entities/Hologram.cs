@@ -193,7 +193,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (Shader != null)
             {
-                Shader.ApplyCameraParams(Scene as Level);
+                Shader.ApplyCameraParameters(Scene as Level);
                 Shader.Parameters["LineOsc"]?.SetValue(lineAmount);
             }
         }

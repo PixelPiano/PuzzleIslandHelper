@@ -11,7 +11,8 @@ ruinsJumpThru.placements = {
     name = "Ruins Jump Thru",
     data = {
         width = 8,
-        collidable = true
+        collidable = true,
+        monument = false
     }
 }
 

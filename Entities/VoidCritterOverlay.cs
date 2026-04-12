@@ -45,7 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (effect != null)
             {
                 Draw.SpriteBatch.End();
-                effect.ApplyCameraParams(level);
+                effect.ApplyCameraParameters(level);
                 effect.Parameters["Amplitude"]?.SetValue(Ease.CubeOut(Amplitude));
                 Draw.SpriteBatch.StandardBegin(level.Camera.Matrix,effect);
                 Draw.SpriteBatch.Draw(Target, level.Camera.Position, Color.White);

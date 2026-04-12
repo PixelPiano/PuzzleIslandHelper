@@ -306,7 +306,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public static readonly Dictionary<string, HashSet<CompassNodeData>> CompassNodeData = [];
         public static readonly Dictionary<string, HashSet<CompassData>> CompassData = [];
         public static readonly Dictionary<string, Dictionary<string, Ascwiit.Controller.Data>> AscwiitCodes = [];
-
+        public static readonly Dictionary<string, Dictionary<string, FrequencyDecalTarget>> FrequencyDecalTargets = [];
         public static void Reset<T>(Dictionary<string, List<T>> dict, string key)
         {
             dict.Remove(key);
@@ -342,6 +342,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Reset(CompassNodeData, key);
             Reset(CompassData, key);
             Reset(AscwiitCodes, key);
+            Reset(FrequencyDecalTargets, key);
         }
         [Command("print_markers", "")]
         public static void PrintMarkers()
@@ -357,6 +358,26 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
             string key = AreaKey.GetFullID();
+            Action<BinaryPacker.Element> frequencyDecalTargetData = data =>
+            {
+                if (FrequencyDecalTargets[key] == null)
+                {
+                    FrequencyDecalTargets[key] = [];
+                }
+                Dictionary<string, FrequencyDecalTarget> dict = FrequencyDecalTargets[key];
+                string id = data.Attr("targetID");
+                if (!dict.ContainsKey(id))
+                {
+                    FrequencyDecalTarget target = new()
+                    {
+                        Color = Calc.HexToColor(data.Attr("color", "FFFFFF")),
+                        ID = id,
+                        PositionInRoom = data.Position() + Vector2.One * 16,
+                        LevelName = levelName
+                    };
+                    dict.Add(id, target);
+                }
+            };
             Action<BinaryPacker.Element> compassNodeData = data =>
             {
                 if (CompassNodeData[key] == null)
@@ -595,6 +616,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         if (levelName.StartsWith("lvl_")) {
                             levelName = levelName.Substring(4);
                         }
+                    }
+                },
+                {
+                    "entity:PuzzleIslandHelper/FrequencyDecalTarget", target =>
+                    {
+                        frequencyDecalTargetData(target);
                     }
                 },
                 {

@@ -12,6 +12,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
     {
         public class Instructions : Entity
         {
+            public readonly static Vector2 BottomCenterScreen = new Vector2(160, 180) * 6;
+            public const int ButtonOffset = 320 / 4 * 6;
+            public readonly static Vector2 ButtonSize = Vector2.Max(ButtonUIExt.Size("Check", Input.MenuConfirm), ButtonUIExt.Size("Exit", Input.MenuCancel));
+            public static float MaxTransitionOffset = ButtonSize.Y * 5;
+            public bool InControl;
+            public bool Finished;
             public Color Color;
             private Color outline;
             public Image Image;
@@ -23,32 +29,64 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             private Tween confirmTween;
             private Tween cancelTween;
             private UIProgram program;
+            private bool cancelDisabled, confirmDisabled;
+            private Tween transitionTween;
+            private Vector2 transitionOffset;
+            private VertexPositionColor[] gradient = new VertexPositionColor[]
+            {
+                new VertexPositionColor(new Vector3(0,160,0) * 6, Color.Transparent),
+                new VertexPositionColor(new Vector3(320,160,0) * 6, Color.Transparent),
+                new VertexPositionColor(new Vector3(0,180,0) * 6, Color.Black),
+                new VertexPositionColor(new Vector3(320,180,0) * 6, Color.Black),
+            };
+            private int[] indices = [0, 1, 2, 2, 1, 3];
             public Instructions(UIProgram program, Color color, Color outline) : base()
             {
                 this.program = program;
                 Tag |= TagsExt.SubHUD;
                 Color = color;
                 this.outline = outline;
+                transitionTween = new Tween();
+
                 confirmTween = Tween.Create(Tween.TweenMode.Persist, Ease.SineInOut, 0.6f);
                 cancelTween = Tween.Create(Tween.TweenMode.Persist, Ease.SineInOut, 0.6f);
-                confirmTween.OnStart = (Tween t) => { confirmLerp = 1; };
+                confirmTween.OnStart = (Tween t) => { confirmLerp = 1; cancelDisabled = true; };
                 confirmTween.OnUpdate = (Tween t) => { confirmLerp = 1 - t.Eased; };
-                confirmTween.OnComplete = (Tween t) => { confirmLerp = 0; };
-                cancelTween.OnStart = (Tween t) => { cancelLerp = 1; };
+                confirmTween.OnComplete = (Tween t) => { confirmLerp = 0; cancelDisabled = false; };
+                cancelTween.OnStart = (Tween t) => { cancelLerp = 1; confirmDisabled = true; };
                 cancelTween.OnUpdate = (Tween t) => { cancelLerp = 1 - t.Eased; };
-                cancelTween.OnComplete = (Tween t) => { cancelLerp = 0; };
-                Add(confirmTween, cancelTween);
+                cancelTween.OnComplete = (Tween t) => { cancelLerp = 0; cancelDisabled = false; };
+                Add(transitionTween, confirmTween, cancelTween);
+            }
+            public void Intro()
+            {
+                InControl = false;
+                float from = MaxTransitionOffset;
+                transitionTween.OnUpdate = (Tween t) =>
+                {
+                    transitionOffset.Y = from * (1 - (Ease.SineInOut(t.Eased)));
+                };
+                transitionTween.OnComplete = (Tween t) => { InControl = true; };
+            }
+            public void Outro()
+            {
+                InControl = false;
+                transitionTween.OnUpdate = (Tween t) =>
+                {
+                    transitionOffset.Y = MaxTransitionOffset * (Ease.SineInOut(t.Eased));
+                };
+                transitionTween.OnComplete = (Tween t) => { Finished = true; };
             }
             public override void Update()
             {
                 base.Update();
-                if (program.InControl)
+                if (program.InControl && InControl)
                 {
-                    if (Input.MenuConfirm.Pressed && !confirmWasPressed)
+                    if (Input.MenuConfirm.Pressed && !confirmWasPressed && !confirmDisabled)
                     {
                         confirmTween.Start();
                     }
-                    if (Input.MenuCancel.Pressed && !cancelWasPressed)
+                    if (Input.MenuCancel.Pressed && !cancelWasPressed && !cancelDisabled)
                     {
                         cancelTween.Start();
                     }
@@ -59,13 +97,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             public override void Render()
             {
                 base.Render();
-                Vector2 position = Vector2.One * 10;
-                Color cancelButtonColor = Color.Lerp(Color.White, Color.Black, cancelLerp * 0.7f);
-                Color confirmButtonColor = Color.Lerp(Color.White, Color.Black, confirmLerp * 0.7f);
-                float h = ButtonUIExt.Height("Check", Input.MenuConfirm);
-                ButtonUIExt.RenderOutline(position + Vector2.UnitY * (h / 2) * (1 + confirmLerp), "Check", Input.MenuConfirm, Color.White, confirmButtonColor, 6, 1, 0);
-                float h2 = ButtonUIExt.Height("Exit", Input.MenuCancel);
-                ButtonUIExt.RenderOutline(position + Vector2.UnitY * (h + (h2 / 2) * (1 + cancelLerp)), "Exit", Input.MenuCancel, Color.White, cancelButtonColor, 6, 1, 0);
+                Color cancelButtonColor = Color.Lerp(Color.White, Color.Black, cancelDisabled ? 0.7f : cancelLerp * 0.7f);
+                Color cancelTextColor = Color.Lerp(Color.White, Color.Black, cancelDisabled ? 0.7f : 0);
+                Color confirmButtonColor = Color.Lerp(Color.White, Color.Black, confirmDisabled ? 0.7f : confirmLerp * 0.7f);
+                Color confirmTextColor = Color.Lerp(Color.White, Color.Black, confirmDisabled ? 0.7f : 0);
+                ButtonUIExt.RenderOutline(BottomCenterScreen + new Vector2(-ButtonOffset, -ButtonSize.Y * (2 - confirmLerp)) + transitionOffset, "Check", Input.MenuConfirm, confirmTextColor, confirmButtonColor, 6, 1, 0.5f);
+                ButtonUIExt.RenderOutline(BottomCenterScreen + new Vector2(ButtonOffset, -ButtonSize.Y * (2 - cancelLerp)) + transitionOffset, "Exit", Input.MenuCancel, cancelTextColor, cancelButtonColor, 6, 1, 0.5f);
+                GFX.DrawIndexedVertices(Matrix.Identity, gradient, 4, indices, 2);
             }
 
         }
@@ -78,19 +116,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         public SpeakerProgram(float[] rates, bool start = false) : base(new Color(38, 255, 58), Color.Black, Color.Lime, start)
         {
             Rates = rates;
+            Rates = [24, 48, 72, 96];
         }
         public override void Update()
         {
             base.Update();
+            UpdatePositions();
+            Engine.Commands.Log("yeah");
+        }
+        public void UpdatePositions()
+        {
             float[] rates = FrequencyData.GetRates(Scene);
-            float space = (width * 0.8f) / rates.Length;
-            float rateX = x + (width * 0.2f);
             for (int i = 0; i < realRates.Count && i < rates.Length; i++)
             {
-                Vector2 position = new Vector2(rateX, y + height - (height * (rates[i] / FrequencyData.Max)));
-                realRates[i].Position = position * 6;
-                rateX += space;
+                realRates[i].Position = GetRatePosition(rates[i], i, new Vector2(x, y), width, height, 0.1f) * 6;
             }
+            for (int i = 0; i < targetRateCircles.Count; i++)
+            {
+                targetRateCircles[i].Position = GetRatePosition(Rates[i], i, new Vector2(x, y), width, height, 0.1f) * 6;
+            }
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                lines[i].Position = lines[i].From = GetRatePosition(FrequencyData.Interval * i, 0, new Vector2(x, y), width, height) * 6;
+                lines[i].To = lines[i].From + Vector2.UnitX * width * 6;
+            }
+        }
+        public static Vector2 GetRatePosition(float rate, int index, Vector2 offset, float width, float height, float padPercent = 0)
+        {
+            offset.X += (width * padPercent);
+            width *= (1 - padPercent * 2);
+            return offset + new Vector2(width * (index * 0.25f), height * (1 - (rate / FrequencyData.Max)));
         }
         public override void OnCancel()
         {
@@ -101,7 +157,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         {
             base.OnConfirm();
             InControl = false;
-            if (FrequencyCodeComponent.CalculatePercent(Scene, Rates) == 1)
+            if (FrequencyReceiver.CalculatePercent(Rates, FrequencyData.GetRates(Scene)) == 1)
             {
                 Scene.Add(new Cutscene(this));
             }
@@ -221,15 +277,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         public static List<GlitchCircle> CirclesFromRates(float x, float y, float width, float height, Color color, Color color2, params float[] rates)
         {
             List<GlitchCircle> circles = [];
-            float space = (width * 0.8f) / rates.Length;
-            float rateX = x + (width * 0.2f);
 
             for (int i = 0; i < rates.Length; i++)
             {
-                Vector2 position = new Vector2(rateX, y + height - ((height / 10) * (rates[i] / 12f)) - (height / 5));
+                Vector2 position = GetRatePosition(rates[i], i, new Vector2(x, y), width, height, 0.1f);
                 GlitchCircle circle = new GlitchCircle(position * 6, 30, color, color2);
                 circles.Add(circle);
-                rateX += space;
             }
             return circles;
         }
@@ -241,11 +294,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             width = (int)(320 * 0.5f);
             y = (180 / 2) - (height / 2);
             x = (320 / 2) - (width / 2);
+
             for (int i = 0; i < 4; i++)
             {
-                Vector2 start = new Vector2(x, y + (height / 4f) * i);
-                Vector2 end = new Vector2(x + width, start.Y);
-                GlitchLine line = new(start * 6, end * 6);
+                GlitchLine line = new(Vector2.Zero, Vector2.Zero);
                 entities.Add(line);
                 lines.Add(line);
             }
@@ -263,6 +315,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             }
             button = new Instructions(this, FGColor, Color.BlueViolet);
             entities.Add(button);
+            UpdatePositions();
             return entities;
         }
     }

@@ -1,5 +1,5 @@
 using Celeste.Mod.Entities;
-
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
@@ -12,8 +12,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         private List<Image> images = new();
         private const string path = "objects/PuzzleIslandHelper/ruinsJumpThru/";
-        public RuinsJumpThru(Vector2 position, int width, bool collidable) : base(position, width, collidable)
+        public RuinsJumpThru(Vector2 position, int width, bool collidable, bool monument) : base(position, width, collidable)
         {
+            Tag |= Tags.TransitionUpdate;
             Collidable = collidable;
             Depth = -60;
             SurfaceSoundIndex = 13;
@@ -32,8 +33,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             end.Position.X = Width;
             Add(end);
             images.Add(end);
-
+            if (monument)
+            {
+                Add(new MonumentComponent()
+                {
+                    Width = Width,
+                    Height = Height,
+                    IDs = ["construction"],
+                    PadX = -8,
+                    OnEnableHook = (bool instant) =>
+                    {
+                        Visible = true;
+                    },
+                    OnDisableHook = (bool instant) =>
+                    {
+                        Visible = false;
+                    }
+                });
+            }
         }
-        public RuinsJumpThru(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Bool("collidable")) { }
+        public RuinsJumpThru(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Bool("collidable"), data.Bool("monument")) { }
     }
 }

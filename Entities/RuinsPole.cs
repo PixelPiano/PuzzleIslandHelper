@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections.Generic;
@@ -12,14 +13,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private List<Image> images = new();
         private const string path = "objects/PuzzleIslandHelper/ruinsPole/";
         private const int maxBroken = 2;
-        private bool forElevator;
-        public RuinsPole(Vector2 position, int height, int topNum, int bottomNum, bool forElevator, bool crystalized, bool brokenTop, bool brokenBottom) : base(position)
+        public RuinsPole(Vector2 position, int height, int topNum, int bottomNum, bool forElevator, bool crystalized, bool brokenTop, bool brokenBottom, bool monument, bool required) : base(position)
         {
             Depth = 9001;
-
+            Tag |= Tags.TransitionUpdate;
             MTexture tex = GFX.Game[path + (crystalized ? "crystalTexture" : "texture")];
             int y = forElevator ? 8 : 0;
             int width = forElevator ? 13 : 5;
+            Collider = new Hitbox(width, height);
             if (!forElevator)
             {
                 Image top = new Image(tex.GetSubtexture(brokenTop ? Calc.Clamp(topNum * 5, 0, maxBroken * 5) : 0, 0, 5, 8));
@@ -53,9 +54,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Add(bottom);
                 images.Add(bottom);
             }
-
-            this.forElevator = forElevator;
+            if (monument)
+            {
+                Add(new MonumentComponent()
+                {
+                    Width = Width,
+                    Height = Height,
+                    IDs = ["construction"],
+                    PadY = -8,
+                    PadX = -8,
+                    OnEnableHook = (bool instant) =>
+                    {
+                        Visible = true;
+                    },
+                    OnDisableHook = (bool instant) =>
+                    {
+                        Visible = false;
+                    }
+                });
+            }
         }
-        public RuinsPole(EntityData data, Vector2 offset) : this(data.Position + offset, data.Height, data.Int("topNum"), data.Int("bottomNum"), data.Bool("forElevator"), data.Bool("crystalized"), data.Bool("brokenTop"),data.Bool("brokenBottom")) { }
+        
+        public RuinsPole(EntityData data, Vector2 offset) : this(data.Position + offset, data.Height, data.Int("topNum"), data.Int("bottomNum"), data.Bool("forElevator"), data.Bool("crystalized"), data.Bool("brokenTop"), data.Bool("brokenBottom"), data.Bool("monument"), data.Bool("requiredForMonument")) { }
     }
 }

@@ -12,6 +12,7 @@ using System.Reflection;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
 {
     [CustomEntity("PuzzleIslandHelper/FrequencyCode")]
+    [Tracked]
     public class FrequencyCode : Entity
     {
         public static HashSet<string> CompletedIDs => PianoModule.Session.CompletedFrequencyCodeIDs;
@@ -25,7 +26,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         private float[] rates;
         private bool useFlag;
         private FlagList flag;
-        private FrequencyCodeComponent code;
+        private GlobalFrequencyReceiver code;
         private Envelope envelope;
         private float topBound = 1, bottomBound = 0;
         private bool usesFlash;
@@ -44,7 +45,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
 
             CodeID = data.Attr("codeID");
             rates = [data.Float("rateA"), data.Float("rateB"), data.Float("rateC"), data.Float("rateD")];
-            code = new FrequencyCodeComponent(rates);
+            code = new GlobalFrequencyReceiver(rates);
             code.RequiresAudibleSound = true;
             code.StopAtFullPower = true;
             Add(code);
@@ -123,6 +124,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             else
             {
                 BaseSprite.Play("idle");
+                Collider = new Hitbox(BaseSprite.Width,BaseSprite.Height);
             }
         }
     }

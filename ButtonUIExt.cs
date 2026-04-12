@@ -34,5 +34,11 @@ namespace Celeste.Mod.PuzzleIslandHelper
             MTexture mTexture = Input.GuiButton(button, "controls/keyboard/oemquestion");
             return Math.Max(ActiveFont.Measure(label).Y, (float)mTexture.Height);
         }
+        public static Vector2 Size(string label, VirtualButton button)
+        {
+            MTexture mTexture = Input.GuiButton(button, "controls/keyboard/oemquestion");
+            Vector2 measure = ActiveFont.Measure(label);
+            return new Vector2(ActiveFont.Measure(label).X + 8f + mTexture.Width, Math.Max(measure.Y, mTexture.Height));
+        }
     }
 }

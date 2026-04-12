@@ -1,8 +1,10 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.Helpers;
 using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/CodeWire")]
@@ -11,7 +13,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float At;
         public MTexture Texture;
         private float[] Rates;
-        private FrequencyCodeComponent code;
+        private GlobalFrequencyReceiver code;
         private Envelope envelope;
         private float topBound = 1;
         private float bottomBound = 0;
@@ -21,7 +23,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Color = data.HexColor("color", Calc.HexToColor("595866"));
             At = data.Float("percent");
             Rates = [data.Float("rateA"), data.Float("rateB"), data.Float("rateC"), data.Float("rateD")];
-            code = new FrequencyCodeComponent(Rates);
+            code = new GlobalFrequencyReceiver(Rates);
             code.RequiresAudibleSound = true;
             code.StopAtFullPower = true;
             Add(code);
@@ -57,7 +59,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            if(PianoModule.Session.CompletedFrequencyCodeIDs.Contains("wire") && !envelope.Active)
+            if (PianoModule.Session.CompletedFrequencyCodeIDs.Contains("wire") && !envelope.Active)
             {
                 envelope.Start();
             }
@@ -76,11 +78,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public override void Render()
         {
-            base.Render();
+            Level level = SceneAs<Level>();
+            Vector2 vector = new Vector2((float)Math.Sin(sineX + level.WindSineTimer * 2f), (float)Math.Sin(sineY + level.WindSineTimer * 2.8f)) * 8f;
+            float num = level.VisualWind / 100f;
+            Vector2 vector2 = vector * num;
+            Curve.Control = (Curve.Begin + Curve.End) / 2f + new Vector2(0f, 24f) + vector2;
+            if (CullHelper.IsCurveVisible(Curve, 2f))
+            {
+                DrawCurve(-Vector2.UnitY, Curve, Color.Black, 16);
+                DrawCurve(Vector2.UnitY, Curve, Color.Black, 16);
+                DrawCurve(Vector2.Zero, Curve, Color, 16);
+            }
             if (Texture != null && At >= 0)
             {
-                float percent = Calc.Snap(At, 1 / 16f);
+                float percent = (int)Math.Round(At / (1 / 16f)) * (1f / 16f);
                 Texture.DrawCentered(Curve.GetPoint(percent), textureColor);
+            }
+        }
+        public static void DrawCurve(Vector2 offset, SimpleCurve curve, Color color, int points)
+        {
+            Vector2 start = curve.Begin + offset;
+            for (int i = 1; i <= points; i++)
+            {
+                float percent = (float)i / points;
+                Vector2 point = curve.GetPoint(percent) + offset;
+                Draw.Line(start, point, color);
+                start = point;
             }
         }
     }

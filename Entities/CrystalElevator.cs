@@ -16,18 +16,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class CrystalElevator : Solid
     {
-
         public static Dictionary<string, HashSet<int>> DestroyedCustomSpinnerIDs => PianoModule.Session.DestroyedCustomSpinnerIDs;
         public class Roof : Solid
         {
             public CrystalElevator Parent;
             public Collider SpinnerCollider;
+            public LightOcclude Occlude;
             public Roof(CrystalElevator parent, Image front, Vector2 position, float width, float height) : base(position, width, height, true)
             {
                 Depth = -1;
                 Parent = parent;
                 AddTag(Tags.TransitionUpdate);
-                Add(new LightOcclude());
+                Add(Occlude = new LightOcclude());
                 Add(front);
                 SpinnerCollider = new Hitbox(Width, Parent.Bottom - Top, 0, 0);
             }
@@ -164,8 +164,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private readonly CustomTalkComponent goUp;
         private readonly CustomTalkComponent goDown;
         public static Dictionary<EntityID, int> Furthest => PianoModule.Session.CrystalElevatorFurthestLevelReached;
-        public Image Front, Back, Rocks;
-        public Sprite Gears;
+        public Image Front, Back;
         public Roof roof;
         private ParticleSystem sparkSystem;
         public EntityID ID;
@@ -192,11 +191,59 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(Back, goUp, goDown, new LightOcclude());
             Tag |= Tags.TransitionUpdate;
             roof = new Roof(this, Front, Back.RenderPosition + Vector2.UnitY * 3, Back.Width, 3);
+            roof.Collidable = false;
+            roof.Visible = false;
+            goUp.PlayerMustBeFacing = false;
+            goUp.HideUnderSolids = false;
+            goDown.PlayerMustBeFacing = false;
+            goDown.HideUnderSolids = false;
+            sparkSystem = new ParticleSystem(Depth - 1, 200);
+            roof.Add(new MonumentComponent()
+            {
+                Width = Width,
+                Height = roof.Height,
+                IDs = ["construction"],
+                PadX = -8,
+                PadY = -8,
+                OnEnableHook = (bool instant) =>
+                {
+                    roof.Visible = true;
+                    roof.Collidable = true;
+                },
+                OnDisableHook = (bool instant) =>
+                {
+                    roof.Visible = false;
+                    roof.Collidable = false;
+                }
+            });
+            Add(new MonumentComponent()
+            {
+                Width = Width,
+                Height = MathHelper.Distance(roof.Y, Collider.AbsoluteBottom),
+                IDs = ["construction"],
+                PadX = -8,
+                PadY = -8,
+                OnEnableHook = (bool instant) =>
+                {
+                    Visible = true;
+                    goUp.Enabled = true;
+                    goUp.Visible = true;
+                    goDown.Enabled = true;
+                    goDown.Visible = true;
+                },
+                OnDisableHook = (bool instant) =>
+                {
+                    goUp.Enabled = false;
+                    goUp.Visible = false;
+                    goDown.Enabled = false;
+                    goDown.Visible = false;
+                    Visible = false;
+                },
+            });
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            sparkSystem = new ParticleSystem(Depth - 1, 200);
             scene.Add(sparkSystem);
             sparkSystem.Visible = false;
 
@@ -232,12 +279,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 Furthest.Add(ID, 0);
             }
-            Add(Rocks = new Image(GFX.Game["objects/PuzzleIslandHelper/gear/rocks"]));
-            Rocks.Position = new Vector2(Width / 2 - Rocks.Width / 2, Back.Height / 2 + 4);
-            Rocks.Visible = !ControlsBlocked;
-            CrystalElevatorLevel closest = Floors.OrderBy(item => Vector2.DistanceSquared(item.Position, player.Position)).First();
-            Floor = closest != null ? (int)Calc.Min(furthest, closest.FloorNum) : furthest;
-            MoveElevatorTowards(level, null, Floor, 1, false, true);
+            if (Floors.Count > 0)
+            {
+                CrystalElevatorLevel closest = Floors.OrderBy(item => Vector2.DistanceSquared(item.Position, player.Position)).First();
+                Floor = closest != null ? (int)Calc.Min(furthest, closest.FloorNum) : furthest;
+                MoveElevatorTowards(level, null, Floor, 1, false, true);
+            }
         }
         public override void Update()
         {
@@ -263,17 +310,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     particleBuffer++;
                 }
             }
-            if (Rocks != null)
-            {
-                Rocks.Visible = !ControlsBlocked;
-            }
-            prevY = Position.Y;
+            prevY = Y;
         }
+        public int YFrame => (Math.Abs((int)(Y / 6)) % 2);
         public override void Render()
         {
-            int frame = (int)Position.Y / 6 % 2 + 1;
-            DrawGearFrame(frame);
             sparkSystem.Render();
+            DrawGearFrame(Riding ? YFrame : 0);
             base.Render();
         }
         public override void Removed(Scene scene)
@@ -355,16 +398,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             StartRide(SceneAs<Level>(), Floor - 1, player, Floor - 1);
         }
+        public bool Riding;
         public IEnumerator RideRoutine(Level level, int floor, Player player, int floorToCheck)
         {
             player.StateMachine.State = Player.StDummy;
             player.ForceCameraUpdate = true;
-            if (!ControlsBlocked)
+            if (ControlsBlocked)
             {
                 yield return Textbox.Say("elevatorRocks");
             }
             else
             {
+                Riding = true;
                 StartShaking(0.2f);
                 yield return 0.2f;
                 if (!(floor < 0 || floor > Floors.Count || !AllFixedAt(floorToCheck)))
@@ -374,6 +419,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
                     yield return RideToFloor(level, player, floor, floorsTravelled * travelTime);
                 }
+                Riding = false;
             }
             player.StateMachine.State = Player.StNormal;
             yield return null;

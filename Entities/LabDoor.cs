@@ -148,24 +148,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void InstantClose()
         {
-            if (State != States.Closed)
-            {
-                Collider.Height = height;
-                closeSpeed = 30;
-                doorSprite.Play("closed");
-                State = States.Closed;
-
-            }
+            Collider.Height = height;
+            closeSpeed = 30;
+            doorSprite.Play("closed");
+            State = States.Closed;
         }
         public void InstantOpen()
         {
-            if (State != States.Open)
-            {
-                Collider.Height = 0;
-                openSpeed = 30;
-                doorSprite.Play("open");
-                State = States.Open;
-            }
+            Collider.Height = 0;
+            openSpeed = 30;
+            doorSprite.Play("open");
+            State = States.Open;
         }
     }
 }

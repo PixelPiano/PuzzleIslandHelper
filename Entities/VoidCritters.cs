@@ -138,7 +138,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Update();
             if (Scene is not Level level || level.GetPlayer() is not Player player) return;
             FlagState = GetDisperseFlag(level, this);
-            if (player.Dead || player.JustRespawned) return;
+            if (player.Dead || player.JustRespawned || player.StateMachine.State == Player.StDummy /*|| SaveData.Instance.Assists.Invincible*/) return;
             Position = player.Position;
             float timeMult = 1;
             /*            if (CollideCheck<VoidLightHelperEntity>())

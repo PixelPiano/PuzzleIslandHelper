@@ -1,0 +1,69 @@
+<moveset>
+	<!--
+	A dictionary of preset actions.
+	-->
+	<actions>
+		<action name="choice" type ="choice"/>
+		<action name="move" type ="move" x ="0" y="0" speed ="0" ease="" lerpTime ="0" snap ="false" delay ="0" marker ="" rubberband ="false" rubberbandMult="1" reverseEase = "false" exitDistance ="2" timeLimit ="0"/>
+		<action name="loop" type ="loop" maxloops ="-1" health="-1"/>
+		<action name ="wait" type ="wait" time ="-1"/>
+		<action name = "idle" type ="idle" markers ="spikeSlamA,spikeSlamB" speedMult ="2"/>
+		<action name ="idletest" type ="idle" time ="5"/>
+		<action name = "slameasy" type = "slam" speed = "40" bounces = "3"/>
+		<action name = "slammedium" type = "slam" speed = "50" bounces = "4"/>
+		<action name = "slamhard" type = "slam" speed = "140" bounces = "8"/>
+		<action name = "singleslide" type ="slide" marker ="slideMarkerA" ease ="sinein" dirX="1"/>
+		<action name = "spkslmeasy" type ="spikeslam" loops ="1" mult ="2" length ="3" spikeDuration ="0.4" markers ="spikeSlamA,spikeSlamB"/>
+		<action name ="spkslmmed" type ="spikeslam" loops ="3" mult ="2" length ="3" spikeDuration ="0.3" blockWalls = "true" markers ="spikeSlamA,spikeSlamB"/>
+		<action name ="spkslmhard" type ="spikeslam" loops ="4" mult ="3" length ="4" spikeDuration ="0.2" blockWalls = "true" targetPlayer ="true"/>
+	</actions>
+
+	<!--
+	A dictionary of preset patterns. 
+	If the name of an action preset is used as the header, it will try to use that preset.
+	If further properties are specified, they will override the preset's original values granted the same property exists within the preset.
+	
+	pattern parameters:
+	name	- (required) name of the pattern (string)
+	loop	- (optional) if true, the pattern loops until it's cancelled from within (bool)
+	health	- (optional) if below 0, does nothing. otherwise, if the damage dealt to the boss is equal to or exceeds this value, the pattern is cancelled (int)
+	next	- (optional) name of the pattern to transition into upon pattern completion
+	nextcancelled - (optional) name of the pattern to transition into IF the pattern is cancelled by damage received (defaults to whatever "next" is set to)
+	-->
+	<patterns>
+		<pattern name ="move">
+			<loop>
+				<move marker ="spikeSlamB" rubberband ="true"/>
+				<wait time ="0.5"/>
+				<choice>
+					<move x ="-16" y="0" speed ="40" ease ="sine" lerpTime ="1"/>
+					<move x ="16" y="0" speed ="40" ease ="sine" lerpTime ="1"/>
+					<move x ="0" y="-16" speed ="40" ease ="sine" lerpTime ="1"/>
+					<move x ="0" y="16" speed ="40" ease ="sine" lerpTime ="1"/>
+				</choice>
+				<wait time ="0.5"/>
+			</loop>
+		</pattern>
+		<pattern name ="choice">
+			<choice>
+				<slameasy/>
+				<idletest/>
+				<singlespikeslam/>
+			</choice>
+		</pattern>
+		<pattern name ="loop" health ="5">
+			<loop>
+				<idletest/>
+				<slameasy/>
+			</loop>
+		</pattern>
+		<pattern name ="easy" health ="10" loops ="true" next ="medium">
+			<idle markers ="spikeSlamA, spikeSlamB" time ="2"/>
+			<choice>
+				<slameasy weight ="1"/>
+				<spkslmeasy weight ="1"/>
+			</choice>
+			<idle time ="3"/>
+		</pattern>
+	</patterns>
+</moveset>

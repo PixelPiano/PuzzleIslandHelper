@@ -13,9 +13,8 @@
 
 modoptions_PuzzleIslandHelperModule=Puzzle Island Helper Settings
 
-
 trollWip=
-im not finished yet.
+im not finished yet.{n}
 come back later when i might be finished.
 chatTest=
 This dialogue is for testing purposes.

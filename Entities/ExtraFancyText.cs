@@ -200,18 +200,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             public void Draw(PixelFont font, float baseSize, Vector2 position, Vector2 scale, float alpha, Color color)
             {
-                Color _color = Color;
                 if (57344 <= Character && Character <= Emoji.Last && !Emoji.IsMonochrome((char)Character))
                 {
                     Color = new Color(Color.A, Color.A, Color.A, Color.A);
                 }
-
-                orig_Draw(font, baseSize, position, scale, alpha, color);
-            }
-
-            public void orig_Draw(PixelFont font, float baseSize, Vector2 position, Vector2 scale, float alpha, Color color)
-            {
-
+                color = new Color(Color.R * color.R, Color.G * color.G, Color.B * color.B, Color.A * color.A);
                 float num = (Impact ? (2f - Fade) : 1f) * Scale;
                 Vector2 zero = Vector2.Zero;
                 Vector2 vector = scale * num;
@@ -225,8 +218,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 zero.X += pixelFontCharacter.XOffset;
                 zero.Y += (float)pixelFontCharacter.YOffset + (-8f * (1f - Fade) + YOffset * Fade);
                 pixelFontCharacter.Texture.Draw(position + zero * vector, Vector2.Zero, color * Fade * alpha, vector, Rotation);
-
+                //pixelFontCharacter.Texture.DrawOutline(position + zero * vector, Vector2.Zero, color * Fade * alpha, vector, Rotation, Color.Black, 6);
                 LastPosition = position + zero * vector;
+            }
+            public void DrawOutlineOnly(PixelFont font, float baseSize, Vector2 position, Vector2 scale, float alpha, Color outlineColor, int outline = 1)
+            {
+                float num = (Impact ? (2f - Fade) : 1f) * Scale;
+                Vector2 zero = Vector2.Zero;
+                Vector2 vector = scale * num;
+                PixelFontSize pixelFontSize = font.Get(baseSize * Math.Max(vector.X, vector.Y));
+                PixelFontCharacter pixelFontCharacter = pixelFontSize.Get(Character);
+                vector *= baseSize / pixelFontSize.Size;
+                position.X += (Position) * scale.X;
+                position += Offset * scale;
+                zero += (Shake ? (new Vector2(-1 + Calc.Random.Next(3), -1 + Calc.Random.Next(3)) * 2f) : Vector2.Zero);
+                zero += (Wave ? new Vector2(0f, (float)Math.Sin((float)Index * 0.25f + Engine.Scene.RawTimeActive * 8f) * 4f) : Vector2.Zero);
+                zero.X += pixelFontCharacter.XOffset;
+                zero.Y += (float)pixelFontCharacter.YOffset + (-8f * (1f - Fade) + YOffset * Fade);
+                pixelFontCharacter.Texture.DrawOutlineOnly(position + zero * vector, Vector2.Zero, outlineColor * Fade * alpha, vector, Rotation, outline);
             }
             public override string ToString()
             {
@@ -339,6 +348,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 return "{New Segment -> lines: " + Lines + "}";
             }
+        }
+
+        public class TextsceneAnchor : Node
+        {
+            public bool Right;
         }
 
         public enum Anchors
@@ -483,6 +497,63 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return num;
             }
 
+            public void DrawScroll(Vector2 position, float scroll, Vector2 justify, Vector2 scale, float alpha, Color color, int start = 0, int end = int.MaxValue)
+            {
+                int totalNodes = Math.Min(Nodes.Count, end);
+                int maxLineWidth = 0;
+                float lineScale = 0f;
+                float totalHeight = 0f;
+                PixelFontSize pixelFontSize = Font.Get(BaseSize);
+                Color c = default;
+                for (int i = start; i < totalNodes; i++)
+                {
+                    if (Nodes[i] is NewLine || Nodes[i] is NewSegment)
+                    {
+                        if (lineScale == 0f)
+                        {
+                            lineScale = 1f;
+                        }
+
+                        totalHeight += lineScale;
+                        lineScale = 0f;
+                    }
+                    else if (Nodes[i] is Char)
+                    {
+                        maxLineWidth = Math.Max(maxLineWidth, (int)(Nodes[i] as Char).LineWidth);
+                        lineScale = Math.Max(lineScale, (Nodes[i] as Char).Scale);
+                        c = (Nodes[i] as Char).Color;
+                    }
+                    else if (Nodes[i] is NewPage)
+                    {
+                        break;
+                    }
+                }
+                totalHeight += lineScale;
+                position -= justify * new Vector2(maxLineWidth, totalHeight * (float)pixelFontSize.LineHeight) * scale;
+                position.Y += scroll;
+                lineScale = 0f;
+                for (int j = start; j < totalNodes && !(Nodes[j] is NewPage); j++)
+                {
+                    if (Nodes[j] is NewLine || Nodes[j] is NewSegment)
+                    {
+                        if (lineScale == 0f)
+                        {
+                            lineScale = 1f;
+                        }
+
+                        position.Y += (float)pixelFontSize.LineHeight * lineScale * scale.Y;
+                        lineScale = 0f;
+                    }
+                    if (Nodes[j] is Char)
+                    {
+                        Char @char = Nodes[j] as Char;
+                        float y = position.Y;
+                        @char.Draw(Font, BaseSize, position, scale, alpha, color);
+                        lineScale = Math.Max(lineScale, @char.Scale);
+                    }
+                }
+            }
+
             public void Draw(Vector2 position, Vector2 justify, Vector2 scale, float alpha, Color color, int start = 0, int end = int.MaxValue)
             {
                 int num = Math.Min(Nodes.Count, end);
@@ -591,6 +662,246 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                 }
             }
+            public void DrawScrollOutline(Vector2 position, float scroll, Vector2 justify, Vector2 scale, float alpha, Color color, int start = 0, int end = int.MaxValue, int outline = 1, Vector2 outlineOffset = default)
+            {
+                int totalNodes = Math.Min(Nodes.Count, end);
+                int maxLineWidth = 0;
+                float lineScale = 0f;
+                float totalHeight = 0f;
+                PixelFontSize pixelFontSize = Font.Get(BaseSize);
+                for (int i = start; i < totalNodes; i++)
+                {
+                    if (Nodes[i] is NewLine || Nodes[i] is NewSegment)
+                    {
+                        if (lineScale == 0f)
+                        {
+                            lineScale = 1f;
+                        }
+
+                        totalHeight += lineScale;
+                        lineScale = 0f;
+                    }
+                    else if (Nodes[i] is Char)
+                    {
+                        maxLineWidth = Math.Max(maxLineWidth, (int)(Nodes[i] as Char).LineWidth);
+                        lineScale = Math.Max(lineScale, (Nodes[i] as Char).Scale);
+                    }
+                    else if (Nodes[i] is NewPage)
+                    {
+                        break;
+                    }
+                }
+
+                totalHeight += lineScale;
+                position -= justify * new Vector2(maxLineWidth, totalHeight * (float)pixelFontSize.LineHeight) * scale;
+                position.Y += scroll;
+                Vector2 origPos = position;
+                lineScale = 0f;
+                for (int j = start; j < totalNodes && !(Nodes[j] is NewPage); j++)
+                {
+                    if (Nodes[j] is NewLine || Nodes[j] is NewSegment)
+                    {
+                        if (lineScale == 0f)
+                        {
+                            lineScale = 1f;
+                        }
+
+                        position.Y += (float)pixelFontSize.LineHeight * lineScale * scale.Y;
+                        lineScale = 0f;
+                    }
+                    if (Nodes[j] is Char)
+                    {
+                        Char @char = Nodes[j] as Char;
+
+                        if (position.Y >= -pixelFontSize.LineHeight * scale.Y && position.Y <= 1920)
+                        {
+                            @char.DrawOutlineOnly(Font, BaseSize, position + outlineOffset, scale, alpha, Color.Black, outline);
+                        }
+                        lineScale = Math.Max(lineScale, @char.Scale);
+                    }
+                }
+                position = origPos;
+                lineScale = 0f;
+                for (int j = start; j < totalNodes && !(Nodes[j] is NewPage); j++)
+                {
+                    if (Nodes[j] is NewLine || Nodes[j] is NewSegment)
+                    {
+                        if (lineScale == 0f)
+                        {
+                            lineScale = 1f;
+                        }
+                        position.Y += (float)pixelFontSize.LineHeight * lineScale * scale.Y;
+                        lineScale = 0f;
+                    }
+                    if (Nodes[j] is Char)
+                    {
+                        Char @char = Nodes[j] as Char;
+
+                        if (position.Y >= -pixelFontSize.LineHeight * scale.Y && position.Y <= 1920)
+                        {
+                            @char.Draw(Font, BaseSize, position, scale, alpha, color);
+                        }
+                        lineScale = Math.Max(lineScale, @char.Scale);
+                    }
+                }
+            }
+
+            public void DrawOutline(Vector2 position, Vector2 justify, Vector2 scale, float alpha, Color color, int start = 0, int end = int.MaxValue)
+            {
+                int num = Math.Min(Nodes.Count, end);
+                int num2 = 0;
+                float num3 = 0f;
+                float num4 = 0f;
+
+                PixelFontSize pixelFontSize = Font.Get(BaseSize);
+                for (int i = start; i < num; i++)
+                {
+                    if (Nodes[i] is NewLine || Nodes[i] is NewSegment)
+                    {
+                        if (num3 == 0f)
+                        {
+                            num3 = 1f;
+                        }
+
+                        num4 += num3;
+                        num3 = 0f;
+                    }
+                    else if (Nodes[i] is Char)
+                    {
+                        num2 = Math.Max(num2, (int)(Nodes[i] as Char).LineWidth);
+                        num3 = Math.Max(num3, (Nodes[i] as Char).Scale);
+                    }
+                    else if (Nodes[i] is NewPage)
+                    {
+                        break;
+                    }
+                }
+
+                num4 += num3;
+                position -= justify * new Vector2(num2, num4 * (float)pixelFontSize.LineHeight) * scale;
+                num3 = 0f;
+                Vector2 origPosition = position;
+                for (int j = start; j < num && !(Nodes[j] is NewPage); j++)
+                {
+                    if (Nodes[j] is NewLine || Nodes[j] is NewSegment)
+                    {
+                        if (num3 == 0f)
+                        {
+                            num3 = 1f;
+                        }
+
+                        position.Y += (float)pixelFontSize.LineHeight * num3 * scale.Y;
+                        num3 = 0f;
+                    }
+                    if (Nodes[j] is Char)
+                    {
+                        Char @char = Nodes[j] as Char;
+
+                        @char.DrawOutlineOnly(Font, BaseSize, position, scale, alpha, color);
+                        num3 = Math.Max(num3, @char.Scale);
+                    }
+                }
+                position = origPosition;
+                num3 = 0;
+                for (int j = start; j < num && !(Nodes[j] is NewPage); j++)
+                {
+                    if (Nodes[j] is NewLine || Nodes[j] is NewSegment)
+                    {
+                        if (num3 == 0f)
+                        {
+                            num3 = 1f;
+                        }
+
+                        position.Y += (float)pixelFontSize.LineHeight * num3 * scale.Y;
+                        num3 = 0f;
+                    }
+                    if (Nodes[j] is Char)
+                    {
+                        Char @char = Nodes[j] as Char;
+
+                        @char.Draw(Font, BaseSize, position, scale, alpha, color);
+                        num3 = Math.Max(num3, @char.Scale);
+                    }
+                }
+            }
+
+            public void DrawOutlineJustifyPerLine(Vector2 position, Vector2 justify, Vector2 scale, float alpha, Color color, Vector2 offset, int start = 0, int end = int.MaxValue)
+            {
+                int num = Math.Min(Nodes.Count, end);
+                float num2 = 0f;
+                float num3 = 0f;
+                PixelFontSize pixelFontSize = Font.Get(BaseSize);
+                for (int i = start; i < num; i++)
+                {
+                    if (Nodes[i] is NewLine || Nodes[i] is NewSegment)
+                    {
+                        if (num2 == 0f)
+                        {
+                            num2 = 1f;
+                        }
+
+                        num3 += num2;
+                        num2 = 0f;
+                    }
+                    else if (Nodes[i] is Char)
+                    {
+                        num2 = Math.Max(num2, (Nodes[i] as Char).Scale);
+                    }
+                    else if (Nodes[i] is NewPage)
+                    {
+                        break;
+                    }
+                }
+
+                num3 += num2;
+                num2 = 0f;
+                Vector2 origPosition = position;
+                for (int j = start; j < num && !(Nodes[j] is NewPage); j++)
+                {
+                    if (Nodes[j] is NewLine || Nodes[j] is NewSegment)
+                    {
+                        if (num2 == 0f)
+                        {
+                            num2 = 1f;
+                        }
+
+                        position.Y += num2 * (float)pixelFontSize.LineHeight * scale.Y;
+                        num2 = 0f;
+                    }
+
+                    if (Nodes[j] is Char)
+                    {
+                        Char @char = Nodes[j] as Char;
+                        Vector2 vector = -justify * new Vector2(@char.LineWidth, num3 * (float)pixelFontSize.LineHeight) * scale;
+                        @char.DrawOutlineOnly(Font, BaseSize, position + vector + offset, scale, alpha, color);
+                        num2 = Math.Max(num2, @char.Scale);
+                    }
+                }
+                position = origPosition;
+                for (int j = start; j < num && !(Nodes[j] is NewPage); j++)
+                {
+                    if (Nodes[j] is NewLine || Nodes[j] is NewSegment)
+                    {
+                        if (num2 == 0f)
+                        {
+                            num2 = 1f;
+                        }
+
+                        position.Y += num2 * (float)pixelFontSize.LineHeight * scale.Y;
+                        num2 = 0f;
+                    }
+
+                    if (Nodes[j] is Char)
+                    {
+                        Char @char = Nodes[j] as Char;
+                        Vector2 vector = -justify * new Vector2(@char.LineWidth, num3 * (float)pixelFontSize.LineHeight) * scale;
+                        @char.Draw(Font, BaseSize, position + vector + offset, scale, alpha, color);
+                        num2 = Math.Max(num2, @char.Scale);
+                    }
+                }
+            }
+
+
         }
         public class DialogueChoice : Node
         {
@@ -892,11 +1203,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     switch (text)
                     {
                         case "cue":
-                            if (Engine.Scene is Level level)
-                            {
-                                string[] array4 = [.. list];
-                                group.Nodes.Add(new Cue(array4));
-                            }
+                            string[] array4 = [.. list];
+                            group.Nodes.Add(new Cue(array4));
+                            break;
+                        case "cuen":
+                            string[] array5 = [.. list];
+                            group.Nodes.Add(new Cue(array5));
+                            AddNewSegment();
+                            AddNewLine();
                             break;
                         case "goto":
                             if (list.Count > 0 && Dialog.Has(list[0]))
@@ -1156,11 +1470,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     }
                     if (text.Equals("mtRight"))
                     {
+                        group.Nodes.Add(new TextsceneAnchor() { Right = true });
                         currentOffset.X = offset.X;
                         continue;
                     }
                     if (text.Equals("/mtRight"))
                     {
+                        group.Nodes.Add(new TextsceneAnchor() { Right = false });
                         currentOffset.X = 0;
                         continue;
                     }

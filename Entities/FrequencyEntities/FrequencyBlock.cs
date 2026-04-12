@@ -19,7 +19,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
     public class FrequencyBlock : DashBlock
     {
         public float ShakeMult;
-        public FrequencyCodeComponent Code;
+        public GlobalFrequencyReceiver Code;
         public TileGrid Grid;
         public AnimatedTiles AnimatedTiles;
         public FrequencyBlock(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, data.Char("tiletype"), data.Width, data.Height, data.Bool("blendIn"), data.Bool("permenant"), id,data.Int("rate1"),data.Int("rate2"),data.Int("rate3"),data.Int("rate4"))
@@ -29,7 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         
         public FrequencyBlock(Vector2 position, char tiletype, float width, float height, bool blendIn, bool permanent, EntityID id, int rate1,int rate2, int rate3, int rate4) : base(position, tiletype, width, height, blendIn, permanent, false, id)
         {
-            Code = new FrequencyCodeComponent(rate1,rate2,rate3,rate4);
+            Code = new GlobalFrequencyReceiver(rate1,rate2,rate3,rate4);
             Code.OnPowerChange = (prev, current) =>
             {
                 ShakeMult = Calc.Approach(ShakeMult, current > prev ? 1 : 0, Engine.DeltaTime);

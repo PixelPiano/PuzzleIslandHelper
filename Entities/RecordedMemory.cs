@@ -239,7 +239,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     if (Effect != null)
                     {
                         Draw.SpriteBatch.End();
-                        Effect.ApplyVectorZeroParams(Scene as Level);
+                        Effect.ApplyIdentityParameters(Scene as Level);
                         Draw.SpriteBatch.StandardBegin(Matrix.Identity, Effect);
                         base.Render();
                         Draw.SpriteBatch.End();

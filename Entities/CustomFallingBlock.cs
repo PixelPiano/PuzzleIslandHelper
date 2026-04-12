@@ -28,10 +28,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         private bool tangibleFlagState;
         private bool snapToFallenState;
+        private bool onlySnapOnAdded;
         private bool prevRemoveFlagState;
         private Vector2 ImpactCenter => TopLeft + new Vector2(Width / 2f, Height);
         public bool HasStartedFalling;
-        public CustomFallingBlock(Vector2 position, char tile, int width, int height, bool finalBoss, bool behind, bool climbFall, string flagOnImpact, string flagOnTriggered, string onOffFlag, string snapToFallenFlag)
+        public CustomFallingBlock(Vector2 position, char tile, int width, int height, bool finalBoss, bool behind, bool climbFall, string flagOnImpact, string flagOnTriggered, string onOffFlag, string snapToFallenFlag, bool onlySnapOnAdded)
             : base(position, width, height, safe: false)
         {
             this.finalBoss = finalBoss;
@@ -60,19 +61,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             FlagOnTriggered = flagOnTriggered;
             TangibleFlag = onOffFlag;
             SnapToFallenFlag = snapToFallenFlag;
+            this.onlySnapOnAdded = onlySnapOnAdded;
         }
         public CustomFallingBlock(EntityData data, Vector2 offset)
-            : this(data.Position + offset, data.Char("tiletype", '3'), data.Width, data.Height, finalBoss: false, data.Bool("behind"), data.Bool("climbFall", defaultValue: true), data.Attr("flagOnImpact"), data.Attr("flagOnTriggered"), data.Attr("tangibleFlag"), data.Attr("snapToFallenFlag"))
+            : this(data.Position + offset, data.Char("tiletype", '3'), data.Width, data.Height, finalBoss: false, data.Bool("behind"), data.Bool("climbFall", defaultValue: true), data.Attr("flagOnImpact"), data.Attr("flagOnTriggered"), data.Attr("tangibleFlag"), data.Attr("snapToFallenFlag"), data.Bool("onlySnapOnAdded"))
         {
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            UpdateFlags();
+            UpdateFlags(true);
 
         }
         private bool snapped;
-        public void UpdateFlags()
+        public void UpdateFlags(bool awake)
         {
             if (Scene is not Level level) return;
             tangibleFlagState = !string.IsNullOrEmpty(TangibleFlag) && level.Session.GetFlag(TangibleFlag);
@@ -84,8 +86,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             if (snapToFallenState && !snapped)
             {
-                SnapDown();
-                snapped = true;
+                if (awake || !onlySnapOnAdded)
+                {
+                    SnapDown();
+                    snapped = true;
+                }
             }
             prevRemoveFlagState = tangibleFlagState;
         }
@@ -116,7 +121,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
-            UpdateFlags();
+            UpdateFlags(false);
 
         }
         public void HideBlock()

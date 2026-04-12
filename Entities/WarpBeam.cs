@@ -171,7 +171,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Effect effect = ShaderHelperIntegration.TryGetEffect("PuzzleIslandHelper/Shaders/pulseRing");
             if (effect != null)
             {
-                effect.ApplyCameraParams(level);
+                effect.ApplyCameraParameters(level);
                 effect.Parameters["Amplitude"]?.SetValue(Amplitude);
                 Draw.SpriteBatch.End();
                 Draw.SpriteBatch.StandardBegin(level.Camera.Matrix, effect);

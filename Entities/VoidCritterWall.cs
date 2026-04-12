@@ -59,7 +59,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (effect != null)
             {
                 Draw.SpriteBatch.End();
-                effect.ApplyCameraParams(level);
+                effect.ApplyCameraParameters(level);
                 effect.Parameters["Dimensions"]?.SetValue(Collider.Size);
                 Engine.Graphics.GraphicsDevice.Textures[1] = Light.Target;
                 Draw.SpriteBatch.StandardBegin(level.Camera.Matrix, effect);

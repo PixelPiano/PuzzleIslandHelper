@@ -115,6 +115,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         public int Thickness = 15;
         public Color Color, Color2;
         public float Alpha = 1;
+        public string Text = "";
+        public Vector2 TextOffset;
         public GlitchShape(Vector2 position, Color color, Color color2) : base(position)
         {
             Tag |= TagsExt.SubHUD;
@@ -208,6 +210,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             if (low != high)
             {
                 RenderPart(low, high, 0, c, thickness);
+            }
+            if (!string.IsNullOrEmpty(Text))
+            {
+                ActiveFont.Draw(Text, Position + TextOffset, new Vector2(0.5f), Vector2.One, Color.White);
             }
         }
     }
