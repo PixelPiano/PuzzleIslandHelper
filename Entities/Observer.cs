@@ -18,7 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public bool On;
             public Observer Parent;
             public float TextAlpha;
-            public ObserverRenderer(Observer parent, Vector2 center, float width, float height, float time, float alpha, bool on = true) : base("PuzzleIslandHelper/Shaders/curvePulse")
+            public ObserverRenderer(Observer parent, Vector2 center, float width, float height, float time, float alpha, bool on = true) : base(ShaderFX.CurvePulse,"")
             {
                 TextAlpha = alpha;
                 Parent = parent;
@@ -65,6 +65,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
         public ObserverRenderer Renderer;
+        public bool ShaderIsRendering => Renderer != null && Renderer.Effect != null;
         public Sprite Sprite;
 
         public enum Modes

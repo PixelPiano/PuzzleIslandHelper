@@ -65,7 +65,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             scene.Add(system = new ParticleSystem(-1, 4));
             if (scene.GetPlayer() is Player player)
             {
-                PlayerRectangle.Create(player.X - player.Width / 2, player.Y - player.Height - 5, player.Width, player.Height + 5);
+                PlayerRectangle.X = (int)(player.X - player.Width / 2);
+                PlayerRectangle.Y = (int)(player.Y - player.Height - 5);
+                PlayerRectangle.Width = (int)player.Width;
+                PlayerRectangle.Height = (int)player.Height + 5;
             }
             SetLimits();
             Add(new Coroutine(DropletJourney()));

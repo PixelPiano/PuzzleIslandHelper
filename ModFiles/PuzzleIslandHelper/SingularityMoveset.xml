@@ -48,22 +48,27 @@
 			<choice>
 				<slameasy/>
 				<idletest/>
-				<singlespikeslam/>
-			</choice>
-		</pattern>
-		<pattern name ="loop" health ="5">
-			<loop>
-				<idletest/>
-				<slameasy/>
-			</loop>
-		</pattern>
-		<pattern name ="easy" health ="10" loops ="true" next ="medium">
-			<idle markers ="spikeSlamA, spikeSlamB" time ="2"/>
-			<choice>
-				<slameasy weight ="1"/>
 				<spkslmeasy weight ="1"/>
 			</choice>
-			<idle time ="3"/>
+		</pattern>
+		<pattern name ="easy" next ="medium">
+			<loop health="5">
+				<idle markers ="spikeSlamA, spikeSlamB" time ="2"/>
+				<choice>
+					<slameasy weight ="1"/>
+					<spkslmeasy weight ="1"/>
+				</choice>
+			</loop>
+		</pattern>
+		<pattern name ="medium" next ="easy">
+			<loop health="5">
+				<idle markers ="spikeSlamA, spikeSlamB" time ="2"/>
+				<choice>
+					<spkslmhard weight ="1"/>
+					<slamhard weight ="1"/>
+				</choice>
+				<idle time ="1"/>
+			</loop>
 		</pattern>
 	</patterns>
 </moveset>

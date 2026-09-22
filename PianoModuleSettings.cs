@@ -6,6 +6,8 @@ namespace Celeste.Mod.PuzzleIslandHelper
     [SettingName("modoptions_PuzzleIslandHelperModule")]
     public class PianoModuleSettings : EverestModuleSettings
     {
+        [DefaultButtonBinding(Buttons.LeftStick, Keys.F)]
+        public ButtonBinding FrequencyMachineButtonBinding { get; set; }
         public enum StickyHoldMode
         {
             Click,

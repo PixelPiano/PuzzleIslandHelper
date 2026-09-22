@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -14,227 +15,141 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class FountainBlock : Entity
     {
-        public static class CodeRule
+        public class CodeRule
         {
-            public static List<string> rules = ["0 = (1)", "1 <3 3", "2 </3 3", "3 = (4)|","3 = (5)|","4 </3 5 </3 6"
-                ,"<(5) + (5)> = 5","<(6) + (6)> = 11","0","1","2","3","4","5","6","7"];
-            private class number
+            public string Orig;
+            public int Digit;
+            public string Operator = "";
+            public char[] Ends;
+            public CodeRule(int digit, string op, params char[] ends)
             {
-                private string value;
-                private int offset;
-                public number(string input)
+                Orig = digit.ToString();
+                Orig += " " + op + " [";
+                foreach (char c in ends)
                 {
-                    foreach (char c in input.Replace(" ", ""))
-                    {
-                        switch (c)
-                        {
-                            case '<':
-                                offset--;
-                                break;
-                            case '>':
-                                offset++;
-                                break;
-                            default:
-                                value += c;
-                                break;
-                        }
-                    }
+                    Orig += c + ", ";
                 }
-                public int? getValue(int[] array)
-                {
-                    if (array == null) return null;
-                    List<int?> output = [];
-                    int index = -1;
-                    if (!string.IsNullOrEmpty(value))
-                    {
-                        if (IsPosition(value, out int position))
-                        {
-                            index = position + offset;
-                        }
-                        else
-                        {
-                            if (int.TryParse(value, out int result))
-                            {
-                                for (int i = 0; i < array.Length; i++)
-                                {
-                                    if (array[i] == result)
-                                    {
-                                        index = i + offset;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        if (index >= 1 && index < array.Length + 1)
-                        {
-                            output.Add(array[index - 1]);
-                        }
-                    }
-                    return null;
-                }
-                public bool IsPosition(string input, out int result)
-                {
-                    result = 0;
-                    if (input.StartsWith('(') && input.EndsWith(')'))
-                    {
-                        string obj = input.Substring(1, input.Length - 2);
-                        if (!string.IsNullOrEmpty(obj))
-                        {
-                            return int.TryParse(obj, out result);
-                        }
-                    }
-                    return false;
-                }
+                Orig = Orig.TrimEnd(',') + "]";
+                Digit = digit;
+                Operator = op;
+                Ends = ends;
             }
-            public static bool? HasBeside(int[] array, int a, int b)
+            public string Log()
             {
-                for (int i = 0; i < array.Length; i++)
+                string s = "";
+                s += "Digit: " + Digit;
+                s += "\nOperator: " + Operator;
+                foreach (char c in Ends)
                 {
-                    if (array[i] == a)
+                    s += "\n{ char: " + c;
+                    bool isNumber = char.IsNumber(c);
+                    bool isLetter = char.IsLetter(c);
+                    s += "\n\t isNumber: " + isNumber;
+                    s += "\n\t isLetter: " + isLetter;
+                    if (isLetter)
                     {
-                        if (i - 1 >= 0)
-                        {
-                            if (array[i - 1] == b) return true;
-                        }
-                        if (i + 1 < array.Length)
-                        {
-                            if (array[i + 1] == b) return true;
-                        }
-                        return false;
+                        s += "\n\t LetterNum: " + (c - 'A');
                     }
+                    s += "\n}";
                 }
-                return null;
+                return s;
             }
-            [Command("test_affinity", "")]
-            public static void ParseAffinityRule(string rule)
+            public string ValidLog = "";
+            public bool RuleMet(string combo)
             {
-                int[] testarray = [0, 1, 2, 3, 4, 5, 6, 7];
-                rule = "3 </3 4 <3 1 <3 2";
-                string[] array = rule.Split(' ');
-                for (int j = 2; j < array.Length; j += 2)
+                void vLog(string tag, object value = null)
                 {
-                    if (int.TryParse(array[j], out int current))
+                    if (value == null)
                     {
-                        if (int.TryParse(array[j - 2], out int last))
-                        {
-                            bool likesval = false;
-                            bool dislikesval = true;
-                            string likesymbol = "";
-                            if (array[j - 1] == "<3")
-                            {
-                                likesymbol = "<3";
-                                for (int i = 0; i < testarray.Length; i++)
-                                {
-                                    if (i == current)
-                                    {
-                                        if ((i - 1 >= 0 && testarray[i - 1] == last)
-                                         || (i + 1 < testarray.Length && testarray[i + 1] == last))
-                                        {
-                                            likesval = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            else if (array[j - 1] == "</3")
-                            {
-                                likesymbol = "</3";
-                                for (int i = 0; i < testarray.Length; i++)
-                                {
-                                    if (i == current)
-                                    {
-                                        if ((i - 1 >= 0 && testarray[i - 1] == last)
-                                         || (i + 1 < testarray.Length && testarray[i + 1] == last))
-                                        {
-                                            dislikesval = false;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            if (!string.IsNullOrEmpty(likesymbol))
-                            {
-                                Engine.Commands.Log($"{last} {likesymbol} {current}: {likesval && dislikesval}");
-                            }
-                        }
-                    }
-                }
-            }
-            [Command("test_rule", "")]
-            public static void ParseOffsetRule(string rule)
-            {
-                int[] testarray = [0, 1, 2, 3, 4, 5, 6, 7];
-                rule = "<(4) + (4)> = (7)";
-
-                List<object> leftSide = [];
-                number rightSide = null;
-                bool left = true;
-                foreach (string s in rule.Split(' '))
-                {
-                    if (s.Contains('(') || s.Contains(')') || s.Contains('<') || s.Contains('>') || int.TryParse(s, out _))
-                    {
-                        if (left)
-                        {
-                            leftSide.Add(new number(s));
-                        }
-                        else
-                        {
-                            rightSide = new number(s);
-                        }
+                        ValidLog += "\n\t" + tag;
                     }
                     else
                     {
-                        if (s.Length == 1)
-                        {
-                            switch (s[0])
+                        ValidLog += "\n\t" + tag + ": " + value.ToString();
+                    }
+                }
+                int count = combo.Count(c2 => char.GetNumericValue(c2) == Digit);
+                ValidLog = "Validity Log:\n{";
+                vLog("count of digit", count);
+                if (count == 1)
+                {
+                    int index = combo.IndexOf(char.Parse(Digit.ToString()));
+                    vLog("index of digit", index);
+                    switch (Operator)
+                    {
+                        case "<3":
+                            vLog("operator", "<3");
+                            foreach (char c in Ends)
                             {
-                                case '+':
-                                case '-':
-                                    leftSide.Add(s[0]);
-                                    break;
-                                case '=':
-                                    left = false;
-                                    break;
+                                vLog("checking char", c);
+                                if (char.IsLetter(c))
+                                {
+                                    vLog("char is letter", c - 'A');
+                                    int letterIndex = c - 'A';
+                                    if (letterIndex != index + 1 && letterIndex != index - 1)
+                                    {
+                                        vLog("failed");
+                                        return false;
+                                    }
+                                    vLog("passed");
+                                }
+                                else
+                                {
+                                    int nextIndex = combo.IndexOf(c);
+                                    if (nextIndex >= 0)
+                                    {
+                                        vLog("charIndex is", nextIndex);
+                                    }
+                                    if (nextIndex != index + 1 && nextIndex != index - 1)
+                                    {
+                                        vLog("failed");
+                                        return false;
+                                    }
+                                    vLog("passed");
+                                }
                             }
-                        }
+                            break;
+                        case "</3":
+                            vLog("operator", "</3");
+                            foreach (char c in Ends)
+                            {
+                                vLog("checking char", c);
+                                if (char.IsLetter(c))
+                                {
+                                    vLog("char is letter", c - 'A');
+                                    int letterIndex = c - 'A';
+                                    if (letterIndex == index + 1 || letterIndex == index - 1)
+                                    {
+                                        vLog("failed");
+                                        return false;
+                                    }
+                                    vLog("passed");
+                                }
+                                else
+                                {
+                                    int nextIndex = combo.IndexOf(c);
+                                    if (nextIndex >= 0)
+                                    {
+                                        vLog("charIndex is", nextIndex);
+                                    }
+                                    if (nextIndex == index + 1 || nextIndex == index - 1)
+                                    {
+                                        vLog("failed");
+                                        return false;
+                                    }
+                                    vLog("passed");
+                                }
+                            }
+                            break;
+                        default:
+                            return false;
                     }
+                    return true;
                 }
-                string build = "";
-                List<string> builds = [];
-                foreach (object o in leftSide)
-                {
-                    if (o is string s)
-                    {
-                        build += s;
-                        build += ' ';
-                    }
-                    else if (o is char c)
-                    {
-                        build += c;
-                        build += ' ';
-                    }
-                    else if (o is number num)
-                    {
-                        build += num.getValue(testarray);
-                        build += ' ';
-                    }
-                }
-                double result = Convert.ToDouble(new DataTable().Compute(build, null));
-                build += '=';
-                int answer = -100;
-                if (rightSide != null)
-                {
-                    int? a = rightSide.getValue(testarray);
-                    if (a.HasValue)
-                    {
-                        answer = a.Value;
-                        build += " " + a.Value;
-                    }
-                }
-
-                Engine.Commands.Log($"{build}: {answer == result}");
+                return false;
             }
         }
+        private List<CodeRule> rules = [];
         public const int GeneratorsRequired = 5;
         public class Screen : Entity
         {
@@ -282,8 +197,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public class Fountain : Entity
         {
+            public string Input;
             public Sprite Sprite;
-
             public Fountain(Vector2 position, float width) : base(position)
             {
                 Depth = 9000;
@@ -405,19 +320,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Fountain fountain;
         private Screen screen;
         public Light light;
-        public DashCodeComponent DashCode;
+        public DashListener Listener;
         public DotX3 Talk;
+        public string InputCode = "";
         public FountainBlock(EntityData data, Vector2 offset)
           : base(data.Position + offset)
         {
             Depth = -13000;
             Collider = new Hitbox(data.Width, data.Height);
-            Visible = false;
             fountain = new Fountain(Position, Width);
             light = new Light(Position, Width);
             screen = new Screen(Position, Width);
-            Talk = new DotX3(fountain.Collider, Interact) { PlayerMustBeFacing = false };
-            Talk.DrawAt.X++;
             AddTag(Tags.TransitionUpdate);
         }
         [Command("reveal_fountain", "skips the fountain puzzle")]
@@ -431,7 +344,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-        public class RevealScreenCutscene : CutsceneEntity
+        public override void Update()
+        {
+            base.Update();
+            string output = "Rules:";
+            foreach (CodeRule rule in rules)
+            {
+                rule.RuleMet(InputCode);
+                output += "\n" + "{Rule: " + rule.Orig + ", Valid: " + rule.ValidLog + "}";
+            }
+            output += "\nCode: " + InputCode;
+            fountain.Input = output;
+        }
+        private class RevealScreenCutscene : CutsceneEntity
         {
             private Screen screen;
             private Player player;
@@ -474,7 +399,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 onEnd?.Invoke();
             }
         }
-        public class ScreenCutscene : CutsceneEntity
+        private class ScreenCutscene : CutsceneEntity
         {
             private Screen screen;
             private Player player;
@@ -547,7 +472,88 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-        public class OpenCutscene : CutsceneEntity
+        private class InspectCutscene : CutsceneEntity
+        {
+            private float lerp;
+            private bool inControl;
+            private bool cancelled;
+            private MTexture texture;
+            private VirtualRenderTarget Target;
+            private bool rendered;
+            public InspectCutscene() : base()
+            {
+                Tag |= TagsExt.SubHUD;
+                Target = VirtualContent.CreateRenderTarget("FountainInspectTarget", Engine.Width, Engine.Height);
+                Add(new BeforeRenderHook(() =>
+                {
+                    if (!rendered)
+                    {
+                        Target.SetAsTarget(Color.Black * 0.7f);
+                        Draw.SpriteBatch.Begin();
+                        texture.DrawCentered(new Vector2(Engine.Width, Engine.Height) / 2);
+                        Draw.SpriteBatch.End();
+                        rendered = true;
+                    }
+                }));
+            }
+            public override void Removed(Scene scene)
+            {
+                base.Removed(scene);
+                Target?.Dispose();
+            }
+            public override void Added(Scene scene)
+            {
+                base.Added(scene);
+                texture = GFX.Game["objects/PuzzleIslandHelper/fountainBlock/inspect"];
+            }
+            public override void Update()
+            {
+                base.Update();
+                if (inControl)
+                {
+                    if (Input.MenuCancel)
+                    {
+                        inControl = false;
+                        cancelled = true;
+                    }
+                }
+            }
+            public override void OnBegin(Level level)
+            {
+                level.DisableMovement();
+                Add(new Coroutine(routine()));
+            }
+            private IEnumerator routine()
+            {
+                for (float i = 0; i < 1; i += Engine.DeltaTime)
+                {
+                    float eased = Ease.SineInOut(i);
+                    lerp = eased;
+                    yield return null;
+                }
+                inControl = true;
+                while (!cancelled) yield return null;
+                inControl = false;
+                for (float i = 1; i > 0; i -= Engine.DeltaTime)
+                {
+                    float eased = Ease.SineInOut(i);
+                    lerp = eased;
+                    yield return null;
+                }
+                lerp = 0;
+                EndCutscene(Level);
+            }
+            public override void Render()
+            {
+                base.Render();
+                Draw.SpriteBatch.Draw(Target, Vector2.Zero, Color.White * lerp);
+            }
+            public override void OnEnd(Level level)
+            {
+                level.EnableMovement();
+            }
+        }
+        private class OpenCutscene : CutsceneEntity
         {
             private FountainBlock block;
             private Player player;
@@ -584,7 +590,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public void Interact(Player player)
         {
-            Scene.Add(new ScreenCutscene(player, screen, OnComplete));
+            if (State == FountainStates.Screen)
+            {
+                Scene.Add(new ScreenCutscene(player, screen, OnComplete));
+            }
+            else if (State == FountainStates.Inactive)
+            {
+                Scene.Add(new InspectCutscene());
+            }
         }
         public void OnComplete()
         {
@@ -594,31 +607,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Scene.Add(new OpenCutscene(player, this));
             }
         }
-        private void AddScreenTalkable()
-        {
-            Add(Talk);
-        }
 
         private void EnableScreen(bool instant)
         {
             State = FountainStates.Screen;
             if (instant)
             {
+                Talk.Enabled = true;
                 ScreenState(5);
                 screen.FullyRevealed = true;
                 screen.sprite.Play("idle");
-                AddScreenTalkable();
             }
             else
             {
                 if (Scene is not Level level || level.GetPlayer() is not Player player) return;
-                level.Add(new RevealScreenCutscene(player, screen, this, AddScreenTalkable));
+                Talk.Enabled = false;
+                level.Add(new RevealScreenCutscene(player, screen, this, () => Talk.Enabled = true));
             }
         }
+
         public override void Added(Scene scene)
         {
             base.Added(scene);
             scene.Add(fountain, screen, light);
+            Talk = new DotX3(fountain.Collider, Interact) { PlayerMustBeFacing = false };
+            Talk.DrawAt.X++;
+            fountain.Add(Talk);
             Level level = scene as Level;
             if (level.Session.GetFlag("OpenedFountain"))
             {
@@ -631,7 +645,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             else
             {
                 State = FountainStates.Inactive;
-                Add(DashCode = new DashCodeComponent(OnCode, true, "U, UR, UL, DL, DR, L, R, D"));
+                rules.Add(new CodeRule(0, "<3", 'B'));
+                rules.Add(new CodeRule(1, "<3", '3'));
+                rules.Add(new CodeRule(2, "</3", '3'));
+                rules.Add(new CodeRule(5, "</3", '6'));
+                rules.Add(new CodeRule(4, "</3", '5', '7'));
+                rules.Add(new CodeRule(3, "</3", 'B', 'G'));
+                rules.Add(new CodeRule(5, "<3", 'D', 'F'));
+                Add(Listener = new DashListener(v =>
+                {
+                    if (State == FountainStates.Inactive)
+                    {
+                        v = v.Round();
+                        char c = v == -Vector2.UnitY ? '0'
+                            : v == -Vector2.One ? '1'
+                            : v == -Vector2.UnitX ? '2'
+                            : v == new Vector2(-1, 1) ? '3'
+                            : v == Vector2.UnitY ? '4'
+                            : v == Vector2.One ? '5'
+                            : v == Vector2.UnitX ? '6' : '7';
+                        if (InputCode.Length < 8) InputCode += c;
+                        else InputCode = InputCode[1..] + c;
+                        if (InputCode.Length == 8)
+                        {
+                            foreach (CodeRule rule in rules)
+                            {
+                                if (!rule.RuleMet(InputCode)) return;
+                            }
+                            OnCode();
+                        }
+                    }
+                }));
             }
         }
         public void ScreenState(int frame)
@@ -644,10 +688,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             SceneAs<Level>().Session.SetFlag("OpenedFountain");
             ScreenState(5);
             State = FountainStates.Solved;
-        }
-        public override void Render()
-        {
-            base.Render();
+            Talk.Enabled = false;
         }
         public static IEnumerator CameraToFountain(Level level, FountainBlock block)
         {

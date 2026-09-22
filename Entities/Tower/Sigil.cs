@@ -120,8 +120,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 if (Scene.OnInterval(Engine.DeltaTime * 4f, ActivatedTime))
                 {
                     Image.Color = swap.Current;
-                    swap.AdvanceColors();
-                    scatter.AdvanceColors();
+                    swap.NextColor();
+                    scatter.NextColor();
                 }
             }
             else

@@ -21,7 +21,6 @@ function _q.selection(room, entity)
 end
 _q.placements =
 {
-    {
         name = "Security Laser",
         data = {
         invisible = false,
@@ -36,13 +35,12 @@ _q.placements =
         isTimed = false,
         timer = 1,
         dangerous = false,
-        flagOnCrossed = "flag_on_crossed",
-        flagOnCrossedState = false,
+        flagOnCrossed = "",
+        flagOnCrossedState = true,
         respectCollisions = true,
-        timeDelay = 0
+        timeDelay = 0,
+        dangerous = false
         }
-    }
-
 }
 _q.fieldInformation =
 {

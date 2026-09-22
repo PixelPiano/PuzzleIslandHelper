@@ -11,6 +11,7 @@ detectArea.placements =
             prefix = "",
             flagOnActive = "",
             activateFlag = "",
+            disableFlags = ""
         }
     },
 }

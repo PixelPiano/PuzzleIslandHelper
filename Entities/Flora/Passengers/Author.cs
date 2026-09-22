@@ -22,7 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             if (IntroOneWatched)
             {
                 Bake();
-                if (Marker.TryFind("authorDefault", out var position))
+                if (Marker.TryFind("authorDefault", out Vector2 position))
                 {
                     X = position.X;
                     Facing = Facings.Right;
@@ -31,7 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers
             else
             {
                 Bake();
-                if (Marker.TryFind("authorWait", out var position))
+                if (Marker.TryFind("authorWait", out Vector2 position))
                 {
                     X = position.X;
                     Facing = Facings.Left;

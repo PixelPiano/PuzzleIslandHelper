@@ -17,7 +17,11 @@ blowAwayDecal.placements = {
         easeDown = false,
         waveSpeed = 4,
         waveAmplitude = 1,
-        persistent = false
+        persistent = false,
+        rippleWait = 0,
+        rippleEaseTime = 0,
+        rippleAmplitudeAdd = 0,
+        periodicRipple = false
     }
 }
 function blowAwayDecal.sprite(room, entity)

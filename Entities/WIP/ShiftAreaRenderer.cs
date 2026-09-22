@@ -75,7 +75,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone, null, matrix);
             if (area.OnScreen)
             {
-                Draw.SpriteBatch.Draw(FG ? area.FGTarget : area.BGTarget, add, null, area.AreaColor * area.Alpha, 0, Vector2.Zero, Vector2.One, SpriteEffects.None, 0);
+                var target = FG ? area.FGTarget : area.BGTarget;
+                Draw.SpriteBatch.Draw(target, add + target.HalfSize(), null, area.AreaColor * area.Alpha, area.Rotation, target.HalfSize(), Vector2.One, SpriteEffects.None, 0);
             }
             area.AfterRender(level);
             Draw.SpriteBatch.End();

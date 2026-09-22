@@ -306,6 +306,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             pipeTexture = GFX.Game["objects/PuzzleIslandHelper/drillMachine/plates"];
             Depth = 2;
             addVisuals();
+            Tag |= Tags.TransitionUpdate;
         }
         public static Direction GetPipeExitDirection(Vector2 exit, Vector2 previous)
         {

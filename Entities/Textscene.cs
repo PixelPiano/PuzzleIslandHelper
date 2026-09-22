@@ -188,8 +188,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                             if (c.Character != ' ')
                             {
                                 PixelFontCharacter ch = size.Get(c.Character);
-                                _offset.X = Offset + c.Position + c.Offset.X + ch.XOffset + ch.XAdvance;
-                                _offset.Y = nodeYOffset + c.Offset.Y - FText.BaseSize / 8;
+                                _offset.X = Offset + c.Position + c.GroupOffset.X + ch.XOffset + ch.XAdvance;
+                                _offset.Y = nodeYOffset + c.GroupOffset.Y - FText.BaseSize / 8;
                                 _color = c.Color;
                             }
                             yield return c.Delay * (SpeedUp ? 0.1f : 1.5f);

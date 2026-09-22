@@ -135,6 +135,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.InterfaceEntities.FakeTerminal
                 yield break;
             }
             yield return Loading("Scanning", null, 0.3f, 0.7f, true);
+            int corruptionPoints = 0;
+            if (corruptionPoints == 0)
+            {
+                yield return AddText("No drastic corruption detected in surrounding areas. Have a good day!", Color.LimeGreen);
+            }
             yield return AddText("Scan complete!", Color.LimeGreen);
             yield return AddText("Please select an area box below to modify.", Color.LimeGreen);
             yield return AddText("\t 1     2     3    4    5    6", Color.White);

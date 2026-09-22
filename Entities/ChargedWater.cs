@@ -99,7 +99,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public ChargedWater(EntityData data, Vector2 offset) : base(CreateData(data), offset)
         {
             UsedInCutscene = data.Bool("usedInCutscene");
-            flag = data.FlagList();
+            flag = data.FlagList("flag");
             BubbleType = data.Enum<Bubble.BubbleType>("bubbleType");
             LeftSide = data.Bool("bubbleLeft");
             RightSide = data.Bool("bubbleRight");

@@ -1,4 +1,5 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -24,6 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static string TargetID;
         private readonly TalkComponent talk;
         public bool FlagEmpty => string.IsNullOrEmpty(flag);
+        private bool isElderLock;
         public void ResetDoor()
         {
             unlocked = false;
@@ -32,6 +34,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public RuinsDoor(EntityData data, Vector2 offset, EntityID id)
         : base(data.Position + offset)
         {
+            isElderLock = data.Bool("isElderLock");
             this.id = id;
             KeyId = data.Int("keyId", -1);
             dialogue = data.Attr("dialog", "noDialogueEntered");
@@ -51,6 +54,41 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(talk = new TalkComponent(new Rectangle(0, 0, (int)Width, (int)Height), Vector2.UnitX * Width / 2, Interact));
         }
         private bool resetState = true;
+        private IEnumerator elderLockRoutine(Player player)
+        {
+            if (PianoModule.Session.DoorIds.Contains(id))
+            {
+                Transition(player);
+                yield break;
+            }
+            ElderLock elderLock = new ElderLock();
+            Scene.Add(elderLock);
+            player.DisableMovement();
+            while (elderLock.Running)
+            {
+                yield return null;
+            }
+            if (elderLock.Solved)
+            {
+                if (!unlocked)
+                {
+                    //todo: play unlocking sound
+                    EventInstance sfx;
+                    sfx = Audio.Play("event:/PianoBoy/stool_hit_ground", Position);
+                    while (Audio.IsPlaying(sfx))
+                    {
+                        yield return null;
+                    }
+                    PianoModule.Session.DoorIds.Add(id);
+                    unlocked = true;
+                    Transition(player);
+                }
+            }
+            else
+            {
+                player.EnableMovement();
+            }
+        }
         private void Transition(Player player)
         {
             AddTag(Tags.Global);
@@ -137,7 +175,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         private void Interact(Player player)
         {
-            if (!string.IsNullOrEmpty(dialogue) || KeyId != -1)
+
+            if (isElderLock)
+            {
+                Add(new Coroutine(elderLockRoutine(player)));
+            }
+            else if (!string.IsNullOrEmpty(dialogue) || KeyId != -1)
             {
                 Add(new Coroutine(DialogCutscene(player, KeyId, dialogue)));
             }

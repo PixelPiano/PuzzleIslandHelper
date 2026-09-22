@@ -1,7 +1,7 @@
 using Celeste.Mod.Core;
 using Celeste.Mod.PuzzleIslandHelper.Boss.Actions;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -17,7 +17,7 @@ using System.Linq;
 using System.Reflection;
 using System.Xml;
 using static Celeste.Mod.PuzzleIslandHelper.Boss.ActionRegistry;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity.SingularityBoss;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Boss
 {
@@ -89,7 +89,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss
                 string output = Name;
                 foreach (var pair in Attributes)
                 {
-                    output += '(' + pair.Key + " = " + pair.Value + "), ";
+                    output += '(' + pair.Key + " = " + pair.Value.Value + "), ";
                 }
 
                 return output;
@@ -100,10 +100,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss
             public string Name;
             public int Health;
             public string Next;
-            public bool Loops;
             public XmlNode Base;
             public ActionInfo[] Actions;
-            public IEnumerator Routine(Singularity s)
+            public IEnumerator Routine(SingularityBoss s)
             {
                 if (Actions.Length == 0)
                 {
@@ -251,6 +250,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss
                 }
             }
             info.Health = pattern.AttrInt("health", -1);
+            info.Next = pattern.Attr("next", "");
             info.Name = name;
             info.Actions = [.. actions];
 
@@ -457,9 +457,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss
         {
             public abstract string Name { get; }
             public abstract bool Dummy { get; }
-            public event Action<Singularity> OnUpdate;
-            public event Action<Singularity> OnBegin;
-            public event Action<Singularity> OnEnd;
+            public event Action<SingularityBoss> OnUpdate;
+            public event Action<SingularityBoss> OnBegin;
+            public event Action<SingularityBoss> OnEnd;
             public virtual void SetValue(string name, string value)
             {
                 Type t = GetType();
@@ -517,24 +517,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss
                 Engine.Commands.Log(output);
             }
             public abstract void Parse(XmlActionData xml);
-            public virtual void Begin(Singularity s)
+            public virtual void Reset(SingularityBoss s)
+            {
+
+            }
+            public virtual void Begin(SingularityBoss s)
             {
                 OnBegin?.Invoke(s);
             }
-            public virtual void Update(Singularity s)
+            public virtual void Update(SingularityBoss s)
             {
                 OnUpdate?.Invoke(s);
             }
-            public virtual void End(Singularity s, bool wasSkipped)
+            public virtual void End(SingularityBoss s, bool wasSkipped)
             {
                 OnEnd?.Invoke(s);
             }
-            public abstract bool ContinueToNextAction(Singularity s);
+            public abstract bool ContinueToNextAction(SingularityBoss s);
             public override string ToString()
             {
                 return base.ToString();
             }
-            public virtual IEnumerator Routine(Singularity s)
+            public virtual IEnumerator Routine(SingularityBoss s)
             {
                 Engine.Commands.Log("Starting Action:" + Name);
                 Begin(s);
@@ -551,7 +555,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss
             public int RequiredOrbs;
             public bool CanContinue;
             public HashSet<Orb> FinishedOrbs = [];
-            public override IEnumerator Routine(Singularity s)
+            public override IEnumerator Routine(SingularityBoss s)
             {
                 Begin(s);
                 while (!ContinueToNextAction(s))
@@ -569,7 +573,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss
                 orb.Attacking = false;
             }
             public abstract bool ContinueToNextActionOrb(Orb orb);
-            public override bool ContinueToNextAction(Singularity s)
+            public override bool ContinueToNextAction(SingularityBoss s)
             {
                 return CanContinue;
             }
@@ -579,6 +583,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss
 
         [Command("load_actions", "")]
         [OnLoad]
+        [OnLoadContent]
         public static void Load()
         {
             _loaded = false;

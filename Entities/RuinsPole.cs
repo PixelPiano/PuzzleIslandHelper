@@ -13,8 +13,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private List<Image> images = new();
         private const string path = "objects/PuzzleIslandHelper/ruinsPole/";
         private const int maxBroken = 2;
-        public RuinsPole(Vector2 position, int height, int topNum, int bottomNum, bool forElevator, bool crystalized, bool brokenTop, bool brokenBottom, bool monument, bool required) : base(position)
+        private FlagList flag;
+        public RuinsPole(Vector2 position, int height, int topNum, int bottomNum, bool forElevator, bool crystalized, bool brokenTop, bool brokenBottom, bool monument, bool required, FlagList flag = default) : base(position)
         {
+            this.flag = flag;
             Depth = 9001;
             Tag |= Tags.TransitionUpdate;
             MTexture tex = GFX.Game[path + (crystalized ? "crystalTexture" : "texture")];
@@ -74,7 +76,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 });
             }
         }
-        
-        public RuinsPole(EntityData data, Vector2 offset) : this(data.Position + offset, data.Height, data.Int("topNum"), data.Int("bottomNum"), data.Bool("forElevator"), data.Bool("crystalized"), data.Bool("brokenTop"), data.Bool("brokenBottom"), data.Bool("monument"), data.Bool("requiredForMonument")) { }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            if(!flag) RemoveSelf();
+        }
+
+        public RuinsPole(EntityData data, Vector2 offset) : this(data.Position + offset, data.Height, data.Int("topNum"), data.Int("bottomNum"), data.Bool("forElevator"), data.Bool("crystalized"), data.Bool("brokenTop"), data.Bool("brokenBottom"), data.Bool("monument"), data.Bool("requiredForMonument"), data.FlagList("flag")) { }
     }
 }

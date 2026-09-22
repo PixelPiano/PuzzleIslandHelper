@@ -1,10 +1,10 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections;
 using System.Xml;
 using static Celeste.Mod.PuzzleIslandHelper.Boss.ActionRegistry;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity.SingularityBoss;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
 {
@@ -25,7 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
             }
             Bounces = XMLParse.Get(dict, "bounces", 2);
         }
-        public override void Begin(Singularity s)
+        public override void Begin(SingularityBoss s)
         {
             if (Direction.HasValue)
             {
@@ -36,9 +36,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
                 s.Slam(Speed, Bounces);
             }
         }
-        public override bool ContinueToNextAction(Singularity s)
+        public override bool ContinueToNextAction(SingularityBoss s)
         {
-            return s.StateMachine.State != Singularity.StSlam;
+            return s.StateMachine.State != SingularityBoss.StSlam;
         }
     }
 }

@@ -8,7 +8,7 @@ using System;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [CustomEntity("PuzzleIslandHelper/CustomFancyDashBlock")]
-    [Tracked]
+    [TrackedAs(typeof(DashBlock))]
     public class CustomFancyDashBlock : FancyDashBlock
     {
         public string Flag;
@@ -18,7 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Flag = data.Attr("flag");
             Value = data.Bool("setFlagTo");
-            CanBoost = data.Bool("canBoost",true);
+            CanBoost = data.Bool("canBoost", true);
             OnDashCollide = NewOnDashed;
         }
         public DashCollisionResults NewOnDashed(Player player, Vector2 direction)

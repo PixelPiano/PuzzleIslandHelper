@@ -90,7 +90,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 else
                 {
-                    shaker.StartShaking(shakeTime);
+                    shaker.ShakeFor(shakeTime);
                 }
             }
         }

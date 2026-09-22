@@ -131,6 +131,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
         public bool Inverted;
         public int LineThickness = 1;
         private float cacheWindow = 1;
+        public Vector2 Speed;
         public bool State
         {
             get
@@ -181,7 +182,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             int extend = 1;
             Vector2 topLeft = Box.Position - (Vector2.One * extend * 8);
             Vector2 bottomRight = Box.BottomRight + (Vector2.One * extend * 8);
-            FurthestBounds = PianoUtils.CreateRectangle(topLeft, bottomRight);
+            FurthestBounds = new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)(bottomRight.X - topLeft.X), (int)(bottomRight.Y - topLeft.Y));
             int width = FurthestBounds.Width;
             int height = FurthestBounds.Height;
             try
@@ -234,12 +235,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 }
             }
         }
+        public float Rotation;
+        public float RotationRate;
         public override void Update()
         {
             if (cacheWindow > 0)
             {
                 cacheWindow -= Engine.DeltaTime;
             }
+            Position += Speed * Engine.DeltaTime;
+            Rotation += RotationRate;
             UpdateVertices();
             base.Update();
         }

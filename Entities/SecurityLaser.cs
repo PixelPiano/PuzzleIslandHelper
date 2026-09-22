@@ -13,55 +13,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class SecurityLaser : Entity
     {
-        #region Variables
-
         private float timeDelay;
-        private int ElectricBuffer;
-        private bool IsTimed;
-        private bool OnScreen;
-        private Color StateColor
+        private int electricBuffer;
+        private bool isTimed;
+        private bool onScreen;
+        private Color stateColor
         {
             get
             {
                 Color color;
-                if (State)
+                if (deactivated)
                 {
-                    color = GoodColor;
+                    color = goodColor;
                 }
                 else
                 {
-                    color = BadColor;
-                    if (Dangerous)
+                    color = badColor;
+                    if (dangerous)
                     {
-                        color = Color.Lerp(Color.Orange, BadColor, dangerColorLerp);
+                        color = Color.Lerp(Color.Orange, badColor, dangerColorLerp);
                     }
 
                 }
                 return color;
             }
         }
-        private bool RespectCollision;
-
-        private Entity CollisionCheck;
-        private Vector2 TopBound;
-        private Vector2 _End;
-        private Vector2 BottomBound;
+        private bool respectCollision;
+        private Vector2 topBound;
+        private Vector2 bottomBound;
         private Player player;
-        private Entity BaseEntity;
-        private Entity NodeEntity;
-        public static bool Alert;
-        private float LaserOpacity = 1;
-        private float LaserWidth = 2;
-        private Sprite NodeSprite;
-        private Sprite BaseSprite;
-        private Vector2 Node;
-        private bool AlarmGuns;
-        private Vector2 Start;
-        private Vector2 End;
-        private bool RotateSprites;
-        private bool Dangerous;
-        private Vector2 offset;
-        private bool State
+        private Entity baseEntity;
+        private Entity nodeEntity;
+        private float laserOpacity = 1;
+        private float laserWidth = 2;
+        private Sprite nodeSprite;
+        private Sprite baseSprite;
+        private Vector2 node;
+        private Vector2 start;
+        private Vector2 end;
+        private bool rotateSprites;
+        private bool dangerous;
+        private bool deactivated
         {
             get
             {
@@ -70,7 +62,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     return false;
                 }
-
                 if (inverted)
                 {
                     return level.Session.GetFlag(flag);
@@ -82,85 +73,357 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             }
         }
-        private bool CollideRoutine;
-        private Color GoodColor;
-        private Color BadColor;
+        private Color goodColor;
+        private Color badColor;
         private bool inverted;
-        private string GunID;
+        private string gunID;
         private float colorLerp;
         private string flag;
-        private Alarm Alarm;
-        private bool On;
+        private bool detecting;
         private int randomize;
-        private Vector2[] Lines = new Vector2[4];
-        private VertexLight Light;
+        private VertexLight light;
         private Color _G, _B;
-        private List<Point> Points = new();
+        private List<Vector2> points = new();
         private int range;
-        private string crossedFlag;
-        private bool crossedFlagState;
         private float dangerColorLerp;
-        private float Timer;
-        private bool GunState;
-        #endregion
-        private List<Point> GetPoints(Vector2 start, Vector2 end, int range)
+        private float duration;
+        public Tween FlickerTween;
+        public bool Alerting;
+        private float opacityBeforeTween;
+        public bool LaserActive => !isTimed || detecting;
+        private Vector2 prevBase, prevNode;
+        private FlagData flagToSet;
+        private bool pauseCollisionChecks;
+        public SecurityLaser(EntityData data, Vector2 offset)
+        : base(data.Position + offset)
         {
-            List<Point> list = new();
+            Add(new TransitionListener()
+            {
+                OnOutBegin = () =>
+                {
+                    pauseCollisionChecks = true;
+                }
+            });
+            Visible = data.Bool("visible", true);
+            duration = data.Float("timer", 1);
+            timeDelay = data.Float("WaitTime", 0);
+            respectCollision = data.Bool("respectCollisions", true);
+            flagToSet = new FlagData(data.Attr("flagOnCrossed"), !data.Bool("flagOnCrossedState"));
+            dangerous = data.Bool("dangerous");
+            isTimed = data.Bool("isTimed");
+            rotateSprites = data.Bool("rotateSprites", false);
+            Tag |= Tags.TransitionUpdate;
+            goodColor = _G = data.HexColor("safeColor", Color.LightGreen);
+            badColor = _B = data.HexColor("dangerousColor", Color.Red);
+
+            flag = data.Attr("flag");
+            inverted = data.Bool("inverted");
+            node = data.Nodes[0] + offset;
+            Depth = -10001;
+            gunID = data.Attr("gunID");
+            baseSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/securityLaser/");
+            baseSprite.AddLoop("idle", "emitter", 0.1f);
+
+            nodeSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/securityLaser/");
+            nodeSprite.AddLoop("idle", "emitter", 0.1f);
+
+            start = Position + new Vector2(4);
+            end = node + new Vector2(4);
+            light = new VertexLight(start - Position, Color.White, Visible ? 1 : 0, (int)laserWidth, (int)laserWidth + 5);
+            setAngles();
+            Collider = new Hitbox(Width, Height);
+            baseEntity = new Entity(start);
+            nodeEntity = new Entity(end);
+            nodeEntity.Depth = -10003;
+            baseEntity.Depth = -10002;
+            baseEntity.Add(baseSprite);
+            nodeEntity.Add(nodeSprite);
+            baseSprite.CenterOrigin();
+            nodeSprite.CenterOrigin();
+            if (Visible)
+            {
+                baseSprite.Play("idle");
+                nodeSprite.Play("idle");
+            }
+
+            baseEntity.Collider = new Hitbox(8, 8, -4, -4);
+            nodeEntity.Collider = new Hitbox(8, 8, -4, -4);
+
+            nodeEntity.Add(new StaticMover
+            {
+                OnShake = nodeOnShake,
+                SolidChecker = nodeIsRiding,
+                OnDestroy = nodeEntity.RemoveSelf
+            });
+            baseEntity.Add(new StaticMover
+            {
+                OnShake = baseOnShake,
+                SolidChecker = baseIsRiding,
+                OnDestroy = baseEntity.RemoveSelf
+            });
+            FlickerTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.Linear, .25f, false);
+            FlickerTween.OnUpdate = t => laserOpacity = Calc.LerpClamp(opacityBeforeTween, 0, t.Eased);
+            Add(FlickerTween);
+        }
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            scene.Add(baseEntity);
+            scene.Add(nodeEntity);
+            if (Visible)
+            {
+                Tween LightTween = Tween.Create(Tween.TweenMode.Looping, Ease.SineInOut, 2);
+                LightTween.OnUpdate = (t) =>
+                {
+                    if (isTimed)
+                    {
+                        light.Visible = detecting;
+                    }
+                    light.Position = Calc.LerpSnap(start, end, t.Eased) - Position;
+                };
+                Tween ColorTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, 1);
+                ColorTween.OnUpdate = (t) =>
+                {
+                    goodColor = Color.Lerp(_G, Color.White, t.Eased / 4f);
+                    badColor = Color.Lerp(_B, Color.White, t.Eased / 4f);
+                };
+                Add(light);
+                Add(LightTween, ColorTween);
+                LightTween.Start();
+                ColorTween.Start();
+
+                if (isTimed)
+                {
+                    Add(new Coroutine(alarmRoutine(timeDelay)));
+                }
+            }
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
+            Collider = new Hitbox(8, 8);
+            Level level = scene as Level;
+            player = level.Tracker.GetEntity<Player>();
+            if (Visible)
+            {
+                Tween colorTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.Follow(Ease.SineInOut, Ease.CubeInOut), 0.8f);
+                colorTween.OnUpdate = (t) =>
+                {
+                    colorLerp = Calc.LerpClamp(0.1f, 0.4f, t.Eased);
+                };
+                Add(colorTween);
+                colorTween.Start();
+            }
+            if (respectCollision)
+            {
+                setBounds(baseEntity.Position, nodeEntity.Position);
+                Vector2? Ray = DoRaycast(scene, topBound, bottomBound);
+                if (Ray is not null && !SceneAs<Level>().Transitioning)
+                {
+                    end = Ray.Value;
+                }
+                else
+                {
+                    end = nodeEntity.Position;
+                }
+            }
+            prevBase = baseEntity.Position;
+            prevNode = nodeEntity.Position;
+        }
+        public override void Update()
+        {
+            base.Update();
+            if (Scene is not Level level) return;
+
+            dangerColorLerp = Calc.Random.Choose(1, 0.5f, 0.3f, 0.8f, 0);
+            nodeSprite.Color = Color.Lerp(stateColor, Color.Black, 0.3f);
+            baseSprite.Color = Color.Lerp(stateColor, Color.White, 0.6f);
+            start = baseEntity.Position;
+            end = nodeEntity.Position;
+            Camera camera = level.Camera;
+            Rectangle c = new Rectangle((int)camera.X, (int)camera.Y, 320, 180);
+            onScreen = Collide.RectToLine(c, start, end);
+            if (respectCollision)
+            {
+                if (!pauseCollisionChecks)
+                {
+                    if ((prevBase != start || prevNode != end))
+                    {
+                        setBounds(start, end);
+                    }
+                    Vector2? ray = DoRaycast(Scene, topBound, bottomBound);
+                    if (ray is not null && !SceneAs<Level>().Transitioning)
+                    {
+                        end = ray.Value;
+                    }
+                    else
+                    {
+                        end = nodeEntity.Position;
+                    }
+                }
+            }
+            else
+            {
+                end = nodeEntity.Position;
+            }
+            prevBase = baseEntity.Position;
+            prevNode = nodeEntity.Position;
+            if (Collidable && player != null && player.Collidable && Collide.RectToLine(player.Collider.Bounds, start, end))
+            {
+                OnPlayer(player);
+            }
+            if (onScreen)
+            {
+                electricBuffer--;
+                if (LaserActive && !deactivated && electricBuffer <= 0)
+                {
+                    randomize = Math.Max(randomize - 1, 0);
+                    if ((dangerous && randomize == 0) || (points == null || points.Count == 0))
+                    {
+                        range = Calc.Random.Range(1, 4);
+                        points = GetPoints(start, end + Vector2.One, range);
+                        randomize = 2;
+                    }
+                }
+            }
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            baseEntity.RemoveSelf();
+            nodeEntity.RemoveSelf();
+        }
+        public override void Render()
+        {
+            base.Render();
+
+            if (onScreen)
+            {
+                baseSprite.DrawOutline(stateColor * colorLerp);
+                nodeSprite.DrawOutline(stateColor * colorLerp);
+                if (LaserActive)
+                {
+                    Draw.Line(start, end, Color.Lerp(stateColor, Color.Black, 0.5f) * laserOpacity * 0.2f, laserWidth + 4);
+                    Draw.Line(start, end, Color.Lerp(stateColor, Color.Black, 0.3f) * laserOpacity * 0.2f, laserWidth + 2);
+                    Draw.Line(start, end, stateColor * laserOpacity, laserWidth);
+                    if (!deactivated && dangerous && electricBuffer <= 0 && points != null && points.Count > 1)
+                    {
+                        for (int i = 1; i < points.Count; i++)
+                        {
+                            float Opacity = Calc.Random.Range(1f, 0.4f);
+                            float Lerp = Calc.Random.Range(0, 1f);
+                            int thicc = Calc.Random.Range(1, 3);
+                            Draw.Line(points[i], points[i - 1], Color.Lerp(Color.OrangeRed, Color.Yellow, Lerp) * Opacity, thicc);
+                        }
+                    }
+                }
+            }
+        }
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            Draw.Line(start, end, Color.Yellow);
+            Draw.Line(topBound, bottomBound, Color.Green * 0.6f, laserWidth);
+            Draw.Point(topBound, Color.White);
+            Draw.Point(bottomBound, Color.LightGreen);
+        }
+        public void OnPlayer(Player player)
+        {
+            if (LaserActive)
+            {
+                if (!deactivated)
+                {
+                    if (dangerous && !player.Dead)
+                    {
+                        player.Die(Vector2.Zero);
+                    }
+                    else if (!Alerting)
+                    {
+                        OnCrossed();
+                    }
+                }
+            }
+
+        }
+        public void OnCrossed()
+        {
+            flagToSet.State = true;
+            opacityBeforeTween = laserOpacity;
+            FlickerTween.Start();
+        }
+        private IEnumerator alarmRoutine(float delay)
+        {
+            if (delay > 0) yield return delay;
+            while (true)
+            {
+                yield return duration;
+                detecting = !detecting;
+            }
+        }
+        private void setBounds(Vector2 from, Vector2 to)
+        {
+            Vector2 position = from.Round();
+            while (position != to)
+            {
+                if (!Scene.CollideCheck<Solid>(position))
+                {
+                    topBound = position;
+                    position = to;
+                    break;
+                }
+                position = Calc.Approach(position, to, 1);
+            }
+            while (position != from)
+            {
+                if (!Scene.CollideCheck<Solid>(position))
+                {
+                    bottomBound = position;
+                    return;
+                }
+                position = Calc.Approach(position, from, 1);
+            }
+        }
+        private bool nodeIsRiding(Solid solid)
+        {
+            return nodeEntity.CollideCheck(solid);
+        }
+        private void nodeOnShake(Vector2 pos)
+        {
+            nodeSprite.Position += pos;
+        }
+        private void baseOnShake(Vector2 pos)
+        {
+            baseSprite.Position += pos;
+        }
+        private bool baseIsRiding(Solid solid)
+        {
+            return baseEntity.CollideCheck(solid);
+        }
+        private void setAngles()
+        {
+            if (!rotateSprites)
+            {
+                return;
+            }
+            Vector2 a = node;
+            Vector2 b = Position;
+            float Angle = (float)Math.Atan2(b.Y - a.Y, b.X - a.X);
+            baseSprite.Rotation = Angle - MathHelper.PiOver2;
+            nodeSprite.Rotation = Angle + MathHelper.PiOver2;
+        }
+        private List<Vector2> GetPoints(Vector2 start, Vector2 end, int range)
+        {
+            List<Vector2> list = new();
             int points = (int)Vector2.Distance(start, end);
             for (int i = 0; i < points / 4; i++)
             {
                 Vector2 position = Vector2.Lerp(start, end, i / (float)points * 4);
                 int xVar = Calc.Random.Range(-range, range + 1);
                 int yVar = Calc.Random.Range(-range, range + 1);
-                list.Add(new Point((int)position.X + xVar, (int)position.Y + yVar));
+                list.Add(new Vector2((int)position.X + xVar, (int)position.Y + yVar));
             }
 
             return list;
-        }
-        public override void Removed(Scene scene)
-        {
-            base.Removed(scene);
-            BaseEntity.RemoveSelf();
-            NodeEntity.RemoveSelf();
-        }
-        public override void Update()
-        {
-            base.Update();
-            if (Scene is not Level level) return;
-            Camera camera = level.Camera;
-            Rectangle c = new Rectangle((int)camera.X, (int)camera.Y, 320, 180);
-            OnScreen = Collide.RectToLine(c, Start, End);
-
-            dangerColorLerp = Calc.Random.Choose(1, 0.5f, 0.3f, 0.8f, 0);
-            NodeSprite.Color = Color.Lerp(StateColor, Color.Black, 0.3f);
-            BaseSprite.Color = Color.Lerp(StateColor, Color.White, 0.6f);
-            Start = BaseEntity.Position;
-            End = NodeEntity.Position;
-
-            SetBounds(BaseEntity.Center, NodeEntity.Center, CollisionCheck);
-
-            if (RespectCollision)
-            {
-                Vector2? Ray = DoRaycast(Scene, TopBound, BottomBound);
-                if (Ray is not null && !SceneAs<Level>().Transitioning)
-                {
-                    End = Ray.Value;
-                }
-                else
-                {
-                    End = NodeEntity.Position;
-                }
-            }
-            else
-            {
-                End = NodeEntity.Position;
-            }
-
-            if (PlayerCollide(player) && !CollideRoutine && (!IsTimed || On))
-            {
-                Add(new Coroutine(PlayerCollide()));
-            }
-
         }
         public static Vector2? DoRaycast(Scene scene, Vector2 start, Vector2 end)
         => DoRaycast(scene.Tracker.GetEntities<Solid>().Select(s => s.Collider), start, end);
@@ -249,354 +512,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
             return null;
-        }
-        public SecurityLaser(EntityData data, Vector2 offset)
-        : base(data.Position + offset)
-        {
-            Visible = data.Bool("visible", true);
-            this.offset = offset;
-            #region Finished
-            GunState = data.Bool("gunState");
-            Timer = data.Float("scaleTimer", 1);
-            timeDelay = data.Float("WaitTime", 0);
-            RespectCollision = data.Bool("respectCollisions", true);
-            crossedFlag = data.Attr("flagOnCrossed");
-            crossedFlagState = data.Bool("flagOnCrossedState");
-            Dangerous = data.Bool("dangerous");
-            IsTimed = data.Bool("isTimed");
-            RotateSprites = data.Bool("rotateSprites", false);
-            Tag |= Tags.TransitionUpdate;
-            GoodColor = _G = data.HexColor("safeColor", Color.LightGreen);
-            BadColor = _B = data.HexColor("dangerousColor", Color.Red);
-
-            flag = data.Attr("flag");
-            inverted = data.Bool("invertFlag");
-            Node = data.Nodes[0] + offset;
-            Depth = -10001;
-            AlarmGuns = data.Bool("alertAllGuns");
-            GunID = data.Attr("gunID");
-            BaseSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/securityLaser/");
-            BaseSprite.AddLoop("idle", "emitter", 0.1f);
-
-            NodeSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/securityLaser/");
-            NodeSprite.AddLoop("idle", "emitter", 0.1f);
-
-            Start = Position + new Vector2(4);
-            End = _End = Node + new Vector2(4);
-            Light = new VertexLight(Start - Position, Color.White, Visible ? 1 : 0, (int)LaserWidth, (int)LaserWidth + 5);
-            SetAngles();
-            Collider = new Hitbox(Width, Height);
-            BaseEntity = new Entity(Start);
-            NodeEntity = new Entity(End);
-            NodeEntity.Depth = -10003;
-            BaseEntity.Depth = -10002;
-            BaseEntity.Add(BaseSprite);
-            NodeEntity.Add(NodeSprite);
-            BaseSprite.CenterOrigin();
-            NodeSprite.CenterOrigin();
-            if (Visible)
-            {
-                BaseSprite.Play("idle");
-                NodeSprite.Play("idle");
-            }
-
-            BaseEntity.Collider = new Hitbox(8, 8, -4, -4);
-            NodeEntity.Collider = new Hitbox(8, 8, -4, -4);
-
-            NodeEntity.Add(new StaticMover
-            {
-                OnShake = NodeOnShake,
-                SolidChecker = NodeIsRiding,
-                OnDestroy = NodeEntity.RemoveSelf
-            });
-            BaseEntity.Add(new StaticMover
-            {
-                OnShake = BaseOnShake,
-                SolidChecker = BaseIsRiding,
-                OnDestroy = BaseEntity.RemoveSelf
-            });
-            #endregion
-        }
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            #region Finished
-            scene.Add(BaseEntity);
-            scene.Add(NodeEntity);
-            scene.Add(CollisionCheck = new Entity(Position));
-            CollisionCheck.Collider = new Hitbox(1, 1);
-            if (Visible)
-            {
-                Tween LightTween = Tween.Create(Tween.TweenMode.Looping, Ease.SineInOut, 2);
-                LightTween.OnUpdate = (t) =>
-                {
-                    if (IsTimed)
-                    {
-                        Light.Visible = On;
-                    }
-                    Light.Position = Calc.LerpSnap(Start, End, t.Eased) - Position;
-                };
-                Tween ColorTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, 1);
-                ColorTween.OnUpdate = (t) =>
-                {
-                    GoodColor = Color.Lerp(_G, Color.White, t.Eased / 4f);
-                    BadColor = Color.Lerp(_B, Color.White, t.Eased / 4f);
-                };
-                Add(Light);
-                Add(LightTween, ColorTween);
-                LightTween.Start();
-                ColorTween.Start();
-
-                if (IsTimed)
-                {
-                    bool Condition = timeDelay <= 0;
-                    Alarm = Alarm.Create(Alarm.AlarmMode.Looping, delegate { On = !On; }, Timer, Condition);
-                    Add(Alarm);
-                    if (!Condition)
-                    {
-                        Alarm Delay = Alarm.Create(Alarm.AlarmMode.Oneshot, Alarm.Start, timeDelay, true);
-                        Add(Delay);
-                    }
-                }
-            }
-            #endregion
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-            Level level = scene as Level;
-            #region Finished
-            Alert = false;
-            player = level.Tracker.GetEntity<Player>();
-            if (Visible)
-            {
-                Tween colorTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.Follow(Ease.SineInOut, Ease.CubeInOut), 0.8f);
-                colorTween.OnUpdate = (t) =>
-                {
-                    colorLerp = Calc.LerpClamp(0.1f, 0.4f, t.Eased);
-                };
-                Add(colorTween);
-                colorTween.Start();
-            }
-            SetBounds(BaseEntity.Center, NodeEntity.Center, CollisionCheck);
-            Collider = new Hitbox(8, 8);
-            if (RespectCollision)
-            {
-                Vector2? Ray = DoRaycast(scene, TopBound, BottomBound);
-                if (Ray is not null && !SceneAs<Level>().Transitioning)
-                {
-                    End = Ray.Value;
-                }
-                else
-                {
-                    End = NodeEntity.Position;
-                }
-            }
-            else
-            {
-                End = NodeEntity.Position;
-            }
-            #endregion
-        }
-
-        public override void Render()
-        {
-            base.Render();
-
-            if (OnScreen)
-            {
-                ElectricBuffer--;
-                BaseSprite.DrawOutline(StateColor * colorLerp);
-                NodeSprite.DrawOutline(StateColor * colorLerp);
-                if (!IsTimed || On)
-                {
-                    Draw.Line(Start, End, Color.Lerp(StateColor, Color.Black, 0.5f) * LaserOpacity * 0.2f, LaserWidth + 4);
-                    Draw.Line(Start, End, Color.Lerp(StateColor, Color.Black, 0.3f) * LaserOpacity * 0.2f, LaserWidth + 2);
-                    Draw.Line(Start, End, StateColor * LaserOpacity, LaserWidth);
-                    if (!State && ElectricBuffer <= 0)
-                    {
-                        if (Dangerous && randomize == 0)
-                        {
-                            range = Calc.Random.Range(1, 4);
-                            Points = GetPoints(Start, End + Vector2.One, range);
-                            randomize = 3;
-                        }
-                        randomize--;
-                        for (int i = 1; i < Points.Count; i++)
-                        {
-                            float Opacity = Calc.Random.Range(1f, 0.4f);
-                            float Lerp = Calc.Random.Range(0, 1f);
-                            int thicc = Calc.Random.Range(1, 3);
-                            Draw.Line(Points[i].ToVector2(), Points[i - 1].ToVector2(), Color.Lerp(Color.OrangeRed, Color.Yellow, Lerp) * Opacity, thicc);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                randomize = 0;
-            }
-        }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            Draw.Line(Start, End, Color.Yellow);
-            Draw.Line(TopBound, BottomBound, Color.Green * 0.6f, LaserWidth);
-            Draw.Point(TopBound, Color.White);
-            Draw.Point(BottomBound, Color.LightGreen);
-        }
-
-
-        private void SetBounds(Vector2 from, Vector2 to, Entity c)
-        {
-            if (!RespectCollision || !InView())
-            {
-                return;
-            }
-            bool CheckForCollision = false;
-            c.Position = from;
-            for (float i = 0; i < 1; i += 0.01f)
-            {
-                if (!CheckForCollision && !c.CollideCheck<Solid>())
-                {
-                    TopBound = c.Position;
-                    c.Position = to;
-                    break;
-                }
-                c.X = Calc.Approach(from.X, to.X, i * MathHelper.Distance(from.X, to.X));
-                c.Y = Calc.Approach(from.Y, to.Y, i * MathHelper.Distance(from.Y, to.Y));
-                //c.Offset = Vector2.Lerp(from, to, i * Vector2.Distance(from, to));
-            }
-            for (float i = 0; i < 1; i += 0.01f)
-            {
-                if (!CheckForCollision && !c.CollideCheck<Solid>())
-                {
-                    BottomBound = c.Position;
-                    c.Position = from;
-                    break;
-                }
-                c.X = Calc.Approach(to.X, from.X, i * MathHelper.Distance(to.X, from.X));
-                c.Y = Calc.Approach(to.Y, from.Y, i * MathHelper.Distance(to.Y, from.Y));
-            }
-        }
-
-        ////////////////////////////////////////////////////////////
-
-        private bool InView()
-        {
-            if (!Visible)
-            {
-                return true;
-            }
-            Camera camera = (Scene as Level).Camera;
-            Rectangle c = new Rectangle((int)camera.X, (int)camera.Y, 320, 180);
-            OnScreen = Collide.RectToLine(c, Start, End);
-            return OnScreen;
-        }
-        private bool PlayerCollide(Player player)
-        {
-            if (player is null)
-            {
-                return false;
-            }
-            return player.CollideLine(Start, End);
-        }
-        private bool NodeIsRiding(Solid solid)
-        {
-            return NodeEntity.CollideCheck(solid);
-        }
-        private void NodeOnShake(Vector2 pos)
-        {
-            NodeSprite.Position += pos;
-        }
-        private void BaseOnShake(Vector2 pos)
-        {
-            BaseSprite.Position += pos;
-        }
-        private bool BaseIsRiding(Solid solid)
-        {
-            return BaseEntity.CollideCheck(solid);
-        }
-        private IEnumerator PlayerCollide()
-        {
-
-            CollideRoutine = true;
-            yield return null;
-            if (player is null)
-            {
-                yield break;
-            }
-            if (State)
-            {
-                CollideRoutine = false;
-                yield break;
-            }
-            SceneAs<Level>().Session.SetFlag(crossedFlag, crossedFlagState);
-            float Opacity = LaserOpacity;
-            if (Dangerous)
-            {
-                if (!player.Dead)
-                {
-                    player.Die(Vector2.Zero);
-                }
-            }
-            else
-            {
-                if (AlarmGuns)
-                {
-                    Alert = true;
-                }
-                foreach (PassiveSecurity gun in SceneAs<Level>().Tracker.GetEntities<PassiveSecurity>())
-                {
-                    if (gun.LaserID == GunID && gun.mode == PassiveSecurity.Mode.LaserActivated)
-                    {
-                        gun.ForceState = true;
-                        gun.ForcedState = GunState;
-                    }
-                }
-            }
-            while (player is not null && !player.Dead && Visible)
-            {
-                for (float i = 0; i < 1; i += Engine.DeltaTime * 15)
-                {
-                    LaserOpacity = Calc.LerpClamp(Opacity, 0, i);
-                    yield return null;
-                }
-                for (float i = 0; i < 1; i += Engine.DeltaTime * 15)
-                {
-                    LaserOpacity = Calc.LerpClamp(0, Opacity, i);
-                    yield return null;
-                }
-            }
-            LaserOpacity = Opacity;
-            CollideRoutine = false;
-        }
-
-        private void SetAngles()
-        {
-            if (!RotateSprites)
-            {
-                return;
-            }
-            Vector2 a = Node;
-            Vector2 b = Position;
-            float Angle = (float)Math.Atan2(b.Y - a.Y, b.X - a.X);
-            BaseSprite.Rotation = Angle - MathHelper.PiOver2;
-            NodeSprite.Rotation = Angle + MathHelper.PiOver2;
-        }
-        public Vector2[] GetPaddedCorners(Vector2 point, Vector2 normal, Vector2 padding)
-        {
-            normal = Vector2.Normalize(normal);
-            var cross3 = Vector3.Cross(new Vector3(normal, 0), new Vector3(0, 0, 1));
-            var cross = new Vector2(cross3.X, cross3.Y);  // cross3.z is always 0 idc
-            cross.Normalize();
-
-            var p1 = point + normal * padding.Y + cross * padding.X;
-            var p3 = point - normal * padding.Y - cross * padding.X;
-            var p2 = point + normal * padding.Y - cross * padding.X;
-            var p4 = point - normal * padding.Y + cross * padding.X;
-
-            return new Vector2[] { p1, p2, p3, p4 };
         }
     }
 }

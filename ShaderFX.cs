@@ -2,6 +2,7 @@
 using Celeste;
 using Celeste.Mod;
 using Celeste.Mod.PuzzleIslandHelper;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
@@ -10,6 +11,7 @@ using System.Collections.Generic;
 public class ShaderFX
 {
     private static HashSet<Effect> effects = [];
+    public static Effect Corruption;
     public static Effect Jitter;
     public static Effect MonitorDecal;
     public static Effect Static;
@@ -27,10 +29,11 @@ public class ShaderFX
     public static Effect Scroll;
     public static Effect Monument;
     public static Effect WhiteOut;
-
-    [OnLoadContent]
+    public static Effect CurvePulse;
     public static void LoadFx()
     {
+        CurvePulse = LoadEffect("curvePulse");
+        Corruption = LoadEffect("corruption");
         Monument = LoadEffect("monument");
         Scroll = LoadEffect("scroll");
         Jitter = LoadEffect("jitter");
@@ -52,16 +55,20 @@ public class ShaderFX
     }
     public static void DisposeFXs()
     {
-        foreach(Effect effect in effects)
+        foreach (Effect effect in effects)
         {
             effect?.Dispose();
         }
         effects.Clear();
     }
+    [OnLoadContent]
+    public static void LoadContent()
+    {
+        LoadFx();
+    }
     [OnLoad]
     public static void Load()
     {
-        //LoadFx();
         Everest.Content.OnUpdate += Content_OnUpdate;
     }
     [OnUnload]
@@ -83,12 +90,11 @@ public class ShaderFX
             }
             catch (Exception ex)
             {
-                throw new Exception("PuzzleIslandHelper/ShaderFX: Unable to load the Shader " + id, ex);
-                /*                Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Failed to load the Shader " + ID);
-                                Logger.Log(LogLevel.Error, "PuzzleIslandHelper", "Exception: \n" + ex.ToString());*/
+                string details = "Graphics Device is " + (Engine.Graphics == null ? "Null null" : Engine.Graphics.GraphicsDevice == null ? "null" : "not null!");
+                throw new Exception("PuzzleIslandHelper/ShaderFX: Unable to load the Shader " + id + ".\nDetails: " + details + "\n", ex);
             }
         }
-        if(effect != null)
+        if (effect != null)
         {
             effects.Add(effect);
         }
@@ -96,7 +102,7 @@ public class ShaderFX
     }
     private static void Content_OnUpdate(ModAsset from, ModAsset to)
     {
-        if (to.Format == "cso" || to.Format == ".cso")
+        if (to != null && to.Format == "cso" || to.Format == ".cso")
         {
             try
             {
@@ -116,7 +122,8 @@ public class ShaderFX
                 // would nice to actually see it though
                 Logger.LogDetailed(e);
             }
-
         }
+
     }
+
 }

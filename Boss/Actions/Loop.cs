@@ -1,6 +1,6 @@
 using Celeste.Mod.Core;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -14,7 +14,7 @@ using System.Linq;
 using System.Reflection;
 using System.Xml;
 using static Celeste.Mod.PuzzleIslandHelper.Boss.ActionRegistry;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity.SingularityBoss;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
 {
@@ -27,54 +27,55 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
         public int DamageReceived;
         private int loopsRan;
         public List<ActionInfo> Actions = [];
-        private string log = "";
+        private List<KeyValuePair<string, Color>> logs = [];
         public override void Parse(XmlActionData xml)
         {
+            logs.Clear();
             MaxLoops = xml.Get<int>("maxloops", -1);
             Health = xml.Get<int>("health", -1);
-            log += "Children = " + xml.Children.Count;
+            logs.Add(new("--------\nBeginning evaluation of loop with " + xml.Children.Count + " children, Max Loops: " + MaxLoops + ".", Color.Yellow));
             for (int i = 0; i < xml.Children.Count; i++)
             {
                 XmlNode node = xml.Children[i].Node;
-
+                string nodeLog = "";
                 if (node is XmlElement element)
                 {
-                    log += "\nnode \"" + node.Name + "\" is XmlElement!";
+                    logs.Add(new("\n\tnode \"" + node.Name + "\" is XmlElement!", Color.Yellow));
                     if (TryBuildActionInfoFromXmlElement(element, true, out ActionInfo info))
                     {
                         Actions.Add(info);
                         bool handlerNull = info.Handler == null;
-                        log += "\nSuccessfully built ActionInfo from XmlElement \""+element.Name+"\"";
-                        log += handlerNull ? "...But the handler is null." : "!";
-                        log += "\n" + info.ToString();
+                        logs.Add(new("\tSuccessfully built ActionInfo from XmlElement \"" + element.Name + "\"" + (handlerNull ? "...But the handler is null." : "!"), handlerNull ? Color.DarkRed : Color.Lime));
+                        logs.Add(new(info.ToString(), Color.Gray));
                     }
                     else
                     {
-                        log += "\n could not build ActionInfo from XmlElement \"" + element.Name + "\"";
-                        log += "\nActionInfoError:" + TryBuildActionErrorCode;
+                        nodeLog += "\t could not build ActionInfo from XmlElement \"" + element.Name + "\"";
+                        nodeLog += "\tActionInfoError:" + TryBuildActionErrorCode;
+                        logs.Add(new(nodeLog, Color.Red));
                     }
                 }
                 else
                 {
-                    log += "\nNode \"" + node.Name + "\" is not an XmlElement!";
+                    logs.Add(new("\tNode \"" + node.Name + "\" is not an XmlElement!", Color.Red));
                 }
             }
         }
-        public override void Update(Singularity s)
+        public override void Update(SingularityBoss s)
         {
             base.Update(s);
         }
-        public bool ContinueLoop(Singularity s)
+        public bool ContinueLoop(SingularityBoss s)
         {
             if (Health > 0 && DamageReceived >= Health) return false;
             if (MaxLoops >= 0 && loopsRan >= MaxLoops) return false;
             return true;
         }
-        public override bool ContinueToNextAction(Singularity s)
+        public override bool ContinueToNextAction(SingularityBoss s)
         {
             return !ContinueLoop(s);
         }
-        private IEnumerator regularRoutine(Singularity s)
+        private IEnumerator regularRoutine(SingularityBoss s)
         {
             if (Actions.Count == 0)
             {
@@ -86,16 +87,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
                 {
                     if (action.Handler != this)
                     {
-                        action.Handler.OnUpdate += Update;
+                        OnUpdate += action.Handler.Update;
                         yield return new SwapImmediately(action.Handler.Routine(s));
-                        action.Handler.OnUpdate -= Update;
+                        OnUpdate -= action.Handler.Update;
                     }
                 }
+                Engine.Commands.Log("Loop #" + (loopsRan + 1) + " Complete", Color.Red);
                 loopsRan++;
                 yield return null;
+                foreach (ActionInfo action in Actions)
+                {
+                    if (action.Handler != this)
+                    {
+                        action.Handler.Reset(s);
+                    }
+                }
             }
         }
-        public override IEnumerator Routine(Singularity s)
+        public override IEnumerator Routine(SingularityBoss s)
         {
             Coroutine routine = new Coroutine(regularRoutine(s), true);
             s.Add(routine);
@@ -104,6 +113,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
             {
                 yield return null;
             }
+
+            routine.Cancel();
             routine.RemoveSelf();
             End(s, false);
         }
@@ -111,12 +122,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
         {
             DamageReceived++;
         }
-        public override void Begin(Singularity s)
+        public override void Begin(SingularityBoss s)
         {
-            Engine.Commands.Log(log);
+            DamageReceived = 0;
+            loopsRan = 0;
+            foreach (var p in logs)
+            {
+                Engine.Commands.Log(p.Key, p.Value);
+            }
             s.OnTakeDamage += OnTakeDamage;
         }
-        public override void End(Singularity s, bool wasSkipped)
+        public override void End(SingularityBoss s, bool wasSkipped)
         {
             s.OnTakeDamage -= OnTakeDamage;
         }

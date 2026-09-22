@@ -58,8 +58,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         if (arg[i] == ':' || arg[i] == '=')
                         {
-                            key = arg.Substring(0, i);
-                            value = arg.Substring(i + 1);
+                            key = arg.Substring(0, i).Trim();
+                            value = arg.Substring(i + 1).Trim();
                             break;
                         }
                     }
@@ -74,10 +74,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Texture.Draw(Position);
         }
-        public static bool TryFind(string name, out Vector2 position)
+        public static bool TryFind(string name, out Marker marker) => TryFind(Engine.Scene, name, out marker);
+        public static bool TryFind(Scene scene, string name, out Marker marker)
+        {
+            marker = Find(scene, name);
+            return marker != null;
+        }
+        public static bool TryFind(string name, out Vector2 position) => TryFind(Engine.Scene, name, out position);
+        public static bool TryFind(Scene scene, string name, out Vector2 position)
         {
             position = Vector2.Zero;
-            Marker marker = Find(name);
+            Marker marker = Find(scene, name);
             if (marker != null)
             {
                 position = marker.Position;
@@ -139,16 +146,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
             }
         }
-        public static Marker Find(string name)
+        public static Marker Find(string name) => Find(Engine.Scene, name);
+        public static Marker Find(Scene scene, string name)
         {
-            if (Engine.Scene is Level level)
+            foreach (Marker marker in scene.Tracker.GetEntities<Marker>())
             {
-                foreach (Marker marker in level.Tracker.GetEntities<Marker>())
+                if (marker.ID == name)
                 {
-                    if (marker.ID == name)
-                    {
-                        return marker;
-                    }
+                    return marker;
                 }
             }
             return null;

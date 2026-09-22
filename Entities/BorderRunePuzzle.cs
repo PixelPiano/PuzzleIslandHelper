@@ -77,7 +77,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private IEnumerator revealRune()
         {
             RewardRune.Visible = true;
-            Shaker.StartShaking(-1);
+            Shaker.ShakeFor(-1);
             yield return 1f;
             for (float i = 0; i < 1; i += Engine.DeltaTime / 3)
             {

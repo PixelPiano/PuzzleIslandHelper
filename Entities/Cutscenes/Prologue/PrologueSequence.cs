@@ -358,8 +358,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                 yield break;
             }
             //mirror flickers with exotic Color
-            Coroutine flash = new Coroutine(mirror.Shimmer());
-            Add(flash);
+            //Coroutine flash = new Coroutine(mirror.Shimmer());
+            //Add(flash);
             player.Facing.Flip();
             yield return null;
             player.Jump();

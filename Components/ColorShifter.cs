@@ -15,7 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public bool HasBeenAdded;
         public float Rate = 1;
         public float OriginalRate = 1;
-        public float TimeLeft;
+        public float Timer;
         public float Duration;
         public float Percent;
         public float Eased;
@@ -23,16 +23,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public bool Static;
         public bool Fades;
         public Ease.Easer Easer;
-        public Color this[int i]
+        public Color this[int index]
         {
-            get => OriginalColors[i];
-            set => OriginalColors[i] = value;
+            get => OriginalColors[index];
+            set => OriginalColors[index] = value;
         }
-        public Color this[int i, float j]
+        public Color this[int index, float lerp]
         {
             get
             {
-                return Fades ? Color.Lerp(this[i], this[(i + 1) % OriginalColors.Count], j) : this[i];
+                if (!Fades) return this[index];
+                return Color.Lerp(this[index], this[(index + 1) % OriginalColors.Count], Math.Min(1, lerp));
             }
         }
         public Color Current => Colors[Index];
@@ -42,23 +43,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public ColorShifter(float duration, params Color[] colors) : this(duration, Ease.Linear, colors) { }
         public ColorShifter(float duration, Ease.Easer ease, params Color[] colors) : base(true, true)
         {
-            Easer = ease;
-            Easer ??= Ease.Linear;
+            Easer = ease ?? Ease.Linear;
             Colors = [.. colors];
             OriginalColors = [.. colors];
-            TimeLeft = Duration = duration;
-
+            Timer = Duration = duration;
         }
         public override void Added(Entity entity)
         {
             base.Added(entity);
             OriginalRate = Rate;
         }
-        public void AdvanceColors()
+        public void NextColor()
         {
             if (OriginalColors.Count == 0) return;
             Index = (Index + 1) % Colors.Count;
-            TimeLeft = 0;
+            Timer = 0;
         }
         public void SetColors(float percent)
         {
@@ -79,25 +78,49 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public void Start()
         {
             Index = 0;
-            TimeLeft = 0;
+            Timer = 0;
             Active = true;
         }
         public void Cancel()
         {
             Index = 0;
-            TimeLeft = 0;
+            Timer = 0;
             Active = false;
         }
         public override void Update()
         {
             base.Update();
-            if (OriginalColors.Count == 0) return;
-            TimeLeft += Engine.DeltaTime * Rate;
-            if (TimeLeft > Duration)
+            Advance();
+        }
+        public Color GetOGColor(float progress)
+        {
+            if ((int)progress == progress)
             {
-                AdvanceColors();
+                return OriginalColors[(int)progress % OriginalColors.Count];
             }
-            Percent = Fades ? TimeLeft / Duration : 0;
+            int indexA = (int)(progress % 1) % OriginalColors.Count;
+            int indexB = (indexA + 1) % OriginalColors.Count;
+            return Color.Lerp(OriginalColors[indexA], OriginalColors[indexB], progress - (int)progress);
+        }
+        public Color GetColor(float progress)
+        {
+            if ((int)progress == progress)
+            {
+                return Colors[(int)progress % Colors.Count];
+            }
+            int indexA = (int)(progress % 1) % Colors.Count;
+            int indexB = (indexA + 1) % Colors.Count;
+            return Color.Lerp(Colors[indexA], Colors[indexB], progress - (int)progress);
+        }
+        public void Advance()
+        {
+            if (OriginalColors.Count == 0 || Rate <= 0) return;
+            Timer += Engine.DeltaTime * Rate;
+            if (Timer > Duration)
+            {
+                NextColor();
+            }
+            Percent = Fades ? Timer / Duration : 0;
             Eased = Easer(Percent);
             SetColors(Eased);
         }

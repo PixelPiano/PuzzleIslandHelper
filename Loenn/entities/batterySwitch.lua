@@ -9,7 +9,10 @@ batterySwitch.justification = {0,0}
 batterySwitch.placements = {
     name = "Battery Switch",
     data = {
-        batteryId = ""
+        flagToSet = "",
+        cutsceneRoom = "",
+        cutsceneCameraMarker = "",
+        switchID = ""
     }
 }
 

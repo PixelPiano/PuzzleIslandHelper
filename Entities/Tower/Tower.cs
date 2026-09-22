@@ -63,6 +63,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     }
 
                 }));
+                Add(ShakeMod = new LevelShakeModifier(0));
             }
             public override void Added(Scene scene)
             {
@@ -118,7 +119,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public override void Removed(Scene scene)
             {
                 base.Removed(scene);
-                EnsureShakeSettingReverted();
                 leftTarget.Dispose();
             }
             public void Initialize(Action<Player> interact)
@@ -179,20 +179,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     yield return 0.5f;
                 }
             }
-            private bool? prevShakeState;
-            public override void SceneEnd(Scene scene)
-            {
-                base.SceneEnd(scene);
-                EnsureShakeSettingReverted();
-            }
-            public void EnsureShakeSettingReverted()
-            {
-                if (prevShakeState.HasValue)
-                {
-                    Settings.Instance.DisableScreenShake = prevShakeState.Value;
-                    prevShakeState = null;
-                }
-            }
+            public LevelShakeModifier ShakeMod;
             public IEnumerator EarthquakeRoutine(Player player)
             {
                 Camera camera = SceneAs<Level>().Camera;
@@ -201,13 +188,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 Coroutine lookingAroundCoroutine;
                 Add(lookingAroundCoroutine = new Coroutine(false));
                 lookingAroundCoroutine.Replace(lookAround(player));
-                prevShakeState = Settings.Instance.DisableScreenShake;
-                Settings.Instance.DisableScreenShake = false;
-                LevelShaker.Intensity = 0.3f;
+                //Settings.Instance.DisableScreenShake = false;
+                ShakeMod.Mult = 0.3f;
                 yield return 0.4f;
-                LevelShaker.Intensity = 0.7f;
+                ShakeMod.Mult = 0.7f;
                 yield return 0.4f;
-                LevelShaker.Intensity = 1;
+                ShakeMod.Mult = 1f;
                 lookingAroundCoroutine.Cancel();
                 player.DummyAutoAnimate = false;
                 player.Sprite.Play(PlayerSprite.SitDown);
@@ -230,16 +216,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 yield return 2;
                 for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
                 {
-                    LevelShaker.Intensity = 1 - i;
+                    ShakeMod.Mult = 1 - i;
                     yield return null;
                 }
-                LevelShaker.Intensity = 0;
+                ShakeMod.Mult = 0;
                 yield return 1;
                 player.Sprite.Rate = 1;
                 player.Sprite.Reverse(PlayerSprite.SitDown, true);
                 yield return player.Sprite.PlayUtil();
                 player.DummyAutoAnimate = true;
-                EnsureShakeSettingReverted();
             }
             public void MidSwap(Player player)
             {

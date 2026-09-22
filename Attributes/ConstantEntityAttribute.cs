@@ -6,30 +6,24 @@ using System.Reflection;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
 {
 
-    //
-    // Summary:
-    //     Mark this entity as a Custom Passenger Cutscene
-    //     Will add a cutscene to the scene if the passenger is talked to.
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class ConstantEntityAttribute : Attribute
     {
-        //
-        // Summary:
-        //     A list of unique identifiers for this Constant Entity.
         public string[] IDs;
-
+        public string[] Maps;
         //
         // Summary:
         //     Mark this entity to be added to the level on Level.LoadingThread.
         //
-        // Parameters:
-        //   ids:
-        //     A list of unique identifiers for this Constant Entity.
         public ConstantEntityAttribute(params string[] ids) : base()
         {
             IDs = ids;
         }
-
+        public ConstantEntityAttribute(string[] maps, params string[] ids) : base()
+        {
+            Maps = maps;
+            IDs = ids;
+        }
         public static class ConstantEntityLoader
         {
             public delegate Entity ContentLoader();
@@ -97,7 +91,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
             {
                 Everest.Events.LevelLoader.OnLoadingThread -= LevelLoader_OnLoadingThread;
             }
-            [Command("isPuzzleIsland","as")]
+            [Command("isPuzzleIsland", "as")]
             public static void IsPuzzleIsland()
             {
                 Engine.Commands.Log(PianoModule.IsPuzzleIsland);

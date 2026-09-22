@@ -16,8 +16,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         public int Requires;
         public int Collected => PianoModule.Session.CollectedIDs.Count;
-        public int Size;
-        private Vector2 offset;
         public float Counter
         {
             get => SceneAs<Level>().Session.GetSlider("RegisteredCollectedIDs");
@@ -28,6 +26,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             get => SceneAs<Level>().Session.GetFlag("DashCodeGate:" + id);
             set => SceneAs<Level>().Session.SetFlag("DashCodeGate:" + id, value);
         }
+        public int Size;
+        private Vector2 offset;
         private EntityID id;
         public DashCodeGate(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset, data.Width, data.Height, true)
         {

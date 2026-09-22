@@ -214,7 +214,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                         yield return 0.05f;
                     }
                 }
-                Parent.Shaker.StartShaking(1);
+                Parent.Shaker.ShakeFor(1);
                 yield return 1;
                 Parent.Destroy(3);
                 yield return 3;

@@ -47,7 +47,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             CubePosition = position;
             Tag |= Tags.TransitionUpdate | Tags.Persistent;
             Face = GFX.Game[path];
-            Mesh = Shapes.Box(size, size, 1, Face);
+            Mesh = ShapeHelper.Box(size, size, 1, Face);
             Size = size;
         }
         public override void Added(Scene scene)

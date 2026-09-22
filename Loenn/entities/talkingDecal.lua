@@ -102,7 +102,7 @@ function talkingDecal.ignoredFields(entity)
 end
 talkingDecal.fieldOrder = {
     "x","y",
-    "onDecalPath","offDecalPath","color", "depth","mode", "talkEnabledFlag",
+    "onDecalPath","offDecalPath","scaleX","scaleY","rotation","rotationRate","rotationInterval","color", "depth","mode",
     "onCutscene",
     "offCutscene",
     "room","teleportMode","wipe","glitchAmount","nearestSpawnX","nearestSpawnY",
@@ -114,7 +114,7 @@ talkingDecal.fieldOrder = {
     "upExtend","downExtend","leftExtend","rightExtend", 
     "outline","useNearestSpawn","flagsOnTalk","markerID",
     "visibilityFlag","visibleMode",
-    "flag","flagMode","disableIfTrue","disableIfFalse"
+    "flag","flagMode","talkEnabledFlag","disableIfTrue","disableIfFalse"
 }
 talkingDecal.placements = {}
 for _, type in ipairs(types) do
@@ -168,7 +168,12 @@ for _, type in ipairs(types) do
             upExtend     = 0,
             downExtend   = 0,
             leftExtend   = 0,
-            rightExtend  = 0
+            rightExtend  = 0,
+            scaleX = 1,
+            scaleY = 1,
+            rotation = 0,
+            rotationRate = 0,
+            rotationRateInterval = -1
         }
     }
     table.insert(talkingDecal.placements,placement)
@@ -236,9 +241,11 @@ function talkingDecal.sprite(room, entity)
         path = "decals/" .. entity.onDecalPath
     end
     local sprite = drawableSprite.fromTexture(path, entity)
-        sprite:setScale(1,1)
-        sprite:setJustification(0, 0)
-        sprite.rotation = math.rad(0)
+        sprite:setScale(entity.scaleX,entity.scaleY)
+        sprite:setJustification(0.5, 0.5)
+        sprite:addPosition(sprite.meta.width / 2, sprite.meta.height / 2)
+        sprite.rotation = math.rad(entity.rotation)
+        sprite:setColor(entity.color)
     return sprite
 end
 

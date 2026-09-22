@@ -2,7 +2,9 @@
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -12,14 +14,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     {
         private string RoomName;
         private bool InRoutine;
-        private string flag;
+        private FlagList flag;
         private bool Teleported;
-        private bool inverted;
         private bool LeftSide;
         private bool RightSide;
         private bool UpSide;
         private bool DownSide;
-        private bool State => Scene is Level level && (string.IsNullOrEmpty(flag) || level.Session.GetFlag(flag) == inverted);
+        private bool State => flag;
         public bool PlayerIsBoosting
         {
             get
@@ -41,8 +42,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public BoosterTransition(EntityData data, Vector2 offset) : base(data, offset)
         {
             RoomName = data.Attr("roomName");
-            flag = data.Attr("flag");
-            inverted = data.Bool("inverted");
+            flag = data.FlagList("flag");
             Collider = new Hitbox(data.Width, data.Height);
             LeftSide = data.Bool("fromLeft");
             RightSide = data.Bool("fromRight");
@@ -82,22 +82,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 return true;
             }
             return false;
-        }
-        public override void Update()
-        {
-            base.Update();
-            /*            if (Booster is not null && !Collidable && !Booster.BoostingPlayer)
-                        {
-                            Alert alarm = Alert.Create(Alert.AlarmMode.Oneshot,
-                                delegate
-                                {
-                                    if (Booster is not null && !StartedRepairing)
-                                    {
-                                        SceneAs<Level>().Remove(Booster);
-                                    }
-                                }
-                                , 0.5f);
-                        }*/
         }
         private IEnumerator TeleportRoutine(Booster booster)
         {
@@ -185,7 +169,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
         public override void DebugRender(Camera camera)
         {
-            base.DebugRender(camera);
+            Color color = State ? Color.Red : Color.Gray;
+            if (Collider != null)
+            {
+                Collider.Render(camera, Collidable ? color : Color.DarkRed);
+            }
+
+            Components.DebugRender(camera);
+
         }
     }
 }

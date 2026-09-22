@@ -70,9 +70,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
 
             set
             {
-                foreach (FlagData data in List)
+                if (List != null)
                 {
-                    data.Set(data.Inverted != value);
+                    foreach (FlagData data in List)
+                    {
+                        data.Set(data.Inverted != value);
+                    }
                 }
             }
         }

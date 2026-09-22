@@ -49,8 +49,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         }
         private Color GetColor(Vector2 uv)
         {
-            float amount = Vector2.Distance(uv, Vector2.One * 0.5f);
-
             Color color = Color.Lerp(Color.Blue, Color.Red, uv.Length());
             return color;
         }
@@ -68,6 +66,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
         public bool Debug => PianoModule.Session.DEBUGBOOL1;
         public override void Render(Scene scene)
         {
+            if (string.IsNullOrEmpty(Effect)) return;
+            Effect effect = ShaderHelperIntegration.GetEffect(Effect);
+            if (effect == null) return;
             BackdropRenderer background = (scene as Level).Background;
             RenderTarget2D renderTarget2D = GameplayBuffers.Level;
             RenderTargetBinding[] renderTargets = Engine.Graphics.GraphicsDevice.GetRenderTargets();
@@ -77,36 +78,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             }
             Engine.Graphics.GraphicsDevice.SetRenderTarget(buffer);
             Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+            Engine.Graphics.GraphicsDevice.BlendState = BlendState.AlphaBlend;
+            EffectParameterCollection parameters = effect.Parameters;
+            Vector2 vector = new Vector2(Engine.Graphics.GraphicsDevice.Viewport.Width, Engine.Graphics.GraphicsDevice.Viewport.Height);
+            Matrix matrix = Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
+            matrix *= Matrix.CreateTranslation(-1f, 1f, 0f);
+            matrix *= Matrix.CreateRotationX((float)Math.PI / 3f);
+            Engine.Instance.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+            parameters["World"]?.SetValue(matrix);
+            parameters["Time"]?.SetValue(scene.TimeActive);
+            EffectTechnique effectTechnique = effect.Techniques[0];
+            foreach (EffectPass pass in effectTechnique.Passes)
+            {
+                pass.Apply();
+                mesh.Draw();
+            }
 
-            if (Debug)
-            {
-                background.StartSpritebatch(BlendState.Additive);
-                for (int i = 0; i < mesh.VertexCount; i++)
-                {
-                    var v = mesh.Vertices[i];
-                    Draw.Rect(v.Position.X - 1, v.Position.Y - 1, 3, 3, Color.Blue * 0.8f);
-                }
-                background.EndSpritebatch();
-            }
-            else
-            {
-                Effect effect = ShaderHelperIntegration.GetEffect(Effect);
-                Engine.Graphics.GraphicsDevice.BlendState = BlendState.AlphaBlend;
-                EffectParameterCollection parameters = effect.Parameters;
-                Vector2 vector = new Vector2(Engine.Graphics.GraphicsDevice.Viewport.Width, Engine.Graphics.GraphicsDevice.Viewport.Height);
-                Matrix matrix = Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
-                matrix *= Matrix.CreateTranslation(-1f, 1f, 0f);
-                matrix *= Matrix.CreateRotationX((float)Math.PI / 3f);
-                Engine.Instance.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
-                parameters["World"]?.SetValue(matrix);
-                parameters["Time"]?.SetValue(scene.TimeActive);
-                EffectTechnique effectTechnique = effect.Techniques[0];
-                foreach (EffectPass pass in effectTechnique.Passes)
-                {
-                    pass.Apply();
-                    mesh.Draw();
-                }
-            }
             Engine.Graphics.GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
             Engine.Graphics.GraphicsDevice.SamplerStates[1] = SamplerState.LinearWrap;
             Engine.Instance.GraphicsDevice.SetRenderTarget(renderTarget2D);

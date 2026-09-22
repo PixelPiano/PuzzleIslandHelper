@@ -129,8 +129,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                             {
                                 PixelFontSize size = FText.Font.Get(FText.BaseSize);
                                 PixelFontCharacter ch = size.Get(c.Character);
-                                _position.X = c.Position + XOffset + c.Offset.X + ch.XOffset + ch.XAdvance;
-                                _position.Y = _ypos + c.Offset.Y;
+                                _position.X = c.Position + XOffset + c.GroupOffset.X + ch.XOffset + ch.XAdvance;
+                                _position.Y = _ypos + c.GroupOffset.Y;
                             }
                             yield return c.Delay * (SpeedUp ? 0.1f : 1.5f);
                         }

@@ -1,12 +1,11 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Effects;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
-using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
-using static MonoMod.InlineRT.MonoModRule;
+using System.Linq;
 // PuzzleIslandHelper.CutsceneHeart
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
@@ -14,12 +13,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class CutsceneHeart : Entity
     {
         [TrackedAs(typeof(HeartGem))]
-        public class Heart : Model3D
+        internal class Heart : Model3D
         {
             public Heart(Vector2 position, MTexture texture) : base("Models/PuzzleIslandHelper/sigil", position)
             {
                 Collider = new Hitbox(24, 24);
-                Texture = texture;
+                Texture = texture.Texture.Texture_Safe;
             }
         }
         public EntityID ID;
@@ -30,7 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Wiggler scaleWiggler;
         private Wiggler moveWiggler;
         public string flag;
-        public Heart heart;
+        internal Heart heart;
         private bool Collected;
         private string room;
         private string returnRoom;

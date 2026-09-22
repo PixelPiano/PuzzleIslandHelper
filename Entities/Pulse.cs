@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Monocle;
 using System;
 using System.Runtime.CompilerServices;
@@ -10,10 +11,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
     public class PulseEntity : Entity
     {
+        public Action<Player> OnCollidePlayer;
+        public bool OnlyCollideOnce;
+        private bool collided;
         public Pulse Pulse;
-        public PulseEntity(Pulse pulse)
+        public PulseEntity(Pulse pulse, Action<Player> onCollidePlayer = null)
         {
             Add(Pulse = pulse);
+            OnCollidePlayer = onCollidePlayer;
+        }
+        public override void Update()
+        {
+            base.Update();
+            if (OnCollidePlayer != null && (!OnlyCollideOnce || !collided))
+            {
+                Vector2 pos = Pulse.RenderPosition;
+                Player player = null;
+                switch (Pulse.Shape)
+                {
+                    case Shapes.Rectangle:
+                        player = Scene.CollideFirst<Player>(new Rectangle((int)pos.X, (int)pos.Y, (int)Pulse.width, (int)Pulse.height));
+                        break;
+                    case Shapes.Circle:
+                        player = Scene.GetPlayer();
+                        if (!Collide.CircleToRect(pos, Pulse.width, player.Collider.Bounds))
+                        {
+                            player = null;
+                        }
+                        break;
+                    case Shapes.Diamond:
+                        throw new NotImplementedException("I'm never going to use this. Bug me if you want to use this");
+                        break;
+                    case Shapes.Line:
+                        player = Scene.CollideFirst<Player>(Pulse.Position, Pulse.to);
+                        break;
+                }
+                if (player != null)
+                {
+                    OnCollidePlayer.Invoke(player);
+                    collided = true;
+                }
+            }
         }
         private static PulseEntity create(Vector2 position, int depth, Shapes shape, Fade fadeMode, Mode pulseMode, Vector2 to, float duration,
     float widthFrom, float widthTo, float heightFrom, float heightTo,

@@ -1287,6 +1287,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
         [Command("give_stool", "spawns a stool")]
+        public static Stool GiveStool(bool atPlayer = true)
+        {
+            Vector2 offset = Vector2.Zero;
+            if (Engine.Scene.GetPlayer() is Player player && atPlayer)
+            {
+                offset += player.Position;
+            }
+            return SpawnStool(offset, Engine.Scene);
+
+        }
         public static Stool GiveStool(bool atPlayer = true, float? x = null, float? y = null)
         {
             Vector2 offset = Vector2.Zero;
@@ -1323,7 +1333,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static List<Stool> GiveStoolStack(int stoolsInStack = 3)
         {
             List<Stool> list = [];
-            Stool first = GiveStool();
+            Stool first = GiveStool(true, null, null);
             for (int i = 1; i < stoolsInStack; i++)
             {
                 list.Add(GiveStool(true, null, -first.Height * i));

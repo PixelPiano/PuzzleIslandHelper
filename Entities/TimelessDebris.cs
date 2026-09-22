@@ -8,13 +8,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Pooled]
     public class TimelessDebris : Debris
     {
+        public TimelessDebris() : base()
+        {
+        }
         private void orig_update()
         {
             orig_orig_update();
             LiftSpeed = Vector2.Zero;
             if (liftSpeedTimer > 0f)
             {
-                liftSpeedTimer -= Engine.DeltaTime;
+                liftSpeedTimer -= Engine.RawDeltaTime;
                 if (liftSpeedTimer <= 0f)
                 {
                     lastLiftSpeed = Vector2.Zero;
@@ -33,7 +36,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 fadeLerp = Calc.Approach(fadeLerp, 1f, 2f * Engine.RawDeltaTime);
             }
-
             MoveH(speed.X * Engine.RawDeltaTime, collideH);
             MoveV(speed.Y * Engine.RawDeltaTime, collideV);
             if (dreaming)

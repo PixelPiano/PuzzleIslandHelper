@@ -32,7 +32,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private SoundSource sfx;
         public bool PowerState => !dependsOnLabPower || PianoModule.Session.RestoredPower;
         private bool mute;
-        public LabDoor(EntityData data, Vector2 offset)
+        private EntityID id;
+        public LabDoor(EntityData data, Vector2 offset, EntityID id)
             : base(data.Position + offset, 8, 48, false)
         {
             dependsOnLabPower = data.Bool("dependsOnLabPower", true);
@@ -57,6 +58,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     mute = false;
                 }
             });
+            this.id = id;
+        }
+        public void RemoveAndFlagAsGone()
+        {
+            SceneAs<Level>().Session.DoNotLoad.Add(id);
+            RemoveSelf();
         }
         public override void Awake(Scene scene)
         {

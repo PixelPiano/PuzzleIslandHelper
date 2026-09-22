@@ -11,17 +11,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class FlagConditionBlock : Solid
     {
         private EntityID id;
-        private char tileType;
+        public char tileType;
         private bool blendIn;
         private FlagList Flag;
         private TileGrid tileGrid;
         private AnimatedTiles animatedTiles;
         private bool useAnimatedTiles;
-
+        private LightOcclude occlude;
         public FlagConditionBlock(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset, data.Width, data.Height, true)
         {
             tileType = data.Char("tileType", '3');
-            Flag = data.FlagList();
+            Flag = data.FlagList("flag");
             blendIn = data.Bool("blendIn");
             Depth = data.Int("depth", -12999);
             this.id = id;
@@ -43,7 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             tileGrid = g.TileGrid;
             animatedTiles = g.SpriteOverlay;
-            Add(new LightOcclude());
+            Add(occlude = new LightOcclude());
             Add(tileGrid);
             if (useAnimatedTiles)
             {
@@ -87,7 +87,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
-                if (wasColliding && Flag)
+                if (wasColliding && Flag && !SceneAs<Level>().Transitioning)
                 {
                     Audio.Play("event:/game/general/passage_closed_behind", Center);
                 }
@@ -98,6 +98,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 Collidable = Visible = Flag;
             }
+            occlude.Alpha = Visible ? 1 : 0;
         }
     }
 }

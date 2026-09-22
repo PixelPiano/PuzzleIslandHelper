@@ -173,7 +173,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                     if (level.Tracker.GetEntity<AuthorBook>() is AuthorBook book)
                     {
                         Book = book;
-                        if (Marker.TryFind("player", out var v))
+                        if (Marker.TryFind("player", out Vector2 v))
                         {
                             playerTo = v.X;
                             Add(new Coroutine(cutscene()));
@@ -190,7 +190,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             Author.IntroOneWatched.State = true;
             author.Alpha = 1;
             Book.Position = Book.Position2;
-            if (Marker.TryFind("authorDefault", out var p))
+            if (Marker.TryFind("authorDefault", out Vector2 p))
             {
                 author.X = p.X;
             }
@@ -274,7 +274,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         private IEnumerator authorEnter()
         {
-            if (Marker.TryFind("authorEntrance", out var vector))
+            if (Marker.TryFind("authorEntrance", out Vector2 vector))
             {
                 author.Position.X = vector.X;
             }
@@ -317,7 +317,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         private IEnumerator authorToLeft()
         {
-            if (Marker.TryFind("authorDefault", out var p))
+            if (Marker.TryFind("authorDefault", out Vector2 p))
             {
                 yield return author.WalkToX(p.X);
             }
@@ -325,7 +325,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         private IEnumerator authorToRight()
         {
-            if (Marker.TryFind("authorPace", out var p))
+            if (Marker.TryFind("authorPace", out Vector2 p))
             {
                 yield return author.WalkToX(p.X);
             }

@@ -37,42 +37,8 @@ chatchoice2=
 The user has chosen "no".
 {goto chatTest}
 
-portfolio1=
-This is the most special (and biggest!) entity I've created so far. It is an in-universe computer, with various features.
-It has various programs it can run (with many more still to come). 
-
-This program is a simple text file. In the file "InterfacePresets.yaml", I can create presets for groups of icons. These presets are represented by floppy disks that the user can insert into the computer when they interact with it. 
-
-portfolio2=
-Here's a list of all the programs I've made that I plan to keep in the mod: {n2}{# 00FFFF}Text{#} - A standard text file. Window size changes based on the total height of the text.{n}{# 00FF00}Info{#} - A glorified text file. That's it, the only difference is the icon and the name (maybe I should give it a secondary purpose though).{n}{# 0000FF}Access{#} - A very, very specific program that I will get into later (it's heavily related to the mod's story).{n}{# FFFF00}Fountain{#} - A program that checks a condition and makes a fountain in another area move, revealing a hidden passage.{n}{# 000000}Life{#} - Conway's Game Of Life, with some added bonus features.
-lifeInfo=It's Conway's Game of Life (with some bonus features):{n}Randomize: Does what you'd expect.{n}Save: Saves the current layout in 1 of 6 slots. If all slots are full, it replaces the earliest saved slot.{n}Load: Loads the most recent slot. If used multiple times, it cycles through the rest of the slots.
-
-accessInfo=This program lets the user type in a phrase. In another file, there is a dictionary of keys that link to the names of various levels (rooms) in the map. If the user inputs the correct key, they will activate a sequence where an animation plays and they are teleported to the cooresponding level. 
-
-
-interfaceNoPower=It won't turn on.
-interfaceNoFloppy=There's nothing on the screen.
-
 elevatorRocks=
 A cluster of rocks is embeded in the main control panel.
-
-wtc1=
-	[Madeline left panic]
-	*cough* *cough*
-	*cough* Ah- *cough* -jeez...
-	[Madeline left sad]
-	What's with this place's obsession with...
-	{silent_trigger 0 pan out}
-	[Madeline left sad] 
-	{>> 0.5}teleporting...{/>>}
-	[Madeline left distracted]
-	{>> 0.1}me.....{/>>}
-	...{0.5}
-	[Madeline left distracted]
-	...
-	{trigger 1 wait for pan}
-	[Madeline left sad]
-	{~}Whoaaaaa.{/~}
 
 fountainHint0beta=[Paper left normal]{# 000000}0 prefers sitting at the start{#}
 fountainHint1beta=[Paper left normal]{# 000000}1 feels safest next to 3{#}
@@ -85,23 +51,17 @@ fountainHint6beta=[Paper left normal]{# 000000}6 must be the sum of its neighbor
 fountainHint7beta=[Paper left normal]{# 000000}7 should-
 (The rest of the writing has been scribbled out too many times to read){#}
 
-fountainHint0=[Paper left normal]{# 000000}0 = (1){#}
+fountainHint0=[Paper left normal]{# 000000}0 <3 B{#}
 fountainHint1=[Paper left normal]{# 000000}1 <3 3{#}
 fountainHint2=[Paper left normal]{# 000000}2 </3 3{#}
-fountainHint3=[Paper left normal]{# 000000}3 = (4)or(5){#}
-fountainHint5a=[Paper left normal]{# 000000}4 </3 5 </3 6{#}
-fountainHint5b=[Paper left normal]{# 000000}<(5) + (5)> = 5{#}
-#fountainHint6=[Paper left normal]{# 000000}<(6) + (6)> = 11{#}
-fountainHint7=[Paper left normal]{# 000000}7
-(The rest has been scribbled out too much to read){#}
-
-
-
-
-#0 4 1 3 5 2 6 7
+fountainHint3=[Paper left normal]{# 000000}5 </3 6{#}
+fountainHint4=[Paper left normal]{# 000000}4 </3 5, 7{#}
+fountainHint5=[Paper left normal]{# 000000}3 </3 B, G{#}
+fountainHint6=[Paper left normal]{# 000000}5 <3 D, F{#}
+#0 2 1 3 5 7 6 4
 fountainHintA=
 [Paper left normal]
-{# 000000}Hey, what was the fountain code again? Is it written down somewhere?{#}
+{# 000000}Hey, what was the FlowGate code again? Is it written down somewhere?{#}
 
 fountainHintB=
 [Paper left normal]
@@ -110,26 +70,21 @@ We've hidden it in fragments across the lab. I know you're forgetful, but please
 
 fountainHintC=
 [Paper left normal]
-{# 000000}Oh, are you talking about the ------{#}
-{# 222222}(the last word has been scratched out){#}
+{# 000000}Oh, I think I found one... But I don't get it.
+What does </3 mean? How am I supposed to use this?{#}
 
 fountainHintD=
 [Paper left normal]
-{# 000000}YES. I AM- We have the same shifts, just talk to me in person!{#}
+{# 000000}It symbolises affection.
+It helps to think of the code like a table with chairs, and the numbers as people sitting in those chairs.
+The code is correct when everyone at the table is happy.
+You should know by now how to input the code.{#}
 
-employeeLogA=
-{# 00FF00}
-=> Does anyone periodically check these logs? I think the system's bugged.
-=> What do you mean bugged? I can't help if you don't tell me what's wrong with it.
-=> I'm seeing impossible readings from the access tracker. Can we make sure it isn't storing data it scans? 
-=> I'll take a look later.{#}
-
-accessTrackerLogA=
-12.24.32: C enters experiment room
-15.45.01: C leaves experiment room
-15.46.48: C enters private quarters
-16.19.32: C leaves experiment room
-ERROR: New tracker detected. Aborting.
+fountainSecrecyComplaint=
+[Paper left normal]
+{# 000000}Note to all employees:
+Do not, under any circumstance, reveal information about the FlowGate security system to ANYBODY.
+I've confiscated notes of employees discussing the system and will continue to do so.
 
 capsuleDocumentA=
 [Paper left normal]
@@ -141,23 +96,23 @@ capsuleDocumentB=
 [Paper left normal]
 {# 000000}Those strange blueprints changed again.
 Much of the original markings have been covered by frantic scribbles.
-Scribbles usually have a story behind them. I know this one all too well.
-It's the story of desperate recreation and innovation.
+Scribbles usually have a story behind them. I know this one well.
+It's the story of desperate creation.
 I'm going to start recording my nights.{#}
 
 capsuleDocumentC=
 {# 000000} As the days went by they evolved from vague sketches and scribbles to detailed diagrams and instructions... of a strange machine.
 My options run thin, I decided to build it. Obviously.
 This is the result. The blueprints named it "W.A.R.P".
-...I haven't figured out what the accronym means yet.{#}
+...I haven't figured out what the acronym means yet.{#}
 
 capsuleDocumentD=
 [Paper left normal]
 {# 000000} Building it felt so... natural. Like I had been made to do it.
 You know when you get an idea for something and it just... fills your entire soul?
 You have to let it free into the world. If you don't, it'll rip you to shreds.
-It was like that, but... I never had the idea. I know that some ideas "just come to you", but...
-I've double-checked the security footage.
+It was like that, but... I never had the idea. It didn't "just come to me". Like it had always been there.
+I've double-checked the security footage. Triple-checked the nightly footage, too.
 So why were the blueprints in my handwriting?{#}
 
 codeResearchA=
@@ -181,25 +136,26 @@ codeResearchC=
 {# 000000}The logic and reasoning behind a code seems to vary per FOA, but they all share one similarity:
 Directions.
 Each code is a combination of the 8 cardinal directions.
-Up, Down, Left, Right, Up-left, Down-left, Up-right, Down-right.
-They seem to gravitate towards themes, the codes we've managed to decipher tend to reflect the general area as a whole.
-For example: We recently encountered an FOA down in Pipeworks.
-Near the area of the FOA was a long winding pipe, no intersections.
-Quite odd, considering most of the pipes in Pipeworks are an interconnected mess.
-Starting from the bottom left of the pipe and working our way up led us to the code.{#}
+Up, Down, Left, Right, Up-Left, Down-Left, Up-Right and Down-Right.
+They seem to gravitate towards themes. The codes we've managed to decipher have reflected attributes of the area surrounding them.
 
 codeResearchD=
 [Paper left normal]
-{# 000000}FOAs react to physical contact.
-The reaction varies dramatically given the substance it contacts.{#}
+{# 000000}We recently encountered an FOA down in Pipeworks.
+Near the area of the FOA was a long winding pipe, no intersections.
+Quite odd, considering most of the pipes in Pipeworks are an interconnected mess.
+It hadn't been constructed this way, either. It had reportedly bent itself into this shape overnight.
+Once we followed the directions starting from the bottom left, the FOA reacted and appeared.{#}
 
 codeResearchE=
 [Paper left normal]
-{# 000000}Recently we've been testing various substances on FOAs.
+{# 000000}
+Recently we've been testing various substances on FOAs.
+Upon contact with a solid object, the FOA creates a shockwave that propels the solid a distance proportionate to it's mass.
 Water flows around it, like the FOA has a negative gravitational field. So far, no other substances act this way.
-Small rocks bounce off at blinding speeds. Very dangerous.
-Human flesh and clothing create a shockwave that propels anyone near it a decent distance.
-We've yet to find a way to transport FOAs to another location.{#}
+We are assuming the same thing happens with gases and other non-solids.
+We've yet to find a way to transport FOAs to another location.
+If you turn your back on them, they disappear. It's unknown how they do this, and our instruments don't pick up any signal or fluctuation when this happens.{#}
 
 codeResearchF=
 [Paper left normal]
@@ -216,196 +172,64 @@ Was it too simple? Was it because it wasn't themed? Was it too on the nose?{#}
 
 codeResearchH=
 [Paper left normal]
-{# 000000}FOA creation attempt 2: Failure.
-We tried arranging arrows using leaves, but that didn't work either.
-Maybe... Only a representation of the code needs to be present for the FOA to appear?
-The information required to solve one might not have the same area limitations...{#}
+{# 000000}FOA creation attempt 2: Failure
+Nothing changed from the previous result.
+What if we've been treating FOAs like objects... When we should have been treating them like organisms?
+All organisms have defence mechanisms, so what if this one is obscurity?
+Perhaps a code can't be obvious at first glance, perhaps it needs some filter or encryption on it before a representation of a code can summon an FOA...
+It's like a security system for a password! Cool!
 
 codeResearchI=
 [Paper left normal]
 {# 000000}FOA creation attempt 3: Success!
-We've set up a sort of scavenger hunt for this one.
-We've realized that these codes only work if kept in secrecy.
-The first subject was told everything. Once they found the correct sequence... nothing happened.
-The second subject was only told to find a secret directional sequence. Still, nothing happened.
-It seems if they feel they're being revealed too directly, they won't work.
-So if you're reading this, boss, uhhhhhh... good luck! It's quite the sticky situation!{#}
+Our previous theory seems to add up, as far as we can tell. We've left the clues around the lab for anyone interested in trying it out for themselves! It's quite the sticky situation! ;)
 
-faceComplaint=
+miniGenComplaint=
 [Paper left normal]
-{# 0000FF}Does ANYBODY know what's up with these... face things?!{#}
-{# 0000FF}Why do they look like keyboard characters???{#}
-{# 0000FF}How do these things exist, and why isn't anyone doing anything about it?!{#}
-{# 0000FF}I spilled my coffee 4 times IN A ROW because one of those insufferable creatures kept drifting into me!{#}
-{# FF0000}I'M SORRY WHAT YOU SPILLED IT 4 TIMES?? THAT'S ON YOU BUDDY BAHAHAHAHA{#}
+{#000000}I have to run around delivering power to these mini generators to get the FlowGate open EVERY DAY. It takes like, half an hour at LEAST. Thank god for helmets.
+I get he loves his contraptions, but for Seal's sake, don't base your security system on your little gimmicks PLEASE.
+Listen, all I'm saying is... If the generator goes haywire and we NEED to get to it FAST, we're toast!{#}
+
+miniGenSolution=
+[Paper left normal]
+{#000000}I am pleased to announce that, in response to recent concerns, an extra layer of security will be added onto the FlowGate.
+Please visit room D4 for a briefing on how this extra layer works.
+Note: This new layer will be added on TOP of the pre-existing layers.
+You must pass this new layer before the FlowGate will become accessible.
+Additionally, this new layer also must be completed within view of the Flow Gate itself.
+
+newRoomComment=
+[Paper left normal]
+{#000000}Potential anomaly report: New Room
+I've triple checked the floor plan, the security footage, everything.
+The lab seems to have created a new room overnight.
+The structure is primitive and repetitive. Like it copied some part of the lab and pasted it here over and over again.
+Even stranger, it seems to have generated an intricate pattern of symbols and embedded it into the new room.
+I'm taking the initiative to place observers around to capture any energy traces that may have remained.
+
+
+lostAssistantA=
+[Paper left normal]
+{#000000}
+
+lostAssistantB=
+[Paper left normal]
+{#000000}
+
+lostAssistantC=
+[Paper left normal]
+{#000000}
+
+lostAssistantD=
+[Paper left normal]
+{#000000}
 
 refillNotesA=
 [Paper left normal]
-{# 000000}We've received reports sightings of floating objects seperate from the FOAs we've been monitoring recently.
+{# 000000}We've received reports sightings of floating objects separate from the FOAs we've been monitoring recently.
 These objects are diamond-shaped, glow a soft green and float gently up and down.
 We should investigate. It could be a new material!{#}
 
-refillNotesB=
-[Paper left normal]
-{# 000000}Like FOAs, it is impossible to alter the location of these objects.
-So, like FOAs, we're attempting to create one ourselves.
-Progress has been... slow. We can recreate the shape and glow, but it's unstable.{#}
-
-refillNotesC=
-[Paper left normal]
-{# 000000}Observations:
-Our prototype is unstable and cracks roughly 5-10 seconds after creation.
-When it cracks, it loses its green glow and the frequency of its floating slows dramatically.{#}
-
-refillNotesD=
-[Paper left normal]
-{# 000000}Observations:
-While in this state, it is very fragile, and will shatter at the slightest touch.
-Subjects who shatter them report an instant feeling of fatigue and nausea.
-We are unsure if this effect is natural or a result of instability.
-Do the perfected versions of these grant some sort of health benefit?
-For the time being, we've confined them inside these chambers.{#}
-
-refillNotesE=
-[Paper left normal]
-{# 000000}We've successfully created a stable replication of the object! 
-The glow, the shape, everything about it is perfect, a 1-to-1 copy!
-...
-We, uh. Can't interact with it.
-What do we do?{#}
-
-#Washer Interact while off
-#attempt 1
-washerIsOff=
-You click all the buttons at random, but somehow nothing happens.
-
-#attempt 2
-washerIsStillOff=
-You click all the buttons in order from left to right, but somehow nothing happens still.
-
-#attempt 3
-washerReallyIsOff=
-The third try always works, but fate never liked consistency.
-
-#attempts 4, 5, and 6
-washerIsReallyStillOff=
-You should do it again, you've got a good feeling about the next one.
-
-#attempt 7
-washerButtonsAreSticking=
-You press each button so hard that they all stick inside of the machine.{n} Look at what you've done.
-
-#attempt 8
-washerKicked=
-You kick the machine out of frustration. All the buttons pop back into place.{n}
-Violence is always the answer.
-
-#Prologue
-prologueGondolaRide= 
-[Madeline left normal]
-hi hi ok i'm riding the gondola now this is fun memories
-
-prologue=
-[Madeline left sad]
-Hm?
-[Madeline left normal]
-Oh, it's a letter from {+THEO}!
-{trigger 0 Maddy reads letter}
-[Theo right normal]
-hey i tried climbing the mountain but i stopped when i got to that weird temple, yknow the one where i got trapped?
-but i didn't stop just cause i got trapped before. 
-It seemed stranger than last time. 
-Figured i should let you know since anyone else i told would have just thought i was crazy anyways peace yolo 
-{trigger 1 To Gondola}
-
-prologueNope =
-[Madeline left surprised]
-...Nope ok I'm going away now.
-prologue2=
-{trigger 0 To Boost}
-[Madeline left normal] 
-Huh?
-{trigger 1 Probe Glue}
-What's this stuff in the mirror?
-[Madeline left distracted]
-It's... squishy. But firm.
-[Madeline left sad]
-Like glue.
-{trigger 2 Stop Probing Glue}
-[Madeline left distracted]
-Was somebody trying to fix it?
-[Madeline left normal]
-Well, besides this, nothing strange about the temple.
-[Madeline left upset]
-Stranger than usual, at least.
-[Madeline left normal]
-I guess I should head back? 
-I hope {+THEO} isn't worrying too much. I'll call him once I'm out of here.
-{trigger 3 Mirror Flash}
-{trigger 4 Blocks Appear}
-[Madeline left panic]
-Wah! Wh-What the...?
-Uh...
-..!
-
-prologue2a=
-[Madeline right panic]
-WHAT'S HAPPENING?!
-prologue3a=	
-[Madeline right surprised]
-...{0.5}Go go go go go go go go go go go go go!
-prologue3b=
-[Madeline right angry] 
-Come on, you stupid gondola! Work!!
-prologue3c=
-[Madeline left surprised] 
-...!
-
-#------------------------
-#GrassShift
-#------------------------
-grassShift= 
-{trigger 0 Zoom In}
-
-[Madeline left angry]
-{>> 0.1}{~}Ughhhhhhhh{/~}{/>>}.
-I had hoped that there would at least be {~}some{/~}{0.2}explanation for what's going on by now.
-I feel like a rat in a maze.
-{trigger 1 Face Left}
-[Madeline left sad] 
-But if I just stay put, I won't get anywhere.
-I need to keep going.
-I need to.
-
-[Madeline left sadder]
-...I need to.
-
-{trigger 2 Temple Shake}
-
-[Madeline left surprised]
-{>> 0.5}Huh?? What??{/>>}{0.5}
-
-{trigger 3 Fall Down}
-{trigger 4 World Distort}
-
-grassShift2=
-[Madeline left panic]
-Wh-{0.5} What's happening...?
-{trigger 0 Wait}
-[Madeline left panic]
-My head... Please...
-{trigger 1 Wait again}
-{trigger 2 Settle}
-[Madeline left panic]
-Is it over..?
-{trigger 3 Get back up}
-{trigger 1 Wait again}
-[Madeline left sadder]
-...
-
-grassShiftAh=
-[Madeline left surprised]
-Ah..!
 
 #Preset MiniLoader text
 miniLoader1= Loading configurations
@@ -460,64 +284,6 @@ if(user.ClearanceLevel > 5){n}
 CoolTransition.Start(transition);
 
 
-pipeLoader1=
-if(System.Processes.CheckForVuln() || !PipeSystem.CheckValves()){n}
-{tab}return;{n}
-
-pipeLoader2=
-PipeStates[] valveStates = new PipeSates[5];{n}
-for(int i = 0; i<5; i++){n}
-{tab}valveStates = PipeSystem.Valves[i].State;{n}
-{tab}PipeSystem.Valves[i].State = PipeSystem.StWaiting;{n}
-
-pipeLoader3=
-foreach(PipeComponent pc in PipeSystem.Components){n}
-{tab}pc.Yield();{n}
-
-pipeLoader4=
-float time;{n}
-PipeSystem.Receivers.CloseShields();{n}
-while(!PipeSystem.Receivers.AllShieldsClosed){n}
-{tab}System.Wait();{n}
-{tab}if(time > 900){n}
-{tab}{tab}PipeSystem.StopAllTraffic();{n}
-{tab}{tab}LaboratorySystem.Alert(AlertLevel.Moderate);{n}
-{tab}time++;{n}
-
-pipeLoader5=
-PipeSystem.Receivers.SwitchSide();{n}
-float time2;{n}
-while(PipeSystem.Receivers.InMotion){n}
-{tab}System.Wait();{n}
-{tab}if(time > 900){n}
-{tab}{tab}PipeSystem.StopAllTraffic();{n}
-{tab}{tab}LaboratorySystem.Alert(AlertLevel.Moderate);{n}
-{tab}time++;{n}
-
-pipeLoader6=
- PipeSystem.TargetReceiver.Switch();{n}
- PipeSystem.Receivers.ActiveReceiver.OpenShield();{n}
- for(int i = 0; i<5; i++){n}
-{tab}PipeSystem.Valves[i].State = valveStates[i];{n}
- foreach(PipeComponent pc in PipeSystem.Components){n}
-{tab}pc.Resume();{n}
-
-
-pipeFixer=
-if(PipeSystem.ActiveValves.Count < 5){n}
-{tab}return;{n}
-{n}
-for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
-{tab}if(!PipeSystem.ActiveValves[i].SafeToAdjust()){n}
-{tab}{tab}return;{n}
-{n}
-for(int i = 0; i<PipeSystem.ActiveValves.Count; i++){n}
-{tab}PipeSystem.ActiveValves[i].NormalizePressure();{n}
-
-BETAWARP=
-huh?{n0}what is this?{n0}where am i?{n0}...where's my body?!{n0}it's so green.{n0}am i inside the computer?{n0}are these my thoughts?{n0}{mtRight}is anyone there?
-huh? that wasn't{cue cut}
-
 GREENHEART= wip dialogue (part one)
 #...yes, it was... strange. It had a certain aura to it.{n0}{mtRight}That's not #a lot to go off of. Do you really think it could help us?{n0}{/mtRight}...Yes. #I think it can.{n0}{mtRight}I thought you couldn't see it.{n0}{/mtRight}I #didn't need to.
 
@@ -533,25 +299,6 @@ Some of them began acting erratically. Some would even refuse to start.{n0}
 I think my other equipment may be malfunctioning as well. Scanning the area showed duplicate signals for each observer.{n0}
 Slotting in repairs ASAP
 
-#Pipe Break sequence
-#PipeAttemptZero=
-#	[Madeline left sad]
-#	Whoa! That was close! Good thing I was able to avoid that...
-#	[Madeline left distracted]
-#	Big...{0.5} screw...
-#	Hope that wasn't important or something.
-
-#PipeAttemptOhNo=
-#	[Madeline right surprised]
-#	IT WAS IMPORTANT! IT WAS IMPORTANT!!
-
-PipeAttemptZero=
-	[Madeline left sad]
-	...Ah. Oops.
-
-PipeAttemptOhNo=
-	[Madeline left sad]
-	...
 
 #Filenames
 

@@ -148,6 +148,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private VertexLight offLight;
         private bool useNearestSpawn;
         public float TalkAlpha = 1;
+        private float scaleX, scaleY, rotation, rotationRate, rotationInterval;
 
         private bool invertFlag;
         private enum FlagModes
@@ -161,9 +162,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool disableIfTrue;
         private bool disableIfFalse;
         private bool useHiddenTalk;
+        private Color color;
+        private string onDecalPath, offDecalPath;
         public TalkingDecal(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
+            scaleX = data.Float("scaleX", 1);
+            scaleY = data.Float("scaleY", 1);
+            rotation = data.Float("rotation").ToRad();
+            rotationRate = data.Float("rotationRate").ToRad();
+            rotationInterval = data.Float("rotationInterval", -1);
             flag = data.Attr("flag");
             useHiddenTalk = data.Bool("hidden");
             flagMode = data.Enum<FlagModes>("flagMode");
@@ -227,26 +235,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             Outline = data.Bool("outline");
             Depth = data.Int("depth", 2);
-            if (!string.IsNullOrEmpty(data.Attr("onDecalPath")))
-            {
-                onSprite = new Sprite(GFX.Game, "decals/");
-                onSprite.AddLoop("idle", data.Attr("onDecalPath"), 0.1f);
-                onSprite.Color = data.HexColor("color");
-                onSprite.Play("idle");
-                onSprite.CenterOrigin();
-                onSprite.Position += onSprite.HalfSize();
-                Add(onSprite);
-            }
-            if (!string.IsNullOrEmpty(data.Attr("offDecalPath")))
-            {
-                offSprite = new Sprite(GFX.Game, "decals/");
-                offSprite.AddLoop("idle", data.Attr("offDecalPath"), 0.1f);
-                offSprite.Color = data.HexColor("color");
-                offSprite.Play("idle");
-                offSprite.CenterOrigin();
-                offSprite.Position += offSprite.HalfSize();
-                Add(offSprite);
-            }
+            onDecalPath = data.Attr("onDecalPath");
+            offDecalPath = data.Attr("offDecalPath");
+            color = data.HexColor("color");
             Tag |= Tags.TransitionUpdate;
         }
         public Vector2 DrawAt;
@@ -254,6 +245,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            if (!string.IsNullOrEmpty(onDecalPath))
+            {
+                onSprite = new Sprite(GFX.Game, "decals/");
+                onSprite.AddLoop("idle", onDecalPath, 0.1f);
+                onSprite.Color = color;
+                onSprite.Play("idle");
+                onSprite.CenterOrigin();
+                onSprite.Position += onSprite.HalfSize();
+                onSprite.Scale = new Vector2(scaleX, scaleY);
+                onSprite.Rotation = rotation;
+                Add(onSprite);
+            }
+            if (!string.IsNullOrEmpty(offDecalPath))
+            {
+                offSprite = new Sprite(GFX.Game, "decals/");
+                offSprite.AddLoop("idle", offDecalPath, 0.1f);
+                offSprite.Color = color;
+                offSprite.Play("idle");
+                offSprite.CenterOrigin();
+                offSprite.Position += offSprite.HalfSize();
+                offSprite.Scale = new Vector2(scaleX, scaleY);
+                offSprite.Rotation = rotation;
+                Add(offSprite);
+            }
             if (onSprite != null)
             {
                 Collider = new Hitbox(onSprite.Width, onSprite.Height);
@@ -474,6 +489,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Update()
         {
             base.Update();
+            if (rotationInterval < 0 || Scene.OnInterval(rotationInterval))
+            {
+                rotation = (rotation + rotationRate) % MathHelper.TwoPi;
+            }
             bool enabled = true;
             if (TalkMode is TalkModes.Flag)
             {
@@ -497,7 +516,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 enabled = !string.IsNullOrEmpty(targetString);
                 UpdateSprites(flagstate);
             }
-            if(useHiddenTalk) CustomTalk.Enabled = enabled;
+            if (useHiddenTalk) CustomTalk.Enabled = enabled;
             else Talk.Enabled = enabled;
             UpdateHoverUIAlpha();
         }
@@ -511,6 +530,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     onLight.Visible = value;
                 }
+                onSprite.Rotation = rotation;
             }
             if (offSprite != null)
             {
@@ -519,6 +539,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     offLight.Visible = !value;
                 }
+                offSprite.Rotation = rotation;
             }
         }
         public override void Render()

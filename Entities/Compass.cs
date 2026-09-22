@@ -268,7 +268,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (rotateTarget != 0)
                 {
                     Image.Rotation = prevRotation + rotateTarget;
-                    shaker.StartShaking(0.1f);
+                    shaker.ShakeFor(0.1f);
                     foreach (CompassController controller in Scene.Tracker.GetEntities<CompassController>())
                     {
                         if (controller.Flipping)
@@ -291,7 +291,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 if (Position != target)
                 {
                     Position = Calc.Approach(Position, target, 10 * Engine.DeltaTime);
-                    shaker.StartShaking();
+                    shaker.ShakeFor();
                 }
                 else
                 {
@@ -309,7 +309,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Input.Dash.ConsumePress();
             Scene.Add(new CompassPulse(this));
             Direction = (Directions)(((int)Direction + 1) % 4);
-            shaker.StartShaking(0.1f);
+            shaker.ShakeFor(0.1f);
             if (rotateTarget == 0 && !rotateMultTween.Active)
             {
                 prevRotation = Image.Rotation;

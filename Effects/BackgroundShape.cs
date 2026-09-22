@@ -33,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Effects
             position = new Vector3(160 - size, -30, 0);
             face = GFX.Game[path];
             Shader.Texture = face.Texture.Texture_Safe;
-            Mesh = Shapes.Box(size, size, size, face);
+            Mesh = ShapeHelper.Box(size, size, size, face);
             size = cubeSize;
             Yaw = -35f.ToRad();
             Pitch = -65.5f.ToRad();

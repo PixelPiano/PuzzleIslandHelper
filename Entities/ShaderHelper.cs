@@ -93,7 +93,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
             parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
             parameters["CamPos"]?.SetValue(level.Camera.Position);
-            parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
+            parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320f));
             parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
 
             Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
@@ -120,7 +120,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             parameters["DeltaTime"]?.SetValue(Engine.DeltaTime);
             parameters["Time"]?.SetValue(Engine.Scene.TimeActive);
             parameters["CamPos"]?.SetValue(level.Camera.Position);
-            parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320));
+            parameters["Dimensions"]?.SetValue(new Vector2(320, 180) * (GameplayBuffers.Gameplay.Width / 320f));
             parameters["ColdCoreMode"]?.SetValue(level.CoreMode == Session.CoreModes.Cold);
 
             Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;

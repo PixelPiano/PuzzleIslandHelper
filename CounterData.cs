@@ -40,7 +40,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public string Key;
         public bool Ignore;
-        public Session.Counter Counter;
         public int Increment(int? mod = null) => Key.IncrementCounter(mod);
         public int Decrement(int? mod = null) => Key.DecrementCounter(mod);
         public int Value

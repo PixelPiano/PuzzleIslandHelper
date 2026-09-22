@@ -1,437 +1,456 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.Helpers;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities;
 using Celeste.Mod.XaphanHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using YamlDotNet.Core.Tokens;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
 {
-    [CustomEntity("PuzzleIslandHelper/Stabilizer")]
+    [CustomEntity("PuzzleIslandHelper/StabilizerGroup")]
     [Tracked]
-    public class Stabilizer : Entity
+    public class StabilizerGroupEntity : Entity
     {
-        [CustomEntity("PuzzleIslandHelper/StabilizerTutorial")]
-        public class GroupActivator : Entity
+        public class ChildStabilizer : Stabilizer
         {
-            private Color offColor = Color.Lerp(Color.White, Color.Black, 0.8f);
-            public List<List<bool>> Combos = [];
-            public int Index;
-            public float Interval = 1;
-            private float whiteLerp;
-            private float whiteLerpTimer;
-            public GroupActivator(EntityData data, Vector2 offset) : base(data.Position + offset)
+            public StabilizerGroupEntity Group;
+            public bool State;
+            public override bool On
             {
-                Collider = new Hitbox(data.Width, data.Height);
-                string[] split = data.Attr("combos").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                foreach (string s in split)
-                {
-                    List<bool> combo = [];
-                    foreach (char c in s)
-                    {
-                        switch (c)
-                        {
-                            case '0':
-                                combo.Add(false);
-                                break;
-                            case '1':
-                                combo.Add(true);
-                                break;
-
-                        }
-                    }
-                    if (combo.Count > 0)
-                    {
-                        Combos.Add(combo);
-                    }
-                }
+                get => State;
+                set => State = value;
             }
-            public bool Check(List<bool> comboA, List<bool> comboB)
+            public ChildStabilizer(Vector2 position, bool on, StabilizerGroupEntity group) : base(position)
             {
-                if (comboA.Count <= comboB.Count)
-                {
-                    for (int i = 0; i < comboA.Count; i++)
-                    {
-                        if (comboA[i] != comboB[i])
-                        {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-                return false;
+                State = on;
+                Group = group;
+                Tag |= Tags.TransitionUpdate;
             }
             public override void Update()
             {
                 base.Update();
-                if (whiteLerpTimer > 0)
-                {
-                    whiteLerpTimer -= Engine.DeltaTime;
-                    if (whiteLerpTimer <= 0)
-                    {
-                        whiteLerpTimer = 0;
-                        whiteLerp = 0;
-                    }
-                    else
-                    {
-                        whiteLerp = Ease.CubeIn(1 - whiteLerpTimer);
-                    }
-                }
-                if (Scene.OnInterval(Interval))
-                {
-                    Index = (Index + 1) % Combos.Count;
-                    whiteLerpTimer = 1;
-                    whiteLerp = 1;
-                }
-                List<bool> combo = Combos[Index];
-                /*                foreach (StabilizerGroupTrigger group in Scene.Tracker.GetEntities<StabilizerGroupTrigger>())
-                                {
-                                    if (Check(group.Combo, combo))
-                                    {
-                                        group.GlowMultAdd = Calc.Approach(group.GlowMultAdd, 0.5f, Engine.DeltaTime);
-                                    }
-                                    else
-                                    {
-                                        group.GlowMultAdd = Calc.Approach(group.GlowMultAdd, 0f, Engine.DeltaTime);
-                                    }
-                                }*/
+                GlowMultAdd = Group.GlowMultAdd;
+            }
+        }
+        public class Cubby : GraphicsComponent
+        {
+            public bool On;
+            private MTexture cubbyOn, cubbyOff, shade, glow;
+            public float Width => cubbyOn.Width;
+            public Cubby(Vector2 position, int facing) : base(true)
+            {
+                Position = position;
+                string path = "objects/PuzzleIslandHelper/stabilizer/";
+                cubbyOn = GFX.Game[path + "cubbyOn"];
+                cubbyOff = GFX.Game[path + "cubbyOff"];
+                glow = GFX.Game[path + "glow"];
+                shade = GFX.Game[path + "shade"];
+                Scale = new Vector2(-facing, 1);
             }
             public override void Render()
             {
                 base.Render();
-
-                List<bool> combo = Combos[Index];
-                float nodeSize = Width / (combo.Count + 1);
-                float space = nodeSize / combo.Count;
-                Vector2 position = Position + new Vector2(space, Height / 2 - nodeSize / 2);
-                Draw.HollowRect(X - 1, Y - 1, Width + 2, Height + 2, Color.Black);
-                Draw.Rect(Collider, Color.DarkGray);
-                Color outline = Color.Lerp(Color.Gray, Color.White, whiteLerp);
-                foreach (bool b in Combos[Index])
+                bool on = On;
+                MTexture c = on ? cubbyOn : cubbyOff;
+                Vector2 offset = c.HalfSize();
+                Vector2 p = RenderPosition + offset;
+                c.Draw(p, offset, Color.White, Scale);
+                if (on)
                 {
-                    Color node = Color.Lerp(b ? Color.Lime : offColor, Color.White, whiteLerp);
-                    Draw.HollowRect(position.X - 2, position.Y - 2, nodeSize + 4, nodeSize + 4, outline);
-                    Draw.Rect(position.X, position.Y, nodeSize, nodeSize, node);
-                    position.X += space + nodeSize;
+                    glow.Draw(p, offset, Color.White, Scale);
+                }
+                else
+                {
+                    shade.Draw(p, offset, Color.White, Scale);
                 }
             }
         }
-        /*        [CustomEntity("PuzzleIslandHelper/StabilizerGroup")]
-                [Tracked]
-                public class StabilizerGroupTrigger : Trigger
-                {
-                    public Vector2[] Nodes;
-                    public float GlowMultAdd = 0;
-                    public List<bool> TargetCombo = [];
-                    public List<bool> Combo = [];
-                    public HashSet<Stabilizer> InGroup = [];
-                    public string ID;
-                    public bool Locked;
-                    public FrequencyReceiver Receiver;
-                    public StabilizerGroupTrigger(EntityData data, Vector2 offset) : base(data, offset)
-                    {
-                        Locked = data.Bool("locked");
-                        Nodes = data.NodesOffset(offset);
-                        TargetCombo = GetCombo(data.Attr("combo"));
-                        ID = data.Attr("groupID");
-                    }
-                    public List<bool> GetCombo(string s)
-                    {
-                        List<bool> combo = [];
-                        foreach (char c in s)
-                        {
-                            switch (c)
-                            {
-                                case '0':
-                                    combo.Add(false);
-                                    break;
-                                case '1':
-                                    combo.Add(true);
-                                    break;
-                            }
-                        }
-                        return combo;
-                    }
-                    public override void Awake(Scene scene)
-                    {
-                        base.Awake(scene);
-                        foreach (Vector2 v in Nodes)
-                        {
-                            List<Stabilizer> list = scene.CollideAll<Stabilizer>(v);
-                            foreach (var s in scene.CollideAll<Stabilizer>(v))
-                            {
-                                InGroup.Add(s);
-                            }
-                        }
-                        InGroup = [.. InGroup.OrderBy(item => item.X)];
-                        foreach (Stabilizer s in InGroup)
-                        {
-                            s.Group = this;
-                        }
-                        UpdateCombo();
-                    }
-                    public void UpdateCombo()
-                    {
-                        Combo.Clear();
-                        foreach (var s in InGroup)
-                        {
-                            Combo.Add(s.On);
-                        }
-                    }
-                    public override void Update()
-                    {
-                        base.Update();
-                        UpdateCombo();
-                        bool valid = Combo.Count == TargetCombo.Count;
-                        int count = Math.Min(Combo.Count, TargetCombo.Count);
-                        for (int i = 0; i < count; i++)
-                        {
-                            valid &= Combo[i] == TargetCombo[i];
-                        }
-                        SceneAs<Level>().Session.SetFlag("StabilizerGroup{" + ID + "}", valid);
-                    }
-                }*/
-        [CustomEntity("PuzzleIslandHelper/StabilizerGroup")]
-        [Tracked]
-        public class StabilizerGroupEntity : Entity
+        private class satellite : Entity
         {
-            public Vector2[] Nodes;
-            public float GlowMultAdd = 0;
-            public string Combo = "";
-            public string StartCombo;
-            public List<(string, string)> ComboFlags = [];
-            public List<Stabilizer> InGroup = [];
-            public string ID;
-            public bool Locked;
-            public Facings DishFacing;
-            private Image[] cubbies;
-            private Image sat;
-            private Image satLight;
-            private Image[] sides;
-            public StabilizerGroupEntity(EntityData data, Vector2 offset) : base(data.Position + offset)
+            private float[] alphas;
+            public Image image;
+            public Image light;
+            public Color Color = Color.White;
+            public bool Warning;
+            public satellite(Vector2 bottomCenter, int facing) : base(bottomCenter)
             {
-                DishFacing = data.Enum<Facings>("dishFacing");
-                Depth = 2;
-                Locked = data.Bool("locked");
-                Nodes = data.NodesWithPosition(offset);
-                ID = data.Attr("groupID");
-                StartCombo = data.Attr("combo").Trim();
-                if (data.Bool("persistent", true))
+                Add(image = new Image(GFX.Game["objects/PuzzleIslandHelper/stabilizer/sat"]));
+                Position -= new Vector2(image.Width / 2, image.Height);
+                Add(light = new Image(GFX.Game["objects/PuzzleIslandHelper/stabilizer/satTip"]));
+                alphas = [0, 0, 0];
+                image.Scale.X = light.Scale.X = facing;
+                if (facing < 0)
                 {
-                    Tag |= Tags.Persistent;
+                    light.X += light.Width;
+                    image.X += image.Width;
                 }
-                string[] combos = data.Attr("combos").Replace(" ", "").Trim().Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                foreach (string s in combos)
+                Collider = image.Collider();
+                light.Y = 2;
+                light.X = image.Width / 2 + facing * 3;
+                Add(new Coroutine(routine(0, 0.8f, 0.2f)));
+                Add(new Coroutine(routine(1, 0.4f, 0.4f)));
+                Add(new Coroutine(routine(2, 0f, 0.7f)));
+            }
+
+            private IEnumerator routine(int index, float delay, float alpha)
+            {
+                if (delay > 0) yield return delay;
+                while (true)
                 {
-                    string[] array = s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                    if (array.Length == 2)
+                    for (float i = 0; i < 1; i += Engine.DeltaTime)
                     {
-                        ComboFlags.Add(new(array[0], array[1]));
+                        float eased = Ease.SineInOut(i);
+                        alphas[index] = eased * alpha;
+                        yield return null;
                     }
+                    for (float i = 1; i > 0; i -= Engine.DeltaTime)
+                    {
+                        float eased = Ease.SineInOut(i);
+                        alphas[index] = eased * alpha;
+                        yield return null;
+                    }
+                    alphas[index] = 0;
                 }
-                /*                Add(new PlayerCollider(p =>
-                                {
-                                    if (ForkAmpSound.GlobalPlaying)
-                                    {
-                                        float[] rates = FrequencyData.GetRates(Scene);
-                                        string combo = "";
-                                        foreach (float f in rates)
-                                        {
-                                            if (f != 0 || f != 1) return;
-                                            combo += ((int)f).ToString();
-                                        }
-                                        int start = int.MaxValue;
-                                        for (int i = 0; i < InGroup.Count; i++)
-                                        {
-                                            if (p.CollideCheck(InGroup[i]) && start > i)
-                                            {
-                                                start = i;
-                                            }
-                                        }
-                                        if (start < InGroup.Count)
-                                        {
-                                            for (int i = start; i < InGroup.Count && i - start < 4; i++)
-                                            {
-                                                InGroup[i].On.Set(rates[i - start] == 1);
-                                            }
-                                        }
-                                    }
-                                }));*/
             }
-            public override void Added(Scene scene)
+            public override void Render()
             {
-                base.Added(scene);
-                string path = "objects/PuzzleIslandHelper/stabilizer/";
-                satLight = new Image(GFX.Game[path + "satTip"]);
-                sides = new Image[2];
-                cubbies = new Image[InGroup.Count];
-                sat = new Image(GFX.Game[path + "sat"]);
-                sides[0] = new Image(GFX.Game[path + "side"]);
-                sides[1] = new Image(GFX.Game[path + "side"]);
-                for (int i = 0; i < InGroup.Count; i++)
+                if (CullHelper.IsRectangleVisible(X, Y, Width, Height, 4))
                 {
-                    cubbies[i] = new Image(GFX.Game[path + "cubbyOff"]);
-                    cubbies[i].X = i * 16;
-                }
-                sides[0].X = -16;
-                sides[1].X = Width + sides[1].Width * 0.5f;
-                sides[1].JustifyOrigin(0.5f, 0);
-                sides[1].Scale.X = -1;
-                sat.JustifyOrigin(0.5f, 1);
-                sat.Position = TopCenter - Position;
-                sat.Scale.X = (int)DishFacing;
-                satLight.Position = sat.Position;
-                satLight.Scale = sat.Scale;
-                satLight.Origin = sat.Origin;
-                Add(sat);
-                Add(satLight);
-                Add(cubbies);
-                Add(sides);
-            }
-            public override void Awake(Scene scene)
-            {
-                base.Awake(scene);
-                foreach (Vector2 v in Nodes)
-                {
-                    Stabilizer s = new Stabilizer(v, new EntityID(Guid.NewGuid().ToString(), 0), false, false);
-                    InGroup.Add(s);
-                    scene.Add(s);
-                }
-                foreach (Stabilizer s in InGroup)
-                {
-                    s.Group = this;
-                }
-                for (int i = 0; i < InGroup.Count && i < StartCombo.Length; i++)
-                {
-                    InGroup[i].On.Set(StartCombo[i] == '1');
-                }
-                UpdateCombo();
-                float width = 0, height = 0;
-                foreach (Stabilizer s in InGroup)
-                {
-                    width = (int)(Math.Max(width, s.Right - X));
-                    height = (int)(Math.Max(height, s.Bottom - Y));
-                }
-                Collider = new Hitbox(width, height);
-            }
-            public void UpdateCombo()
-            {
-                Combo = "";
-                foreach (var s in InGroup)
-                {
-                    Combo += s.On ? '1' : '0';
-                }
-                for (int i = 0; i < InGroup.Count; i++)
-                {
-                    cubbies[i].Texture = GFX.Game["objects/PuzzleIslandHelper/stabilizer/cubby" + (InGroup[i].On ? "On" : "Off")];
+                    image.Render();
+                    light.Render();
+                    for (int i = 0; i < alphas.Length; i++)
+                    {
+                        if (alphas[i] > 0)
+                        {
+                            light.DrawOutline(Color * alphas[i], alphas.Length + 1 - i);
+                        }
+                    }
                 }
             }
             public override void Update()
             {
                 base.Update();
-                UpdateCombo();
-                foreach ((string code, string flag) in ComboFlags)
+                light.Color = Color;
+            }
+        }
+        public string CurrentCombo
+        {
+            get => PianoModule.Session.StabilizerGroupCombos[EntityID];
+            set => PianoModule.Session.StabilizerGroupCombos[EntityID] = value;
+        }
+        public string LastValidCombo
+        {
+            get => PianoModule.Session.StabilizersLastValidCombo[EntityID];
+            set => PianoModule.Session.StabilizersLastValidCombo[EntityID] = value;
+        }
+        public string DefaultCombo;
+        private string comboOnAdded;
+        public List<(string, string)> ComboFlags = [];
+        public float GlowMultAdd = 0;
+        public string ID;
+        public bool Locked;
+        public Facings Facing;
+        private satellite Satellite;
+        private bool resetOnRemoved;
+        public EntityID EntityID;
+        private Cubby[] Cubbies;
+        private ChildStabilizer[] stabilizers;
+        public FlagList ValidTrackingFlag;
+        private bool validState => ValidTrackingFlag;
+        private bool requiresWorldShiftPermissions;
+        public string SatelliteID;
+        public DotX3 Talk;
+
+        public bool HasPermissions => !requiresWorldShiftPermissions || string.IsNullOrEmpty(SatelliteID) || PianoModule.Session.WorldShifterToStabilizerConnections.Contains(SatelliteID);
+        public StabilizerGroupEntity(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
+        {
+            requiresWorldShiftPermissions = data.Bool("requiresWorldShiftPermissions", false);
+            SatelliteID = data.Attr("satelliteID");
+            Tag |= Tags.TransitionUpdate;
+            EntityID = id;
+            Facing = data.Enum<Facings>("facing");
+            Depth = 2;
+            Locked = data.Bool("locked");
+            ID = data.Attr("groupID");
+            DefaultCombo = data.Attr("combo").Trim();
+            resetOnRemoved = data.Bool("persistent", true);
+            ValidTrackingFlag = data.FlagList("validTrackingFlag");
+            string[] combos = data.Attr("combos").Replace(" ", "").Trim().Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (string s in combos)
+            {
+                string[] array = s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (array.Length == 2)
                 {
-                    if (!string.IsNullOrEmpty(flag))
-                    {
-                        SceneAs<Level>().Session.SetFlag(flag, Combo == code);
-                    }
+                    ComboFlags.Add(new(array[0], array[1]));
                 }
             }
         }
-        public StabilizerGroupEntity Group;
+        public override void Added(Scene scene)
+        {
+            base.Added(scene);
+            string path = "objects/PuzzleIslandHelper/stabilizer/";
+            MTexture on = GFX.Game[path + "on"];
+
+            if (PianoModule.Session.StabilizerGroupCombos.TryAdd(EntityID, DefaultCombo))
+            {
+                LastValidCombo = DefaultCombo;
+            }
+            else
+            {
+                LastValidCombo = PianoModule.Session.StabilizersLastValidCombo[EntityID];
+            }
+
+            string combo = comboOnAdded = CurrentCombo;
+            Cubbies = new Cubby[combo.Length];
+            stabilizers = new ChildStabilizer[combo.Length];
+            Vector2 p = Vector2.Zero;
+            for (int i = 0; i < combo.Length; i++)
+            {
+                ChildStabilizer s = new ChildStabilizer(p + Position, combo[i] == '1', this);
+                Cubby c = new Cubby(p, (int)Facing);
+                Add(Cubbies[i] = c);
+                scene.Add(stabilizers[i] = s);
+                p.X += on.Width;
+            }
+
+            MTexture edge = GFX.Game[path + "edge"];
+            Collider = new Hitbox(p.X, on.Height);
+            scene.Add(Satellite = new satellite(TopCenter, (int)Facing == -1 ? -1 : 1) { Depth = Depth + 1 });
+            Add(Talk = new DotX3(Satellite.Position - Position, Satellite.Width, Satellite.Height + Height, Satellite.Position - Position + Vector2.UnitX * Satellite.Width / 2, (p) =>
+            {
+                if (requiresWorldShiftPermissions)
+                {
+                    if (!HasPermissions)
+                    {
+                        Scene.Add(new talkScene(SatelliteID));
+                        //please register this id with world shift machine
+                    }
+                    else
+                    {
+                        UpdateFlags();
+                        Color color = ValidTrackingFlag ? Color.Lime : Color.Red;
+                        Pulse.Circle(this, Pulse.Fade.InAndOut, Pulse.Mode.Oneshot, Satellite.light.RenderPosition, 0, 320, 0.4f, true, color, Color.White);
+                    }
+                }
+                else
+                {
+                    SetCurrentCombo(DefaultCombo);
+                }
+                Input.Talk.ConsumePress();
+            }));
+            Talk.PlayerMustBeFacing = false;
+            Add(Cubbies);
+            Add(new Image(edge) { X = -edge.Width });
+            Add(new Image(edge) { X = Width + edge.Width, Scale = new Vector2(-1, 1) });
+            UpdateCurrentCombo();
+        }
+        public void UpdateFlags()
+        {
+            bool foundCombo = false;
+            foreach (var a in ComboFlags)
+            {
+                bool valid = a.Item1 == CurrentCombo;
+                if(valid) foundCombo = true;
+                SceneAs<Level>().Session.SetFlag(a.Item2, valid);
+            }
+            ValidTrackingFlag.State = foundCombo;
+        }
+        private class talkScene : CutsceneEntity
+        {
+            private string id;
+            private Textbox textbox;
+            public talkScene(string id) : base()
+            {
+                this.id = id;
+            }
+            public override void OnBegin(Level level)
+            {
+                level.DisableMovement();
+                Add(new Coroutine(routine()));
+            }
+            private IEnumerator routine()
+            {
+                textbox = new Textbox("SatelliteIDWarning");
+                string d = Dialog.Get("SatelliteIDWarning", null).Replace("p0p", '[' + id + ']');
+                textbox.text = FancyText.Parse(d, (int)textbox.maxLineWidth, textbox.linesPerPage, 0f, null, null);
+                Level.Add(textbox);
+                while (textbox.Opened)
+                {
+                    yield return null;
+                }
+                EndCutscene(Level);
+            }
+            public override void OnEnd(Level level)
+            {
+                level.EnableMovement();
+                textbox?.RemoveSelf();
+            }
+        }
+        public void SetCurrentCombo(string combo)
+        {
+            CurrentCombo = "";
+            for (int i = 0; i < combo.Length && i < stabilizers.Length && i < Cubbies.Length; i++)
+            {
+                bool on = combo[i] == '1';
+                stabilizers[i].On = on;
+                Cubbies[i].On = on;
+                CurrentCombo += combo[i];
+            }
+            if (!requiresWorldShiftPermissions) UpdateFlags();
+        }
+        public void UpdateCurrentCombo()
+        {
+            string combo = "";
+            for (int i = 0; i < Cubbies.Length; i++)
+            {
+                bool on = stabilizers[i].On;
+                Cubbies[i].On = on;
+                combo += on ? '1' : '0';
+            }
+            CurrentCombo = combo;
+            if (!requiresWorldShiftPermissions) UpdateFlags();
+        }
+        public override void Update()
+        {
+            base.Update();
+            UpdateCurrentCombo();
+            if (requiresWorldShiftPermissions)
+            {
+                Talk.Enabled = !HasPermissions;
+                Satellite.Warning = Talk.Enabled && !IsValidCombo(CurrentCombo);
+            }
+            else
+            {
+                Talk.Enabled = CurrentCombo != DefaultCombo;
+                Satellite.Warning = !IsValidCombo(CurrentCombo);
+            }
+        }
+        public bool IsValidCombo(string combo)
+        {
+            foreach (var pair in ComboFlags)
+            {
+                if (pair.Item1 == combo) return true;
+            }
+            return false;
+        }
+        public override void Removed(Scene scene)
+        {
+            if (resetOnRemoved)
+            {
+                CurrentCombo = comboOnAdded;
+                UpdateCurrentCombo();
+            }
+            base.Removed(scene);
+            Satellite?.RemoveSelf();
+
+        }
+    }
+    [CustomEntity("PuzzleIslandHelper/Stabilizer")]
+    [Tracked]
+    public class FlagStabilizer : Stabilizer
+    {
+        public FlagData Flag;
+        public string ID;
+        public override bool On
+        {
+            get => Flag;
+            set => Flag.State = value;
+        }
+        public bool StartState;
+        public bool ResetOnRemoved;
+        public FlagStabilizer(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
+        {
+            ID = id.ToString();
+            StartState = data.Bool("startOn");
+            ResetOnRemoved = !data.Bool("persistent", true);
+            Flag = new FlagData("Stabilizer:" + ID);
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            if (ResetOnRemoved)
+            {
+                Flag.State = StartState;
+            }
+        }
+    }
+    [Tracked]
+    public abstract class Stabilizer : Entity
+    {
         public static readonly float[] OnRates = [1, 1, 1, 1];
         public static readonly float[] OffRates = [0, 0, 0, 0];
         public float GlowMult = 1;
+        public float GlowMultAdd;
         public float Glow
         {
             get
             {
-                float mult = Group != null ? (GlowMult + Group.GlowMultAdd) : GlowMult;
+                float mult = GlowMult + GlowMultAdd;
                 return GlowLerp * ApproachMult * mult * BaseAlpha;
             }
         }
         public float GlowLerp;
         public float BaseAlpha = 0.5f;
         public float ApproachMult;
-        public FlagData On;
-        public FlagData HasBeenUsed;
-        public EntityID ID;
-        private bool startOn;
-        private bool persistent;
+        public abstract bool On { get; set; }
         private Image Image;
         private MTexture onTex, offTex;
         public VertexLight Light;
         public BloomPoint Bloom;
-        private bool wasOn;
-        public bool Locked;
-        public bool State
+        public Stabilizer(Vector2 position) : base(position)
         {
-            get
-            {
-                bool locked = Locked || (Group != null && Group.Locked);
-                return locked ? startOn : On;
-            }
-        }
-        public Stabilizer(EntityData data, Vector2 offset, EntityID id) :
-            this(data.Position + offset, id, data.Bool("locked"), data.Bool("startOn"), data.Bool("persistent", true))
-        {
-
-        }
-        public Stabilizer(Vector2 position, EntityID id, bool locked, bool startOn, bool persistent = true) : base(position)
-        {
-            Locked = locked;
             Depth = 1;
-            ID = id;
-            On = new FlagData("Stabilizer:" + ID.ToString());
-            HasBeenUsed = new FlagData("StabilizerUsed:" + ID.ToString());
-            this.startOn = startOn;
-            this.persistent = persistent;
         }
-        public override void Awake(Scene scene)
+        public override void Added(Scene scene)
         {
-            base.Awake(scene);
-            /*            if (Group == null)
-                        {*/
+            base.Added(scene);
+            onTex = GFX.Game["objects/PuzzleIslandHelper/stabilizer/on"];
+            offTex = GFX.Game["objects/PuzzleIslandHelper/stabilizer/off"];
             GlobalFrequencyReceiver on = null, off = null;
+            Add(off = new GlobalFrequencyReceiver(OffRates)
+            {
+                StopAtZeroPower = false,
+                OnlyIfInside = true,
+                RequiresAudibleSound = true,
+                Instant = true,
+                OnFullPower = () =>
+                {
+
+                    if (On)
+                    {
+                        off.Active = false;
+                        on.Reset(false, true);
+                        On = false;
+                    }
+                }
+            });
             Add(on = new GlobalFrequencyReceiver(OnRates)
             {
                 OnlyIfInside = true,
                 RequiresAudibleSound = true,
+                StopAtZeroPower = false,
+                Instant = true,
                 OnFullPower = () =>
                 {
                     if (!On)
                     {
                         on.Active = false;
                         off.Reset(false, true);
-                        HasBeenUsed.State = true;
-                        On.State = true;
+                        On = true;
                     }
                 }
             });
-            Add(off = new GlobalFrequencyReceiver(OffRates)
-            {
-                OnlyIfInside = true,
-                RequiresAudibleSound = true,
-                OnFullPower = () =>
-                {
-                    if (On)
-                    {
-                        off.Active = false;
-                        on.Reset(false, true);
-                        HasBeenUsed.State = true;
-                        On.State = true;
-                    }
-                }
-            });
-            if (!persistent || !HasBeenUsed)
-            {
-                On.State = startOn;
-            }
-            //}
+        }
+        public override void Awake(Scene scene)
+        {
+            base.Awake(scene);
             Image = new Image(On ? onTex : offTex);
             Add(Image);
             Collider = Image.Collider();
@@ -441,19 +460,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
             {
                 GlowLerp = t.Eased;
             });
-            wasOn = On;
-        }
-        public override void Added(Scene scene)
-        {
-            base.Added(scene);
-            onTex = GFX.Game["objects/PuzzleIslandHelper/stabilizer/on"];
-            offTex = GFX.Game["objects/PuzzleIslandHelper/stabilizer/off"];
-
         }
         public override void Update()
         {
             base.Update();
-            bool on = State;
+            bool on = On;
             if (on)
             {
                 ApproachMult = Calc.Approach(ApproachMult, 1, Engine.DeltaTime);
@@ -465,7 +476,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WIP
                 Image.Texture = offTex;
             }
             Light.Alpha = Bloom.Alpha = Glow;
-            wasOn = on;
         }
     }
 }

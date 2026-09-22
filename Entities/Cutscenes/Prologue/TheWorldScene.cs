@@ -100,8 +100,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                             {
                                 PixelFontSize size = FText.Font.Get(FText.BaseSize);
                                 PixelFontCharacter ch = size.Get(c.Character);
-                                _position.X = c.Position + XOffset + c.Offset.X + ch.XOffset + ch.XAdvance;
-                                _position.Y = _ypos + c.Offset.Y;
+                                _position.X = c.Position + XOffset + c.GroupOffset.X + ch.XOffset + ch.XAdvance;
+                                _position.Y = _ypos + c.GroupOffset.Y;
                             }
                             yield return c.Delay * 1.5f;
                         }
@@ -170,8 +170,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                     {
                         PixelFontSize size = IsThatText.Font.Get(FText.BaseSize);
                         PixelFontCharacter ch = size.Get(c.Character);
-                        _position.X = c.Position + XOffset + c.Offset.X + ch.XOffset + ch.XAdvance;
-                        _position.Y = _ypos + c.Offset.Y;
+                        _position.X = c.Position + XOffset + c.GroupOffset.X + ch.XOffset + ch.XAdvance;
+                        _position.Y = _ypos + c.GroupOffset.Y;
                         isThatXOffset = (int)_position.X;
                     }
                     yield return c.Delay * 1.5f;
@@ -203,8 +203,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                     {
                         PixelFontSize size = WorldText.Font.Get(FText.BaseSize);
                         PixelFontCharacter ch = size.Get(c.Character);
-                        _position.X = c.Position + XOffset + c.Offset.X + ch.XOffset + ch.XAdvance;
-                        _position.Y = _ypos + c.Offset.Y;
+                        _position.X = c.Position + XOffset + c.GroupOffset.X + ch.XOffset + ch.XAdvance;
+                        _position.Y = _ypos + c.GroupOffset.Y;
                     }
                     yield return c.Delay * 1.5f;
                 }

@@ -124,7 +124,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
             return null;
         }
     }
-
     public class CompassNodeData
     {
         public string Flag => $"CompassNode{{{FullID}}}:On";

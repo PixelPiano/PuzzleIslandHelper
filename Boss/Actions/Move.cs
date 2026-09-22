@@ -1,6 +1,7 @@
 using Celeste.Mod.Core;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -14,7 +15,7 @@ using System.Linq;
 using System.Reflection;
 using System.Xml;
 using static Celeste.Mod.PuzzleIslandHelper.Boss.ActionRegistry;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity.SingularityBoss;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
 {
@@ -54,7 +55,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
             snapOnEnd = xml.GetBool("snap", false);
             reverseEase = xml.GetBool("reverseEase", false);
         }
-        private void approachTarget(Vector2 position, Singularity s)
+        private void approachTarget(Vector2 position, SingularityBoss s)
         {
             float easeMult = ease(lerpTimer > 0 ?
                                 reverseEase ? 1 - (lerpTime / lerpTimer) : (lerpTime / lerpTimer)
@@ -74,7 +75,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
                 finished = true;
             }
         }
-        public override void Update(Singularity s)
+        public override void Reset(SingularityBoss s)
+        {
+            base.Reset(s);
+            finished = false;
+        }
+        public override void Update(SingularityBoss s)
         {
             base.Update(s);
             if (delayTimer > 0)
@@ -97,11 +103,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
                 lerpTimer -= Engine.DeltaTime;
             }
         }
-        public override bool ContinueToNextAction(Singularity s)
+        public override bool ContinueToNextAction(SingularityBoss s)
         {
             return finished;
         }
-        public override void Begin(Singularity s)
+        public override void Begin(SingularityBoss s)
         {
             delayTimer = delay;
             lerpTimer = lerpTime;
@@ -110,7 +116,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
             _to = !string.IsNullOrEmpty(marker) && Marker.TryFind(marker, out Vector2 position) ? position : _from + away;
             s.Idle();
         }
-        public override void End(Singularity s, bool wasSkipped)
+        public override void End(SingularityBoss s, bool wasSkipped)
         {
             base.End(s, wasSkipped);
             if (snapOnEnd)

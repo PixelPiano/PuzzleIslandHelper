@@ -1,7 +1,7 @@
 local interface= {}
 
 interface.name = "PuzzleIslandHelper/LabComputer"
-interface.depth = 2
+interface.depth = 200
 interface.justification = {0,0}
 interface.texture = "objects/PuzzleIslandHelper/interface/keyboard"
 interface.placements =

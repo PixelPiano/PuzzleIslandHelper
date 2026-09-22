@@ -117,8 +117,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             _startShaking(0.6f);
             Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
         }
-        private IEnumerator HoldUp(float time)
+        private IEnumerator HoldUp(float time) //is supposed to make the player look up but it doesn't work
         {
+            //todo: fix this
             for (float i = 0; i < time; i += Engine.DeltaTime)
             {
                 Input.MoveY.Value = -1;
@@ -187,7 +188,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 float playerMoveTimer = 1;
                 while (true)
                 {
-
                     Level level = SceneAs<Level>();
                     player = level.Tracker.GetEntity<Player>();
                     if (playerMoveTimer <= 0)

@@ -1,6 +1,6 @@
 using Celeste.Mod.Core;
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
 using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -15,7 +15,7 @@ using System.Linq;
 using System.Reflection;
 using System.Xml;
 using static Celeste.Mod.PuzzleIslandHelper.Boss.ActionRegistry;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity.SingularityBoss;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
 {
@@ -46,11 +46,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
             blockWalls = dict.GetBool("blockWalls", false);
             spikeDuration = dict.Get<float>("spikeDuration", 0.6f);
         }
-        public override bool ContinueToNextAction(Singularity s)
+        public override bool ContinueToNextAction(SingularityBoss s)
         {
-            return s.StateMachine.State != Singularity.StSpikeSlam;
+            return s.StateMachine.State != SingularityBoss.StSpikeSlam;
         }
-        public override void Begin(Singularity s)
+        public override void Begin(SingularityBoss s)
         {
             s.CallOrbs();
             s.SpikeSlam(markers, loops, length, mult, spikeDuration, targetPlayer, blockWalls);

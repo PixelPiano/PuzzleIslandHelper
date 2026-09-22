@@ -36,13 +36,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public int DefaultFloor;
         public bool SnapToClosestFloor;
         private bool reliesOnLabPower;
-        public enum Events
-        {
-            Default,
-            ButtonStuck,
-            Broken
-        }
-        public Events Event;
+        public FlagList Flag;
+
         public static void SetFloor(string id, int floor)
         {
             if (Engine.Scene is Level level)
@@ -65,12 +60,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             Depth = -10500;
             Tag |= Tags.TransitionUpdate;
+            Flag = data.FlagList("flag");
             moveSpeed = data.Float("moveSpeed");
             DefaultFloor = data.Int("defaultFloor");
             SnapToClosestFloor = data.Bool("snapToClosestFloorOnSpawn");
             reliesOnLabPower = data.Bool("reliesOnLabPower");
             ID = data.Attr("elevatorID");
-            Event = data.Enum<Events>("event");
+            //Event = data.Enum<Events>("event");
             foreach (Vector2 vec in data.NodesWithPosition(offset))
             {
                 Floors.Add(vec);
@@ -83,7 +79,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(moveSound = new SoundSource());
             Add(doorSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/labElevator/"));
             Add(new LightOcclude());
-
+            Add(coroutine = new Coroutine(false));
             upButton.PlayerMustBeFacing = false;
             upButton.HideUnderSolids = false;
             downButton.PlayerMustBeFacing = false;
@@ -93,10 +89,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Collider = new Hitbox(48, 8, 0, 0);
             moveSound.Position = Center - Position;
         }
+        
         private void StartMoveSound()
         {
             moveSound?.Stop(true);
             moveSound?.Play("event:/PianoBoy/Machines/ElevatorMoving", "Arrived", 0);
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            back?.RemoveSelf();
+            front?.RemoveSelf();
+            Barriers?.RemoveSelves();
+            Barrier?.RemoveSelf();
         }
         private void StopMoveSound()
         {
@@ -170,7 +175,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public override void Added(Scene scene)
         {
             base.Added(scene);
-
+            if(!Flag)
+            {
+                RemoveSelf();
+                return;
+            }
             bOneOffset = new Vector2(0, -30);
             bTwoOffset = new Vector2(43, -30);
             bThreeOffset = new Vector2(0, -40);
@@ -239,11 +248,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Clicks++;
             if (Clicks > 25 && !PianoModule.Session.RestoredPower)
             {
-                PianoModule.SaveData.GiveAchievement("ThisTimeForSure");
+                PianoModule.SaveData.GiveAchievement("MakeshiftFidgetToy");
             }
         }
-        public IEnumerator MoveRoutine(int floor)
+        private Coroutine coroutine;
+        public void StartMovingToFloor(int floor)
         {
+            coroutine.Replace(moveRoutine(floor));
+        }
+        public int NextFloor = int.MinValue;
+        private IEnumerator moveRoutine(int floor)
+        {
+            NextFloor = floor;
             Player player = Scene.GetPlayer();
             if (!Moving)
             {
@@ -318,23 +334,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public IEnumerator MoveElevator(bool up)
         {
             if (Scene is not Level level || level.GetPlayer() is not Player player) yield break;
-            if (Event == Events.ButtonStuck)
+/*            if (Event == Events.ButtonStuck)
             {
                 //todo: add dialogue saying the buttons are stuck
                 yield break;
-            }
-            else if (Event == Events.Broken)
+            }*/
+/*            else if (Event == Events.Broken)
             {
                 //todo: add dialogue saying the elevator is beyond repair
                 //todo: create damaged/broken elevator sprite
                 yield break;
-            }
+            }*/
             ClickButton(up);
             if (!PianoModule.Session.RestoredPower && reliesOnLabPower)
             {
                 yield break;
             }
-            yield return MoveRoutine(CurrentFloor + (up ? -1 : 1));
+            yield return moveRoutine(CurrentFloor + (up ? -1 : 1));
         }
     }
 }

@@ -94,21 +94,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 switch (Cutscene)
                 {
                     case MemoryGridCutscenes.Blocks1:
-                        LevelShaker.Intensity = 1;
+                        //LevelShaker.Intensity = 1;
                         Player.StateMachine.State = Player.StDummy;
                         break;
                     case MemoryGridCutscenes.Settle:
-                        LevelShaker.Intensity = 1;
+                        //LevelShaker.Intensity = 1;
                         break;
                     case MemoryGridCutscenes.Lookout:
                         Player.StateMachine.State = Player.StDummy;
-                        LevelShaker.Intensity = 0;
+                        //LevelShaker.Intensity = 0;
                         break;
                     case MemoryGridCutscenes.ShakeAgain:
-                        LevelShaker.Intensity = 0;
+                        //LevelShaker.Intensity = 0;
                         break;
                     case MemoryGridCutscenes.Blocks2:
-                        LevelShaker.Intensity = 1.5f;
+                        //LevelShaker.Intensity = 1.5f;
                         Player.StateMachine.State = Player.StDummy;
                         break;
                 }
@@ -138,8 +138,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                         Coroutine text = new Coroutine(settleCutscene());
                         for (float i = 0; i < 1; i += Engine.DeltaTime / 2f)
                         {
-
-                            LevelShaker.Intensity = Calc.LerpClamp(from, 0, i);
+                            //LevelShaker.Intensity = Calc.LerpClamp(from, 0, i);
                             if (i > 0.8f && !added)
                             {
                                 Add(text);
@@ -147,7 +146,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                             }
                             yield return null;
                         }
-                        LevelShaker.Intensity = 0;
+                        //LevelShaker.Intensity = 0;
                         while (!text.Finished) yield return null;
                         break;
                     case MemoryGridCutscenes.Lookout:
@@ -162,7 +161,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                                 Scene.Add(textbox = new MiniTextbox("memoryGridLevelShake"));
                                 added = true;
                             }
-                            LevelShaker.Intensity = Calc.LerpClamp(0f, 1.5f, Ease.SineIn(i));
+                            //LevelShaker.Intensity = Calc.LerpClamp(0f, 1.5f, Ease.SineIn(i));
                             //rumble volume = LevelShaker.Intensity;
                             yield return null;
                         }
@@ -206,7 +205,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                 switch (Cutscene)
                 {
                     case MemoryGridCutscenes.Blocks1:
-                        LevelShaker.Intensity = 1;
+                        //LevelShaker.Intensity = 1;
                         Player.StateMachine.State = Player.StNormal;
                         if (WasSkipped)
                         {
@@ -216,7 +215,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                         }
                         break;
                     case MemoryGridCutscenes.Settle:
-                        LevelShaker.Intensity = 0;
+                        //LevelShaker.Intensity = 0;
                         Player.StateMachine.State = Player.StNormal;
                         foreach (Coroutine c in Components.GetAll<Coroutine>())
                         {
@@ -224,7 +223,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                         }
                         break;
                     case MemoryGridCutscenes.Lookout:
-                        LevelShaker.Intensity = 0;
+                        //LevelShaker.Intensity = 0;
                         Player.StateMachine.State = Player.StNormal;
                         if (WasSkipped)
                         {
@@ -232,7 +231,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                         }
                         break;
                     case MemoryGridCutscenes.ShakeAgain:
-                        LevelShaker.Intensity = 1.5f;
+                        //LevelShaker.Intensity = 1.5f;
                         if (WasSkipped)
                         {
                             textbox.RemoveSelf();
@@ -244,7 +243,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
                             groundAllBlocks();
                             Player.Facing = Facings.Left;
                         }
-                        LevelShaker.Intensity = 1.5f;
+                        //LevelShaker.Intensity = 1.5f;
                         Player.StateMachine.State = Player.StNormal;
                         break;
                 }

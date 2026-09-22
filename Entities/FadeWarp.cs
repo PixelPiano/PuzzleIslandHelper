@@ -2,6 +2,7 @@ using Celeste.Mod.Entities;
 using FMOD.Studio;
 using Microsoft.Xna.Framework;
 using Monocle;
+using System;
 using System.Collections;
 // PuzzleIslandHelper.FadeWarp
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -315,7 +316,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 opacity = i;
                 yield return null;
             }
-            TeleportTo(SceneAs<Level>(), SceneAs<Level>().Tracker.GetEntity<Player>(), Room);
+            Level level = SceneAs<Level>();
+            TeleportTo(level, level.Tracker.GetEntity<Player>(), Room);
             yield return 0.3f;
             for (float i = 1; i > 0; i -= Engine.DeltaTime * FadeSpeed * FadeSpeedMultiplier)
             {
@@ -327,17 +329,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public static void TeleportTo(Scene scene, Player player, string room, Player.IntroTypes introType = Player.IntroTypes.Transition, Vector2? nearestSpawn = null)
         {
             Level level = scene as Level;
-            if (level != null)
+            if (scene is not Level) throw new ArgumentException("Passed in Scene object must be of type Level");
+            if (level == null) throw new ArgumentNullException("Passed in Scene object is null");
+            if (player == null) throw new ArgumentNullException("Passed in Player object is null");
+
+            if (player.Holding != null)
             {
-                if (player.Holding != null)
-                {
-                    Held = player.Holding;
-                }
-                level.OnEndOfFrame += delegate
-                {
-                    level.TeleportTo(player, room, introType, nearestSpawn);
-                };
+                Held = player.Holding;
             }
+            level.OnEndOfFrame += delegate
+            {
+                level.TeleportTo(player, room, introType, nearestSpawn);
+            };
         }
     }
 }

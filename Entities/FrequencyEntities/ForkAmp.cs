@@ -10,19 +10,6 @@ using System.Reflection;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
 {
-    [Tracked]
-    public class FrequencyComponent : Component
-    {
-        public Action<int, string> OnSelectedChanged;
-        public Action<int, float, float, string> OnFrequencyChanged;
-        public Action<int, bool, float, string> OnFrequencyStay;
-        public Action<string> OnUIStart;
-        public Action<bool, string> OnUIEnd;
-        public FrequencyComponent() : base(false, false)
-        {
-
-        }
-    }
     public static class FrequencyData
     {
         public static float[] TempleRates = [10, 20, 30, 40];
@@ -99,13 +86,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             }
             return rates;
         }
+        [Tracked]
+        public class FrequencyMod : Component
+        {
+            public bool Enabled = true;
+            public Func<float, int, float> ModRate;
+            public bool[] OscillatorsAffected = [true, true, true, true];
+            public FrequencyMod(Func<float, int, float> modRate) : base(true, false)
+            {
+                ModRate = modRate;
+            }
+        }
         public static float GetRate(Scene scene, int index, string id = null)
         {
+            index = Math.Clamp(index, 0, 4);
             if (scene is not Level level)
             {
                 throw new Exception("Current scene is not a level.");
             }
-            return level.Session.GetSlider((id ?? "") + "ForkAmpRate" + index);
+            return ApplyMods(scene, index, level.Session.GetSlider((id ?? "") + "ForkAmpRate" + index));
+        }
+        public static float ApplyMods(Scene scene, int index, float rate)
+        {
+            foreach (FrequencyMod mod in scene.Tracker.GetComponents<FrequencyMod>())
+            {
+                if (mod.Active && mod.OscillatorsAffected[index])
+                {
+                    rate = mod.ModRate.Invoke(rate, index);
+                }
+            }
+            return rate;
         }
         public static float GetPrevRate(Scene scene, int index, string id = null)
         {
@@ -121,29 +131,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             {
                 throw new Exception("Current scene is not a level.");
             }
-            level.Session.SetSlider((id ?? "") + "PrevForkAmpRate" + index, GetRate(scene, index, id));
+            float prev = level.Session.GetSlider((id ?? "") + "ForkAmpRate" + index);
+            level.Session.SetSlider((id ?? "") + "PrevForkAmpRate" + index, prev);
             level.Session.SetSlider((id ?? "") + "ForkAmpRate" + index, rate);
         }
     }
     [Tracked]
     public class FrequencySender : Component
     {
-        /*public float Radius
-        {
-            get => Collider.Radius;
-            set => Collider.Radius = value;
-        }*/
-        /*        public Vector2 AbsolutePosition
-                {
-                    get => Collider.Position + Entity.Position;
-                    set => Collider.Position = value - Entity.Position;
-                }
-                public Vector2 Position
-                {
-                    get => Collider.Position;
-                    set => Collider.Position = value;
-                }*/
-        //public Circle Collider;
         public float[] Rates;
         public enum SendModes
         {
@@ -153,10 +148,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         }
         public SendModes SendMode;
         public float Interval;
-        public bool EvenIfRadiusZero = true;
         public FrequencySender(float radius, Vector2 position = default, params float[] rates) : base(true, false)
         {
-            //Collider = new Circle(radius, position.X, position.Y);
             Rates = new float[4];
             if (rates != null)
             {
@@ -206,7 +199,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                 }
             }
         }
-
     }
     [Tracked(false)]
     public class FrequencyReceiver : Component
@@ -222,7 +214,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             //Collider = new Hitbox(radius * 2, radius * 2, -radius, -radius);
             Rates = rates;
         }
-       
+
         public override void Update()
         {
             base.Update();
@@ -289,7 +281,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
-            Draw.HollowRect(Entity.Collider, Colliding ? Color.Lime : Color.Red);
+            if (Entity != null && Entity.Collider != null)
+            {
+                Draw.HollowRect(Entity.Collider, Colliding ? Color.Lime : Color.Red);
+            }
         }
         public void Reset(bool on, bool start = false)
         {
@@ -336,7 +331,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         public override void Update()
         {
             base.Update();
-            if(Disabled) return;
+            if (Disabled) return;
             float mult = 1;
             /*            if (Collider != null || Entity.Collider != null)
                         {
@@ -365,10 +360,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                     Delay -= Engine.DeltaTime;
                 }
                 Power = 0;
-                float[] rates = FrequencyData.GetRates(Scene);
-                if (rates is null || rates.Length <= 0) return;
                 if (Delay <= 0 && (!RequiresAudibleSound || ForkAmpSound.GlobalPlaying))
                 {
+                    float[] rates = FrequencyData.GetRates(Scene);
+                    if (rates is null || rates.Length <= 0) return;
                     int count = 0;
                     for (int i = 0; i < 4; i++)
                     {

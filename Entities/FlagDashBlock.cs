@@ -59,7 +59,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (self is RemoteDashBlock)
             {
-                (self as RemoteDashBlock).shaker.StartShaking(time);
+                (self as RemoteDashBlock).shaker.ShakeFor(time);
             }
             else
             {

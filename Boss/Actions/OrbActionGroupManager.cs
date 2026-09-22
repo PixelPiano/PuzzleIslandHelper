@@ -1,13 +1,13 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections;
 using System.Xml;
 using static Celeste.Mod.PuzzleIslandHelper.Boss.ActionRegistry;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.Singularity.SingularityBoss;
 using Monocle;
 using System.Linq;
 using System.Collections.Generic;
+using Celeste.Mod.PuzzleIslandHelper.Entities.Singularity;
 namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
 {
     public class OrbActionGroupManager : ActionRegistryHandler
@@ -17,11 +17,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
         public Stack<ActionInfo> Actions = [];
         private List<Coroutine> coroutines = [];
 
-        private List<Orb> getAvailable(Singularity s) => s.Orbs.Where(item => !item.Attacking && !item.QueuedForAttack).ToList();
+        private List<Orb> getAvailable(SingularityBoss s) => s.Orbs.Where(item => !item.Attacking && !item.QueuedForAttack).ToList();
         public override void Parse(XmlActionData dict)
         {
         }
-        public override void Begin(Singularity s)
+        public override void Begin(SingularityBoss s)
         {
             while (Actions.Count > 0)
             {
@@ -30,7 +30,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
                 coroutines.Add(routine);
             }
         }
-        public override void End(Singularity s, bool wasSkipped)
+        public override void End(SingularityBoss s, bool wasSkipped)
         {
             base.End(s, wasSkipped);
             coroutines.RemoveSelves();
@@ -40,7 +40,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
             }
         }
         
-        private IEnumerator queueAction(Singularity s, ActionInfo info)
+        private IEnumerator queueAction(SingularityBoss s, ActionInfo info)
         {
             OrbActionRegistryHandler handler = info.Handler as OrbActionRegistryHandler ?? throw new Exception("tried to queue up a non orb-exclusive action!");
             List<Orb> orbs = getAvailable(s);
@@ -84,7 +84,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Boss.Actions
             }
         }
 
-        public override bool ContinueToNextAction(Singularity s)
+        public override bool ContinueToNextAction(SingularityBoss s)
         {
             if (Actions.Count == 0)
             {

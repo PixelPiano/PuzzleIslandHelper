@@ -17,6 +17,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         {
             Engine.Scene.Add(new ForkAmpTabletTest());
         }
+        private ForkAmpUI ui;
         public override void Added(Scene scene)
         {
             base.Added(scene);
@@ -24,13 +25,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         }
         private IEnumerator routine()
         {
-            ForkAmpUI ui = new ForkAmpUI(null);
+            ui = new ForkAmpUI(null);
             Scene.Add(ui);
             while (!ui.Finished)
             {
                 yield return null;
             }
             RemoveSelf();
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            ui?.RemoveSelf();
         }
     }
     [CustomEntity("PuzzleIslandHelper/ForkAmpTablet")]
@@ -99,7 +105,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         {
             if (!boxShook)
             {
-                shaker.StartShaking(0.4f);
+                shaker.ShakeFor(0.4f);
                 PrepareForTalk();
             }
         }
@@ -151,7 +157,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             faller.Collider = new Hitbox(plate.Width, (int)(plate.Height * 0.7f));
             Scene.Add(faller);
             player.DisableMovement();
-            shaker.StartShaking(0.4f);
+            shaker.ShakeFor(0.4f);
             yield return 0.4f;
             yield return 0.8f;
             float speed = 0;

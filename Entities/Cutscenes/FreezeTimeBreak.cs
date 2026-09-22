@@ -1,5 +1,6 @@
 ﻿using Celeste.Mod.Entities;
 using Celeste.Mod.LuaCutscenes;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using Celeste.Mod.PuzzleIslandHelper.Entities.Flora.Passengers;
 using Microsoft.Xna.Framework;
@@ -82,7 +83,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
     [Tracked]
     public class FreezeTimeBreak : CutsceneEntity
     {
-        public static FreezeTimeBreak Begin(Solid solid, char tileType, float shakeTime, FlagList flagOnEnd = default, bool loseCollision = true, bool removeSelf = true)
+        public static FreezeTimeBreak Begin(Solid solid, char tileType, float shakeTime, FlagList flagOnEnd = default, bool loseCollision = true, bool removeSelf = true, Action onEnd = null)
         {
             FreezeTimeBreak cutscene = new(solid, tileType, shakeTime, flagOnEnd, loseCollision, removeSelf);
             solid.Scene.Add(cutscene);
@@ -95,15 +96,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         private TimeRateModifier timeModifier;
         private bool removeSelf;
         private bool loseCollision;
-        public FreezeTimeBreak(Solid solid, char tileType, float shakeTime, FlagList flagOnEnd, bool loseCollision = true, bool removeSelf = true) : base()
+        private BetterShaker shaker;
+        private Action onEnd;
+        public FreezeTimeBreak(Solid solid, char tileType, float shakeTime, FlagList flagOnEnd, bool loseCollision = true, bool removeSelf = true, Action onEnd = null) : base()
         {
+            this.onEnd = onEnd;
             this.solid = solid;
             this.tileType = tileType;
             this.shakeTime = shakeTime;
             this.flagOnEnd = flagOnEnd;
             this.removeSelf = removeSelf;
             this.loseCollision = loseCollision;
-            Add(timeModifier = new TimeRateModifier(1));
+            solid.Add(shaker = new BetterShaker(solid.OnShake)
+            {
+                UseRawDeltaTime = true
+            });
+            Add(timeModifier = new TimeRateModifier(0, false));
         }
         public override void OnBegin(Level level)
         {
@@ -111,7 +119,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             Vector2 position = (solid.Center - new Vector2(160, 90)).Clamp(level.Bounds);
             Add(new Coroutine(routine(position)) { UseRawDeltaTime = true });
         }
-        public static IEnumerator CameraToRaw(Vector2 target, float duration, Ease.Easer ease = null, float delay = 0f)
+        public static IEnumerator CameraToRaw(Vector2 target, float duration, Ease.Easer ease = null, float delay = 0f, bool clampToLevel = true)
         {
             if (ease == null)
             {
@@ -125,6 +133,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
 
             Level level = Engine.Scene as Level;
             Vector2 from = level.Camera.Position;
+            Rectangle bounds = level.Bounds;
+            if (clampToLevel)
+            {
+                target.X = Math.Clamp(target.X, bounds.Left, bounds.Right - 320);
+                target.Y = Math.Clamp(target.Y, bounds.Top, bounds.Bottom - 180);
+            }
             for (float p = 0f; p < 1f; p += Engine.RawDeltaTime / duration)
             {
                 level.Camera.Position = from + (target - from) * ease(p);
@@ -144,43 +158,62 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                     yield return null;
                 }
             }
-            timeModifier.Multiplier = 0;
             Vector2 prev = Level.Camera.Position;
 
-            yield return CameraToRaw(camPos, 1, Ease.CubeOut);
-            yield return 0.5f;
+            timeModifier.Enabled = true;
+            if (Level.Camera.Position != camPos)
+            {
+                yield return CameraToRaw(camPos, 1, Ease.CubeOut);
+            }
+            else
+            {
+                yield return 0.5f;
+            }
 
             if (shakeTime > 0)
             {
                 tileType.ShakeFallSfx(solid.Center);
-                solid.StartShaking(-1);
+                shaker.ShakeFor(-1);
                 yield return shakeTime;
             }
             solid.TimelessBreak(tileType, solid.Center, flagOnEnd, loseCollision: loseCollision, removeSelf: removeSelf);
-            yield return 1;
+            timeModifier.Enabled = false;
+            yield return 0.5f;
             yield return CameraToRaw(prev, 1, Ease.CubeOut);
-            yield return 0.8f;
             EndCutscene(Level);
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            shaker.RemoveSelf();
+            timeModifier.Multiplier = 1; 
+            timeModifier.RemoveSelf();
         }
         public override void OnEnd(Level level)
         {
+            onEnd?.Invoke();
+            shaker.RemoveSelf();
             timeModifier.Multiplier = 1;
+            timeModifier.RemoveSelf();
             if (WasSkipped)
             {
-                if (removeSelf)
+                if (solid != null)
                 {
-                    if (solid is DashBlock dashBlock && dashBlock.permanent)
+                    if (removeSelf)
                     {
-                        dashBlock.RemoveAndFlagAsGone();
+                        if (solid is DashBlock dashBlock && dashBlock.permanent)
+                        {
+                            dashBlock.RemoveAndFlagAsGone();
+                        }
+                        else
+                        {
+                            solid.RemoveSelf();
+                        }
                     }
-                    else
+                    if (loseCollision)
                     {
-                        solid.RemoveSelf();
+                        solid.Collidable = false;
                     }
-                }
-                if (loseCollision)
-                {
-                    solid.Collidable = false;
                 }
             }
             level.EnableMovement();

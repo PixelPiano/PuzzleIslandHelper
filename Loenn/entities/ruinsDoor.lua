@@ -33,7 +33,8 @@ ruinsDoor.placements =
         flag = "",
         keyId = -1,
         dialog = "",
-        doorType = "A"
+        doorType = "A",
+        isElderLock = false
     }
 }
 ruinsDoor.fieldInformation =

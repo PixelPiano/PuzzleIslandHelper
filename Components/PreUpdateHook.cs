@@ -15,23 +15,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         [OnLoad]
         public static void Load()
         {
-            On.Celeste.Level.Update += Level_Update;
+            Everest.Events.Level.OnBeforeUpdate += Level_OnBeforeUpdate;
         }
-        [OnUnload]
-        public static void Unload()
+
+        private static void Level_OnBeforeUpdate(Level obj)
         {
-            On.Celeste.Level.Update -= Level_Update;
-        }
-        private static void Level_Update(On.Celeste.Level.orig_Update orig, Level self)
-        {
-            foreach (PreUpdateHook hook in self.Tracker.GetComponents<PreUpdateHook>())
+            foreach (PreUpdateHook hook in obj.Tracker.GetComponents<PreUpdateHook>())
             {
                 if (hook.Active && hook.Entity.Active)
                 {
                     hook.Callback?.Invoke();
                 }
             }
-            orig(self);
+        }
+
+        [OnUnload]
+        public static void Unload()
+        {
+            Everest.Events.Level.OnBeforeUpdate -= Level_OnBeforeUpdate;
         }
     }
 }

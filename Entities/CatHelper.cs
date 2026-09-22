@@ -26,8 +26,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public static bool State;
         public static bool Enabled;
-        private MTexture snug => GFX.Game["objects/PuzzleIslandHelper/catsnug"];
-        private MTexture plant => GFX.Game["objects/PuzzleIslandHelper/catplant"];
+        [OnLoad]
+        public static void Load()
+        {
+            State = false;
+            Enabled = false;
+        }
+        public static MTexture snug => GFX.Game["objects/PuzzleIslandHelper/catsnug"];
+        public static MTexture plant => GFX.Game["objects/PuzzleIslandHelper/catplant"];
         public CatHelper() : base()
         {
             Tag |= Tags.Global | TagsExt.SubHUD;

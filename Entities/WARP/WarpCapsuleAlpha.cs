@@ -18,7 +18,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
     [Tracked]
     public class WarpCapsuleAlpha : WarpCapsule
     {
-        public bool IsFirstTime => WARPData.ObtainedRunes.Count < 1 && PianoModule.Session.TimesUsedCapsuleWarp < 1 && Marker.TryFind("isStartingWarpRoom", out _);
+        public bool IsFirstTime => WARPData.ObtainedRunes.Count < 1 && PianoModule.Session.TimesUsedCapsuleWarp < 1 && Marker.TryFind("isStartingWarpRoom", out Vector2 _);
         public bool ReadyForBeam;
         public bool IsDefault;
         public Image ShineTex;

@@ -15,6 +15,7 @@ using Celeste.Mod.PuzzleIslandHelper.Entities.Flora;
 using YamlDotNet.Core.Tokens;
 using Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using System.Linq;
 
 namespace Celeste.Mod.PuzzleIslandHelper
 {
@@ -24,9 +25,16 @@ namespace Celeste.Mod.PuzzleIslandHelper
         Barely,
         Restored
     }
-
+    public enum Routes
+    {
+        A,
+        B,
+        C
+    }
     public class PianoModuleSession : EverestModuleSession
     {
+        public Routes Route { get; set; }
+        public bool RescuedRedOrb { get; set; }
         [Obsolete("Beta prologue not currently in use")]
         public List<PrologueGlitchBlock> ActiveGlitchBlocks = new();
         [Obsolete("Chained Monitors not part of active map")]
@@ -51,9 +59,22 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
         [Obsolete("Doctor office scrapped")]
         public bool BathroomStallOpened { get; set; }
+
+        public HashSet<string> ActivatedBatterySwitches = [];
+        public HashSet<string> ActivatedBatteryLines = [];
+        public HashSet<string> WorldShifterToStabilizerConnections = [];
+        public Dictionary<EntityID, string> StabilizerGroupCombos = [];
+        public Dictionary<EntityID, string> StabilizersLastValidCombo = [];
+        public TrapdoorChandelier LeaderTimer;
         public int KeysObtained;
         public int KeysUsed;
         public bool CanUseKey => KeysObtained > KeysUsed;
+        public bool OrbsMerged
+        {
+            get => orbsMergedFlag;
+            set => orbsMergedFlag.State = value;
+        }
+        private FlagData orbsMergedFlag = new FlagData("PuzzleIsland: OrbsMerged");
         public bool TryUseKey()
         {
             if (CanUseKey)

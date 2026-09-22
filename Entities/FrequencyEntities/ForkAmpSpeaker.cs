@@ -11,7 +11,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
 {
-    [CustomEntity("PuzzleIslandHelper/WipEntity")]
+    //[CustomEntity("PuzzleIslandHelper/WipEntity")]
     public class TestEntity : Entity
     {
         public float x, y, w, h;

@@ -19,7 +19,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public string NodeFlagPrefix;
         public Dictionary<EntityID, List<int>> Cache => PianoModule.Session.TiletypePuzzleCache;
         [Tracked]
-        public class TiletypeNode : Solid
+        [CustomEntity("PuzzleIslandHelper/TileshiftBlock")]
+        public class TileshiftBlock : Solid
         {
             public TileGrid Grid;
             public TileInterceptor Interceptor;
@@ -28,16 +29,70 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             public VertexLight Light;
             public char[] Tiles;
             public char CorrectTile;
-            public char CurrentTile => Tiles[Index];
+            public char CurrentTile;
             public bool IsCorrect => CurrentTile == CorrectTile;
             public int Index;
             private Coroutine coroutine;
-            public TiletypeNode(Vector2 position, float width, float height, char[] tiles, char correctTile, int startIndex) : base(position, width, height, false)
+            private bool isForPuzzle;
+            private FlagList invalidFlag;
+            private struct flagTilePair
             {
+                public char Tile;
+                public FlagList Flag;
+            }
+            private List<flagTilePair> pairs = [];
+            public TileshiftBlock(EntityData data, Vector2 offset) : base(data.Position + offset, data.Width, data.Height, false)
+            {
+                invalidFlag = data.FlagList("flagWhenInvalid");
+                string attr = data.Attr("flagTilePairs");
+                string[] array = attr.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                foreach (string s in array)
+                {
+                    string[] pair = s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    flagTilePair flagTilePair = default;
+                    if (pair.Length > 0)
+                    {
+                        if (pair[0].Length == 0)
+                        {
+                            flagTilePair.Tile = pair[0][0];
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                        if (pair.Length > 1)
+                        {
+                            flagTilePair.Flag = new FlagList(pair[1]);
+                        }
+                    }
+                    pairs.Add(flagTilePair);
+                }
+            }
+            public TileshiftBlock(Vector2 position, float width, float height, char[] tiles, char correctTile, int startIndex) : base(position, width, height, false)
+            {
+                isForPuzzle = true;
                 Index = startIndex;
                 Tiles = tiles;
                 CorrectTile = correctTile;
                 Add(coroutine = new Coroutine(false));
+            }
+            public override void Added(Scene scene)
+            {
+                base.Added(scene);
+                if (!isForPuzzle)
+                {
+                    foreach (var pair in pairs)
+                    {
+                        if (pair.Flag)
+                        {
+                            CurrentTile = pair.Tile;
+                        }
+                    }
+                }
+                else
+                {
+                    CurrentTile = Tiles[Index];
+                }
             }
             public override void Awake(Scene scene)
             {
@@ -48,11 +103,51 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Light.Position = Collider.HalfSize;
                 Add(Light);
             }
+            private bool random;
+            private float randomTimer;
             public override void Update()
             {
                 base.Update();
                 Light.InSolid = false;
                 Light.InSolidAlphaMultiplier = 1;
+                if (!isForPuzzle)
+                {
+                    bool wasRandom = random;
+                    bool atLeastOneTrue = false;
+                    foreach (var p in pairs)
+                    {
+                        if (p.Flag)
+                        {
+                            atLeastOneTrue = true;
+                            if (CurrentTile != p.Tile)
+                            {
+                                AdvanceTo(p.Tile);
+                                break;
+                            }
+                        }
+                    }
+                    random = !atLeastOneTrue;
+                    if (random)
+                    {
+                        if (randomTimer > 0)
+                        {
+                            randomTimer -= Engine.DeltaTime;
+                            if (randomTimer <= 0)
+                            {
+                                randomTimer = 0;
+                                GenerateRandomTopLayerGrid();
+                            }
+                        }
+                        if (!wasRandom)
+                        {
+                            randomTimer = 0.2f;
+                        }
+                    }
+                    else if(wasRandom)
+                    {
+                        randomTimer = 0;
+                    }
+                }
             }
             public void GenerateGrid(char tile)
             {
@@ -61,6 +156,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 Grid = GFX.FGAutotiler.GenerateBox(tile, (int)(Width / 8), (int)(Height / 8)).TileGrid;
                 Interceptor = new TileInterceptor(Grid, false);
                 Add(Grid, Interceptor);
+            }
+            public void GenerateRandomTopLayerGrid()
+            {
+                Overlay?.RemoveSelf();
+                OverlayInterceptor?.RemoveSelf();
+                Overlay = GFX.FGAutotiler.GenerateCustomBox(0, 0, (int)(Width / 8), (int)(Height / 8), default, Condition).TileGrid;
+                OverlayInterceptor = new TileInterceptor(Overlay, false);
+                Add(Overlay, OverlayInterceptor);
             }
             public void GenerateTopLayerGrid(char tile, int swap)
             {
@@ -79,6 +182,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 }
                 return '0';
             }
+            public char Condition(int x, int y)
+            {
+                if (!isForPuzzle && random)
+                {
+                    return pairs.Random().Tile;
+                }
+                else
+                {
+                    return CurrentTile;
+                }
+            }
             private char next;
             public void Advance()
             {
@@ -87,6 +201,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 coroutine.Replace(routine(CurrentTile, next));
                 Index++;
                 Index %= Tiles.Length;
+            }
+            public void AdvanceTo(char c)
+            {
+                if (CurrentTile != c && pairs.Find(p => p.Tile == c) is var pair && pair.Tile != default)
+                {
+                    next = pair.Tile;
+                    coroutine.Replace(routine(CurrentTile, next));
+                }
             }
             private IEnumerator routine(char prev, char next)
             {
@@ -102,7 +224,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 GenerateGrid(next);
             }
         }
-        public List<TiletypeNode> Nodes = [];
+        public List<TileshiftBlock> Nodes = [];
         public EntityID ID;
         public TiletypePuzzle(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
@@ -127,14 +249,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 {
                     value.Add(0);
                 }
-                TiletypeNode node = new(nodes[i], width, height, tiles, sequence[i], value[i]);
+                TileshiftBlock node = new(nodes[i], width, height, tiles, sequence[i], value[i]);
                 Nodes.Add(node);
             }
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            foreach (TiletypeNode node in Nodes)
+            foreach (TileshiftBlock node in Nodes)
             {
                 scene.Add(node);
             }
@@ -155,7 +277,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             bool allGood = !string.IsNullOrEmpty(FlagOnComplete);
             for (int i = 0; i < Nodes.Count; i++)
             {
-                TiletypeNode node = Nodes[i];
+                TileshiftBlock node = Nodes[i];
                 if (level.Session.GetFlag(NodeFlagPrefix + i))
                 {
                     node.Advance();

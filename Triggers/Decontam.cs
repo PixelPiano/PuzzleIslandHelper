@@ -14,6 +14,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
     {
         public string AreaID;
         public string Prefix;
+        public FlagList DisableFlags;
         public enum DoorStates
         {
             Closed,
@@ -81,6 +82,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             Prefix = data.Attr("prefix");
             ActiveFlag = data.FlagList("activateFlag");
             FlagOnActivate = data.FlagList("flagOnActivate");
+            DisableFlags = data.FlagList("disableFlags");
         }
         public override void Awake(Scene scene)
         {
@@ -107,7 +109,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         {
             base.OnEnter(player);
             CheckForArea = false;
-            if (CanActivate)
+            if (CanActivate && (DisableFlags.Empty || !DisableFlags))
             {
                 Scene.Add(new Cutscene(this));
                 CanActivate = false;
@@ -149,6 +151,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         public override void Update()
         {
             base.Update();
+            if (DisableFlags && !DisableFlags.Empty) return;
             bool isActive = ActiveFlag;
             if (isActive && !wasActive)
             {
@@ -194,10 +197,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         {
             CanActivate = true;
             CheckForArea = false;
-            DoorState = DoorStates.Closed;
+            DoorState = DoorStates.Automatic;
             foreach (LabDoor door in Doors)
             {
                 door.Manual = false;
+                door.automatic = true;
             }
         }
         public override void Removed(Scene scene)

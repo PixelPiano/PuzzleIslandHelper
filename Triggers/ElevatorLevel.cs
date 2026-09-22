@@ -22,7 +22,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            if(CollideFirst<Player>() != null)
+            if (CollideFirst<Player>() != null)
             {
                 SetFloor();
             }
@@ -37,16 +37,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Triggers
             base.OnEnter(player);
             MoveToFloor();
         }
+        public override void OnStay(Player player)
+        {
+            base.OnStay(player);
+            MoveToFloor();
+        }
         public void MoveToFloor()
         {
-            foreach(LabElevator elevator in Scene.Tracker.GetEntities<LabElevator>())
+            LabElevator elevator = Scene.Tracker.GetEntity<LabElevator>();
+            if (elevator != null && elevator.CanBeMoved && elevator.ID == ElevatorID && elevator.NextFloor != Floor)
             {
-                if(elevator.CanBeMoved && elevator.ID == ElevatorID && !elevator.Moving && elevator.CurrentFloor != Floor)
-                {
-                    elevator.Add(new Coroutine(elevator.MoveRoutine(Floor)));
-                }
+                elevator.StartMovingToFloor(Floor);
             }
         }
-
     }
 }

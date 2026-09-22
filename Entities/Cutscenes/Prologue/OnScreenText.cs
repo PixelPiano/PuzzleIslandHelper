@@ -98,8 +98,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes.Prologue
                     {
                         PixelFontSize size = FText.Font.Get(FText.BaseSize);
                         PixelFontCharacter ch = size.Get(c.Character);
-                        _position.X = c.Position + c.Offset.X + ch.XOffset + ch.XAdvance;
-                        _position.Y = _ypos + c.Offset.Y;
+                        _position.X = c.Position + c.GroupOffset.X + ch.XOffset + ch.XAdvance;
+                        _position.Y = _ypos + c.GroupOffset.Y;
                     }
                     yield return c.Delay * 1.5f;
                 }

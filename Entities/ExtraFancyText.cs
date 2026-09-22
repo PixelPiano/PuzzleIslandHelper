@@ -158,7 +158,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public class Char : Node
         {
-            public Vector2 Offset;
+            public float Alpha = 1;
+
+            public Vector2 CharOffset;
+
+            public Vector2 GroupOffset;
 
             public int Index;
 
@@ -212,13 +216,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 PixelFontCharacter pixelFontCharacter = pixelFontSize.Get(Character);
                 vector *= baseSize / pixelFontSize.Size;
                 position.X += (Position) * scale.X;
-                position += Offset * scale;
+                position += GroupOffset * scale;
                 zero += (Shake ? (new Vector2(-1 + Calc.Random.Next(3), -1 + Calc.Random.Next(3)) * 2f) : Vector2.Zero);
                 zero += (Wave ? new Vector2(0f, (float)Math.Sin((float)Index * 0.25f + Engine.Scene.RawTimeActive * 8f) * 4f) : Vector2.Zero);
                 zero.X += pixelFontCharacter.XOffset;
                 zero.Y += (float)pixelFontCharacter.YOffset + (-8f * (1f - Fade) + YOffset * Fade);
-                pixelFontCharacter.Texture.Draw(position + zero * vector, Vector2.Zero, color * Fade * alpha, vector, Rotation);
-                //pixelFontCharacter.Texture.DrawOutline(position + zero * vector, Vector2.Zero, color * Fade * alpha, vector, Rotation, Color.Black, 6);
+                pixelFontCharacter.Texture.Draw(position + zero * vector + CharOffset, Vector2.Zero, color * Fade * alpha * Alpha, vector, Rotation);
                 LastPosition = position + zero * vector;
             }
             public void DrawOutlineOnly(PixelFont font, float baseSize, Vector2 position, Vector2 scale, float alpha, Color outlineColor, int outline = 1)
@@ -230,12 +233,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 PixelFontCharacter pixelFontCharacter = pixelFontSize.Get(Character);
                 vector *= baseSize / pixelFontSize.Size;
                 position.X += (Position) * scale.X;
-                position += Offset * scale;
+                position += GroupOffset * scale;
                 zero += (Shake ? (new Vector2(-1 + Calc.Random.Next(3), -1 + Calc.Random.Next(3)) * 2f) : Vector2.Zero);
                 zero += (Wave ? new Vector2(0f, (float)Math.Sin((float)Index * 0.25f + Engine.Scene.RawTimeActive * 8f) * 4f) : Vector2.Zero);
                 zero.X += pixelFontCharacter.XOffset;
                 zero.Y += (float)pixelFontCharacter.YOffset + (-8f * (1f - Fade) + YOffset * Fade);
-                pixelFontCharacter.Texture.DrawOutlineOnly(position + zero * vector, Vector2.Zero, outlineColor * Fade * alpha, vector, Rotation, outline);
+                pixelFontCharacter.Texture.DrawOutlineOnly(position + zero * vector + CharOffset, Vector2.Zero, outlineColor * Fade * alpha * Alpha, vector, Rotation, outline);
             }
             public override string ToString()
             {
@@ -1727,7 +1730,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     Impact = currentImpact,
                     Wave = currentWave,
                     IsPunctuation = (Contains(language.CommaCharacters, word[i]) || Contains(language.PeriodCharacters, word[i])),
-                    Offset = currentOffset + Vector2.UnitX * tabOffset
+                    GroupOffset = currentOffset + Vector2.UnitX * tabOffset
                 });
                 currentPosition += (float)pixelFontCharacter.XAdvance * currentScale;
                 if (i < word.Length - 1 && pixelFontCharacter.Kerning.TryGetValue(word[i], out var value))

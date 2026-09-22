@@ -1,8 +1,10 @@
 using Celeste.Mod.Entities;
+using Celeste.Mod.PuzzleIslandHelper.Components;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System;
 using System.Collections;
+using System.Reflection.Metadata;
 
 // PuzzleIslandHelper.PassiveSecurity
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
@@ -11,86 +13,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class PassiveSecurity : Entity
     {
-        private Player player;
-        public enum Mode
-        {
-            LaserActivated,
-            Monitoring,
-            Stationary
-        }
-        public Mode mode;
-        private bool RealisticAim;
-        public bool ForcedState;
-        private bool State
-        {
-            get
-            {
-                Level level = Scene as Level;
-
-                if (level is null)
-                {
-                    return false;
-                }
-                if (ForceState)
-                {
-                    return ForcedState;
-                }
-                switch (mode)
-                {
-                    case Mode.LaserActivated:
-                        if (!string.IsNullOrEmpty(LaserID))
-                        {
-                            return SecurityLaser.Alert;
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    case Mode.Monitoring:
-                        if (inverted)
-                        {
-                            return !level.Session.GetFlag(flag);
-                        }
-                        else
-                        {
-                            return level.Session.GetFlag(flag);
-                        }
-                    case Mode.Stationary:
-                        if (inverted)
-                        {
-                            return !level.Session.GetFlag(flag);
-                        }
-                        else
-                        {
-                            return level.Session.GetFlag(flag);
-                        }
-                }
-                return false;
-
-
-
-            }
-        }
-        private bool Set;
-        private bool Activated;
-        private float Delay;
-        private float Progress;
-        private bool XFlip
-        {
-            get
-            {
-                if (mode == Mode.LaserActivated)
-                {
-                    return false;
-                }
-                return _XFlip;
-            }
-        }
+        public float MaxAngle = MathHelper.TwoPi;
+        public float MinAngle = 0;
+        private bool Aiming;
         //attributes
-        private string flag;
-        private bool inverted;
-        private Vector2 Direction;
-        //
+        private FlagList Flag;
+        private Vector2 Direction => Calc.AngleToVector(Angle, 1);
+        private float Angle;
         private Sprite shade;
         private Sprite reveal;
         private Sprite panel;
@@ -98,7 +27,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Sprite Gun;
         private Sprite stand;
 
-        private ParticleType Sparks = new ParticleType
+        private static ParticleType PSparks = new ParticleType
         {
             Size = 1,
             Color = Color.Orange,
@@ -114,107 +43,67 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             FadeMode = ParticleType.FadeModes.Late,
             Friction = 2f
         };
-        private ParticleSystem system;
-        public string LaserID;
-        private bool Cancelled;
-        private Coroutine shootRoutine;
-        public bool ForceState;
-        private bool StopRotating;
-        private bool _XFlip;
-        private float RotateRange;
-        private float ViewRange;
-        private float LookTime;
-        private bool SawPlayer;
-        private Vector2 MonitorPosition;
-        private bool StartState;
+        private Vector2 StationaryDirection;
         private Vector2 CircleCenter = Vector2.Zero;
-        private Bullet.BulletType BulletType;
-
+        public bool ResetFlagOnRemoved = true;
         private Sprite BulletSprite;
-        private int GrowLoops;
         private int Bullets;
-
-        private bool BulletCollideWithSolid;
+        public float ShootInterval;
         public PassiveSecurity(EntityData data, Vector2 offset)
         : base(data.Position + offset)
         {
-            BulletCollideWithSolid = data.Bool("bulletsCollideWithSolids");
+            ShootInterval = data.Float("shootInterval", 0.5f);
+            MinAngle = data.Float("minAngle", 0).ToRad();
+            MaxAngle = data.Float("maxAngle", 360).ToRad();
+            float xDir = data.Float("stationaryDirectionX");
+            float yDir = data.Float("stationaryDirectionY");
+            if (xDir != 0 || yDir != 0)
+            {
+                StationaryDirection = Vector2.Normalize(new Vector2(xDir, yDir));
+            }
             Bullets = data.Int("bulletsPerShot");
-            BulletType = data.Enum("bulletType", Bullet.BulletType.Default);
-            RealisticAim = data.Bool("realisticAim");
-            mode = data.Enum("mode", Mode.LaserActivated);
-            _XFlip = data.Bool("flipX");
-            switch (mode)
-            {
-                case Mode.LaserActivated:
-                    LaserID = data.Attr("laserID");
-                    break;
-                case Mode.Monitoring:
-                    RotateRange = data.Float("rotateRange", 5);
-                    ViewRange = data.Float("viewRange", 5);
-                    LookTime = data.Float("lookTime", 4);
-                    break;
-            }
-            Delay = Calc.Random.Range(0.2f, 0.5f);
-            Progress = Delay;
-            flag = data.Attr("flag");
-            inverted = data.Bool("invertFlag");
+            Flag = data.FlagList("flag");
             Depth = -10002;
+            Add(coroutine = new Coroutine(false));
+            Add(shakeCoroutine = new Coroutine(false));
         }
-        private void CheckState()
-        {
-            if (shootRoutine is not null && shootRoutine.Active && !Cancelled)
-            {
-                if (XFlip && player.Position.X < Center.X || !XFlip && player.Position.X > Center.X)
-                {
-                    shootRoutine.Cancel();
-                    Remove(shootRoutine);
-                    Progress = Delay;
-                    Cancelled = true;
-                }
-            }
-            if (Cancelled)
-            {
-                if (XFlip && player.Position.X >= Center.X || !XFlip && player.Position.X <= Center.X)
-                {
-                    Add(shootRoutine = new Coroutine(ShootRoutine()));
-                    Cancelled = false;
-                }
-            }
-        }
+
+        private bool prevState;
         public override void Update()
         {
             base.Update();
-            if (!State)
+            Gun.Position = gunOrig + GunPositionOffset;
+            if (StationaryDirection != Vector2.Zero)
             {
-                return;
+                Angle = Math.Clamp(StationaryDirection.Angle() % MathHelper.TwoPi, MinAngle, MaxAngle);
             }
-            if (RealisticAim)
+            else if (Scene.GetPlayer() is Player player)
             {
-                if (mode != Mode.LaserActivated)
+                Angle = Calc.Angle(Position + Gun.Position, player.Center);
+            }
+            bool flag = Flag;
+            if (flag)
+            {
+                if (!prevState)
                 {
-                    CheckState();
+                    Aiming = false;
+                    ResetSprites();
+                    coroutine.Replace(IntroRoutine());
+                }
+                if (Aiming)
+                {
+                    BulletSprite.Rotation = Gun.Rotation = Calc.AngleLerp(Gun.Rotation, Angle + MathHelper.Pi, Engine.DeltaTime * 2);
                 }
             }
-            if (!Activated && !Set || StartState)
+            else if (prevState && Aiming)
             {
-                Add(new Coroutine(IntroRoutine(StartState)));
+                Aiming = false;
             }
-            if (Set)
-            {
-                Vector2 start = Position + Gun.Position;
-                Vector2 end = Vector2.Zero;
-                if (mode == Mode.LaserActivated)
-                {
-                    end = player.Center;
-                }
-                Direction = Vector2.Normalize(end - start);
-                Gun.Rotation = Calc.AngleLerp(Gun.Rotation, Direction.Angle() + MathHelper.Pi, Engine.DeltaTime * 4f);
-                BulletSprite.Rotation = Gun.Rotation;
-            }
+            prevState = flag;
 
         }
-
+        private Coroutine coroutine, shakeCoroutine;
+        private Vector2 gunOrig;
         public override void Added(Scene scene)
         {
             base.Added(scene);
@@ -228,10 +117,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
 
             stand.AddLoop("idle", "stand", 0.1f);
             shade.Add("fadeIn", "shade", 0.04f);
-            shade.AddLoop("wait", "shade", 1f, 0);
-            reveal.Add("tilePress", "reveal", 0.04f);
-            reveal.AddLoop("down", "down", 1f);
             reveal.Add("moveDown", "slideDown", 0.02f, "down");
+            reveal.Add("tilePress", "reveal", 0.04f, "moveDown");
+            reveal.AddLoop("down", "down", 1f);
             panel.AddLoop("idle", "panel", 1f);
             IntroGun.AddLoop("idle", "verySafe", 0.1f);
             IntroGun.AddLoop("raised", "gunRaise", 0.1f, 4);
@@ -242,45 +130,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             BulletSprite = new Sprite(GFX.Game, "objects/PuzzleIslandHelper/passiveSecurity/bullet/");
             BulletSprite.AddLoop("grow", "grow", 0.06f);
             BulletSprite.AddLoop("standby", "standby", 0.1f);
-
-            if (XFlip)
-            {
-                BulletSprite.FlipX = true;
-                BulletSprite.Position.X -= 6;
-            }
-            BulletSprite.OnLastFrame = delegate
-            {
-                if (BulletSprite.CurrentAnimationID == "grow")
-                {
-                    GrowLoops++;
-                }
-                else
-                {
-                    GrowLoops = 0;
-                }
-            };
             IntroGun.Position.Y -= 8;
             stand.Position.Y -= 8;
-            Gun.Position += new Vector2(8 + Gun.Width / 2, -3 + Gun.Height / 2);
-            stand.FlipX = shade.FlipX = reveal.FlipX = panel.FlipX = IntroGun.FlipX = Gun.FlipX = XFlip;
-            if (XFlip)
-            {
-                Gun.Position.X -= 10;
-                stand.Position.X -= 4;
-                IntroGun.Position.X -= 1;
-            }
+            gunOrig = new Vector2(8 + Gun.Width / 2, -3 + Gun.Height / 2);
+            Gun.Position = gunOrig;
             Gun.CenterOrigin();
-
             BulletSprite.CenterOrigin();
             BulletSprite.Position = Gun.Position;
-            if (XFlip)
-            {
-                MonitorPosition = Position + Gun.Position + new Vector2(Gun.Width, 2);
-            }
-            else
-            {
-                MonitorPosition = Position + Gun.Position + new Vector2(Gun.Width, 2);
-            }
             Add(panel);
             Add(stand);
             Add(IntroGun);
@@ -288,129 +144,71 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Add(BulletSprite);
             Add(shade);
             Add(reveal);
-            if (mode == Mode.Stationary)
+            if (Flag)
             {
-                StartState = true;
+                Activate();
+                if (StationaryDirection != Vector2.Zero)
+                {
+                    Angle = Math.Clamp(StationaryDirection.Angle() % MathHelper.TwoPi, MinAngle, MaxAngle);
+                }
+                BulletSprite.Rotation = Gun.Rotation = Angle;
+
             }
-            system = new ParticleSystem(Depth, 10);
-            scene.Add(system);
+            prevState = Flag;
+        }
+        public override void Removed(Scene scene)
+        {
+            base.Removed(scene);
+            if (ResetFlagOnRemoved && !Flag.Empty)
+            {
+                Flag.State = false;
+            }
         }
         private void EmitSparks()
         {
             for (int i = 0; i < 6; i++)
             {
-                system.Emit(Sparks, Position + Gun.Position);
+                SceneAs<Level>().ParticlesFG.Emit(PSparks, Gun.RenderPosition);
             }
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
-            player = (scene as Level).Tracker.GetEntity<Player>();
             Collider = new Hitbox(panel.Width, panel.Height);
-            if (mode == Mode.Monitoring)
-            {
-                Add(new Coroutine(RotateRoutine()));
-            }
-        }
-        private IEnumerator RotateRoutine()
-        {
-            while (true)
-            {
-                for (float i = 0; i < LookTime; i += Engine.DeltaTime)
-                {
-                    Gun.Rotation = Calc.LerpClamp(-RotateRange / 2, RotateRange / 2, Ease.SineInOut(i / LookTime));
-                    yield return null;
-                }
-                for (float i = 0; i < LookTime; i += Engine.DeltaTime)
-                {
-                    Gun.Rotation = Calc.LerpClamp(RotateRange / 2, -RotateRange / 2, Ease.SineInOut(i / LookTime));
-                    yield return null;
-                }
-            }
-        }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            if (mode == Mode.Monitoring)
-            {
-                Draw.LineAngle(VisionCoords(Direction.Angle().ToDeg(), true), Gun.Rotation + 180f, 20, Color.Magenta);
-                //Draw.Line(Offset + (Gun.Offset * Gun.Rotation), Player.Center, From.Magenta);
-            }
-
-        }
-        private Vector2 VisionCoords(float theta, bool top)
-        {
-            Vector2 CircleCenter = Position + Gun.Position;
-            double x = CircleCenter.X + Gun.Width / 2 * Math.Cos(theta * Math.PI / 180);
-            double y = CircleCenter.Y + Gun.Width / 2 * Math.Sin(theta * Math.PI / 180);
-            return new Vector2((float)x, (float)y);
         }
         private Vector2 CircleCoords(float theta)
         {
             CircleCenter = Position + Gun.Position - Vector2.One * 4;
-            double x = CircleCenter.X + Gun.Width / 2 * Math.Cos(theta * Math.PI / 180);
-            double y = CircleCenter.Y + Gun.Width / 2 * Math.Sin(theta * Math.PI / 180);
+            double x = CircleCenter.X + Gun.Width / 2 * Math.Cos(theta);
+            double y = CircleCenter.Y + Gun.Width / 2 * Math.Sin(theta);
             return new Vector2((float)x, (float)y);
         }
         private IEnumerator ShootRoutine()
         {
-            while (!Set)
-            {
-                yield return null;
-            }
-            StopRotating = true;
-            if (mode == Mode.Monitoring)
-            {
-                while (!SawPlayer)
-                {
-                    yield return null;
-                }
-                //Gun.PlayEvent("alert") or something
-                yield return 0.1f;
-            }
+            yield return 0.2f;
+            Level level = Scene as Level;
             while (true)
             {
-                if (Scene as Level is null || !State)
-                {
-                    yield break;
-                }
-                Level level = Scene as Level;
+                while (!Aiming) yield return null;
+                float duration = ShootInterval;
                 #region sprite
-                BulletSprite.Color = Color.White * 0.6f;
-                float delay = Calc.Random.Range(0f, 0.3f);
-                BulletSprite.Play("grow");
-                while (delay > 0)
+                if (duration - 0.3f > 0f)
                 {
-                    delay -= Engine.DeltaTime;
-                    yield return null;
-                }
-                delay = Calc.Random.Range(0.1f, 0.4f);
-                BulletSprite.Play("standby");
-                while (delay > 0)
-                {
-                    delay -= Engine.DeltaTime;
-                    yield return null;
-                }
-                BulletSprite.Color = Color.White * 0;
-
-                Vector2 BulletPosition = new Vector2(3, -2) + Position;
-                if (XFlip)
-                {
-                    BulletPosition.X += 23;
+                    duration -= 0.3f;
+                    BulletSprite.Color = Color.White * 0.6f;
+                    BulletSprite.Play("grow");
+                    yield return 0.3f;
+                    BulletSprite.Color = Color.Transparent;
                 }
                 #endregion
                 if (Bullets > 1)
                 {
-
-                    float Dir = MathHelper.PiOver2 / Bullets;
+                    float dir = MathHelper.PiOver2 / Bullets;
                     for (int i = 0; i < Bullets; i++)
                     {
                         Bullet bullet = new Bullet(
-                            CircleCoords(Direction.Angle().ToDeg()),
-                            Direction.Rotate(Dir * (i - Bullets / 2)),
-                            XFlip,
-                            BulletCollideWithSolid,
-                            BulletType);
+                            CircleCoords(Angle) + new Vector2(2, 2),
+                            Direction.Rotate(dir * (i - Bullets / 2)));
 
                         level.Add(bullet);
                     }
@@ -418,107 +216,71 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 else
                 {
                     Bullet bullet = new Bullet(
-                        CircleCoords(Direction.Angle().ToDeg()),
-                        Direction,
-                        XFlip,
-                        BulletCollideWithSolid,
-                        BulletType);
+                        CircleCoords(Angle) + new Vector2(2, 2),
+                        Direction);
 
                     level.Add(bullet);
                 }
-                Add(new Coroutine(Recoil(Direction)));
-                Add(new Coroutine(ShakeGun(Bullets)));
-                while (Progress > 0)
-                {
-                    Progress -= Engine.DeltaTime;
-                    yield return null;
-                }
-                Progress = Calc.Random.Range(0.1f, 0.4f);
+                shakeCoroutine.Replace(ShakeGun(Bullets));
+                yield return duration;
             }
         }
-        private IEnumerator IntroRoutine(bool skip)
+        private IEnumerator IntroRoutine()
         {
-            Activated = true;
-            StartState = false;
-            if (!skip)
-            {
-                reveal.Play("tilePress");
-
-                while (!LastFrame(reveal))
-                {
-                    yield return null;
-                }
-                reveal.Play("moveDown");
-                while (!LastFrame(reveal))
-                {
-                    yield return null;
-                }
-
-                panel.Play("idle");
-                IntroGun.Play("idle");
-                shade.Play("fadeIn");
-                while (!LastFrame(shade))
-                {
-                    yield return null;
-                }
-                IntroGun.Play("rise");
-
-                while (!LastFrame(IntroGun))
-                {
-                    yield return null;
-                }
-                Remove(IntroGun);
-            }
-            else
-            {
-                reveal.Play("down");
-                panel.Play("idle");
-            }
+            reveal.Play("tilePress");
+            while (reveal.CurrentAnimationID != "down") yield return null;
+            panel.Play("idle");
+            IntroGun.Play("idle");
+            shade.Play("fadeIn");
+            while (!LastFrame(shade)) yield return null;
+            IntroGun.Play("rise");
+            while (!LastFrame(IntroGun)) yield return null;
+            IntroGun.Visible = false;
+            Activate();
+        }
+        public void ResetSprites()
+        {
+            reveal.Stop();
+            panel.Stop();
+            shade.Stop();
+            IntroGun.Stop();
+            Gun.Stop();
+            stand.Stop();
+            reveal.Texture = panel.Texture = shade.Texture = IntroGun.Texture = Gun.Texture = stand.Texture = null;
+        }
+        public void Activate()
+        {
+            reveal.Play("down");
+            panel.Play("idle");
+            shade.Play("fadeIn");
+            shade.SetAnimationFrame(shade.Animations["fadeIn"].Frames.Length - 1);
+            IntroGun.Play("rise");
+            IntroGun.SetAnimationFrame(IntroGun.Animations["rise"].Frames.Length - 1);
+            IntroGun.Visible = false;
             stand.Play("idle");
             Gun.Play("idle");
-            //SETUP COMPLETE
-            Set = true;
-
-            Add(shootRoutine = new Coroutine(ShootRoutine()));
-            yield return null;
+            Aiming = true;
+            coroutine.Replace(ShootRoutine());
         }
-        private IEnumerator ShakeGun(int Bullets)
+        public void Deactivate()
         {
-            int limit = Bullets < 6 ? Bullets : 5;
-            Vector2 Pos = Gun.Position;
-            if (Bullets >= 5)
+            Aiming = false;
+            coroutine.Cancel();
+            ResetSprites();
+        }
+        public Vector2 GunPositionOffset;
+        private IEnumerator ShakeGun(int bullets)
+        {
+            int limit = bullets < 6 ? 2 : 4;
+            if (bullets >= 5)
             {
                 EmitSparks();
             }
             for (int i = 0; i < 4; i++)
             {
-                Vector2 Random = new Vector2(Calc.Random.Range(-limit, limit), Calc.Random.Range(-limit, limit));
-                Gun.Position = Pos + Random;
+                GunPositionOffset = new Vector2(Calc.Random.Range(-limit, limit), Calc.Random.Range(-limit, limit));
                 yield return null;
-                Gun.Position = Pos;
-            }
-            Gun.Position = Pos;
-        }
-        private IEnumerator Recoil(Vector2 direction)
-        {
-            Vector2 Pos = Gun.Position;
-            Vector2 BPos = BulletSprite.Position;
-            //float direction = XFlip ? -3 : 3;
-            int limit = 3;
-
-            for (float i = 0; i < limit; i += Engine.DeltaTime * limit * 10)
-            {
-                Gun.Position = Pos - direction * i;
-                BulletSprite.Position = BPos - direction * i;
-                yield return null;
-            }
-            Pos = Gun.Position;
-            BPos = BulletSprite.Position;
-            for (float i = 0; i < limit; i += Engine.DeltaTime * limit * 10)
-            {
-                Gun.Position = Pos + direction * i;
-                BulletSprite.Position = BPos + direction * i;
-                yield return null;
+                GunPositionOffset = default;
             }
         }
         private bool LastFrame(Sprite sprite)

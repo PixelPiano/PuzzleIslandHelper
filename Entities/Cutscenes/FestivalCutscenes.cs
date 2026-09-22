@@ -989,7 +989,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Cutscenes
         {
             Add(new Coroutine(playerLookLeftRight()));
             Add(new Coroutine(calidusLookLeftRight()));
-            LevelShaker.Intensity = 0.5f;
+            //LevelShaker.Intensity = 0.5f;
             yield return null;
         }
         private IEnumerator reactToGhostAppear()

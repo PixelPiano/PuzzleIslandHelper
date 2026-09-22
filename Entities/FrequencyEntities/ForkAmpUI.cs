@@ -9,16 +9,16 @@ using Monocle;
 using System;
 using System.Collections;
 using System.Linq;
+using static Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities.FrequencyData;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
 {
     [Tracked]
-    public class ForkAmpUI : CutsceneEntity
+    public class ForkAmpUI : Entity
     {
         [Tracked]
         public class UI : Entity
         {
-            public string ID;
             public class osc : Entity
             {
                 public bool Enabled => Flag;
@@ -33,7 +33,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
 
                 public float WIDTH = WorldWidth * 6;
                 public float HEIGHT = WorldHeight * 6;
-                public float Frequency;
                 public float CurrentMin = FrequencyData.Min;
                 public float CurrentMax = FrequencyData.Max;
                 public bool Interacting = true;
@@ -66,7 +65,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                 public override void Added(Scene scene)
                 {
                     base.Added(scene);
-                    Frequency = FrequencyData.GetRate(scene, Index, ID);
                 }
                 public enum TapGaps
                 {
@@ -77,70 +75,60 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                 public TapGaps TapGap = TapGaps.Tick;
                 private int lastDir;
                 private float snapTimer;
+                public bool InControl;
+                public float Frequency;
                 public override void Update()
                 {
                     base.Update();
-                    float prevRate = FrequencyData.GetRate(Scene, Index, ID);
-                    int dir = Input.MenuUp ? -1 : Input.MenuDown ? 1 : 0;
-                    if (snapTimer > 0)
+
+                    float prevRate = FrequencyData.GetPrevRate(Scene, Index, ID);
+                    int dir = !UISelected ? 0 : Input.MenuUp ? -1 : Input.MenuDown ? 1 : 0;
+                    Player player = Scene.GetPlayer();
+                    /*                    InControl = true;
+                                        if (player.CollideFirst<FrequencyDecal>() is FrequencyDecal decal && decal.Active && decal.targetFrequencies[Index] >= 0)
+                                        {
+                                            InControl = false;
+                                        }*/
+                    if (InControl)
                     {
-                        snapTimer -= Engine.DeltaTime;
-                        if (dir == 0)
+                        if (snapTimer > 0)
                         {
-                            float jump = TapGap switch
+                            snapTimer -= Engine.DeltaTime;
+                            if (dir == 0)
                             {
-                                TapGaps.SubChannel => ChannelSize / SegmentsPerChannel,
-                                TapGaps.Channel => ChannelSize,
-                                _ => 1
-                            };
-                            Frequency = Calc.Clamp(Calc.Snap(Frequency, jump) - lastDir * jump, FrequencyData.Min, FrequencyData.Max);
-                            FrequencyData.SetRate(Scene, Index, Frequency, ID);
-                            //if the player taps the button briefly, snap the frequency to a customizable interval
-                        }
-                    }
-                    if (Selected && !Dummy)
-                    {
-                        if (dir != 0)
-                        {
-                            if (lastDir == 0)
-                            {
-                                snapTimer = Engine.DeltaTime * 5;
-                                //start the snap window
-                            }
-                            if (snapTimer <= 0)
-                            {
-                                Frequency = Calc.Clamp(Frequency - dir, FrequencyData.Min, FrequencyData.Max);
-                                FrequencyData.SetRate(Scene, Index, Frequency, ID);
+                                float jump = TapGap switch
+                                {
+                                    TapGaps.SubChannel => ChannelSize / SegmentsPerChannel,
+                                    TapGaps.Channel => ChannelSize,
+                                    _ => 1
+                                };
+                                Frequency = Calc.Clamp(Calc.Snap(prevRate, jump) - lastDir * jump, FrequencyData.Min, FrequencyData.Max);
                             }
                         }
-                        lastDir = dir;
-                    }
-                    if (Selected)
-                    {
-                        if (prevRate != Frequency)
+                        if (Selected && !Dummy)
                         {
-                            foreach (FrequencyComponent c in Scene.Tracker.GetComponents<FrequencyComponent>())
+                            if (dir != 0)
                             {
-                                c.OnFrequencyChanged?.Invoke(Index, prevRate, Frequency, ID);
+                                if (lastDir == 0)
+                                {
+                                    snapTimer = Engine.DeltaTime * 5;
+                                    //start the snap window
+                                }
+                                if (snapTimer <= 0)
+                                {
+                                    Frequency = Calc.Clamp(prevRate - dir, FrequencyData.Min, FrequencyData.Max);
+                                }
                             }
+                            lastDir = dir;
                         }
-                        else
-                        {
-                            foreach (FrequencyComponent c in Scene.Tracker.GetComponents<FrequencyComponent>())
-                            {
-                                c.OnFrequencyStay?.Invoke(Index, true, Frequency, ID);
-                            }
-                        }
+                        FrequencyData.SetRate(Scene, Index, Frequency, ID);
                     }
                     else
                     {
-                        foreach (FrequencyComponent c in Scene.Tracker.GetComponents<FrequencyComponent>())
-                        {
-                            c.OnFrequencyStay?.Invoke(Index, false, Frequency, ID);
-                        }
+                        Frequency = FrequencyData.GetRate(Scene, Index, ID);
                     }
                 }
-                public void DrawAll()
+                public void DrawAll(float frequency)
                 {
                     if (Selected && !Dummy)
                     {
@@ -153,13 +141,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                     }
                     Draw.Rect(Position.X, Position.Y, WIDTH, HEIGHT, Color.Black);
                     DrawMarkerBox(4, Color.Black);
-                    DrawDial();
+                    DrawDial(frequency);
                     if (!Dummy)
                     {
-                        DrawMarker();
+                        DrawMarker(frequency);
                     }
                 }
-                public void DrawDial()
+                public void DrawDial(float frequency)
                 {
                     float xOffset = Position.X + WIDTH;
                     float middle = Position.Y + HEIGHT / 2;
@@ -167,7 +155,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                     for (float i = FrequencyData.Min; i <= FrequencyData.Max; i += ChannelSize)
                     {
                         float offset = WIDTH / 2 - 4;
-                        float yoffset = middle - (i - Frequency) * 6;
+                        float yoffset = middle - (i - frequency) * 6;
 
                         bool big = true;
                         float scale = TextScale * 0.8f;
@@ -208,10 +196,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                     float height = ActiveFont.BaseSize * (TextScale / 2);
                     Draw.Rect(toX - padding, Position.Y - height - padding, width + padding * 2, height + padding * 2, color);
                 }
-                public void DrawMarker()
+                public void DrawMarker(float frequency)
                 {
                     float height = ActiveFont.BaseSize * (TextScale / 2);
-                    string text = Frequency.ToString("0");
+                    string text = frequency.ToString("0");
                     Vector2 position = Position + new Vector2(WIDTH / 2 - GetTextArea(text) / 2, -height);
                     ActiveFont.Draw(text, position, Vector2.Zero, Vector2.One * TextScale, Color.White);
                 }
@@ -234,11 +222,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                     Finished = true;
                 }
             }
-            private bool ended;
+            public static bool FromLeft;
             private osc[] Oscillators;
+            private VirtualRenderTarget target;
+            public string ID;
+            public float[] Frequencies = new float[4];
             public float SelectTimer;
             public float SelectDelay = 0.3f;
-            private int previousIndex;
+            public float Alpha;
             public int CurrentSet;
             public int CurrentIndex
             {
@@ -261,8 +252,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                 get => FrequencyData.GetUnlocked(Scene);
                 set => FrequencyData.SetUnlocked(Scene, value);
             }
-            private VirtualRenderTarget target;
-            public float Alpha;
             public UI(params FlagList[] flags) : base()
             {
                 Collider = new Hitbox(100, 100);
@@ -284,37 +273,57 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                 Oscillators = oscillators;
 
                 target = VirtualContent.CreateRenderTarget("fork-amp-ui", (int)(right + space) * 6, (int)(y * 2 + osc.WorldHeight) * 6);
-                Add(new BeforeRenderHook(() =>
-                {
-                    if (target != null && !target.IsDisposed)
-                    {
-                        target.SetAsTarget(Color.Blue);
-                        Draw.SpriteBatch.Begin();
-                        foreach (osc o in Oscillators)
-                        {
-                            o.DrawAll();
-                        }
-                        if (GameplayRenderer.RenderDebug || Engine.Commands.Open)
-                        {
-                            float y = 1080 - ActiveFont.LineHeight * 4;
-                            ActiveFont.DrawOutline("Current Index: " + CurrentIndex, Vector2.UnitY * y, Vector2.Zero, Vector2.One, Color.White, 5, Color.Black);
-                            y += ActiveFont.LineHeight;
-                            ActiveFont.DrawOutline("Displays Unlocked: " + DisplaysUnlocked, Vector2.UnitY * y, Vector2.Zero, Vector2.One, Color.White, 5, Color.Black);
-                            y += ActiveFont.LineHeight;
-                            ActiveFont.DrawOutline("Select Timer: " + SelectTimer, Vector2.UnitY * y, Vector2.Zero, Vector2.One, Color.White, 5, Color.Black);
-                            /*
-                                                        if (Scene.Tracker.GetEntity<ForkAmpSound>() is ForkAmpSound sound)
-                                                        {
-                                                            sound.DrawVolumesAndDucks(new Vector2(1920, 1080));
-                                                        }*/
-                        }
-                        Draw.SpriteBatch.End();
-                    }
-                }));
+                Add(new BeforeRenderHook(BeforeRender));
             }
             public override void Update()
             {
                 base.Update();
+                Level level = Scene as Level;
+                for (int i = 0; i < 4; i++)
+                {
+                    Frequencies[i] = FrequencyData.GetRate(Scene, i, ID);
+                }
+                for (int i = 0; i < 4; i++)
+                {
+                    Oscillators[i].InControl = true;
+                }
+                Player player = level.GetPlayer();
+                foreach(FrequencyMod mod in level.Tracker.GetComponents<FrequencyMod>())
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (mod.OscillatorsAffected[i])
+                        {
+                            Oscillators[i].InControl = false;
+                        }
+                    }
+                }
+                bool prevDisabled = MInput.Disabled;
+                MInput.Disabled = false;
+                bool pressed = PianoModule.Settings.FrequencyMachineButtonBinding.Pressed;
+                MInput.Disabled = prevDisabled;
+                if (pressed)
+                {
+                    PianoModule.Settings.FrequencyMachineButtonBinding.ConsumePress();
+                    if (player.Dead)
+                    {
+                        UISelected = false;
+                        return;
+                    }
+                    if (UISelected)
+                    {
+                        UISelected = false;
+                        if (player.StateMachine.State == Player.StDummy)
+                        {
+                            player.StateMachine.State = Player.StNormal;
+                        }
+                    }
+                    else if (player.StateMachine == Player.StNormal)
+                    {
+                        UISelected = true;
+                        player.StateMachine.State = Player.StDummy;
+                    }
+                }
                 DisplaysUnlocked = Oscillators?.Select(item => !item.Dummy).Count() ?? 0;
                 if (DisplaysUnlocked == 0)
                 {
@@ -324,25 +333,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                     }
                     return;
                 }
-                if (SelectTimer <= 0)
+                if (UISelected)
                 {
-                    if (Input.MoveX != 0 && Input.MoveX.Value != 0)
+                    if (SelectTimer <= 0)
                     {
-                        int nextIndex = Calc.Clamp(CurrentIndex + Input.MoveX, 0, Math.Max(DisplaysUnlocked - 1, 0));
-                        if (CurrentIndex != nextIndex)
+                        if (Input.MoveX != 0 && Input.MoveX.Value != 0)
                         {
-                            CurrentIndex = nextIndex;
-                            SelectTimer = 0.16f;
-                            foreach (FrequencyComponent c in Scene.Tracker.GetComponents<FrequencyComponent>())
+                            int nextIndex = Calc.Clamp(CurrentIndex + Input.MoveX, 0, Math.Max(DisplaysUnlocked - 1, 0));
+                            if (CurrentIndex != nextIndex)
                             {
-                                c.OnSelectedChanged?.Invoke(currentIndex, ID);
+                                CurrentIndex = nextIndex;
+                                SelectTimer = 0.16f;
                             }
                         }
                     }
-                }
-                else
-                {
-                    SelectTimer -= Engine.DeltaTime;
+                    else
+                    {
+                        SelectTimer -= Engine.DeltaTime;
+                    }
                 }
             }
             public override void Render()
@@ -353,10 +361,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                     Draw.SpriteBatch.Draw(target, Position, Color.White * Alpha);
                 }
             }
-            public static bool FromLeft;
-            private Tween tween;
-            public bool TransitioningIn;
-            public bool TransitioningOut;
+            public void BeforeRender()
+            {
+                if (target != null && !target.IsDisposed)
+                {
+                    target.SetAsTarget(UISelected ? Color.Blue : Color.Red);
+                    Draw.SpriteBatch.Begin();
+                    for (int i = 0; i < Oscillators.Length; i++)
+                    {
+                        Oscillators[i].DrawAll(Frequencies[i]);
+                    }
+                    Draw.SpriteBatch.End();
+                }
+            }
             public IEnumerator OnBegin()
             {
                 ForkAmpSound.Stop(true);
@@ -366,10 +383,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                     osc.Dummy = true;
                 }
                 Alpha = 0;
-                foreach (FrequencyComponent c in Scene.Tracker.GetComponents<FrequencyComponent>())
-                {
-                    c.OnUIStart?.Invoke(ID);
-                }
                 float xFrom = FromLeft ? -target.Width : 1920;
                 float xTarget = FromLeft ? 0 : 1920 - target.Width;
                 for (float i = 0; i < 1; i += Engine.DeltaTime / 1.3f)
@@ -393,22 +406,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                 Active = true;
                 ForkAmpSound.Start();
             }
-            public void OnEndInstant()
-            {
-                if (ForkAmpSound.GlobalPlaying)
-                {
-                    foreach (FrequencyComponent c in Scene.Tracker.GetComponents<FrequencyComponent>())
-                    {
-                        c.OnUIEnd?.Invoke(true, ID);
-                    }
-                }
-                ForkAmpSound.Stop(true);
-                Oscillators?.RemoveSelves();
-                target?.Dispose();
-                target = null;
-                Alpha = 0;
-                RemoveSelf();
-            }
             public IEnumerator OnEnd()
             {
                 foreach (osc osc in Oscillators)
@@ -416,10 +413,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                     osc.Dummy = true;
                 }
                 ForkAmpSound.Stop(true);
-                foreach (FrequencyComponent c in Scene.Tracker.GetComponents<FrequencyComponent>())
-                {
-                    c.OnUIEnd?.Invoke(false, ID);
-                }
                 float xFrom = Position.X;
                 float xTarget = FromLeft ? -target.Width : 1920;
                 for (float i = 0; i < 1; i += Engine.DeltaTime / 1.3f)
@@ -434,10 +427,23 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
                 target = null;
                 Alpha = 0;
             }
+            public void OnEndInstant()
+            {
+                ForkAmpSound.Stop(true);
+                Oscillators?.RemoveSelves();
+                target?.Dispose();
+                target = null;
+                Alpha = 0;
+                RemoveSelf();
+            }
         }
         public bool Finished;
         public UI ui;
         public static bool UIActive;
+        public static bool UISelected;
+        public static bool ForceOff;
+        public static IEnumerator EndingSequence;
+        public static Action OnEndCallback;
         public ForkAmpUI(params FlagList[] flags) : base()
         {
             ui = new UI(flags);
@@ -446,53 +452,68 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         {
             base.Added(scene);
             scene.Add(ui);
-        }
-        public override void OnBegin(Level level)
-        {
-            if (level.GetPlayer() is Player player)
-            {
-                player.StateMachine.State = Player.StDummy;
-                Add(new Coroutine(Routine(player)));
-            }
-        }
-        public override void OnEnd(Level level)
-        {
-            ui?.OnEndInstant();
-            Finished = true;
-            level.EnableMovement();
-            OnEndCallback?.Invoke();
-        }
-        public static bool ForceOff;
-        public static IEnumerator EndingSequence;
-        public static Action OnEndCallback;
-        public IEnumerator Routine(Player player)
-        {
-            UIActive = true;
-            yield return ui.OnBegin();
-            while (!Input.MenuCancel && !ForceOff)
-            {
-                yield return null;
-            }
-            ForceOff = false;
-            Input.Dash.ConsumePress();
-            yield return ui.OnEnd();
-            UIActive = false;
-            if(EndingSequence != null)
-            {
-                yield return new SwapImmediately(EndingSequence);
-            }
-            EndingSequence = null;
-            EndCutscene(Level, true);
+            OnBegin(scene as Level);
         }
         public override void Removed(Scene scene)
         {
             base.Removed(scene);
             UIActive = false;
+            UISelected = false;
+            ui?.RemoveSelf();
+            EndingSequence = null;
+        }
+        public void OnBegin(Level level)
+        {
+            if (level.GetPlayer() is Player player)
+            {
+                //player.StateMachine.State = Player.StDummy;
+                UIActive = true;
+                Add(new Coroutine(Routine(player)));
+            }
+        }
+        public void OnEnd(Level level)
+        {
+            UIActive = false;
+            UISelected = false;
+            ui?.OnEndInstant();
+            Finished = true;
+            level.EnableMovement();
+            OnEndCallback?.Invoke();
+        }
+        public IEnumerator Routine(Player player)
+        {
+            yield return ui.OnBegin();
+            while (true)
+            {
+                if (UISelected)
+                {
+                    if (Input.MenuCancel || ForceOff)
+                    {
+                        break;
+                    }
+                }
+                else if (ForceOff)
+                {
+                    break;
+                }
+                yield return null;
+            }
+            if (UISelected) Input.MenuCancel.ConsumePress();
+            ForceOff = false;
+            yield return ui.OnEnd();
+            UIActive = false;
+            if (EndingSequence != null)
+            {
+                yield return new SwapImmediately(EndingSequence);
+            }
+            EndingSequence = null;
+            OnEnd(SceneAs<Level>());
         }
         [OnUnload]
         public static void Unload()
         {
             UIActive = false;
+            UISelected = false;
         }
         private IEnumerator CameraScroll(Vector2 amount, float time)
         {

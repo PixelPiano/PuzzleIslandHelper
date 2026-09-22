@@ -42,9 +42,9 @@ namespace Celeste.Mod.PuzzleIslandHelper
         }
         public static bool IsFromPuzzleIsland(Level level)
         {
-            return level.Session.MapData.Data.Name.StartsWith("Piano_Boy/Puzzle_Island");
+            return level.Session.MapData.Data.Name.StartsWith("Piano_Boy/Puzzle_Island/");
         }
-        public static bool IsPuzzleIsland => MapName.StartsWith("Piano_Boy/Puzzle_Island");
+        public static bool IsPuzzleIsland => MapName.StartsWith("Piano_Boy/Puzzle_Island/");
         public static bool IsMap1 => MapName == "Piano_Boy/Puzzle_Island/map1";
         public static bool IsMap2 => MapName == "Piano_Boy/Puzzle_Island/map2";
         public PianoModule()
@@ -88,8 +88,6 @@ namespace Celeste.Mod.PuzzleIslandHelper
         {
             InvokeAllWithAttribute(typeof(OnLoad), (c, m) => m.Invoke(null, null));
         }
-
-
         public override void Unload()
         {
             InvokeAllWithAttribute(typeof(OnUnload), (c, m) => m.Invoke(null, null));

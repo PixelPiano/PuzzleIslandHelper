@@ -13,9 +13,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class BatterySwitchPlate : Entity
     {
-        public string BatteryID;
+        public string SwitchID;
         public bool Activated;
-        private bool isEmpty => string.IsNullOrEmpty(BatteryID);
         private Color FillColor = Color.Yellow;
         private Color IndentColor = Color.DarkSlateGray;
         private Vector2[] nodes;
@@ -48,11 +47,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public BloomPoint[] Blooms = new BloomPoint[3];
         public List<Vector2> Positions = new();
         private int currentPosition;
-        private bool inRoutine;
-        public BatterySwitchPlate(EntityData data, Vector2 offset) : base(data.Position + offset)
+        public bool InRoutine { get; private set; }
+        public EntityID ID;
+        public BatterySwitchPlate(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
+            ID = id;
             Depth = 2;
-            BatteryID = data.Attr("batteryId");
+            SwitchID = data.Attr("batteryId");
             nodes = data.NodesWithPosition(offset);
             Blooms[0] = new BloomPoint(0.7f, 8);
             Blooms[1] = new BloomPoint(1, 8);
@@ -80,9 +81,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Blooms[0].Visible = Blooms[1].Visible = Blooms[2].Visible = false;
             Add(Blooms);
             addPipeSolids(8);
-            if (!isEmpty && PianoModule.Session.DrillBatteryIds.Contains(BatteryID))
+            if (PianoModule.Session.ActivatedBatteryLines.Contains(SwitchID))
             {
                 Activate(true);
+            }
+
+            UpdateLightPositions();
+            foreach (SwitchPlateTex s in textures)
+            {
+                s.SpriteColor = FillColor;
+                s.IndentColor = IndentColor;
             }
             base.Awake(scene);
         }
@@ -99,7 +107,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     bool startNodeExit = num == 1;
                     bool endNodeExit = num == nodes.Count() - 1;
                     Vector2 nextNode = nodes.ElementAtOrDefault(num + 1);
-                    SwitchPlateTex tex = SwitchPlateTex.FromNodes(startNode, endNode, nextNode, startNodeExit, endNodeExit, pipeWidth,IndentColor, FillColor);
+                    SwitchPlateTex tex = SwitchPlateTex.FromNodes(startNode, endNode, nextNode, startNodeExit, endNodeExit, pipeWidth, IndentColor, FillColor);
                     textures.Add(tex);
                     foreach (var b in tex.Bolts)
                     {
@@ -186,10 +194,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 s.IndentColor = IndentColor;
             }
         }
+        public IEnumerator Activate()
+        {
+            Activate(false);
+            while (InRoutine) yield return null;
+        }
         public void Activate(bool skipToEnd)
         {
             Activated = true;
-            
+            PianoModule.Session.ActivatedBatteryLines.Add(SwitchID);
             if (skipToEnd)
             {
                 foreach (var t in textures)
@@ -206,6 +219,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             else
             {
+                InRoutine = true;
                 Add(new Coroutine(Routine()));
             }
         }
@@ -213,7 +227,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             foreach (BloomPoint bloom in Blooms)
             {
-                bloom.Visible = bloom.Position != Vector2.Zero && inRoutine;
+                bloom.Visible = bloom.Position != Vector2.Zero && InRoutine;
             }
             if (!Activated)
             {
@@ -244,7 +258,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public IEnumerator Routine()
         {
-            inRoutine = true;
             foreach (var t in textures)
             {
                 foreach (SwitchPlateTex.FillAnim anim in t.Bolts)
@@ -267,7 +280,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     currentPosition++;
                 }
             }
-            inRoutine = false;
+            InRoutine = false;
             yield return null;
         }
 

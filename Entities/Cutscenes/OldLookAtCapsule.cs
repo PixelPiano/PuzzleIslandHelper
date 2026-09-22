@@ -105,7 +105,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         }
         private IEnumerator prep(Player player)
         {
-            if (Marker.TryFind("playerWalkTo2", out var position))
+            if (Marker.TryFind("playerWalkTo2", out Vector2 position))
             {
                 Coroutine walk = new Coroutine(player.DummyWalkTo(position.X));
                 Add(walk);

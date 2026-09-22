@@ -41,6 +41,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             GlobalSound?.StopAllSources(fadeOut);
             GlobalPlaying = false;
         }
+        public static void StopAll(bool fadeOut = true, Scene scene = null)
+        {
+            scene ??= Engine.Scene;
+            if(scene == null) return;
+            foreach (ForkAmpSound s in scene.Tracker.GetEntities<ForkAmpSound>())
+            {
+                s.StopAllSources(fadeOut);
+            }
+            GlobalPlaying = false;
+        }
         public static bool GlobalPlaying { get; private set; }
         protected SoundSource[] Sources;
         public float Volume
@@ -69,6 +79,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         {
             Everest.Events.Level.OnLoadLevel += Level_OnLoadLevel;
         }
+
         [OnUnload]
         public static void Unload()
         {
@@ -76,9 +87,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         }
         private static void Level_OnLoadLevel(Level level, Player.IntroTypes playerIntro, bool isFromLoader)
         {
-            if (playerIntro != Player.IntroTypes.Transition)
+            if (playerIntro != Player.IntroTypes.Transition || !isFromLoader)
             {
-                Stop(false);
+                StopAll(false, level);
             }
         }
 
@@ -90,7 +101,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
             {
                 Tag |= Tags.Global;
                 GlobalSound = this;
-                Add(new LevelEndingHook(RemoveGlobal));
+                Add(new LevelEndingHook(() =>
+                {
+                    StopAll();
+                    RemoveGlobal();
+                }
+                ));
             }
             Tag |= Tags.TransitionUpdate;
             Sources = new SoundSource[4];
@@ -102,19 +118,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
-            if (GlobalSound == this && GlobalPlaying)
+            if (GlobalSound == this)
             {
-                Draw.HollowRect(camera.Position, 6, 3, Color.Magenta);
-                for (int i = 0; i < Sources.Length; i++)
+                if (GlobalPlaying)
                 {
-                    SoundSource source = Sources[i];
-                    Color color;
-                    if (source.Playing) color = Color.Lime;
-                    else if (source.InstancePlaying) color = Color.Cyan;
-                    else if (source.instance != null) color = Color.White;
-                    else color = Color.Red;
-                    Draw.Point(camera.Position + new Vector2(1 + i, 1), color);
+                    Draw.HollowRect(camera.Position, 6, 3, Color.Magenta);
+                    for (int i = 0; i < Sources.Length; i++)
+                    {
+                        SoundSource source = Sources[i];
+                        Color color;
+                        if (source.Playing) color = Color.Lime;
+                        else if (source.InstancePlaying) color = Color.Cyan;
+                        else if (source.instance != null) color = Color.White;
+                        else color = Color.Red;
+                        Draw.Point(camera.Position + new Vector2(1 + i, 1), color);
+                    }
                 }
+                else
+                {
+                    Draw.HollowRect(camera.Position, 6, 3, Color.DarkRed);
+                }
+            }
+            else if (!TagCheck(Tags.Global))
+            {
+                Draw.HollowRect(camera.Position + Vector2.UnitY * 3, 4, 3, Playing ? Color.Lime : Color.DarkGreen);
             }
         }
         public void Silence()
@@ -135,7 +162,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.FrequencyEntities
         public override void SceneEnd(Scene scene)
         {
             base.SceneEnd(scene);
-            Silence();
+            if (GlobalSound == this)
+            {
+                RemoveGlobal();
+            }
+            else
+            {
+                Silence();
+            }
         }
         public override void SceneBegin(Scene scene)
         {

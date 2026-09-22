@@ -1,16 +1,12 @@
-﻿// PuzzleIslandHelper.PuzzleIslandHelperCommands
-using Celeste;
+﻿using Celeste;
 using Celeste.Mod;
 using Celeste.Mod.CommunalHelper;
 using Celeste.Mod.CommunalHelper.Utils;
-using Celeste.Mod.Entities;
 using Celeste.Mod.FancyTileEntities;
 using Celeste.Mod.PuzzleIslandHelper;
 using Celeste.Mod.PuzzleIslandHelper.Entities;
-using Celeste.Mod.PuzzleIslandHelper.Attributes;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WARP;
 using Celeste.Mod.PuzzleIslandHelper.Entities.WIP;
-using Celeste.Mod.XaphanHelper.Effects;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Monocle;
@@ -23,13 +19,293 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using static Celeste.Autotiler;
-using static Celeste.ClutterBlock;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Pulse;
 using static Celeste.Player;
 using Component = Monocle.Component;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static void OpaqueRenderReference()
+    {
+        return;
+        VirtualRenderTarget buffer = null;
+        Engine.Graphics.GraphicsDevice.SetRenderTarget(buffer);
+        Engine.Graphics.GraphicsDevice.Clear(Color.Transparent);
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, null, RasterizerState.CullNone);
+        //Render normal stuff here
+
+        Draw.Rect(0, 0, 30, 30, Color.Red);
+        Draw.Rect(30, 30, 30, 30, Color.Yellow);
+        Draw.Rect(60, 60, 30, 30, Color.Blue * 0.5f);
+        Draw.Rect(75, 75, 30, 30, Color.Lime * 0.5f);
+        Draw.SpriteBatch.End();
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, TrailManager.MaxBlendState);
+        //blend state forces the buffer to combine the colors in such a way that the result is always white (with alpha preserved)
+        Draw.Rect(0f, 0f, buffer.Width, buffer.Height, new Color(1f, 1f, 1f, 1f));
+        Draw.SpriteBatch.End();
+    }
+    public static Vector2 RandomEdgePosition(this Rectangle rect)
+    {
+        Vector2 p = default;
+        int rand = Calc.Random.Next(4);
+        switch (rand)
+        {
+            case 0:
+                p = new Vector2(Calc.Random.Range(rect.Left, rect.Right), rect.Top);
+                break;
+            case 1:
+                p = new Vector2(Calc.Random.Range(rect.Left, rect.Right), rect.Bottom);
+                break;
+            case 2:
+                p = new Vector2(rect.Left, Calc.Random.Range(rect.Top, rect.Bottom));
+                break;
+            case 3:
+                p = new Vector2(rect.Right, Calc.Random.Range(rect.Top, rect.Bottom));
+                break;
+        }
+        return p;
+    }
+    public static void Break(Rectangle bounds, Scene scene, char tileType, Vector2 from, Vector2 direction, bool playSound = true, bool playDebrisSound = true)
+    {
+        Vector2 p = bounds.Location.ToVector2();
+        if (playSound)
+        {
+            if (tileType == '1')
+            {
+                Audio.Play("event:/game/general/wall_break_dirt", p);
+            }
+            else if (tileType == '3')
+            {
+                Audio.Play("event:/game/general/wall_break_ice", p);
+            }
+            else if (tileType == '9')
+            {
+                Audio.Play("event:/game/general/wall_break_wood", p);
+            }
+            else
+            {
+                Audio.Play("event:/game/general/wall_break_stone", p);
+            }
+        }
+
+        for (int i = 0; (float)i < bounds.Width / 8f; i++)
+        {
+            for (int j = 0; (float)j < bounds.Height / 8f; j++)
+            {
+                scene.Add(Engine.Pooler.Create<Debris>().Init(p + new Vector2(4 + i * 8, 4 + j * 8), tileType, playDebrisSound).BlastFrom(from));
+            }
+        }
+    }
+
+    public static void Break(this Solid solid, char tileType, Vector2 from, Vector2 direction, bool playSound = true, bool playDebrisSound = true)
+    {
+        if (solid is DashBlock)
+        {
+            (solid as DashBlock).Break(from, direction, playSound, playDebrisSound);
+        }
+        else
+        {
+            Break(solid.Collider.Bounds, solid.Scene, tileType, from, direction, playSound, playDebrisSound);
+            solid.Collidable = false;
+            solid.RemoveSelf();
+        }
+    }
+
+    public static void DrawUserIndexedPrimitives<T>(PrimitiveType type, Matrix matrix, T[] vertices, int vertexCount, int[] indices, int primitiveCount, Effect effect = null, BlendState blendState = null) where T : struct, IVertexType
+    {
+        Effect obj = ((effect != null) ? effect : GFX.FxPrimitive);
+        BlendState blendState2 = ((blendState != null) ? blendState : BlendState.AlphaBlend);
+        Vector2 vector = new Vector2(Engine.Graphics.GraphicsDevice.Viewport.Width, Engine.Graphics.GraphicsDevice.Viewport.Height);
+        matrix *= Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
+        matrix *= Matrix.CreateTranslation(-1f, 1f, 0f);
+        Engine.Instance.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+        Engine.Instance.GraphicsDevice.BlendState = blendState2;
+        obj.Parameters["World"]?.SetValue(matrix);
+        foreach (EffectPass pass in obj.CurrentTechnique.Passes)
+        {
+            pass.Apply();
+            Engine.Instance.GraphicsDevice.DrawUserIndexedPrimitives(type, vertices, 0, vertexCount, indices, 0, primitiveCount);
+        }
+    }
+    public static void DrawUserPrimitives<T>(PrimitiveType type, Matrix matrix, T[] vertices, int primitiveCount, Effect effect = null, BlendState blendState = null) where T : struct, IVertexType
+    {
+        Effect obj = ((effect != null) ? effect : GFX.FxPrimitive);
+        BlendState blendState2 = ((blendState != null) ? blendState : BlendState.AlphaBlend);
+        Vector2 vector = new Vector2(Engine.Graphics.GraphicsDevice.Viewport.Width, Engine.Graphics.GraphicsDevice.Viewport.Height);
+        matrix *= Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
+        matrix *= Matrix.CreateTranslation(-1f, 1f, 0f);
+        Engine.Instance.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+        Engine.Instance.GraphicsDevice.BlendState = blendState2;
+        obj.Parameters["World"]?.SetValue(matrix);
+        foreach (EffectPass pass in obj.CurrentTechnique.Passes)
+        {
+            pass.Apply();
+            Engine.Instance.GraphicsDevice.DrawUserPrimitives(type, vertices, 0, primitiveCount);
+        }
+    }
+    public static void DrawUserPrimitives<T>(Matrix matrix, Action<EffectPass> forEachPass, Effect effect = null, BlendState blendState = null) where T : struct, IVertexType
+    {
+        Effect obj = ((effect != null) ? effect : GFX.FxPrimitive);
+        BlendState blendState2 = ((blendState != null) ? blendState : BlendState.AlphaBlend);
+        Vector2 vector = new Vector2(Engine.Graphics.GraphicsDevice.Viewport.Width, Engine.Graphics.GraphicsDevice.Viewport.Height);
+        matrix *= Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
+        matrix *= Matrix.CreateTranslation(-1f, 1f, 0f);
+        Engine.Instance.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+        Engine.Instance.GraphicsDevice.BlendState = blendState2;
+        obj.Parameters["World"]?.SetValue(matrix);
+        foreach (EffectPass pass in obj.CurrentTechnique.Passes)
+        {
+            pass.Apply();
+            forEachPass.Invoke(pass);
+        }
+    }
+    public static void DrawNumberDigit(int digit, Vector2 position, Color color)
+    {
+        string path = "objects/PuzzleIslandHelper/stool/debugNum0" + digit;
+        if (GFX.Game.Has(path))
+        {
+            GFX.Game[path].DrawOutline(position, Vector2.Zero, color, 1);
+        }
+    }
+    public static void DrawNumberDigit(char digit, Vector2 position, Color color)
+    {
+        string path = "objects/PuzzleIslandHelper/stool/debugNum0" + digit;
+        if (GFX.Game.Has(path))
+        {
+            GFX.Game[path].DrawOutline(position, Vector2.Zero, color, 1);
+        }
+    }
+    public static Vector3 ToVec3(this Vector2 vector)
+    {
+        return new Vector3(vector, 0);
+    }
+    public static void RenderWithoutClip(this TileGrid tileGrid) => RenderAtWithoutClip(tileGrid, tileGrid.Entity == null ? tileGrid.Position : tileGrid.Entity.Position + tileGrid.Position);
+    public static void RenderAtWithoutClip(this TileGrid tileGrid, Vector2 position) => RenderAt(tileGrid, position,
+        tileGrid.GetDefaultClip());
+    public static Rectangle GetDefaultClip(this TileGrid tilegrid)
+    {
+        int val = Math.Max(-tilegrid.VisualExtend, 0);
+        int val2 = Math.Max(-tilegrid.VisualExtend,0);
+        int val3 = Math.Min(tilegrid.TilesX + tilegrid.VisualExtend, tilegrid.TilesX);
+        int val4 = Math.Min(tilegrid.TilesY + tilegrid.VisualExtend, tilegrid.TilesY);
+        return new Rectangle(val, val2, val3 - val, val4 - val2);
+    }
+    public static void RenderAt(this TileGrid tilegrid, Vector2 position, Rectangle clip)
+    {
+        if (tilegrid.Alpha <= 0f)
+        {
+            return;
+        }
+        if (tilegrid.ClipCamera == null && tilegrid.Scene is Level level)
+        {
+            tilegrid.ClipCamera = level.Camera;
+        }
+
+        Rectangle clippedRenderTiles = clip;
+        int tileWidth = tilegrid.TileWidth;
+        int tileHeight = tilegrid.TileHeight;
+        Color color = tilegrid.Color * tilegrid.Alpha;
+        Vector2 position2 = new Vector2(position.X + (float)(clippedRenderTiles.Left * tileWidth), position.Y + (float)(clippedRenderTiles.Top * tileHeight));
+        for (int i = clippedRenderTiles.Left; i < clippedRenderTiles.Right; i++)
+        {
+            for (int j = clippedRenderTiles.Top; j < clippedRenderTiles.Bottom; j++)
+            {
+                MTexture mTexture = tilegrid.Tiles[i, j];
+                if (mTexture != null)
+                {
+                    Draw.SpriteBatch.Draw(mTexture.Texture.Texture_Safe, position2, mTexture.ClipRect, color);
+                }
+
+                position2.Y += tileHeight;
+            }
+
+            position2.X += tileWidth;
+            position2.Y = position.Y + (float)(clippedRenderTiles.Top * tileHeight);
+        }
+    }
+    public static bool TryRubberbandApproachCollide(this Actor entity, Vector2 target, Collision onCollideH = null, Collision onCollideV = null, float exitDistance = 2, Vector2 originOffset = default, double factor = 0.0099999997764825821)
+    {
+        Vector2 next = RubberbandApproach(entity.Position + originOffset, target, exitDistance, factor) - originOffset;
+        entity.MoveToX(next.X, onCollideH);
+        entity.MoveToY(next.Y, onCollideV);
+        return next + originOffset == target;
+    }
+    public static IEnumerator RubberbandApproachRoutine(this Entity entity, Vector2 target, float exitDistance = 2, Vector2 originOffset = default, double factor = 0.0099999997764825821)
+    {
+        while (!entity.TryRubberbandApproach(target, exitDistance, originOffset, factor)) yield return null;
+    }
+    public static IEnumerator RubberbandApproachRoutine(this Platform entity, Vector2 target, float liftSpeedX = 0, float liftSpeedY = 0, float exitDistance = 2, Vector2 originOffset = default, double factor = 0.0099999997764825821)
+    {
+        while (!entity.TryRubberbandApproach(target, liftSpeedX, liftSpeedY, exitDistance, originOffset, factor)) yield return null;
+    }
+    public static IEnumerator RubberbandApproachCollideRoutine(this Actor entity, Vector2 target, Collision onCollideH = null, Collision onCollideV = null, float exitDistance = 2, Vector2 originOffset = default, double factor = 0.0099999997764825821)
+    {
+        while (!entity.TryRubberbandApproachCollide(target, onCollideH, onCollideV, exitDistance, originOffset, factor)) yield return null;
+    }
+    public static bool TryRubberbandApproach(this Entity entity, Vector2 target, float exitDistance = 2, Vector2 originOffset = default, double factor = 0.0099999997764825821)
+    {
+        entity.Position = RubberbandApproach(entity.Position + originOffset, target, exitDistance, factor) - originOffset;
+        return entity.Position + originOffset == target;
+    }
+    public static bool TryRubberbandApproach(this Platform entity, Vector2 target, float liftSpeedX = 0, float liftSpeedY = 0, float exitDistance = 2, Vector2 originOffset = default, double factor = 0.0099999997764825821)
+    {
+        Vector2 next = RubberbandApproach(entity.Position + originOffset, target, exitDistance, factor) - originOffset;
+        entity.MoveToX(next.X, liftSpeedX);
+        entity.MoveToY(next.Y, liftSpeedY);
+        return next + originOffset == target;
+    }
+    public static float RubberbandApproach(this float input, float target, float exitDistance = 2, double factor = 0.0099999997764825821)
+    {
+        if (MathHelper.Distance(input, target) > exitDistance)
+        {
+            return input += (target - input) * (1f - (float)Math.Pow(factor, Engine.DeltaTime));
+        }
+        else
+        {
+            return target;
+        }
+    }
+    public static Vector2 RubberbandApproach(this Vector2 input, Vector2 target, float exitDistance = 2, double factor = 0.0099999997764825821)
+    {
+        if (Vector2.Distance(input, target) > exitDistance)
+        {
+            return input += (target - input) * (1f - (float)Math.Pow(factor, Engine.DeltaTime));
+        }
+        else
+        {
+            return target;
+        }
+    }
+    public static int Value(this bool b)
+    {
+        return b ? 1 : -1;
+    }
+    public static void DrawLineList(this List<Vector2> list, Color color, Vector2 offset = default)
+    {
+        for (int i = 1; i < list.Count; i++)
+        {
+            Draw.Line(list[i - 1] + offset, list[i] + offset, color);
+        }
+    }
+    public static void DrawLineList(this List<Vector3> list, Color color, float maxZ, Vector2 offset = default)
+    {
+        for (int i = 1; i < list.Count; i++)
+        {
+            Vector3 next = list[i];
+            Color c;
+            if (next.Z < 0) c = Color.Lerp(color, Color.White, Math.Abs(Math.Min(next.Z / maxZ, 1) * 0.4f));
+            else c = Color.Lerp(color, Color.Black, Math.Min(next.Z / maxZ, 1) * 0.4f);
+            Vector2 a = new Vector2(list[i - 1].X, list[i - 1].Y);
+            Vector2 b = new Vector2(list[i].X, list[i].Y);
+            Draw.Line(a + offset, b + offset, c);
+        }
+    }
+    public static void DrawLineList(this Vector2[] list, Color color, Vector2 offset = default)
+    {
+        for (int i = 1; i < list.Length; i++)
+        {
+            Draw.Line(list[i - 1] + offset, list[i] + offset, color);
+        }
+    }
     public static void RemoveAll<T>(this ExtraFancyText.Text text) where T : ExtraFancyText.Node
     {
         List<ExtraFancyText.Node> nodes = [];
@@ -367,7 +643,6 @@ public static class PianoUtils
         }
         return list;
     }
-
     public static List<Rectangle> Split(this Rectangle rect, int chunkWidth, int chunkHeight, int skipX = 0, int skipY = 0)
     {
         List<Rectangle> list = [];
@@ -555,15 +830,15 @@ public static class PianoUtils
     {
         return [.. level.Entities.Where(item => item.OnScreen(pad))];
     }
-    /// <summary>Exports the contents of <paramref name="from"/> as a png file.</summary>
-    /// <param name="from">The <see cref="RenderTarget2D"/> to convert.</param>
+    /// <summary>Exports the contents of <paramref name="target"/> as a png file.</summary>
+    /// <param name="target">The <see cref="RenderTarget2D"/> to convert.</param>
     /// <param name="path">The location the resulting png will be saved to, appended to Celeste's root folder.</param>
     /// <param name="x">The left bound of the area to export.</param>
     /// <param name="y">The top bound of the area to export.</param>
     /// <param name="w">The width of the area to export.</param>
     /// <param name="h">The height of the area to export.</param>
     /// <param name="scale">The scale factor of the resulting png.</param>
-    public static void SaveTargetAsPng(RenderTarget2D from, string path, int x, int y, int w, int h, int scale = 1)
+    public static void SaveTargetAsPng(RenderTarget2D target, string path, int x, int y, int w, int h, int scale = 1)
     {
         if (!path.EndsWith(".png"))
         {
@@ -571,7 +846,7 @@ public static class PianoUtils
         }
         Rectangle value = new Rectangle(x, y, w, h);
         Color[] data = new Color[w * h];
-        from.GetData(0, value, data, 0, w * h);
+        target.GetData(0, value, data, 0, w * h);
         using Texture2D texture2D = new Texture2D(Engine.Graphics.GraphicsDevice, w, h);
         texture2D.SetData(data);
         using RenderTarget2D renderTarget2D = new RenderTarget2D(Engine.Graphics.GraphicsDevice, w * scale, h * scale);
@@ -584,6 +859,34 @@ public static class PianoUtils
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         using Stream stream = File.OpenWrite(path);
         renderTarget2D.SaveAsPng(stream, renderTarget2D.Width, renderTarget2D.Height);
+    }
+    /// <summary>Exports the contents of <paramref name="target"/> as a png file.</summary>
+    /// <param name="target">The <see cref="RenderTarget2D"/> to convert.</param>
+    /// <param name="path">The location the resulting png will be saved to, appended to Celeste's root folder.</param>
+    /// <param name="scale">The scale factor of the resulting png.</param>
+    public static void SaveTargetAsPng(RenderTarget2D target, string path, int scale = 1)
+    {
+        if (!path.EndsWith(".png"))
+        {
+            path += ".png";
+        }
+        Rectangle value = new Rectangle(0, 0, target.Width, target.Height);
+        Color[] data = new Color[target.Width * target.Height];
+        target.GetData(0, value, data, 0, target.Width * target.Height);
+        using Texture2D texture2D = new Texture2D(Engine.Graphics.GraphicsDevice, target.Width, target.Height);
+        texture2D.SetData(data);
+        using RenderTarget2D renderTarget2D = new RenderTarget2D(Engine.Graphics.GraphicsDevice, target.Width * scale, target.Height * scale);
+        Engine.Instance.GraphicsDevice.SetRenderTarget(renderTarget2D);
+        Engine.Instance.GraphicsDevice.Clear(Color.Transparent);
+        Draw.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone);
+        Draw.SpriteBatch.Draw(texture2D, new Rectangle(0, 0, renderTarget2D.Width, renderTarget2D.Height), Color.White);
+        Draw.SpriteBatch.End();
+        Engine.Instance.GraphicsDevice.SetRenderTarget(null);
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        using Stream stream = File.OpenWrite(path);
+        renderTarget2D.SaveAsPng(stream, renderTarget2D.Width, renderTarget2D.Height);
+        texture2D.Dispose();
+        renderTarget2D.Dispose();
     }
     private class spriteSplitEntity : Entity
     {
@@ -1667,19 +1970,15 @@ public static class PianoUtils
     {
         Level level = entity.Scene as Level;
         Vector2 pos = groundPosition = entity.Position;
-        Collider c = entity.Collider;
-        entity.Collider ??= new Hitbox(1, 1);
 
-        while (!entity.CollideCheck<Solid>(pos))
+        while (!entity.Scene.CollideCheck<Solid>(pos))
         {
             if (pos.Y > level.Bounds.Bottom)
             {
-                entity.Collider = c;
                 return false;
             }
             pos.Y++;
         }
-        entity.Collider = c;
         groundPosition = pos;
         return true;
     }
@@ -1691,7 +1990,6 @@ public static class PianoUtils
             {
                 return entity.CollideCheckOutside<JumpThru>(entity.Position + Vector2.UnitY * downCheck);
             }
-
             return false;
         }
         return true;
@@ -1700,15 +1998,10 @@ public static class PianoUtils
     {
         Level level = entity.Scene as Level;
         Vector2 pos = entity.Position;
-        Collider c = entity.Collider;
-        entity.Collider ??= new Hitbox(1, 1);
-
-        while (pos.Y < level.Bounds.Bottom && !entity.CollideCheck<Solid>(pos))
+        while (pos.Y < level.Bounds.Bottom && !entity.Scene.CollideCheck<Solid>(pos))
         {
             pos.Y++;
         }
-        entity.Collider = c;
-
         return pos;
     }
 
@@ -1736,12 +2029,12 @@ public static class PianoUtils
             action?.Invoke(1);
         }
     }
-    public static IEnumerator LerpYoyo(this Ease.Easer ease, float halfTime, Action<float> action, Action onHalf = null)
+    public static IEnumerator LerpYoyo(this Ease.Easer ease, float halfTime, Action<float> action, Action onHalf = null, bool actionOnHalf = true, bool actionOnEnd = false)
     {
         ease ??= Ease.Linear;
-        yield return ease.Lerp(halfTime, action);
+        yield return ease.Lerp(halfTime, action, actionOnHalf);
         onHalf?.Invoke();
-        yield return Ease.Invert(ease).ReverseLerp(halfTime, action);
+        yield return Ease.Invert(ease).ReverseLerp(halfTime, action, actionOnEnd);
     }
     public static IEnumerator ReverseLerp(this Ease.Easer ease, float time, Action<float> action, bool actionOnEnd = false)
     {
@@ -1777,6 +2070,8 @@ public static class PianoUtils
     {
         return new Vector2((int)(rect.Left + rect.Width / 2f), (int)(rect.Top + rect.Height / 2f));
     }
+    public static float CenterX(this Rectangle rect) => rect.X + rect.Width / 2f;
+    public static float CenterY(this Rectangle rect) => rect.Y + rect.Height / 2f;
     public static Vector2 TopCenter(this Rectangle rect)
     {
         return new Vector2((int)(rect.Left + rect.Width / 2f), rect.Top);
@@ -1812,7 +2107,6 @@ public static class PianoUtils
     public static Rectangle Bounds(this Image image) => new((int)image.X, (int)image.Y, (int)image.Width, (int)image.Height);
     public static Rectangle RenderBounds(this Image image) =>
         new((int)image.RenderPosition.X, (int)image.RenderPosition.Y, (int)image.Width, (int)image.Height);
-
 
     public static Rectangle SetPos(this Rectangle rect, Vector2 position)
     {
@@ -2066,20 +2360,6 @@ public static class PianoUtils
     {
         return new Vector2(Calc.Clamp(vector.X, rect.Left, rect.Right), Calc.Clamp(vector.Y, rect.Top, rect.Bottom));
     }
-
-    public static Rectangle Create(this Rectangle rect, float x, float y, float width, float height)
-    {
-        rect = new Rectangle((int)x, (int)y, (int)width, (int)height);
-        return rect;
-    }
-    public static Rectangle CreateRectangle(float x, float y, float width, float height)
-    {
-        return new Rectangle((int)x, (int)y, (int)width, (int)height);
-    }
-    public static Rectangle CreateRectangle(Vector2 topLeft, Vector2 bottomRight)
-    {
-        return new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)bottomRight.X - (int)topLeft.X, (int)bottomRight.Y - (int)topLeft.Y);
-    }
     public static Rectangle CloneRectangle(Rectangle from)
     {
         return new Rectangle(from.Left, from.Top, from.Width, from.Height);
@@ -2162,13 +2442,15 @@ public static class PianoUtils
     }
     public static void RemoveSelves(this IEnumerable<Entity> entities)
     {
+        if (entities == null) return;
         foreach (Entity e in entities)
         {
-            e.RemoveSelf();
+            e?.RemoveSelf();
         }
     }
     public static void RemoveSelves(this IEnumerable<Component> components)
     {
+        if (components == null) return;
         foreach (Component c in components)
         {
             c.RemoveSelf();
@@ -2273,10 +2555,12 @@ public static class PianoUtils
 
     public static T Random<T>(this List<T> array)
     {
-        int min = 0;
-        int max = array.Count - 1;
-        if (max <= 1) return array[0];
-        return array[Calc.Random.Range(min, max)];
+        if(array.Count == 1) return array[0];
+        else if(array.Count == 0)
+        {
+            throw new ArgumentException("Passed in array is empty");
+        }
+        return array[Calc.Random.Range(0, array.Count)];
     }
     public static Color Random(this Color color, bool r, bool g, bool b, bool a)
     {
@@ -2385,7 +2669,7 @@ public static class PianoUtils
             };
         }
     }
-    public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, Vector2 offset, Action<Level, Player> onEnd = null)
+    public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, Vector2 offset, Action<Level, Player> onEnd = null, Player.IntroTypes introType = Player.IntroTypes.None)
     {
         Level level = scene as Level;
         Player player = level.GetPlayer();
@@ -2413,7 +2697,7 @@ public static class PianoUtils
             bounds = level.Bounds;
             session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
             level.Session.FirstLevel = false;
-            level.LoadLevel(Player.IntroTypes.None);
+            level.LoadLevel(introType);
 
             level.Camera.Position = level.LevelOffset + val3 + offset.Floor();
             level.Add(player);
@@ -2435,27 +2719,27 @@ public static class PianoUtils
             onEnd?.Invoke(level, player);
         };
     }
-    public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, Action<Level, Player> onEnd = null)
+    public static void InstantRelativeTeleport(Scene scene, string room, bool snapToSpawnPoint, Action<Level, Player> onEnd = null, Player.IntroTypes introType = Player.IntroTypes.None)
     {
-        InstantRelativeTeleport(scene, room, snapToSpawnPoint, Vector2.Zero, onEnd);
+        InstantRelativeTeleport(scene, room, snapToSpawnPoint, Vector2.Zero, onEnd, introType);
     }
-    public static void InstantTeleport(Scene scene, string room, Vector2 newPosition, Action<Level, Player> onEnd = null)
+    public static void InstantTeleport(Scene scene, string room, Vector2 newPosition, Action<Level, Player> onEnd = null, Player.IntroTypes introType = Player.IntroTypes.Transition)
     {
-        InstantTeleport(scene, room, newPosition.X, newPosition.Y, onEnd);
+        InstantTeleport(scene, room, newPosition.X, newPosition.Y, onEnd, introType);
     }
-    public static void InstantTeleportToMarker(Scene scene, string room, string markerName, Action<Level, Player> onEnd = null)
+    public static void InstantTeleportToMarker(Scene scene, string room, string markerName, Action<Level, Player> onEnd = null, Player.IntroTypes introType = Player.IntroTypes.Transition)
     {
         foreach (MarkerData d in PianoMapDataProcessor.MarkerData[scene.GetAreaKey()][room])
         {
             if (d.ID == markerName)
             {
                 Vector2 pos = d.WorldPosition + new Vector2(4, 5);
-                InstantTeleport(scene, room, pos, onEnd);
+                InstantTeleport(scene, room, pos, onEnd, introType);
                 return;
             }
         }
     }
-    public static void InstantTeleport(Scene scene, string room, float positionX, float positionY, Action<Level, Player> onEnd = null)
+    public static void InstantTeleport(Scene scene, string room, float worldPosX, float worldPosY, Action<Level, Player> onEnd = null, Player.IntroTypes introType = Player.IntroTypes.Transition)
     {
         Level level = scene as Level;
         Player player = level.GetPlayer();
@@ -2463,20 +2747,17 @@ public static class PianoUtils
         {
             return;
         }
-        if (string.IsNullOrEmpty(room))
+        if (string.IsNullOrEmpty(room) || level.Session.Level == room)
         {
-            Vector2 val = new Vector2(positionX, positionY) - player.Position;
-            player.Position = new Vector2(positionX, positionY);
+            Vector2 val = new Vector2(worldPosX, worldPosY) - player.Position;
+            player.Position = new Vector2(worldPosX, worldPosY);
             Camera camera = level.Camera;
-            camera.Position += val;
+            camera.Position = player.CameraTarget;
             player.Hair.MoveHairBy(val);
             return;
         }
         level.OnEndOfFrame += delegate
         {
-            Vector2 levelOffset = level.LevelOffset;
-            Vector2 val2 = player.Position - level.LevelOffset;
-            Vector2 val3 = level.Camera.Position - level.LevelOffset;
             Facings facing = player.Facing;
             level.Remove(player);
             level.UnloadLevel();
@@ -2484,19 +2765,20 @@ public static class PianoUtils
             Session session = level.Session;
             Level level2 = level;
             Rectangle bounds = level.Bounds;
-            float num = bounds.Left;
+            float left = bounds.Left;
             bounds = level.Bounds;
-            session.RespawnPoint = level2.GetSpawnPoint(new Vector2(num, bounds.Top));
+            session.RespawnPoint = level2.GetSpawnPoint(new Vector2(left, bounds.Top));
             level.Session.FirstLevel = false;
-            level.LoadLevel(Player.IntroTypes.Transition);
+            level.LoadLevel(introType);
 
-            Vector2 val4 = new Vector2(positionX, positionY) - level.LevelOffset - val2;
-            level.Camera.Position = level.LevelOffset + val3 + val4;
             level.Add(player);
-            player.Position = new Vector2(positionX, positionY);
+            Vector2 prev = player.Position;
+            player.Position = new Vector2(worldPosX, worldPosY);
             player.Facing = facing;
-            player.Hair.MoveHairBy(level.LevelOffset - levelOffset + val4);
+            player.Hair.MoveHairBy(player.Position - prev);
             level.Wipe?.Cancel();
+            level.Entities.UpdateLists();
+            level.Camera.Position = player.CameraTarget;
             onEnd?.Invoke(level, player);
         };
     }
