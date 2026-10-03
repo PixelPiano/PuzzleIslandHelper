@@ -8,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
 {
@@ -23,16 +24,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
         private float frictionY;
         public float WiggleXAmount = 0.25f;
         public float WiggleYAmount = 0.25f;
-        public Vector2 AutoPosition => Entity.Position + Calc.AngleToVector(OrbitAngle + OrbitOffset, Distance);
+        public Vector2 AutoPosition => Entity.Position + Calc.AngleToVector(FinalOrbitAngle, Distance);
         public Vector2 PrevPosition;
         public Vector2 Speed;
         public Vector2 WiggleVector;
         public bool AutoOrbit = true;
         public float OrbitAngle;
+        public float FinalOrbitAngle => OrbitAngle + OrbitOffset;
+        public float OrbitAngleVelocity => FinalOrbitAngle - prevOrbitAngle;
+        private float prevOrbitAngle;
         public Wiggler WigglerX;
         public Wiggler WigglerY;
         public Wiggler ScaleWiggler;
         public Vector2 ScaleMult = Vector2.One;
+        public float AfterImageScaleSpeed;
         public SingularityOrb(Vector2 offset, float radius, float distance, Color fill, Color edge, Color center) : base(offset, radius, Tower.Portal.MaxOrbCorners, fill, edge, 0)
         {
             Distance = distance;
@@ -40,6 +45,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             Color = fill;
             Radius = radius;
             Shaker = new BetterShaker(OnShake);
+            Shaker.Active = true;
+        }
+        public void UpdateOrbit(float angle, float offset)
+        {
+            prevOrbitAngle = OrbitAngle + OrbitOffset;
+            OrbitAngle = angle;
+            OrbitOffset = offset;
+        }
+        public void UpdateOrbitOffset(float offset)
+        {
+            prevOrbitAngle = OrbitAngle + OrbitOffset;
+            OrbitOffset = offset;
         }
         public override void Added(Entity entity)
         {
@@ -62,10 +79,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             if (WigglerX.Active) WigglerX.Update();
             if (WigglerY.Active) WigglerY.Update();
             if (ScaleWiggler.Active) ScaleWiggler.Update();
-
+            if (Shaker.Active) Shaker.Update();
             Position.X += Speed.X * Engine.DeltaTime;
             Position.Y += Speed.Y * Engine.DeltaTime;
-
             if (frictionX > 0) Speed.X = Calc.Approach(Speed.X, 0, frictionX * Engine.DeltaTime);
             if (frictionY > 0) Speed.Y = Calc.Approach(Speed.Y, 0, frictionY * Engine.DeltaTime);
             if (gravity != 0) Speed.Y = Calc.Approach(Speed.Y, 200 * Math.Sign(gravity), Math.Abs(gravity) * Engine.DeltaTime);
@@ -80,19 +96,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             WigglerX.Removed(null);
             WigglerY.Removed(null);
             ScaleWiggler.Removed(null);
+            Shaker.Removed(null);
         }
-        public void WiggleX()
-        {
-            WigglerX.Start();
-        }
-        public void WiggleY()
-        {
-            WigglerY.Start();
-        }
-        public void Wiggle()
-        {
-            ScaleWiggler.Start();
-        }
+        public void WiggleX() => WiggleX(0.5f, 4);
+        public void WiggleY() => WiggleY(0.5f, 4);
+        public void Wiggle() => Wiggle(0.5f, 4);
+        public void WiggleX(float duration) => WiggleX(duration, 4);
+        public void WiggleY(float duration) => WiggleY(duration, 4);
+        public void Wiggle(float duration) => Wiggle(duration, 4);
+        public void WiggleX(float duration, float frequency) => WigglerX.Start(duration, frequency);
+        public void WiggleY(float duration, float frequency) => WigglerY.Start(duration, frequency);
+        public void Wiggle(float duration, float frequency) => ScaleWiggler.Start(duration, frequency);
         public IEnumerator MoveTo(Vector2 position, float time, Ease.Easer ease = null)
         {
             ease ??= Ease.Linear;

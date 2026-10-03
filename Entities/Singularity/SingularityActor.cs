@@ -172,9 +172,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             StateMachine.SetCallbacks(StLaunch, LaunchUpdate, LaunchRoutine, LaunchBegin, LaunchEnd);
             StateMachine.SetCallbacks(StEndingAFlyUp, FlyUpUpdate, null, FlyUpBegin, null);
         }
-        public virtual void CreateAfterImage(float fillMult, float edgeMult, Vector2 speed = default)
+        public virtual void CreateAfterImage(float fillMult, float edgeMult, float scaleSpeed = 0, Vector2 speed = default)
         {
-            Sprite.CreateAfterImage(fillMult, edgeMult, speed);
+            Sprite.CreateAfterImage(fillMult, edgeMult, scaleSpeed, speed);
+        }
+        public void Wiggle() => Wiggle(0.5f);
+        public void Wiggle(float duration) => Wiggle(duration, 4);
+        public void Wiggle(float duration, float frequency)
+        {
+            foreach (var v in Sprite.ActiveOrbs)
+            {
+                v.Wiggle(duration, frequency);
+            }
         }
         #region Idle
         private float idleSpeedMult = 1;
@@ -1046,10 +1055,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                     float e = t.Percent;
                     Sprite.Distance = e switch
                     {
-                        < 0.2f => Calc.LerpClamp(dist, 20, Ease.SineOut(e / 0.2f)),
-                        < 0.5f => Calc.LerpClamp(20, -20, Ease.SineInOut((e - 0.2f) / 0.2f)),
-                        < 0.8f => Calc.LerpClamp(-20, 20, Ease.SineInOut((e - 0.5f) / 0.3f)),
-                        _ => Calc.LerpClamp(20, dist, Ease.SineInOut((e - 0.8f) / 0.2f))
+                        < 0.2f => Calc.LerpClamp(dist, 20, Ease.SineIn(e / 0.2f)),
+                        < 0.5f => Calc.LerpClamp(20, -20, Ease.Linear((e - 0.2f) / 0.3f)),
+                        < 0.8f => Calc.LerpClamp(-20, 20, Ease.Linear((e - 0.5f) / 0.3f)),
+                        _ => Calc.LerpClamp(20, dist, Ease.SineOut((e - 0.8f) / 0.2f))
                     };
                     Position = Vector2.Lerp(from, to, t.Eased);
                     if (t.Eased < 0.9f && Scene.OnInterval(0.03f))
@@ -1184,7 +1193,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             base.Update();
             if ((afterImagesTimer > 0 || SpawnAfterImages) && Scene.OnInterval(AfterImageInterval))
             {
-                CreateAfterImage(0.5f, 0.5f, AfterImageSpeed);
+                CreateAfterImage(0.5f, 0.5f, 0, AfterImageSpeed);
             }
             if (afterImagesTimer > 0)
             {

@@ -323,7 +323,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 AtPlayer = true;
                 Position = PlayerFollowing.Center;
-                Orb.UpdateVertices(PlayerFollowing.Center, Orb.Rotation, Orb.Radius);
+                Orb.UpdateVertices(PlayerFollowing.Center + Orb.Shake * Orb.ShakeMult, Orb.Rotation, Orb.Radius);
             }
         }
         [OnLoad]

@@ -15,10 +15,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
 {
     public class SingularitySprite : GraphicsComponent
     {
+        public Matrix RotationMatrix;
         public SingularityOrb R, G, B;
         public float OrbitRate = 1;
         public float Orbit;
         public float OrbitRateMult = 1;
+        public bool AutoHandleOrbit = true;
+        public bool AutoHandlePositions = true;
         public float[] DistanceOffsets = new float[3];
         private float Radius;
         public float Distance;
@@ -35,11 +38,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             Distance = Radius / 2;
             shaker = new BetterShaker(OnShake);
         }
-        public virtual void CreateAfterImage(float fillMult, float edgeMult, Vector2 speed = default)
+        public virtual void CreateAfterImage(float fillMult, float edgeMult, float scaleSpeed = 0, Vector2 speed = default)
         {
             foreach (var o in Orbs)
             {
-                VertexOrb.AfterImage afterImage = new(o, 1, 1, 0, AfterImages);
+                VertexOrb.AfterImage afterImage = new(o, 1, 1, scaleSpeed, AfterImages);
                 afterImage.FillAlpha *= fillMult;
                 afterImage.EdgeAlpha *= edgeMult;
                 afterImage.Speed = speed;
@@ -95,9 +98,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                     orb.ScaleMult = Scale;
                     orb.Radius = (Entity as SingularityActor).Radius;
                     orb.Distance = Distance + DistanceOffsets[distanceIndex];
-                    orb.OrbitAngle = Orbit;
-                    orb.OrbitOffset = count * inc;
-                    if (orb.AutoOrbit)
+                    orb.AutoOrbit = !AutoHandleOrbit;
+                    if (AutoHandleOrbit)
+                    {
+                        orb.UpdateOrbit(Orbit, count * inc);
+                    }
+                    if (AutoHandlePositions)
                     {
                         orb.RenderPosition = orb.AutoPosition;
                     }

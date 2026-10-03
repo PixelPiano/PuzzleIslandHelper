@@ -9,7 +9,9 @@ float Push;
 float Time;
 float MaxZ;
 float MinZ;
-float MaxShade;
+float Width;
+float Height;
+float3 Offset;
 struct VertexShaderInput
 {
     float4 Position : POSITION0;
@@ -20,31 +22,28 @@ struct VertexShaderOutput
 {
     float4 position : SV_Position;
     float4 color : COLOR0;
-    float Z : FOG;
 };
 
 VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
 {
-    float maxZ = 30;
 
     VertexShaderOutput output;
     output.color = input.Color;
+    output.position = input.Position;
+    float maxZ = MaxZ;
+    float minZ = MinZ;
+    float maxZ2 = Height / 2;
+    float minZ2 = -Height / 2;
+    float dist = (maxZ - minZ);
     output.position = mul(input.Position, World);
-    output.Z = clamp(output.position.z, -MaxZ, MaxZ);
-    //if(output.Z > 0) output.color = lerp(output.color, float4(1,0,0,1),output.Z / MaxZ);
-    //if(output.Z < 0) output.color = lerp(output.color, float4(0,1,0,1),output.Z / MinZ);
+    output.position.xyz += float3(Offset.x, -Offset.y, Offset.z);
 
-    float shadeAbove = (1 - (output.Z / MaxZ)) * 0.5;
-    float shadeBelow = 0.5 + (output.Z / MinZ) * 0.5;
-    float shadeAmount = lerp(shadeBelow, shadeAbove, step(output.Z, 0));
+    float z = -clamp(output.position.z, minZ2, 0);
+    float amount = 1 - ((z + dist / 2) / dist);
+    amount = pow(abs(z / maxZ2), 0.8);
 
-    //output.color = lerp(output.color, float4(0,0,0,1), shadeAmount); 
+    output.color = lerp(output.color, float4(0,0,0,0),amount);
     output.position.z = 0;
-   	//output.position.z = 0;
-	//float l = step(0,output.position.z) * min(output.position.z / 160,1);
-    //if(output.position.z > 0) output.color = float4(1,0,0,1);
-
-    //else output.color = lerp(input.Color, float4(0,0,0,input.Color.a),l);
 	
     return output;
 }

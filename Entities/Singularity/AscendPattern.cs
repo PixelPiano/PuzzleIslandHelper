@@ -41,14 +41,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                 Engine.Graphics.GraphicsDevice.DrawUserIndexedPrimitives<VertexPositionColor>(PrimitiveType.TriangleList, vertices, 0, 3, indices, 0, 1);
             }
         }
-        
+
         public VirtualRenderTarget Target;
-        public int StreakHeight = 4;
-        public int ColumnPad = 4;
-        public char TileA = 'Y', TileB = 'R';
+        private const int StreakHeight = 4;
+        private const int ColumnPad = 4;
+        public const char TileA = 'Y', TileB = 'R';
         private TileGrid grid;
-        private bool renderedToTarget;
-        private bool export;
         public Vector2 OrigPosition;
         private float clipYOffset;
         private MTexture texture;
@@ -100,21 +98,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
         {
             if (Engine.Scene.Tracker.GetEntity<AscendPattern>() is AscendPattern p)
             {
-                p.StreakHeight = height;
-                p.ColumnPad = pad;
-                p.TileA = tileA[0];
-                p.TileB = tileB[0];
-                p.grid = null;
-                p.Generate();
+                p.grid = Generate(tileA[0], tileB[0], pad, height);
             }
         }
-        public void Generate()
+        public static TileGrid Generate(char tileA, char tileB, int columnPad, int streakHeight)
         {
-            int halfcolumns = 320 / 16 - ColumnPad;
+            int halfcolumns = 320 / 16 - columnPad;
             int columns = 320 / 8;
             int rows = 184 / 8;
             VirtualMap<char> tiles = new VirtualMap<char>(columns, rows, default);
-            (char a, char b) = (TileA, TileB);
+            (char a, char b) = (tileA, tileB);
             List<char> columnTilesList = [];
             int listStartIndex = 0;
             int offset = 0;
@@ -122,7 +115,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             {
                 columnTilesList.Add(a);
                 offset++;
-                if (offset >= StreakHeight)
+                if (offset >= streakHeight)
                 {
                     (a, b) = (b, a);
                     offset = 0;
@@ -135,21 +128,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                 {
                     int index = (listStartIndex + r) % columnTilesList.Count;
                     int index2 = Math.Max(0, (listStartIndex - 1 + r)) % columnTilesList.Count;
-                    char tile = columnTilesList[index];
-                    char tileB = columnTilesList[index2] == TileA ? TileB : TileA;
-                    if (c != halfcolumns) tiles[c, r] = tile;
-                    tiles[columns - c, r] = tileB;
+                    char tileA2 = columnTilesList[index];
+                    char tileB2 = columnTilesList[index2] == tileA ? tileB : tileA;
+                    if (c != halfcolumns) tiles[c, r] = tileA2;
+                    tiles[columns - c, r] = tileB2;
                 }
                 listStartIndex++;
             }
-            grid = GFX.BGAutotiler.GenerateMap(tiles, false).TileGrid;
+            TileGrid grid = GFX.BGAutotiler.GenerateMap(tiles, false).TileGrid;
             grid.VisualExtend = 1;
-            renderedToTarget = false;
-            export = false;
-        }
-        public override void Update()
-        {
-            base.Update();
+            return grid;
         }
         public override void Removed(Scene scene)
         {

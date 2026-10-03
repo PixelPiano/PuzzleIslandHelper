@@ -50,16 +50,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             private Vector2 speedVector;
             private VertexOrb From;
             private List<AfterImage> trackedList;
-            private float fillAlphaFadeRate, edgeAlphaFadeRate, shrinkRate;
+            private float fillAlphaFadeRate, edgeAlphaFadeRate;
+            public float ScaleSpeed;
             public bool DependsOnVisibilityOfBaseCircle;
             private Vector2 origPosition;
-            public AfterImage(VertexOrb from, float fillAlphaFadeRate, float edgeAlphaFadeRate, float shrinkRate, List<AfterImage> trackedList = null) : base(from)
+            public float ScaleFriction;
+            public AfterImage(VertexOrb from, float fillAlphaFadeRate, float edgeAlphaFadeRate, float scaleSpeed, List<AfterImage> trackedList = null) : base(from)
             {
                 origPosition = from.RenderPosition;
                 From = from;
                 this.fillAlphaFadeRate = fillAlphaFadeRate;
                 this.edgeAlphaFadeRate = edgeAlphaFadeRate;
-                this.shrinkRate = shrinkRate;
+                ScaleSpeed = scaleSpeed;
                 this.trackedList = trackedList;
 
             }
@@ -85,10 +87,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 RenderPosition = origPosition + speedVector;
                 base.Update();
                 float delta = Delta;
-                if (Scale != Vector2.Zero)
-                {
-                    Scale = Calc.Approach(Scale, Vector2.Zero, shrinkRate * delta);
-                }
+                Scale = Vector2.Max(Scale + Vector2.One * ScaleSpeed * delta, Vector2.Zero);
+                ScaleSpeed = Calc.Approach(ScaleSpeed, 0, ScaleFriction * delta);
                 if (FillAlpha > 0)
                 {
                     FillAlpha = Calc.Approach(FillAlpha, 0, fillAlphaFadeRate * delta);
@@ -203,6 +203,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public List<Func<Color, int, Color>> ogCustomGetFillColor = [];
         public List<Func<Color, int, Color>> ogCustomGetEdgeColor = [];
         public List<Func<Color, Color>> ogCustomGetCenterColor = [];
+
+        public Matrix RotationMatrix;
+        public float Yaw, Pitch, Roll;
+        public float YawRate, PitchRate, RollRate;
         public VertexOrb(Vector2 position, float radius, int corners, Color color, Color edgeColor = default, float edgeRadiusOffset = 0) : base(true)
         {
             Position = position;
@@ -224,6 +228,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public void OnShake(Vector2 amount)
         {
             Shake += amount;
+        }
+        public void CreateAfterImage(List<AfterImage> tracker, float fillMult = 1, float edgeMult = 1, float fillFadeRate = 1, float edgeFadeRate = 1, float scaleSpeed = 0, Vector2 speed = default)
+        {
+            AfterImage afterImage = new(this, fillFadeRate, edgeFadeRate, scaleSpeed, tracker);
+            afterImage.FillAlpha *= fillMult;
+            afterImage.EdgeAlpha *= edgeMult;
+            afterImage.Speed = speed;
+            Entity.Add(afterImage);
         }
         public VertexOrb(VertexOrb copyFrom, bool resetPosition = true) : this(resetPosition ? Vector2.Zero : copyFrom.Position, copyFrom.Radius, copyFrom.Corners, copyFrom.Color, copyFrom.EdgeColor, copyFrom.EdgeRadiusOffset)
         {
@@ -421,7 +433,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 }
                 ColorModsToRemove.Clear();
             }
-            
+
             wobbleOffset = Wobble ? WobbleRotationRate * WobbleMult : 0;
             float rate = RotationRate;
             Rotation = (Rotation + rate) % MathHelper.TwoPi;
@@ -505,10 +517,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         {
             if (Baked)
             {
+                Matrix rotationMatrix = Matrix.CreateFromYawPitchRoll(Yaw, Pitch, Roll);
                 Color fillColor = Color.Lerp(Color, ColorB, FillColorLerp);
                 Color edgeColor = Color.Lerp(EdgeColor, EdgeColorB, EdgeColorLerp);
-                Vector2 p = renderPosition;//RenderPosition + RenderOffset;
-                Vertices[0].Position = (p + getVertexOffset(VertexType.Center, 0, 0) * Scale).ToVec3();
+                Vector2 transformedOffset = (getVertexOffset(VertexType.Center, 0, 0) * Scale).Transform(0, rotationMatrix);
+                Vertices[0].Position = (renderPosition + transformedOffset).ToVec3();
                 if (CenterColor.HasValue)
                 {
                     Color centerColor = Color.Lerp(CenterColor.Value, CenterColorB ?? Color.Transparent, CenterColorLerp);
@@ -524,9 +537,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 float fillRadiusOffset = Math.Clamp(Math.Abs(radius), 0, 1) * FillRadiusOffset * Math.Sign(radius);
                 for (int i = 0; i < Corners; i++, angle += angleStep)
                 {
-                    Vertices[i + 1].Position = (p + (getVertexOffset(VertexType.Fill, i, angle + FillRotationOffset) + Calc.AngleToVector(angle + FillRotationOffset, radius + fillRadiusOffset)) * Scale).Round().ToVec3();
+                    Vector2 angleOffsetA = Calc.AngleToVector(angle + FillRotationOffset, radius + fillRadiusOffset);
+                    Vector2 angleOffsetB = Calc.AngleToVector(angle + EdgeRotationOffset, radius + edgeRadiusOffset);
+                    Vector2 vertexOffsetA = getVertexOffset(VertexType.Fill, i, angle + FillRotationOffset);
+                    Vector2 vertexOffsetB = getVertexOffset(VertexType.Edge, i, angle + EdgeRotationOffset);
+                    Vector2 transformedOffsetA = ((vertexOffsetA + angleOffsetA) * Scale).Transform(0, rotationMatrix);
+                    Vector2 transformedOffsetB = ((vertexOffsetB + angleOffsetB) * Scale).Transform(0, rotationMatrix);
+
+
+                    Vertices[i + 1].Position = (renderPosition + transformedOffsetA).Round().ToVec3();
+                    EdgeVertices[i].Position = (renderPosition + transformedOffsetB).Round().ToVec3();
                     Vertices[i + 1].Color = GetFillColor(fillColor, i + 1);
-                    EdgeVertices[i].Position = (p + (getVertexOffset(VertexType.Edge, i, angle + EdgeRotationOffset) + Calc.AngleToVector(angle + EdgeRotationOffset, radius + edgeRadiusOffset)) * Scale).Round().ToVec3();
                     EdgeVertices[i].Color = GetEdgeColor(edgeColor, i);
                 }
             }
@@ -1062,7 +1083,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public void AddShiver(Shiver shiver, bool start = true)
         {
             Shivers.Add(shiver);
-            if(start) shiver.Start();
+            if (start) shiver.Start();
         }
         public void RemoveShivers()
         {

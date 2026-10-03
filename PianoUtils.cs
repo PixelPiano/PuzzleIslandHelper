@@ -24,7 +24,54 @@ using Component = Monocle.Component;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
-    public static void OpaqueRenderReference()
+    public static Vector2 Transform(this Vector3 position, Matrix matrix)
+    {
+        return new Vector2(
+            x: (position.X * matrix.M11) + (position.Y * matrix.M21) + (position.Z * matrix.M31) + matrix.M41,
+            y: (position.X * matrix.M12) + (position.Y * matrix.M22) + (position.Z * matrix.M32) + matrix.M42);
+    }
+    public static Vector2 Transform(this Vector2 position, float z, Matrix matrix)
+    {
+        return new Vector2(
+            x: (position.X * matrix.M11) + (position.Y * matrix.M21) + (z * matrix.M31) + matrix.M41,
+            y: (position.X * matrix.M12) + (position.Y * matrix.M22) + (z * matrix.M32) + matrix.M42);
+    }
+    public static Ease.Easer Easer(this string name)
+    {
+        return name switch
+        {
+            "sinein" => Ease.SineIn,
+            "sineout" => Ease.SineOut,
+            "sineinout" => Ease.SineInOut,
+            "quadin" => Ease.QuadIn,
+            "quadout" => Ease.QuadOut,
+            "quadinout" => Ease.QuadInOut,
+            "expoin" => Ease.ExpoIn,
+            "expoout" => Ease.ExpoOut,
+            "expoinout" => Ease.ExpoInOut,
+            "quintin" => Ease.QuintIn,
+            "quintout" => Ease.QuintOut,
+            "quintinout" => Ease.QuintInOut,
+            "bouncein" => Ease.BounceIn,
+            "bounceout" => Ease.BounceOut,
+            "bounceinout" => Ease.BounceInOut,
+            "backin" => Ease.BackIn,
+            "backout" => Ease.BackOut,
+            "backinout" => Ease.BackInOut,
+            "bigbackin" => Ease.BigBackIn,
+            "bigbackout" => Ease.BigBackOut,
+            "bigbackinout" => Ease.BigBackInOut,
+            "elasticin" => Ease.ElasticIn,
+            "elasticout" => Ease.ElasticOut,
+            "elasticinout" => Ease.ElasticInOut,
+            "cubein" => Ease.CubeIn,
+            "cubeout" => Ease.CubeOut,
+            "cubeinout" => Ease.CubeInOut,
+            _ => Ease.Linear
+        };
+    }
+    public static Ease.Easer Easer(this EntityData data, string key, string defaultValue = "") => data.Attr(key, defaultValue).ToLower().Easer();
+    internal static void OpaqueRenderReference()
     {
         return;
         VirtualRenderTarget buffer = null;
@@ -184,7 +231,7 @@ public static class PianoUtils
     public static Rectangle GetDefaultClip(this TileGrid tilegrid)
     {
         int val = Math.Max(-tilegrid.VisualExtend, 0);
-        int val2 = Math.Max(-tilegrid.VisualExtend,0);
+        int val2 = Math.Max(-tilegrid.VisualExtend, 0);
         int val3 = Math.Min(tilegrid.TilesX + tilegrid.VisualExtend, tilegrid.TilesX);
         int val4 = Math.Min(tilegrid.TilesY + tilegrid.VisualExtend, tilegrid.TilesY);
         return new Rectangle(val, val2, val3 - val, val4 - val2);
@@ -228,6 +275,32 @@ public static class PianoUtils
         entity.MoveToX(next.X, onCollideH);
         entity.MoveToY(next.Y, onCollideV);
         return next + originOffset == target;
+    }
+    public static bool TryRubberbandApproach(this Vector2 input, Vector2 target, out Vector2 output, float exitDistance = 2, double factor = 0.0099999997764825821)
+    {
+        output = input;
+        if (Vector2.Distance(input, target) > exitDistance)
+        {
+            output = input + (target - input) * (1f - (float)Math.Pow(factor, Engine.DeltaTime));
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    public static bool TryRubberbandApproach(float input, float target, out float output, float exitDistance = 2, double factor = 0.0099999997764825821)
+    {
+        output = input;
+        if (MathHelper.Distance(input, target) > exitDistance)
+        {
+            output = input + (target - input) * (1f - (float)Math.Pow(factor, Engine.DeltaTime));
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
     public static IEnumerator RubberbandApproachRoutine(this Entity entity, Vector2 target, float exitDistance = 2, Vector2 originOffset = default, double factor = 0.0099999997764825821)
     {
@@ -2555,12 +2628,27 @@ public static class PianoUtils
 
     public static T Random<T>(this List<T> array)
     {
-        if(array.Count == 1) return array[0];
-        else if(array.Count == 0)
+        if (array.Count == 1) return array[0];
+        else if (array.Count == 0)
         {
             throw new ArgumentException("Passed in array is empty");
         }
         return array[Calc.Random.Range(0, array.Count)];
+    }
+    public static bool Random<T>(this List<T> array, out T obj)
+    {
+        obj = default;
+        if (array.Count == 1)
+        {
+            obj = array[0];
+            return true;
+        }
+        else if (array.Count == 0)
+        {
+            return false;
+        }
+        obj = array[Calc.Random.Range(0, array.Count)];
+        return true;
     }
     public static Color Random(this Color color, bool r, bool g, bool b, bool a)
     {
