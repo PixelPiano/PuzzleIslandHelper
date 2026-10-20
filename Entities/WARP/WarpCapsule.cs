@@ -382,7 +382,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
         {
             if (Shade == null)
             {
-                Engine.Scene.Add(Shade = new PlayerShade(0.5f));
+                Add(Shade = new PlayerShade(0.5f));
             }
 
             LeftDoor.MoveToFg();
@@ -391,7 +391,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.WARP
             player.StateMachine.State = Player.StDummy;
             yield return 0.1f;
             yield return MoveDoorsTo(DoorClosedPercent, 0, 1.2f, Ease.BigBackIn);
-            Shade?.Fade(0, 0.7f, Ease.SineIn, true);
+            Shade?.Lerp(0, 0.7f, Ease.SineIn, true);
             LeftDoor.MoveToBg();
             RightDoor.MoveToBg();
             DoorStallTimer = 0.5f;

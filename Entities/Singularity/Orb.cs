@@ -15,6 +15,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
     [Tracked]
     public class SingularityOrb : VertexOrb
     {
+
         public bool Glitchy;
         public float RadiusOffset, SizeOffset;
         public float Distance;
@@ -24,7 +25,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
         private float frictionY;
         public float WiggleXAmount = 0.25f;
         public float WiggleYAmount = 0.25f;
-        public Vector2 AutoPosition => Entity.Position + Calc.AngleToVector(FinalOrbitAngle, Distance);
+        public Vector2 AutoPosition => Entity.Position + PianoUtils.Transform(Calc.AngleToVector(FinalOrbitAngle, Distance), 0, RotationMatrix);
         public Vector2 PrevPosition;
         public Vector2 Speed;
         public Vector2 WiggleVector;
@@ -37,7 +38,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
         public Wiggler WigglerY;
         public Wiggler ScaleWiggler;
         public Vector2 ScaleMult = Vector2.One;
-        public float AfterImageScaleSpeed;
         public SingularityOrb(Vector2 offset, float radius, float distance, Color fill, Color edge, Color center) : base(offset, radius, Tower.Portal.MaxOrbCorners, fill, edge, 0)
         {
             Distance = distance;
@@ -97,6 +97,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             WigglerY.Removed(null);
             ScaleWiggler.Removed(null);
             Shaker.Removed(null);
+        }
+        public override Color GetCenterColor(Color baseColor)
+        {
+            Color c = base.GetCenterColor(baseColor);
+            float z = Vertices[0].Position.Z;
+            return GetZColorLerp(c, z);
+        }
+        public override Color GetEdgeColor(Color baseColor, int index)
+        {
+            Color c = base.GetEdgeColor(baseColor, index);
+            float z = EdgeVertices[index].Position.Z;
+            return GetZColorLerp(c, z);
+        }
+        public override Color GetFillColor(Color baseColor, int index)
+        {
+            Color c = base.GetFillColor(baseColor, index);
+            float z = Vertices[index].Position.Z;
+            return GetZColorLerp(c, z);
+        }
+        public Color GetZColorLerp(Color color, float z)
+        {
+            return color;
+            if (z < 0)
+            {
+                return Color.Lerp(color, Color.Black, -z * (Radius / 2));
+            }
+            else
+            {
+                return color;
+            }
         }
         public void WiggleX() => WiggleX(0.5f, 4);
         public void WiggleY() => WiggleY(0.5f, 4);

@@ -29,33 +29,37 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 Blue,
                 Alpha
             }
-            public float Alpha = 0;
+            public float Alpha = 1;
             public float ColorLerp;
-            public float ScaleMult;
+            public float ScaleMult = 1;
             public float Decay;
             public float Increment;
             private float slider;
             private float max;
-            public float Percent => max / slider;
+            public float Percent => slider / max;
             private Action onPress;
+            private Action<float> onUpdate;
             private Coroutine pressCoroutine;
             public bool Finished;
             private VirtualButton button;
             private Color color;
             private bool intro = true;
-            public QuickAction(Presets preset, Action onPress, float max, float increment, float decay) : base()
+            private float currentAmount = 1;
+            public QuickAction(Presets preset, Action onPress, Action<float> onUpdate, float max, float increment, float decay) : base()
             {
+                this.onUpdate = onUpdate;
                 this.max = max;
                 this.onPress = onPress;
                 Increment = increment;
                 Decay = decay;
                 Tag |= TagsExt.SubHUD;
+
                 Add(pressCoroutine = new Coroutine(false));
                 button = preset switch
                 {
-                    Presets.Red => Input.MenuConfirm,
-                    Presets.Green => Input.Jump,
-                    Presets.Blue => Input.Grab,
+                    Presets.Red => Input.MenuLeft,
+                    Presets.Green => Input.MenuDown,
+                    Presets.Blue => Input.MenuRight,
                     Presets.Alpha => Input.Dash,
                 };
                 color = preset switch
@@ -63,7 +67,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                     Presets.Red => Color.Red,
                     Presets.Green => Color.Green,
                     Presets.Blue => Color.Blue,
-                    Presets.Alpha => Color.White
+                    _ => Color.White
                 };
                 Tween.Set(this, Tween.TweenMode.Oneshot, 0.7f, Ease.CubeInOut, t =>
                 {
@@ -80,37 +84,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             {
                 base.Render();
                 Vector2 position = new Vector2(160 * 6, 45 * 6);
-                Color color = this.color;
-                if (ColorLerp > 0)
-                {
-                    color = Color.Lerp(color, Color.White, ColorLerp);
-                }
-                else
-                {
-                    color = Color.Lerp(color, Color.Black, -ColorLerp);
-                }
-                BlendState b = Engine.Graphics.GraphicsDevice.BlendState;
-                Engine.Graphics.GraphicsDevice.BlendState = BlendState.Additive;
+                Color color = Color.Lerp(this.color, ColorLerp < 0 ? Color.Black : Color.White, Math.Abs(ColorLerp));
                 if (Input.GuiInputController(Input.PrefixMode.Latest))
                 {
                     Input.GuiButton(button, Input.PrefixMode.Latest).DrawJustified(position, new Vector2(0.5f), color * Alpha, 6 * ScaleMult);
                 }
                 else
                 {
-                    ActiveFont.DrawOutline(Input.FirstKey(button).ToString().ToUpper(), position, new Vector2(0.5f), new Vector2(6 * ScaleMult), color * Alpha, 2f, Color.Black * Alpha);
+                    ActiveFont.DrawOutline(Input.FirstKey(button).ToString().ToUpper(), position, new Vector2(0.5f), new Vector2(6 * ScaleMult), color * Alpha, 3f + (2 * -(1 - ScaleMult)), Color.Black * Alpha);
                 }
-                Engine.Graphics.GraphicsDevice.BlendState = b;
             }
             public override void Update()
             {
                 base.Update();
                 if (!Finished && !intro)
                 {
-                    slider = Math.Max(0, slider + Decay);
+                    slider = Math.Max(0, slider + Decay * Engine.DeltaTime);
                     if (button.Pressed)
                     {
                         button.ConsumePress();
                         Press();
+                    }
+                    if (onUpdate != null)
+                    {
+                        onUpdate.Invoke(Percent);
                     }
                 }
             }
@@ -128,42 +125,48 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                     pressCoroutine.Replace(pressRoutine(false));
                 }
             }
+            public void SetAmount(float amount)
+            {
+                currentAmount = amount = Math.Clamp(amount, 0, 2);
+                if (amount >= 1)
+                {
+                    ScaleMult = Calc.LerpClamp(1f, 1.2f, amount - 1);
+                    ColorLerp = Calc.LerpClamp(0, 0.5f, amount - 1);
+                }
+                else
+                {
+                    ScaleMult = Calc.LerpClamp(1f, 0.7f, 1 - amount);
+                    ColorLerp = Calc.LerpClamp(0, -0.5f, 1 - amount);
+                }
+            }
             private IEnumerator pressRoutine(bool final)
             {
-                float multFrom = ScaleMult;
-                float lerpFrom = ColorLerp;
+                SetAmount(2);
+                yield return null;
                 for (float i = 0; i < 1; i += Engine.DeltaTime / 0.05f)
                 {
-                    ScaleMult = Calc.LerpClamp(multFrom, 1.2f, Ease.SineOut(i));
-                    ColorLerp = Calc.LerpClamp(lerpFrom, 0.5f, Ease.SineOut(i));
+                    SetAmount(Ease.CubeIn(i));
                     yield return null;
                 }
+
                 for (float i = 0; i < 1; i += Engine.DeltaTime / 0.1f)
                 {
-                    ScaleMult = Calc.LerpClamp(1.2f, 0.7f, Ease.ElasticIn(i));
-                    ColorLerp = Calc.LerpClamp(0.5f, -0.5f, Ease.ElasticIn(i));
+                    SetAmount(1 + Ease.CubeOut(i));
+                    yield return null;
+                }
+                Ease.Easer e = Ease.Follow(Ease.CubeIn, Ease.SineOut);
+                for (float i = 0; i < 1; i += Engine.DeltaTime / 0.1f)
+                {
+                    SetAmount(2 - e(i));
+                    if (final)
+                    {
+                        Alpha = 1 - Ease.SineIn(i);
+                    }
                     yield return null;
                 }
                 if (final)
                 {
-                    for (float i = 0; i < 1; i += Engine.DeltaTime / 0.1f)
-                    {
-                        Alpha = 1 - i;
-                        yield return null;
-                    }
                     RemoveSelf();
-                }
-                else
-                {
-                    yield return 0.05f;
-                    for (float i = 0; i < 1; i += Engine.DeltaTime / 0.4f)
-                    {
-                        ScaleMult = Calc.LerpClamp(0.7f, 1f, Ease.CubeIn(i));
-                        ColorLerp = Calc.LerpClamp(-0.5f, 0, Ease.CubeIn(i));
-                        yield return null;
-                    }
-                    ColorLerp = 0;
-                    ScaleMult = 1;
                 }
             }
         }
@@ -172,11 +175,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         public Tower.Eye Eye;
         public Vector2 GroundPosition;
 
-        //lovingly copied from CS10_FinalLaunch because brain bad atm
         public Vector2 cameraWaveOffset;
         public Vector2 cameraOffset;
         public Vector2 cameraPosition;
-        public Coroutine wave, spiral, launch, orb;
 
         public float OrbSineEndDistance = 20;
         private float OrbSineTimerMult = 2;
@@ -197,23 +198,28 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         private Coroutine orbCoroutine;
         public EndingA(Player player, SingularityActor singularity)
         {
+
             Player = player;
             Singularity = singularity;
             Add(orbCoroutine = new Coroutine(false));
-        }
-
-
-        [Command("test_", "")]
-        public static void Test()
-        {
-            if (Engine.Scene != null)
+            distanceLoopTween = Tween.Create(Tween.TweenMode.YoyoLooping, Ease.SineInOut, 0.5f);
+            distanceLoopTween.OnUpdate = t =>
             {
-                AscendBarrier b = new AscendBarrier(Vector2.Zero) { VertexOffset = Vector3.UnitY * -180 };
-                Engine.Scene.Add(b);
-                PuzzleIslandHelper.Components.KeyComponent.Wasd(entity: b,
-                    left: () => b.VertexOffset.Y -= 5, right: () => b.VertexOffset.Y += 5);
-            }
+                Singularity.Sprite.Distance = Calc.LerpClamp(20f, endDist, t.Eased);
+                if (endDist != 36f)
+                {
+                    t.Duration = Math.Max(t.Duration * 0.97f, 0.1f);
+                    if (Singularity.Sprite.Distance == endDist)
+                    {
+                        t.Stop();
+                    }
+                }
+            };
+            Add(distanceLoopTween);
         }
+
+        private float barrierPitchLerp;
+        private float barrierYOffset;
         public override void OnBegin(Level level)
         {
             //pattern = level.Tracker.GetEntity<AscendPattern>();
@@ -221,9 +227,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                         {
                             //pattern.SwapClipMode();
                         }*/
-            Barrier = new AscendBarrier(Vector2.Zero) { VertexOffset = Vector3.UnitY * -180 };
+            Barrier = new AscendBarrier(level.Camera.Position);
             level.Add(Barrier);
-            Barrier.Pitch = MathHelper.Pi;
+            singularityOrig = Singularity.Position;
+            Barrier.Pitch = Barrier.PitchFrom;
+            Barrier.VertexOffset.Y = -93;
+            barrierPitchLerp = 0;
+            barrierYOffset = 0;
             cameraPosition = level.Camera.Position;
             Player.StateMachine.State = Player.StDummy;
             Player.Speed = default;
@@ -234,8 +244,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             Player.ForceCameraUpdate = true;
             Singularity.State = SingularityActor.StDummy;
             Eye = level.Tracker.GetEntity<Tower.Eye>();
+            Tween.Set(this, Tween.TweenMode.Looping, 1, Ease.Linear, t => Barrier.Pitch = MathHelper.Pi * t.Eased);
             Add(new Coroutine(Cutscene()));
         }
+        private Vector2 singularityOrig;
+        private bool applyCharacterOffset;
         public override void Update()
         {
             base.Update();
@@ -246,28 +259,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 float x = spiralStart.X + (float)(double)(spiralRadius * Math.Sin((spiralStart.Y + spiralYOffset) * Math.PI / spiralWaveLength));
                 spiralYOffset += spiralSpeed * Engine.DeltaTime;
                 Singularity.MoveToX(x);
-                Player.MoveToX(Singularity.X);
-                Player.MoveToY(Singularity.Y);
+                float y = Singularity.Y;
+                Player.MoveToX(x);
                 //pattern.TotalDistance += spiralSpeed * 2 * Engine.DeltaTime;
             }
             else
             {
                 //pattern.TotalDistance += pushSpeed * Engine.DeltaTime;
             }
+            if (applyCharacterOffset)
+            {
+                Player.MoveToY(singularityOrig.Y + characterYOffset);
+                Singularity.MoveToY(singularityOrig.Y + characterYOffset);
+            }
             if (Barrier != null)
             {
-                Barrier.VertexOffset = Vector3.UnitY * -180 + barrierVertexOffset;
-                Vector2 renderPos = Barrier.RenderPosition + Barrier.VertexOffset.XY();
-                if (!Barrier.Shattered && renderPos.Y - 90 > Player.Y)
-                {
-                    Barrier.Push = renderPos.Y - 90 - Player.Y;
-                }
+                Barrier.VertexOffset.Y = -93 + barrierYOffset - Player.Height;
+                Barrier.Pitch = Calc.LerpClamp(Barrier.PitchFrom, Barrier.PitchTo, barrierPitchLerp);
+                Barrier.Push = Math.Abs(characterYOffset);
             }
             Singularity.Orbit += (spiralSpeed * Engine.DeltaTime / 10f);
-            pushSpeed = Calc.Approach(pushSpeed, 0, 900f * Engine.DeltaTime);
         }
-        public float BarrierY;
-        public float BarrierOffset;
         public override void OnEnd(Level level)
         {
 
@@ -276,28 +288,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
         {
             Level.Shake(shake);
             Barrier.CreateVertices(size);
-        }
-        private IEnumerator orbDistanceLoopRoutine()
-        {
-            float from = Singularity.Sprite.Distance;
-            while (true)
-            {
-                if (from != 20)
-                {
-                    for (float i = 0; i < 1; i += Engine.DeltaTime * OrbSineTimerMult)
-                    {
-                        Singularity.Sprite.Distance = Calc.LerpClamp(from, 20, Ease.SineInOut(i));
-                        yield return null;
-                    }
-                }
-                for (float i = 0; i < 1; i += Engine.DeltaTime * OrbSineTimerMult)
-                {
-                    Singularity.Sprite.Distance = Calc.LerpClamp(20f, 36, Ease.SineInOut(i));
-                    yield return null;
-                }
-                from = 36;
-                yield return null;
-            }
         }
         private float inputSlider;
 
@@ -322,94 +312,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
                 orb.OrbitAngle = Calc.LerpClamp(from, target, Ease.CubeOut(i));
                 yield return null;
             }
-
-
         }
-        private Vector3 barrierVertexOffset;
+
         private IEnumerator orbQuicktimeRoutine()
         {
-            while (!PianoUtils.TryRubberbandApproach(Singularity.Sprite.Distance, 40, out float output, 1))
+            while (!PianoUtils.TryRubberbandApproach(Singularity.Sprite.Distance, 20, out float output, 1))
             {
                 Singularity.Sprite.Distance = output;
                 yield return null;
             }
-            Singularity.Sprite.Distance = 40;
-        }
-        [Command("sl", "")]
-        public static void SetSlider(string name, float value)
-        {
-            if (Engine.Scene is Level level)
-            {
-                level.Session.SetSlider(name, value);
-            }
-        }
-        [Command("ct", "")]
-        public static void SetCounter(string name, int value)
-        {
-            if (Engine.Scene is Level level)
-            {
-                level.Session.SetCounter(name, value);
-            }
-        }
-        private static Coroutine testCoroutine;
-        [Command("test_a", "")]
-        public static void wiggle(int state)
-        {
-            if (Engine.Scene.Tracker.GetEntity<SingularityActor>() is SingularityActor a)
-            {
-                switch (state)
-                {
-                    case 0:
-                        a.Wiggle();
-                        a.StopShaking();
-                        break;
-                    case 1:
-                        a.StartShaking(-1);
-                        break;
-                    case 2:
-                        a.StopShaking();
-                        a.Distance = 8;
-                        testCoroutine?.RemoveSelf();
-                        a.Add(testCoroutine = new Coroutine(r(Engine.Scene, a)));
-                        break;
-                }
-            }
-        }
-        private static IEnumerator r(Scene scene, SingularityActor a)
-        {
-            float from = a.Distance;
-            Level level = scene as Level;
-            float speed = 100f;
-            a.Wiggle();
-            a.OrbitRateMult = 2;
-            while (speed != 0)
-            {
-                a.Sprite.Distance += speed * Engine.DeltaTime;
-                speed = Calc.Approach(speed, 0, 600f * Engine.DeltaTime);
-                yield return null;
-            }
-            yield return 0.05f;
-            while (a.Sprite.Distance != 1)
-            {
-                a.OrbitRateMult = PianoUtils.RubberbandApproach(a.OrbitRateMult, 0, 0.05f);
-                a.Sprite.Distance = Calc.Approach(a.Sprite.Distance, 1, speed * Engine.DeltaTime);
-                speed = Calc.Approach(speed, 200f, 400f * Engine.DeltaTime);
-                yield return null;
-            }
-            foreach (var v in a.Sprite.ActiveOrbs) v.ShakeFor(1);
-            yield return 1;
-            a.Wiggle();
-            while (a.Sprite.Distance != 20 || a.OrbitRateMult != 1)
-            {
-                a.OrbitRateMult = PianoUtils.RubberbandApproach(a.OrbitRateMult, 1, 0.05f);
-                float speedMult = 1;
-                if (a.Sprite.Distance >= 10)
-                {
-                    speedMult = 1 - ((a.Sprite.Distance - 10) / 10 * 0.7f);
-                }
-                a.Sprite.Distance = Calc.Approach(a.Sprite.Distance, 20, 320f * Engine.DeltaTime * speedMult);
-                yield return null;
-            }
+            Singularity.Sprite.Distance = 20;
         }
         private bool Huddled;
         public void BeginHuddle(SingularityActor actor, float interval)
@@ -458,107 +370,65 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
             yield return PianoUtils.Lerp(Ease.SineInOut, 1f, (f) => spiralSpeed = Calc.LerpClamp(-120f, -80f, f), true);
             yield return 1;
             Add(new Coroutine(slingshotRoutine()));
-
-
-            float from = Singularity.Sprite.Distance;
-            wiggleSingularity();
-            for (float i = 0; i < 1; i += Engine.DeltaTime / 1)//0.6f)
-            {
-                Singularity.Sprite.Distance = Calc.LerpClamp(from, from + 16, Ease.CubeOut(i));
-                yield return null;
-            }
-            yield return 0.1f;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / 1)//0.7f)
-            {
-                cameraOffset.Y = Calc.LerpClamp(4, -70, Ease.CubeOut(i));
-                Singularity.Sprite.Distance = Calc.LerpClamp(from + 16, 1, Ease.SineIn(i));
-                yield return null;
-            }
-            foreach (var v in Singularity.Sprite.ActiveOrbs)
-            {
-                v.ShakeFor(1f);
-            }
-            yield return 1f;
-            foreach (var v in Singularity.Sprite.ActiveOrbs)
-            {
-                v.Wiggle();
-            }
-            for (float i = 0; i < 1; i += Engine.DeltaTime / 1)// 0.3f)
-            {
-                cameraOffset.Y = Calc.LerpClamp(-70, -30, Ease.CubeOut(i));
-                Singularity.Sprite.Distance = Calc.LerpClamp(1, 20f, Math.Min(1, Ease.CubeOut(i * 2)));
-                yield return null;
-            }
-
-
             yield return new SwapImmediately(PianoUtils.Lerp(Ease.Linear, 1f,
-                (f) => spiralRadius = maxSpiralRadius * (1 - f)));
-
-
-            /*
-
-
-                        //spiral start
-                        for (float i = 0; i < 1; i += Engine.DeltaTime)
-                        {
-                            float e = Ease.SineOut(i);
-
-                            spiralWaveLength = Calc.LerpClamp(120, 80f, e);
-                            spiralSpeed = -120f * e;
-                            spiralRadius = maxSpiralRadius * 0.7f * e;
-                            yield return null;
-                        }
-                        yield return 0.8f;
-                        for (float i = 0; i < 1; i += Engine.DeltaTime)
-                        {
-                            float ease = Ease.SineInOut(i);
-                            spiralSpeed = Calc.LerpClamp(-120f, -70f, ease);
-                            spiralRadius = Calc.LerpClamp(maxSpiralRadius * 0.7f, maxSpiralRadius, ease);
-                            yield return null;
-                        }
-
-                        //spiral end
-                        yield return PianoUtils.Lerp(Ease.SineInOut, 1f, f =>
-                        {
-                            cameraOffset.Y = Calc.LerpClamp(4, -60, f);
-                            spiralRadius = Calc.LerpClamp(maxSpiralRadius, 0f, f);
-                        }, true);*/
+                (f) => spiralRadius = maxSpiralRadius * (1 - f), true));
         }
+
         private IEnumerator slingshotRoutine()
         {
-            float from = Singularity.Sprite.Distance;
-            foreach (var v in Singularity.Sprite.ActiveOrbs)
+            float speed = 100f;
+            Singularity.Wiggle();
+            Singularity.OrbitRateMult = 2;
+            while (speed != 0)
             {
-                v.Wiggle();
-            }
-            for (float i = 0; i < 1; i += Engine.DeltaTime / 1)//0.6f)
-            {
-                Singularity.Sprite.Distance = Calc.LerpClamp(from, from + 16, Ease.CubeOut(i));
+                Singularity.Sprite.Distance += speed * Engine.DeltaTime;
+                speed = Calc.Approach(speed, 0, 600f * Engine.DeltaTime);
                 yield return null;
             }
-            yield return 0.1f;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / 1)//0.7f)
+            yield return 0.05f;
+            float from = Singularity.Sprite.Distance - 1;
+            while (Singularity.Sprite.Distance != 1)
             {
-                cameraOffset.Y = Calc.LerpClamp(4, -70, Ease.CubeOut(i));
-                Singularity.Sprite.Distance = Calc.LerpClamp(from + 16, 1, Ease.SineIn(i));
+                Singularity.OrbitRateMult = PianoUtils.RubberbandApproach(Singularity.OrbitRateMult, 0, 0.05f);
+                Singularity.Sprite.Distance = Calc.Approach(Singularity.Sprite.Distance, 1, speed * Engine.DeltaTime);
+                float dist = Singularity.Sprite.Distance - 1;
+                cameraOffset.Y = Calc.LerpClamp(4, -70, Ease.CubeOut(1 - (dist / from)));
+                speed = Calc.Approach(speed, 200f, 400f * Engine.DeltaTime);
                 yield return null;
             }
-            foreach (var v in Singularity.Sprite.ActiveOrbs)
+            cameraOffset.Y = -70;
+            foreach (var v in Singularity.Sprite.ActiveOrbs) v.ShakeFor(1);
+            yield return 1;
+            Singularity.Wiggle();
+            Singularity.Sprite.Pitch = MathHelper.PiOver4;
+            while (Singularity.Sprite.Distance != 20 || Singularity.OrbitRateMult != 1)
             {
-                v.ShakeFor(1f);
-            }
-            yield return 1f;
-            foreach (var v in Singularity.Sprite.ActiveOrbs)
-            {
-                v.Wiggle();
-            }
-            for (float i = 0; i < 1; i += Engine.DeltaTime / 1)// 0.3f)
-            {
-                cameraOffset.Y = Calc.LerpClamp(-70, -30, Ease.CubeOut(i));
-                Singularity.Sprite.Distance = Calc.LerpClamp(1, 20f, Math.Min(1, Ease.CubeOut(i * 2)));
+                Singularity.OrbitRateMult = PianoUtils.RubberbandApproach(Singularity.OrbitRateMult, 1, 0.05f);
+                float speedMult = 1;
+                if (Singularity.Sprite.Distance >= 10)
+                {
+                    speedMult = 1 - ((Singularity.Sprite.Distance - 10) / 10 * 0.7f);
+                }
+                Singularity.Sprite.Distance = Calc.Approach(Singularity.Sprite.Distance, 20, 320f * Engine.DeltaTime * speedMult);
+                cameraOffset.Y = Calc.LerpClamp(-70, -30, Ease.CubeOut(1 - speedMult));
                 yield return null;
             }
-            Add(new Coroutine(orbDistanceLoopRoutine()));
+            cameraOffset.Y = -30;
+            //distanceLoopTween.Start();
+        }
+        private float endDist = 36;
+        private float angleVelocity;
+        private Tween distanceLoopTween;
+        private float characterYOffset;
+        public void ApplyZWobble(float chance, float duration, float frequency)
+        {
+            foreach (AscendBarrier.Window w in Barrier.Windows)
+            {
+                if (Calc.Random.Chance(chance))
+                {
+                    w.Wobble(this, duration, frequency);
+                }
+            }
         }
         public IEnumerator Cutscene()
         {
@@ -578,80 +448,99 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Cutscenes
 
             spiralWaveLength = 80f;
 
-            yield return new SwapImmediately(spiralRoutine());
+            //yield return new SwapImmediately(spiralRoutine());
             inSpiral = false;
             Singularity.MoveToX(spiralStart.X);
             Player.MoveToX(spiralStart.X);
-            //Barrier.VertexOffset.Y = from + dist;
             //barrier.Shake (todo: add this)
             //(todo: add player shaker)
-            yield return 1f;
-            float from = Barrier.VertexOffset.Y;
+            yield return 0.5f;
+            //yield return 1f;
             float dist = Player.Y - Level.Camera.Y;
             for (float i = 0; i < 1; i += Engine.DeltaTime)
             {
-                Barrier.Pitch = Calc.LerpClamp(90f, 65f, Ease.SineIn(i)).ToRad();
-                barrierVertexOffset.Y = dist * Ease.SineIn(i);
+                barrierPitchLerp = Ease.CubeIn(i);
+                barrierYOffset = 93 * Ease.CubeIn(i);
                 yield return null;
             }
-            yield break;
-            Singularity.StartShaking(-1);
+            barrierPitchLerp = 1;
+            barrierYOffset = 93;
+            Singularity.StartShakingSeperate(-1);
             //ALL BELOW IS WIP AND DEPENDS ON THE BARRIER EXISTING
             orbCoroutine.Replace(orbQuicktimeRoutine());
-            Singularity.Sprite.AutoHandleOrbit = false;
             Singularity.Sprite.AutoHandlePositions = true;
             float[] targets = [MathHelper.Pi, MathHelper.PiOver2, 0];
             for (int i = 0; i < Singularity.Sprite.ActiveOrbs.Count; i++)
             {
                 Add(new Coroutine(orbAngleRoutine(i, targets[i], 1)));
             }
+
             #endregion
             //hit concave surface, quicktime event to break it
             //on each input set completed, shake the screen and barrier, also freeze
+            applyCharacterOffset = true;
+            Player.ForceCameraUpdate = false;
+            int[] sizes = [64, 44, 24];
+            Action onPress = () =>
+            {
+                Level.Shake(0.1f);
+                //spawn glass shards
+            };
+            Action<float> onUpdate = (f) =>
+            {
 
-
+            };
             for (int i = 0; i < 3; i++)
             {
-                Action onPress = () =>
-                {
-                    Level.Shake(0.1f);
-                    //spawn glass shards
-                };
-                QuickAction action = new QuickAction((QuickAction.Presets)i, onPress, 8, 1f, -0.7f);
+
+                QuickAction action = new QuickAction((QuickAction.Presets)i, onPress, onUpdate, 8, 1f, -0.7f);
                 Scene.Add(action);
                 while (!action.Finished)
                 {
                     yield return null;
                 }
-                Barrier.CreateVertices(Barrier.WindowSize - 8);
+                ReloadBarrier(0.3f, sizes[i]);
+                ApplyZWobble(0.1f + i * 0.2f, 0.15f, 3);
             }
-
-            Barrier.StartShakingBulge();
             for (int i = 0; i < 4; i++)
             {
-                Action onPress = () =>
-                {
-                    Level.Shake(0.1f);
-                    //spawn glass shards
-                };
-                QuickAction action = new QuickAction((QuickAction.Presets)i, onPress, 8, 1f, -0.7f);
+                QuickAction action = new QuickAction((QuickAction.Presets)i, onPress, onUpdate, 8, 1f, -0.7f);
                 Scene.Add(action);
                 while (!action.Finished)
                 {
                     yield return null;
                 }
-                pushSpeed = 200f;
+                float from = characterYOffset;
+                for (float l = 0; l < 1; l += Engine.DeltaTime / 0.1f)
+                {
+                    characterYOffset = Calc.LerpClamp(from, from - 8, Ease.CubeIn(l));
+                    yield return null;
+                }
+                characterYOffset = from - 8;
+                Barrier.StartShakingBulge();
             }
+            Barrier.Shatter();
+            while (!Barrier.Shattered) yield return null;
             Singularity.StopShaking();
+            Barrier.StopShakingBulge();
+            SetSpeedForFallingWindows(40f);
             Singularity.TimeMod.Multiplier = 0.2f;
-            barrierSpeed = 40f;
             yield return 0.4f;
             Singularity.TimeMod.Multiplier = 1;
-            barrierSpeed *= 5f;
-
+            SetSpeedForFallingWindows(80f);
 
             //both fly past it, revealing top of tower behind glass
             //singularity enters eye, maddy is launched slightly above it and begins floating as minigame starts
+        }
+        public void SetSpeedForFallingWindows(float ySpeed)
+        {
+            foreach (AscendBarrier.Window window in Barrier.Windows)
+            {
+                if (!window.Detached)
+                {
+                    window.Speed.Y = ySpeed;
+                }
+            }
         }
         public IEnumerator StreakRoutine()
         {

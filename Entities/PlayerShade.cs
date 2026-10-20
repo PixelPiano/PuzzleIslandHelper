@@ -9,38 +9,52 @@ using System.Collections;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities
 {
     [Tracked]
-    public class PlayerShade : Entity
+    public class PlayerShade : Component
     {
-        public float Alpha;
-        private Tween tween;
-        public PlayerShade(float alpha) : base()
+        public float Amount;
+        private float shadeTo;
+        private float shadeFrom;
+        private float lerpTime;
+        private Ease.Easer lerpEase;
+        private bool removeSelfOnLerpFinish;
+        private float lerpTimeRemaining;
+        public bool UseRawDeltaTime;
+        public PlayerShade(float shade) : base(false, true)
         {
-            Alpha = alpha;
+            Amount = shade;
         }
-        public void Fade(float to, float time, Ease.Easer ease = null, bool removeSelfOnFinish = false)
+        public void StopLerp()
         {
-            ease ??= Ease.Linear;
-            tween?.RemoveSelf();
-            float from = Alpha;
-            tween = Tween.Set(this, Tween.TweenMode.Oneshot, time, ease, t => Alpha = Calc.LerpClamp(from, to, t.Eased), (t) =>
+            Active = false;
+        }
+        public void Lerp(float shadeTo, float time, Ease.Easer ease = null, bool removeSelfOnFinish = false)
+        {
+            shadeFrom = Amount;
+            this.shadeTo = shadeTo;
+            lerpTime = time;
+            lerpTimeRemaining = time;
+            lerpEase = ease ?? Ease.Linear;
+            removeSelfOnLerpFinish = removeSelfOnFinish;
+            Active = true;
+        }
+        public override void Update()
+        {
+            base.Update();
+            if (lerpTimeRemaining > 0)
             {
-                if (removeSelfOnFinish)
+                lerpTimeRemaining -= UseRawDeltaTime ? Engine.RawDeltaTime : Engine.DeltaTime;
+                if (lerpTimeRemaining <= 0)
                 {
-                    RemoveSelf();
+                    lerpTimeRemaining = 0;
+                    Amount = shadeTo;
+                    if (removeSelfOnLerpFinish) RemoveSelf();
+                    else Active = false;
                 }
-            });
-        }
-        public IEnumerator FadeRoutine(float to, float time, Ease.Easer ease = null, bool removeSelfOnFinish = false)
-        {
-            ease ??= Ease.Linear;
-            tween?.RemoveSelf();
-            float from = Alpha;
-            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
-            {
-                Alpha = Calc.LerpClamp(from, to, ease(i));
-                yield return null;
+                else
+                {
+                    Amount = Calc.LerpClamp(shadeFrom, shadeTo, lerpEase(1 - lerpTimeRemaining / lerpTime));
+                }
             }
-            if(removeSelfOnFinish) RemoveSelf();
         }
         [OnLoad]
         public static void Load()
@@ -60,11 +74,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (self.Scene != null)
             {
                 float lerp = 0;
-                foreach (PlayerShade shade in self.Scene.Tracker.GetEntities<PlayerShade>())
+                foreach (PlayerShade shade in self.Scene.Tracker.GetComponents<PlayerShade>())
                 {
-                    lerp += shade.Alpha;
+                    if (shade.Visible) lerp += shade.Amount;
                 }
-                self.Color = Color.Lerp(prev, Color.Black, lerp);
+                if (lerp != 0) self.Color = Color.Lerp(prev, Color.Black, lerp);
             }
             orig(self);
             self.Color = prev;
@@ -76,11 +90,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (self.Scene != null)
             {
                 float lerp = 0;
-                foreach (PlayerShade shade in self.Scene.Tracker.GetEntities<PlayerShade>())
+                foreach (PlayerShade shade in self.Scene.Tracker.GetComponents<PlayerShade>())
                 {
-                    lerp += shade.Alpha;
+                    if (shade.Visible) lerp += shade.Amount;
                 }
-                self.Color = Color.Lerp(prev, Color.Black, lerp);
+                if (lerp != 0) self.Color = Color.Lerp(prev, Color.Black, lerp);
             }
             orig(self);
             self.Color = prev;

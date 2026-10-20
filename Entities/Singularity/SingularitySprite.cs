@@ -31,6 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
         public List<SingularityOrb> Orbs = [];
         private List<VertexOrb.AfterImage> AfterImages = [];
         public bool IncludeRed;
+        public float Yaw, Pitch, Roll;
         public SingularitySprite(float radius, bool includeRed) : base(true)
         {
             IncludeRed = includeRed;
@@ -53,13 +54,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
         {
             shake += amount;
         }
-        public void ShakeFor(float time = -1)
+        public void StartShaking(float time = -1)
         {
             shaker.ShakeFor(time);
         }
-        public void StopShaking()
+        public void StopShaking(bool stopShakingSeperates = true)
         {
             shaker.StopShaking();
+            if (stopShakingSeperates)
+            {
+                StopShakingSeperate();
+            }
+        }
+        public void StopShakingSeperate()
+        {
+            foreach (var orb in ActiveOrbs) orb.StopShaking();
+        }
+        public void StartShakingSeperate(float time = -1)
+        {
+            foreach (var orb in ActiveOrbs) orb.ShakeFor(time);
         }
         public override void Added(Entity entity)
         {
@@ -95,6 +108,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             {
                 if (orb.Active)
                 {
+                    orb.Yaw = Yaw;
+                    orb.Pitch = Pitch;
+                    orb.Roll = Roll;
                     orb.ScaleMult = Scale;
                     orb.Radius = (Entity as SingularityActor).Radius;
                     orb.Distance = Distance + DistanceOffsets[distanceIndex];

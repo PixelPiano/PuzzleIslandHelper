@@ -1149,8 +1149,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
 
         #region Ending A Minigame
         #endregion
-        public void StartShaking(float time = -1) => Sprite?.ShakeFor(time);
-        public void StopShaking() => Sprite?.StopShaking();
+        public void StartShaking(float time = -1) => Sprite?.StartShaking(time);
+        public void StartShakingSeperate(float time = -1) => Sprite?.StartShakingSeperate(time);
+        public void StopShaking(bool stopShakingSeperates = true) => Sprite?.StopShaking(stopShakingSeperates);
         public override void Update()
         {
 

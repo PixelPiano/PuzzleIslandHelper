@@ -155,7 +155,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             float bottom = level.Bounds.Bottom;
             //Col = new Column(this, Position + Vector2.UnitX * ((Width / 2) - 24), 48, bottom - Top);
             scene.Add(Col);
-            scene.Add(PlayerShade = new PlayerShade(0));
+            Add(PlayerShade = new PlayerShade(0));
             scene.Add(TopPlatform = new JumpThru(Position, (int)Width, true));
             Safeguards[0] = new InvisibleBarrier(TopLeft - Vector2.UnitX * (Platform.Width / 2f + 8), 8, Height);
             Safeguards[1] = new InvisibleBarrier(TopRight + Vector2.UnitX * (Platform.Width / 2f), 8, Height);
@@ -207,22 +207,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             if (Scene.GetPlayer() is not Player player) return;
             if (PlayerFading)
             {
-                PlayerShade.Alpha = 0;
+                PlayerShade.Amount = 0;
             }
             else if (!CollideCheck(player) || player.Bottom > Platform.Y || Col.InElevator)
             {
-                PlayerShade.Alpha = Calc.Approach(PlayerShade.Alpha, 0, Engine.DeltaTime);
+                PlayerShade.Amount = Calc.Approach(PlayerShade.Amount, 0, Engine.DeltaTime);
             }
             else
             {
                 if (Floor != 0 && Floor % 2 == 0)
                 {
                     float percent = 1 - (MathHelper.Distance(Percent, 0.5f) / 0.5f);
-                    PlayerShade.Alpha = Calc.Approach(PlayerShade.Alpha, 0.8f * percent, Engine.DeltaTime);
+                    PlayerShade.Amount = Calc.Approach(PlayerShade.Amount, 0.8f * percent, Engine.DeltaTime);
                 }
                 else
                 {
-                    PlayerShade.Alpha = Calc.Approach(PlayerShade.Alpha, 0f, Engine.DeltaTime);
+                    PlayerShade.Amount = Calc.Approach(PlayerShade.Amount, 0f, Engine.DeltaTime);
                 }
             }
             base.Update();

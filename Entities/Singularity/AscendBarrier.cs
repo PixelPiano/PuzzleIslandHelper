@@ -12,6 +12,7 @@ using System.Linq;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
 {
     [CustomEntity("PuzzleIslandHelper/AscendBarrier")]
+    [Tracked]
     public class AscendBarrier : Entity
     {
         public bool FollowCamera = true;
@@ -34,6 +35,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
         //Todo: make small shard textures
         public class Window : IComparable<Window>
         {
+            public float BGThresh = -50;
             public bool Idle = true;
             public float PushAmount => points.Sum(item => item.MapPoint.PushAmount) / points.Length;
             public float Rank;
@@ -53,21 +55,47 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             private float flashTimer;
             public bool Active = true;
             public bool Visible = true;
-            private Vector3 detachSpeed;
+            public Vector3 Speed;
             private bool rotationalDetach;
             private bool fade;
             private float fallRotationSpeed;
-            private bool falling;
+            public bool Falling;
             private float frictionMult = 1;
             private float gravityMult = 1;
             private float detachTimer;
-            private float rotationSpeedMult = 0;
-            private float rotationSpeedMultMult = 0;
+            private float fallSpeedMult = 0;
+            private float fallRotationSpeedRate = 0;
+            private float fallSpeed;
+            public float ZWobble;
+            private Wiggler wobbleWiggler;
             public Window(MapPoint a, MapPoint b, MapPoint c)
             {
                 points = new MapPointRef[3];
                 OrigPoints = [new(a), new(b), new(c)];
                 Reset();
+            }
+            public void Wobble(Entity entity, float duration, float frequency)
+            {
+                return;
+                if (wobbleWiggler == null || wobbleWiggler.Entity == null)
+                {
+                    CreateWobble(entity, duration, frequency);
+                }
+                ResetWobble();
+            }
+            public void CreateWobble(Entity entity, float duration, float frequency)
+            {
+                wobbleWiggler = Wiggler.Create(duration, frequency, f => ZWobble = f * 2);
+                entity.Add(wobbleWiggler);
+            }
+            public void ResetWobble()
+            {
+                wobbleWiggler.Start();
+            }
+            public void RemoveWobble()
+            {
+                ZWobble = 0;
+                wobbleWiggler?.RemoveSelf();
             }
             public void BreakAndFall(float rotateSpeed, int cracks = 1)
             {
@@ -87,12 +115,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                 flashTimer = 0.05f;
                 //todo: this
             }
+            private float detachSpeedMult = 1.2f;
             public void Fall(float rotateSpeed)
             {
-                rotationSpeedMultMult = Calc.Random.Range(1, 4);
+                fallRotationSpeedRate = Calc.Random.Range(1, 4);
                 Idle = false;
-                falling = true;
+                Falling = true;
                 fallRotationSpeed = rotateSpeed * Calc.Random.Sign();
+                fallSpeed = 15f;
                 Vector3 a, b, c;
                 a = points[0].Render;
                 b = points[1].Render;
@@ -112,8 +142,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                 fade = true;
                 Vector2 center = ((OrigPoints[0].Render + OrigPoints[1].Render + OrigPoints[2].Render) / 3f).XY();
                 Vector3 beforeRot = new Vector3(Vector2.Normalize(center), 0);
-                detachSpeed = Vector3.Transform(beforeRot, matrix) * speed;
-                detachSpeed.Z *= 0.1f;
+                Speed = Vector3.Transform(beforeRot, matrix) * speed;
+                Speed.Z *= 0.1f;
                 frictionMult = 0;
                 gravityMult = 0;
                 detachTimer = 1f;
@@ -121,7 +151,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             }
             public void Detach2D(float yawRate, float pitchRate, float rollRate, float speedX, float speedY, float ySpeedTarget, float ySpeedMove)
             {
-                detachSpeed = new Vector3(speedX, speedY, 0);
+                Speed = new Vector3(speedX, speedY, 0);
 
                 this.ySpeedTarget = ySpeedTarget;
                 this.ySpeedMove = ySpeedMove;
@@ -154,6 +184,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                 points[1] = new MapPointRef(new MapPoint(points[1].Render * mult));
                 points[2] = new MapPointRef(new MapPoint(points[2].Render * mult));
                 Detached = true;
+                detachSpeedMult = 1.2f;
             }
             public void Reset()
             {
@@ -161,10 +192,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                 Visible = true;
                 Broken = false;
                 Detached = false;
+                Falling = false;
                 OrigPoints.CopyTo(points, 0);
                 speedVector = default;
                 yaw = pitch = roll = ySpeedTarget = ySpeedMove = yawRate = pitchRate = rollRate = flashTimer = 0;
-                detachSpeed = Vector3.Zero;
+                Speed = Vector3.Zero;
                 fade = false;
                 rotationalDetach = false;
                 Primitives.Clear();
@@ -191,10 +223,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                 Vector3 a = points[0].Render;
                 Vector3 b = points[1].Render;
                 Vector3 c = points[2].Render;
-
+                Vector3 offset = ShakeVector;
+                Vector3 speed = Speed * Engine.DeltaTime;
                 if (Detached)
                 {
-                    speedVector += detachSpeed * Engine.DeltaTime;
+                    if (detachSpeedMult > 1f)
+                    {
+                        detachSpeedMult = Calc.Approach(detachSpeedMult, 1, Engine.DeltaTime);
+                    }
+                    speed *= detachSpeedMult;
                     yaw += yawRate * Engine.DeltaTime;
                     pitch += pitchRate * Engine.DeltaTime;
                     roll += rollRate * Engine.DeltaTime;
@@ -217,32 +254,42 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                     Vector3 center = (a + b + c) / 3f;
 
                     Matrix m = Matrix.CreateFromYawPitchRoll(y, p, r);
-                    a += Vector3.Transform(a - center, m) + speedVector;
-                    b += Vector3.Transform(b - center, m) + speedVector;
-                    c += Vector3.Transform(c - center, m) + speedVector;
+                    a += Vector3.Transform(a - center, m);
+                    b += Vector3.Transform(b - center, m);
+                    c += Vector3.Transform(c - center, m);
                 }
-                else if (falling) //i'm falling
+                else if (Falling)
                 {
-                    rotationSpeedMult = Calc.Approach(rotationSpeedMult, 1, Engine.DeltaTime * rotationSpeedMultMult);
-                    speedVector.Y += 15f * rotationSpeedMult * Engine.DeltaTime;
+                    fallSpeedMult = Calc.Approach(fallSpeedMult, 1, Engine.DeltaTime * fallRotationSpeedRate);
+                    speed.Y += fallSpeed * fallSpeedMult * Engine.DeltaTime;
                     Vector3 center = (a + b + c) / 3;
-                    yaw = (yaw + fallRotationSpeed * rotationSpeedMult * Engine.DeltaTime) % MathHelper.TwoPi;
+                    yaw = (yaw + fallRotationSpeed * fallSpeedMult * Engine.DeltaTime) % MathHelper.TwoPi;
                     Matrix rotation = Matrix.CreateFromYawPitchRoll(yaw, 0, 0);
 
-                    a += Vector3.Transform(a - center, rotation) + speedVector;
-                    b += Vector3.Transform(b - center, rotation) + speedVector;
-                    c += Vector3.Transform(c - center, rotation) + speedVector;
-
+                    a += Vector3.Transform(a - center, rotation);
+                    b += Vector3.Transform(b - center, rotation);
+                    c += Vector3.Transform(c - center, rotation);
                 }
-                Vector3[] array = [a + ShakeVector, b + ShakeVector, c + ShakeVector];
+                speedVector += speed * Engine.DeltaTime;
+                offset += speedVector;
+                if (ZWobble != 0)
+                {
+                    Vector3 normal = Vector3.Normalize(a);
+                    offset += normal * ZWobble;
+                }
+                Vector3[] array = [a + offset, b + offset, c + offset];
                 foreach (var p in Primitives)
                 {
                     float alpha = p.Alpha;
                     p.Alpha *= Alpha;
+                    p.BGThresh = BGThresh;
                     p.Update(array);
                     p.Alpha = alpha;
                 }
-                Primitives.Sort();
+                if (Primitives.Count > 0)
+                {
+                    Primitives.Sort();
+                }
                 Rank = (a.Z + b.Z + c.Z) / 3f;
                 if (fade)
                 {
@@ -260,7 +307,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                     Active = false;
                     Visible = false;
                     Alpha = 0;
-
                 }
             }
             public void Render(bool bg)
@@ -287,7 +333,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             public class Primitive : IComparable<Primitive>
             {
                 public bool Visible = true;
-                public bool BG => Rank > 0;
+                public float BGThresh = -40;
+                public bool BG => Rank < BGThresh;
                 public float Rank;
                 public VertexPositionColor[] Vertices;
                 public PrimitiveType Type;
@@ -485,7 +532,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
         private VirtualMap<MapPoint> modMapPoints;
         private Vector3 HalfSize;
 
-        private List<Window> Windows = [];
+        public List<Window> Windows = [];
         public VirtualRenderTarget BGTarget, FGTarget;
         public Entity FGEntity;
         private int cols, rows;
@@ -495,6 +542,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             get => push + bulgeShake;
             set => push = value;
         }
+
         private float push;
         private float yaw, pitch, roll;
         public float Pitch
@@ -516,9 +564,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
         public bool Shattered;
         public int WindowSize;
         private Matrix beforeRenderTranslate;
+        public float PitchFrom = MathHelper.PiOver2;
+        public float PitchTo = MathHelper.PiOver2 - 15f.ToRad();
         public void StartShakingBulge()
         {
-            bulgeShakeTween.Start();
+            if (!bulgeShakeTween.Active) bulgeShakeTween.Start();
         }
         public void StopShakingBulge()
         {
@@ -550,10 +600,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                 //CreateVertices(320, 180, 0, 0, 20);
                 //Add(new Coroutine(shatterRoutine()));
             });
-/*            KeyComponent.Wasd(entity: this, left: () => CreateVertices(WindowSize - 8),
-                up: () => Add(new Coroutine(routine())),
-                right: () => CreateVertices(WindowSize + 8),
-                down: () => Components.RemoveAll<Coroutine>());*/
+            /*            KeyComponent.Wasd(entity: this, left: () => CreateVertices(WindowSize - 8),
+                            up: () => Add(new Coroutine(routine())),
+                            right: () => CreateVertices(WindowSize + 8),
+                            down: () => Components.RemoveAll<Coroutine>());*/
         }
         public void ShakeFor(float time = -1)
         {
@@ -570,7 +620,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             beforeRenderTranslate = Matrix.CreateTranslation(160, 90, 0);
             ShakeVector = default;
             scene.Add(FGEntity = new fg(this));
-            CreateVertices(60);
+            CreateVertices(128);
         }
         public override void Update()
         {
@@ -599,6 +649,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
         public override void Render()
         {
             base.Render();
+
             Draw.SpriteBatch.Draw(BGTarget, RenderPosition, Color.White);
         }
         public void RenderVertices()
@@ -610,6 +661,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             BlendState blendState2 = BlendState.AlphaBlend;
             Vector2 vector = new Vector2(Engine.Graphics.GraphicsDevice.Viewport.Width, Engine.Graphics.GraphicsDevice.Viewport.Height);
             Matrix matrix = Matrix.Identity;
+            Matrix scale = Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
             matrix *= Matrix.CreateScale(1f / vector.X * 2f, (0f - 1f / vector.Y) * 2f, 1f);
             matrix *= Matrix.CreateTranslation(-1f, 1f, 0f);
             Engine.Instance.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
@@ -621,6 +673,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             obj.Parameters["Height"]?.SetValue(HalfSize.Y * 2);
             obj.Parameters["MaxScale"]?.SetValue(2);
             obj.Parameters["Offset"]?.SetValue(VertexOffset);
+            obj.Parameters["WindowSize"]?.SetValue(WindowSize);
+            obj.Parameters["ScaleMatrix"]?.SetValue(Matrix.Invert(scale));
+            obj.Parameters["Dimensions"]?.SetValue(vector);
+            Viewport viewport = Engine.Graphics.GraphicsDevice.Viewport;
+            Matrix projection = Matrix.CreateOrthographicOffCenter(0, viewport.Width, viewport.Height, 0, 0, 1);
+            // from communal helper
+            Matrix halfPixelOffset = Matrix.Identity;
+            obj.Parameters["TransformMatrix"]?.SetValue(halfPixelOffset * projection);
+            obj.Parameters["ViewMatrix"]?.SetValue(matrix);
             foreach (EffectPass pass in obj.CurrentTechnique.Passes)
             {
                 pass.Apply();
@@ -652,14 +713,24 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             FGEntity?.RemoveSelf();
             ShakeVector = default;
         }
+        public Vector3 JunctionOffset;
         public void CreateVertices(int size) => CreateVertices(320, 180, size, 2);
-        public void CreateVertices(int width, int height, int size, int pad)
+        public void CreateVertices(int width, int height, int size, int padY)
         {
-            WindowSize = size;
-            cols = width / size + pad * 2;
-            rows = height / size + pad * 2;
+            WindowSize = Math.Abs(size);
+            int rows2D = 0;
+            Matrix maxMatrix = Matrix.CreateFromYawPitchRoll(0, PitchTo, 0);
+            Vector3 down = Vector3.Transform(Vector3.Up, maxMatrix);
+            float unit = Math.Abs(down.Y);
+            float y = 0;
+            while (y < height / 2)
+            {
+                y += unit * WindowSize;
+                rows2D += 2;
+            }
+            cols = width / size + 4;
+            rows = rows2D;
             int vertices = cols * rows;
-            //RenderOffset = new Vector2((320 - width) / 2, (180 - height) / 2);
             modMapPoints = new VirtualMap<MapPoint>(cols, rows);
             mapPoints2D = new VirtualMap<MapPoint>(cols, rows);
             Windows.Clear();
@@ -727,34 +798,69 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             }
             Position.Y = player.Y;
         }
+        public void RemoveFallingWindows()
+        {
+            Windows.RemoveAll(item => item.Falling);
+        }
         public void UpdateVertices()
         {
             UpdateMapPoints();
             foreach (Window w in Windows)
             {
-                w.Update();
+                w.BGThresh = Junction.Z - WindowSize;
+                if (w.Active)
+                {
+                    w.Update();
+                }
             }
-            Windows.Sort();
+            if (Windows.Count > 0)
+            {
+                Windows.Sort();
+            }
         }
+        public Vector3 Junction;
         public void UpdateMapPoints()
         {
             Matrix transform = scale * rotation;
             float top = int.MaxValue, bottom = int.MinValue;
-
+            float dist = int.MaxValue;
+            Vector3 closest = default;
+            int junctionCol = 0, junctionRow = 0;
             for (int i = 0; i < rows; i++)
             {
                 for (int j = 0; j < cols; j++)
                 {
-                    Vector3 pushed = CalculateZ(mapPoints2D[j, i].Position);
+                    Vector3 orig = mapPoints2D[j, i].Position;
+                    float d = orig.LengthSquared();
+                    if (d < dist)
+                    {
+                        dist = d;
+                        closest = orig;
+                        junctionCol = j;
+                        junctionRow = i;
+                    }
+                }
+            }
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    Vector3 pushed = CalculateZ(mapPoints2D[j, i].Position - closest);
                     Vector3 position = Vector3.Transform(pushed, transform);
                     modMapPoints[j, i].Position = position;
                     modMapPoints[j, i].PushAmount = pushed.Z;
+                    if (i == junctionRow && j == junctionCol)
+                    {
+                        Junction = position;
+                    }
                     top = Math.Min(top, position.Y);
                     bottom = Math.Max(bottom, position.Y);
                 }
             }
+            JunctionOffset = closest;
             TotalHeight = bottom - top;
         }
+
         public void DetachPushedWindows()
         {
             List<Window> list = [.. Windows.OrderBy(item => Math.Abs(item.PushAmount)).Where(item => Math.Abs(item.PushAmount) > 0)];
@@ -794,6 +900,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             BreakFromCenter(2, 0.001f);
             yield return 0.4f;
             DetachPushedWindows();
+            foreach (Window w in Windows)
+            {
+                if (!w.Detached)
+                {
+                    w.Speed = Vector3.UnitY * 15f;
+                }
+            }
             Shattered = true;
             yield return null;
             FallFromCenter(1, 0.002f);
@@ -831,12 +944,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
             }
 
         }
-        private IEnumerator radialFall(int groupSize, float groupDelay)
+        public IOrderedEnumerable<KeyValuePair<int, List<Window>>> WindowsByDistanceToCenter(Predicate<Window> exclude = null)
         {
             Dictionary<int, List<Window>> dictionary = [];
             foreach (Window window in Windows)
             {
-                if (window.Detached) continue;
+                if (exclude != null && exclude(window)) continue;
                 int length = (int)window.OrigCenter.Length();
                 if (!dictionary.TryGetValue(length, out List<Window> value))
                 {
@@ -848,8 +961,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                     dictionary[length].Add(window);
                 }
             }
+
+            return dictionary.OrderBy(item => item.Key);
+        }
+        private IEnumerator radialFall(int groupSize, float groupDelay)
+        {
             int buffer = groupSize;
-            foreach (var pair in dictionary.OrderBy(item => item.Key))
+            foreach (var pair in WindowsByDistanceToCenter())
             {
                 foreach (Window w2 in pair.Value)
                 {
@@ -862,18 +980,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Singularity
                     yield return groupDelay;
                 }
             }
-
         }
+        private float pushLimitRadius = 32;
+        private float pushDecayRadius = 16;
         private Vector3 CalculateZ(Vector3 input)
         {
             if (Push == 0) return input;
             float len = input.XY().Length();
-            float abs = Math.Abs(Push);
-            if (len < abs)
+            if (len >= pushLimitRadius && len < pushLimitRadius + pushDecayRadius)
             {
-                float lerp = Ease.CubeIn(1 - len / abs);
-                input.Z = lerp * Push;
+                float l = 1 - ((len - pushLimitRadius) / pushDecayRadius);
+                input.Z = Push * l;
             }
+            else if (len < pushLimitRadius)
+            {
+                input.Z = Push;
+            }
+            else
+            {
+                input.Z = 0;
+            }
+            /*            if (len < abs + 16)
+                        {
+                            float percent = 1 - Math.Min(1, len / abs);
+                            float lerp = Math.Min(1, Ease.CubeIn(percent) * 1.3f);
+                            input.Z = lerp * Push;
+                        }*/
             return input;
         }
     }

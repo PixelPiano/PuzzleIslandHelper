@@ -73,32 +73,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             Texture.DrawSimpleOutline();
             base.Render();
         }
-        private void OnPickup()
-        {
-            InAir = false;
-            Speed = Vector2.Zero;
-            AddTag(Tags.Persistent);
-            SceneAs<Level>().Session.DoNotLoad.Add(id);
-        }
-        public void OnRelease(Vector2 force)
-        {
-            holdTimer = 0.5f;
-            InAir = true;
-            RemoveTag(Tags.Persistent);
-            if (SceneAs<Level>().Session.DoNotLoad.Contains(id))
-            {
-                SceneAs<Level>().Session.DoNotLoad.Remove(id);
-            }
-            if (force.X != 0f && force.Y == 0f)
-            {
-                force.Y = -0.4f;
-            }
-            Speed = force * 200f;
-            if (Speed != Vector2.Zero)
-            {
-                noGravityTimer = 0.1f;
-            }
-        }
         private IEnumerator LightThrowCutscene()
         {
             Player player = SceneAs<Level>().Tracker.GetEntity<Player>();
@@ -108,7 +82,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             yield return null;
         }
 
-        #region On Methods
         private void OnCollideV(CollisionData data)
         {
             InAir = false;
@@ -225,8 +198,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             return !Hold.IsHeld && Speed != Vector2.Zero && hitSeeker != holdableCollider;
         }
-        #endregion
 
+        private void OnPickup()
+        {
+            InAir = false;
+            Speed = Vector2.Zero;
+            AddTag(Tags.Persistent);
+            SceneAs<Level>().Session.DoNotLoad.Add(id);
+        }
+        public void OnRelease(Vector2 force)
+        {
+            holdTimer = 0.5f;
+            InAir = true;
+            RemoveTag(Tags.Persistent);
+            if (SceneAs<Level>().Session.DoNotLoad.Contains(id))
+            {
+                SceneAs<Level>().Session.DoNotLoad.Remove(id);
+            }
+            if (force.X != 0f && force.Y == 0f)
+            {
+                force.Y = -0.4f;
+            }
+            Speed = force * 200f;
+            if (Speed != Vector2.Zero)
+            {
+                noGravityTimer = 0.1f;
+            }
+        }
         public override void Update()
         {
             base.Update();

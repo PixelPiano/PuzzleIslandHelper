@@ -24,6 +24,13 @@ using Component = Monocle.Component;
 /// <summary>A collection of methods + extension methods used primarily in PuzzleIslandHelper.</summary>
 public static class PianoUtils
 {
+    public static Vector3 Round(this Vector3 vec)
+    {
+        vec.X = (float)Math.Round(vec.X);
+        vec.Y = (float)Math.Round(vec.Y);
+        vec.Z = (float)Math.Round(vec.Z);
+        return vec;
+    }
     public static Vector2 Transform(this Vector3 position, Matrix matrix)
     {
         return new Vector2(
@@ -911,7 +918,7 @@ public static class PianoUtils
     /// <param name="w">The width of the area to export.</param>
     /// <param name="h">The height of the area to export.</param>
     /// <param name="scale">The scale factor of the resulting png.</param>
-    public static void SaveTargetAsPng(RenderTarget2D target, string path, int x, int y, int w, int h, int scale = 1)
+    public static Texture2D SaveTargetAsPng(RenderTarget2D target, string path, int x, int y, int w, int h, int scale = 1)
     {
         if (!path.EndsWith(".png"))
         {
@@ -932,12 +939,14 @@ public static class PianoUtils
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         using Stream stream = File.OpenWrite(path);
         renderTarget2D.SaveAsPng(stream, renderTarget2D.Width, renderTarget2D.Height);
+        texture2D.Dispose();
+        return renderTarget2D;
     }
     /// <summary>Exports the contents of <paramref name="target"/> as a png file.</summary>
     /// <param name="target">The <see cref="RenderTarget2D"/> to convert.</param>
     /// <param name="path">The location the resulting png will be saved to, appended to Celeste's root folder.</param>
     /// <param name="scale">The scale factor of the resulting png.</param>
-    public static void SaveTargetAsPng(RenderTarget2D target, string path, int scale = 1)
+    public static Texture2D SaveTargetAsPng(RenderTarget2D target, string path, int scale = 1)
     {
         if (!path.EndsWith(".png"))
         {
@@ -959,7 +968,8 @@ public static class PianoUtils
         using Stream stream = File.OpenWrite(path);
         renderTarget2D.SaveAsPng(stream, renderTarget2D.Width, renderTarget2D.Height);
         texture2D.Dispose();
-        renderTarget2D.Dispose();
+        return renderTarget2D;
+
     }
     private class spriteSplitEntity : Entity
     {

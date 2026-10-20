@@ -26,30 +26,23 @@ struct VertexShaderOutput
 
 VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
 {
-
     VertexShaderOutput output;
     output.color = input.Color;
-    output.position = input.Position;
-    float maxZ = MaxZ;
-    float minZ = MinZ;
-    float maxZ2 = Height / 2;
-    float minZ2 = -Height / 2;
-    float dist = (maxZ - minZ);
     output.position = mul(input.Position, World);
-    output.position.xyz += float3(Offset.x, -Offset.y, Offset.z);
-
-    float z = -clamp(output.position.z, minZ2, 0);
-    float amount = 1 - ((z + dist / 2) / dist);
-    amount = pow(abs(z / maxZ2), 0.8);
-
+    float z = -clamp(output.position.z, (-Height / 2.0), 0);
+    //float dist = (MaxZ - MinZ);
+    //float amount = 1 - ((z + dist / 2) / dist);
+    float amount = pow(abs(z / (Height / 2.0)), 0.8);
     output.color = lerp(output.color, float4(0,0,0,0),amount);
+    output.position +=  mul(float4(Offset.xyz,0), World);
     output.position.z = 0;
-	
     return output;
 }
 
 float4 PixelShaderFunction(VertexShaderOutput input) : COLOR0
 {
+    //return sin(input.color / Time) + (cos(input.color) * cos(Time + input.position.x)) / 10; //cool pattern #1
+    //return sin(input.color / Time) + (cos(input.color) * cos(Time + input.position.x + input.position.y)) / 10; //cool pattern #2
     return input.color;
 }
 

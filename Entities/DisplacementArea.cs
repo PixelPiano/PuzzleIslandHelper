@@ -22,7 +22,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public Color Color;
         public Sprite Map;
         private VirtualRenderTarget Target;
-        public VertexBuffer Buffer;
         public Vector2 Scroll;
         private Vector2 scrollRate;
         public DisplacementArea(EntityData data, Vector2 offset) : base(data.Position + offset)

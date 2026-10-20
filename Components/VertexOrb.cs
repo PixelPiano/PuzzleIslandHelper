@@ -204,9 +204,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public List<Func<Color, int, Color>> ogCustomGetEdgeColor = [];
         public List<Func<Color, Color>> ogCustomGetCenterColor = [];
 
-        public Matrix RotationMatrix;
+        public Matrix RotationMatrix = Matrix.Identity;
         public float Yaw, Pitch, Roll;
-        public float YawRate, PitchRate, RollRate;
         public VertexOrb(Vector2 position, float radius, int corners, Color color, Color edgeColor = default, float edgeRadiusOffset = 0) : base(true)
         {
             Position = position;
@@ -237,37 +236,42 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             afterImage.Speed = speed;
             Entity.Add(afterImage);
         }
-        public VertexOrb(VertexOrb copyFrom, bool resetPosition = true) : this(resetPosition ? Vector2.Zero : copyFrom.Position, copyFrom.Radius, copyFrom.Corners, copyFrom.Color, copyFrom.EdgeColor, copyFrom.EdgeRadiusOffset)
+        public VertexOrb(VertexOrb c, bool resetPosition = true) : this(resetPosition ? Vector2.Zero : c.Position, c.Radius, c.Corners, c.Color, c.EdgeColor, c.EdgeRadiusOffset)
         {
-            Wobble = copyFrom.Wobble;
-            Indices = new int[copyFrom.Indices.Length];
-            Vertices = new VertexPositionColor[copyFrom.Vertices.Length];
-            EdgeVertices = new VertexPositionColor[copyFrom.EdgeVertices.Length];
-            Array.Copy(copyFrom.Indices, Indices, copyFrom.Indices.Length);
-            Array.Copy(copyFrom.Vertices, Vertices, copyFrom.Vertices.Length);
-            Array.Copy(copyFrom.EdgeVertices, EdgeVertices, copyFrom.EdgeVertices.Length);
-            DrawFill = copyFrom.DrawFill;
-            DrawEdge = copyFrom.DrawEdge;
-            Rotation = copyFrom.Rotation;
-            RotationRate = copyFrom.RotationRate;
-            ignoredLines = copyFrom.ignoredLines;
-            FillRadiusOffset = copyFrom.FillRadiusOffset;
-            FillRotationOffset = copyFrom.FillRotationOffset;
-            CenterColor = copyFrom.CenterColor;
-            CenterColorB = copyFrom.CenterColorB;
-            CenterColorLerp = copyFrom.CenterColorLerp;
-            EdgeColorLerp = copyFrom.EdgeColorLerp;
-            FillColorLerp = copyFrom.FillColorLerp;
-            RenderOffset = copyFrom.RenderOffset;
-            VertexOffset = copyFrom.VertexOffset;
-            Alpha = copyFrom.Alpha;
-            CenterAlpha = copyFrom.CenterAlpha;
-            CustomGetCenterColor = copyFrom.CustomGetCenterColor;
-            CustomGetEdgeColor = copyFrom.CustomGetEdgeColor;
-            CustomGetFillColor = copyFrom.CustomGetFillColor;
-            TreatCenterAsFill = copyFrom.TreatCenterAsFill;
-            WobbleMult = copyFrom.WobbleMult;
-            UseRawDeltaTime = copyFrom.UseRawDeltaTime;
+            
+            Wobble = c.Wobble;
+            Indices = new int[c.Indices.Length];
+            Vertices = new VertexPositionColor[c.Vertices.Length];
+            EdgeVertices = new VertexPositionColor[c.EdgeVertices.Length];
+            Array.Copy(c.Indices, Indices, c.Indices.Length);
+            Array.Copy(c.Vertices, Vertices, c.Vertices.Length);
+            Array.Copy(c.EdgeVertices, EdgeVertices, c.EdgeVertices.Length);
+            DrawFill = c.DrawFill;
+            DrawEdge = c.DrawEdge;
+            Rotation = c.Rotation;
+            RotationRate = c.RotationRate;
+            ignoredLines = c.ignoredLines;
+            FillRadiusOffset = c.FillRadiusOffset;
+            FillRotationOffset = c.FillRotationOffset;
+            CenterColor = c.CenterColor;
+            CenterColorB = c.CenterColorB;
+            CenterColorLerp = c.CenterColorLerp;
+            EdgeColorLerp = c.EdgeColorLerp;
+            FillColorLerp = c.FillColorLerp;
+            RenderOffset = c.RenderOffset + c.Shake * c.ShakeMult;
+            VertexOffset = c.VertexOffset;
+            Alpha = c.Alpha;
+            CenterAlpha = c.CenterAlpha;
+            CustomGetCenterColor = c.CustomGetCenterColor;
+            CustomGetEdgeColor = c.CustomGetEdgeColor;
+            CustomGetFillColor = c.CustomGetFillColor;
+            TreatCenterAsFill = c.TreatCenterAsFill;
+            WobbleMult = c.WobbleMult;
+            UseRawDeltaTime = c.UseRawDeltaTime;
+            Yaw = c.Yaw;
+            Pitch = c.Pitch;
+            Roll = c.Roll;
+            RotationMatrix = c.RotationMatrix;
         }
         public void JustifyOrigin(float x, float y)
         {
@@ -517,11 +521,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         {
             if (Baked)
             {
-                Matrix rotationMatrix = Matrix.CreateFromYawPitchRoll(Yaw, Pitch, Roll);
+                Vector3 position = new Vector3(renderPosition, 0);
+                RotationMatrix = Matrix.CreateFromYawPitchRoll(Yaw, Pitch, Roll);
                 Color fillColor = Color.Lerp(Color, ColorB, FillColorLerp);
                 Color edgeColor = Color.Lerp(EdgeColor, EdgeColorB, EdgeColorLerp);
-                Vector2 transformedOffset = (getVertexOffset(VertexType.Center, 0, 0) * Scale).Transform(0, rotationMatrix);
-                Vertices[0].Position = (renderPosition + transformedOffset).ToVec3();
+                Vector3 transformedOffset = Vector3.Transform(new Vector3(getVertexOffset(VertexType.Center, 0, 0) * Scale, 0), RotationMatrix);
+                Vertices[0].Position = position + transformedOffset;
                 if (CenterColor.HasValue)
                 {
                     Color centerColor = Color.Lerp(CenterColor.Value, CenterColorB ?? Color.Transparent, CenterColorLerp);
@@ -531,6 +536,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 {
                     Vertices[0].Color = GetFillColor(fillColor, 0);
                 }
+                Vertices[0].Position.Z = 0;
                 float angle = rotation;
                 float angleStep = MathHelper.TwoPi / Corners;
                 float edgeRadiusOffset = Math.Clamp(Math.Abs(radius), 0, 1) * EdgeRadiusOffset * Math.Sign(radius);
@@ -541,14 +547,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                     Vector2 angleOffsetB = Calc.AngleToVector(angle + EdgeRotationOffset, radius + edgeRadiusOffset);
                     Vector2 vertexOffsetA = getVertexOffset(VertexType.Fill, i, angle + FillRotationOffset);
                     Vector2 vertexOffsetB = getVertexOffset(VertexType.Edge, i, angle + EdgeRotationOffset);
-                    Vector2 transformedOffsetA = ((vertexOffsetA + angleOffsetA) * Scale).Transform(0, rotationMatrix);
-                    Vector2 transformedOffsetB = ((vertexOffsetB + angleOffsetB) * Scale).Transform(0, rotationMatrix);
+                    Vector3 transformedOffsetA = Vector3.Transform(new Vector3((vertexOffsetA + angleOffsetA) * Scale, 0), RotationMatrix);
+                    Vector3 transformedOffsetB = Vector3.Transform(new Vector3((vertexOffsetB + angleOffsetB) * Scale, 0), RotationMatrix);
 
 
-                    Vertices[i + 1].Position = (renderPosition + transformedOffsetA).Round().ToVec3();
-                    EdgeVertices[i].Position = (renderPosition + transformedOffsetB).Round().ToVec3();
+                    Vertices[i + 1].Position = (position + transformedOffsetA).Round();
+                    EdgeVertices[i].Position = (position + transformedOffsetB).Round();
                     Vertices[i + 1].Color = GetFillColor(fillColor, i + 1);
                     EdgeVertices[i].Color = GetEdgeColor(edgeColor, i);
+                    Vertices[i + 1].Position.Z = 0;
+                    EdgeVertices[i].Position.Z = 0;
                 }
             }
         }

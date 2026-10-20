@@ -260,7 +260,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         public class Bg : Entity
         {
-            public Column.VertexGradient Gradient;
+            //public Column.VertexGradient Gradient;
             public Tower Parent;
             public Bg(Tower parent, Vector2 position) : base(position)
             {
@@ -418,7 +418,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public List<Stairs> Stairs = [];
         public Entrance entrance;
         public Entity BgEntity;
-        public Column.VertexGradient BackWall;
+       // public Column.VertexGradient BackWall;
         public List<Stairs.CustomPlatform> Floors = [];
         private VirtualRenderTarget outsideTarget;
         public Column Col;
@@ -441,117 +441,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Add(new BeforeRenderHook(BeforeRender));
             AddTag(Tags.TransitionUpdate);
             Depth = 3;
-            Add(new Column.Elevator.InteractComponent(OnEnterColumn, OnExitColumn));
-        }
-        public void OnEnterColumn(Player p)
-        {
-            foreach (var s in Stairs)
-            {
-                s.DisablePlatform = true;
-            }
-            foreach (var f in Floors)
-            {
-                f.Disabled = true;
-            }
-        }
-        public void OnExitColumn(Player p)
-        {
-            foreach (var s in Stairs)
-            {
-                s.DisablePlatform = false;
-            }
-            foreach (var f in Floors)
-            {
-                f.Disabled = false;
-            }
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            int height = 50;
-            Rods[0] = new RodEntity(this, Position - Vector2.UnitY * height, 16, height);
-            Rods[1] = new RodEntity(this, TopRight - new Vector2(16, height), 16, height);
-            Portal = new PortalEntity(TopCenter - Vector2.UnitY * 50);
-            Ending = new EndingEntity(this, -50);
-            scene.Add(Rods);
-            scene.Add(Portal, Ending);
-
-            BgEntity = new Entity(Position);
-            BackWall = new Column.VertexGradient(Vector2.Zero, (int)Width, (int)Height, Color.Gray, Color.Black);
-            BgEntity.Add(BackWall);
-            BgEntity.Depth = Depth + 3;
-            scene.Add(BgEntity);
-            Rectangle b = new Rectangle((int)(Width / 2) - (int)Width / 6, (int)Height - 40, (int)Width / 3, 40);
-            entrance = PianoUtils.SeekController(scene, () =>
-            {
-                return new Entrance(Position + new Vector2(b.X, b.Y), b.Width, b.Height);
-            });
-            entrance.Initialize(OnEnterOrExit);
-            foreach (Stairs stairs in PianoUtils.SeekControllers<Stairs>(scene)) /// 
-            {
-                Stairs.Add(stairs);
-                stairs.Parent = this;
-                stairs.Depth = Depth + 1;
-            }
-            bool needsTopFloor = true;
-            foreach (Stairs stairs in Stairs)
-            {
-                Stairs.CustomPlatform floor = new Stairs.CustomPlatform(new Vector2(X, stairs.Bottom), (int)(Width));
-                scene.Add(floor);
-                if (stairs.Y == Top)
-                {
-                    needsTopFloor = false;
-                }
-            }
-            if (needsTopFloor)
-            {
-                Stairs.CustomPlatform topFloor = new Stairs.CustomPlatform(new Vector2(X, Top), (int)(Width));
-                scene.Add(topFloor);
-            }
-        }
-        public void AddColumn(Scene scene, float height)
-        {
-            float halfColWidth = 40;
-            if (Stairs.Count > 0) ///
-            {
-                Stairs = [.. Stairs.OrderByDescending(item => item.Bottom)];
-                halfColWidth = (int)(Stairs[0].Width * 0.3f);
-            }
-            Col = new Column(this, Position + Vector2.UnitX * (Width / 2 - halfColWidth), halfColWidth * 2, height);
-            scene.Add(Col);
-
-        }
-        public override void Awake(Scene scene)
-        {
-            base.Awake(scene);
-
-        }
-        public void FinalAwake(Scene scene)
-        {
-            scene.Add(PlayerShade = new PlayerShade(0));
-            foreach (Stairs stairs in Stairs) ///
-            {
-                stairs.Initialize(scene);
-            }
-            foreach (Stairs stairs in Stairs) ///
-            {
-                stairs.Disable();
-            }
-            int barrierWidth = 8;
-            if (Stairs.Count > 0) ///
-            {
-                Col.Depth = Stairs[0].Depth + 1;
-                barrierWidth = (int)(Stairs[0].Platform.Width / 2f);
-            }
-            Col.HidesPlayer = false;
-            Safeguards[0] = new InvisibleBarrier(TopLeft, 8, Height);
-            Safeguards[1] = new InvisibleBarrier(TopRight - Vector2.UnitX * 8, 8, Height);
-            scene.Add(Safeguards);
-            foreach (Stairs.CustomPlatform a in scene.Tracker.GetEntities<Stairs.CustomPlatform>())
-            {
-                Floors.Add(a);
-            }
-            Floors = [.. Floors.OrderBy(item => item.Y)];
+            
         }
         public override void Update()
         {
@@ -568,38 +462,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             bool inside = InsideFlag;
             entrance.Alpha = OutsideAlpha;
-            if (inside)
+/*            if (inside)
             {
                 Enable();
                 bool hidePlayer = false;
                 float shade = 0;
-                foreach (Stairs s in Stairs) ///
-                {
-                    if (player.CollideCheck(s))
-                    {
-                        hidePlayer = s.HidingEnabled;
-                        shade = s.ShadeValue;
-                        break;
-                    }
-                }
                 Col.HidesPlayer = hidePlayer;
-                PlayerShade.Alpha = Calc.Approach(PlayerShade.Alpha, shade, Engine.DeltaTime * 3f);
+                PlayerShade.Amount = Calc.Approach(PlayerShade.Amount, shade, Engine.DeltaTime * 3f);
                 OutsideAlpha = Calc.Approach(OutsideAlpha, 0, Engine.DeltaTime * 3f);
             }
             else
             {
                 Disable();
                 OutsideAlpha = Calc.Approach(OutsideAlpha, 1, Engine.DeltaTime * 3f);
-                PlayerShade.Alpha = Calc.Approach(PlayerShade.Alpha, 0, Engine.DeltaTime * 3f);
-            }
-            foreach (Stairs.CustomPlatform p in Scene.Tracker.GetEntities<Stairs.CustomPlatform>())
-            {
-                p.InElevator = Col.InElevator;
-            }
-            foreach (Stairs stairs in Scene.Tracker.GetEntities<Stairs>())
-            {
-                stairs.InElevator = Col.InElevator;
-            }
+                PlayerShade.Amount = Calc.Approach(PlayerShade.Amount, 0, Engine.DeltaTime * 3f);
+            }*/
             WasInside = inside;
         }
         public void Enable()
@@ -616,7 +493,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         public void Disable()
         {
-            Col.HidesPlayer = false;
+            Col.PlayerHider.Disabled = true;
+            //HidesPlayer = false;
             Safeguards[0].Collidable = Safeguards[0].Active = Safeguards[1].Collidable = Safeguards[1].Active = false;
             foreach (Stairs stairs in Stairs) ///
             {
@@ -628,13 +506,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         private void BeforeRender()
         {
-            if (outsideRendered) return;
+/*            if (outsideRendered) return;
             outsideRendered = true;
             outsideTarget.SetAsTarget();
             outsideTarget.DrawThenMask(
                 mask: () => { Draw.Rect(entrance.X - X, entrance.Y - Y, entrance.Width, entrance.Height, Color.White); },
                 render: () => { Column.VertexGradient.DrawGradient(Matrix.Identity, Vector2.Zero, Width, Height, Color.Black, Color.White); },
-                Matrix.Identity);
+                Matrix.Identity);*/
         }
         public override void Render()
         {

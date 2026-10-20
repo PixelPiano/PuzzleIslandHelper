@@ -1,6 +1,8 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using FrostHelper.ModIntegration;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Mono.Cecil.Cil;
 using Monocle;
@@ -8,6 +10,7 @@ using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
 {
@@ -15,35 +18,45 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
     [Tracked]
     public class Stairs : Entity
     {
-        public bool RenderOnce = true;
+        public string BGIndicesString
+        {
+            get
+            {
+                int tab = 10;
+                string output = "[" + BGIndices[0];
+                for (int i = 1; i < BGIndices.Length; i++, tab--)
+                {
+                    output += ',';
+                    if (tab <= 0)
+                    {
+                        output += '\n';
+                        tab = 10;
+                    }
+                    else
+                    {
+                        output += ' ';
+                    }
+                    output += BGIndices[i];
+                }
+                return output + ']';
+
+
+            }
+        }
         [CustomEntity("PuzzleIslandHelper/TowerPlatform")]
         [TrackedAs(typeof(JumpThru))]
         [Tracked]
         public class CustomPlatform : JumpThru
         {
-            public float Timer;
+            public float NoCollideTimer;
             public bool Disabled;
-            public bool InElevator;
             private bool timerBlocked;
-            public Tower Tower;
-
             public CustomPlatform(Vector2 position, int width) : base(position, width, true)
             {
             }
             public CustomPlatform(EntityData data, Vector2 offset) : base(data.Position + offset, data.Width, true)
             {
 
-            }
-            public override void Awake(Scene scene)
-            {
-                base.Awake(scene);
-                Tower = scene.Tracker.GetEntity<Tower>();
-                if (Tower == null)
-                {
-                    RemoveSelf();
-                    return;
-                }
-                Collidable = Tower.Inside;
             }
             public override void Render()
             {
@@ -53,50 +66,181 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public override void Update()
             {
                 base.Update();
-
-                if (Timer > 0)
+                UpdateCollidableTimer();
+                Collidable = !timerBlocked && !Disabled;
+                if (Collidable && Input.MoveY == 1)
+                {
+                    CheckForPlayerCollision();
+                }
+            }
+            public void UpdateCollidableTimer()
+            {
+                if (NoCollideTimer > 0)
                 {
                     timerBlocked = true;
-                    Timer -= Engine.DeltaTime;
-                    if (Timer <= 0)
+                    NoCollideTimer -= Engine.DeltaTime;
+                    if (NoCollideTimer <= 0)
                     {
-                        Timer = 0;
+                        NoCollideTimer = 0;
                         timerBlocked = false;
                     }
                 }
-                Collidable = !timerBlocked && !Disabled && (Tower.Inside || Tower.Ending.CollideCheck<Player>());
-                if (Collidable)
+            }
+            public void CheckForPlayerCollision()
+            {
+                if (GetPlayerRider() is Player player && player.CollideCheck<Platform, CustomPlatform>(player.Position + Vector2.UnitY * player.Height))
                 {
-                    if (Input.MoveY == 1 && Input.MoveX == 0)
+                    //if player is riding this custom platform, but they are also colliding with another seperate platform, make uncollidable.
+                    NoCollideTimer = Engine.DeltaTime * 15;
+                }
+            }
+        }
+
+        public class VertexPoint(Vector3 point, int index)
+        {
+            public Renderer.Types Type;
+            public Vector3 SpiralOffset = point;
+            public int Index = index;
+            public Vector3 WorldOffset;
+            public Vector3 SpiralMult = Vector3.One;
+            public Color Tint = Color.White;
+            public float Alpha = 1;
+            public Color Color;
+            public Vector3 Position;
+            public Vector3 Offset;
+            private Vector3 prevOffset;
+            private Vector3 prevPosition;
+            private Color prevColor;
+            public bool Dirty = true;
+            public void Update(float columnRadius, bool isRim)
+            {
+                Vector3 spiralPosition = SpiralOffset * SpiralMult;
+                Position = spiralPosition + WorldOffset;
+                Color = Tint * Alpha;
+                float x = spiralPosition.X;
+                bool inColumn = Math.Abs(x) <= columnRadius;
+                bool inFront = spiralPosition.Z >= 0;
+                bool inLeftHalf = x < 0;
+                if (inFront && !inLeftHalf)
+                {
+                    Type = Renderer.Types.JustAbove;
+                }
+                else if (inFront || (inLeftHalf && !inColumn))
+                {
+                    Type = Renderer.Types.FG;
+                }
+                else
+                {
+                    Type = Renderer.Types.BG;
+                }
+                if (!inFront && inLeftHalf && inColumn)
+                {
+                    float xOffset = (columnRadius - Math.Abs(spiralPosition.X)) * Math.Sign(spiralPosition.X);
+                    if (Offset.X != xOffset) Dirty = true;
+                    Offset.X = xOffset;
+                }
+                else
+                {
+                    if (Offset.X != 0) Dirty = true;
+                    Offset.X = 0;
+                }
+                if (prevColor != Color || prevPosition != Position || prevOffset != Offset)
+                {
+                    Dirty = true;
+                }
+                prevColor = Color;
+                prevPosition = Position;
+            }
+        }
+        public class Line : IComparable<Line>
+        {
+            public int AddIndex;
+            public bool Visible = true;
+            public Renderer.Types Type => A.Type;
+            public bool IsRim;
+            public float Depth => (A.Position.Z + B.Position.Z) / 2f;
+            public VertexPoint A, B;
+            public int CompareTo(Line other)
+            {
+                int sign = Math.Sign(Depth - other.Depth);
+                if (sign == 0)
+                {
+                    if (IsRim == other.IsRim)
                     {
-                        if (GetPlayerRider() is Player player && player.CollideCheck<Platform, CustomPlatform>(player.Position + Vector2.UnitY * player.Height))
-                        {
-                            Timer = Engine.DeltaTime * 15;
-                        }
+                        if (AddIndex < other.AddIndex) return -1;
+                        else return 1;
+                    }
+                    else
+                    {
+                        if (Depth < 0) return -1;
+                        else return 1;
                     }
                 }
-
-
+                return sign;
             }
-        }
-        public float AngleOffset
-        {
-            get => angleOffset;
-            set
+            public Line(int addIndex, VertexPoint a, VertexPoint b)
             {
-                if (angleOffset != value)
+                AddIndex = addIndex;
+                A = a;
+                B = b;
+            }
+            /// <summary>
+            /// Updates the Indices in the passed in <paramref name="array"/>, starting at <paramref name="index"/>.
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="index"></param>
+            /// <returns>The number of indices that were set.
+            /// If the return value is less than or equal to 0, the line will not be rendered.</returns>
+            public int UpdateIndices(int[] array, int index)
+            {
+                if (Visible)
                 {
-                    angleOffset = value;
-                    RecalculatePoints();
+                    array[index] = A.Index;
+                    array[index + 1] = B.Index;
+                    return 2;
+                }
+                else
+                {
+                    return 0;
                 }
             }
         }
-        public float FlowRateMult;
-        private int stepOffset;
-        private int stepSkip = 4;
-        private float angleOffset;
-        public bool Enabled;
-        public Tower Parent;
+        private int testIndex;
+
+        public class Renderer : Entity
+        {
+            public int[] Indices;
+            public int Primitives;
+            public Stairs Parent;
+            public enum Types
+            {
+                BG,
+                JustAbove,
+                FG
+            }
+            public Types Type;
+            public Renderer(Stairs parent, Types type, int depth, int width, int height)
+            {
+                Parent = parent;
+                Type = type;
+                Depth = depth;
+            }
+            public void RenderVertices(Matrix matrix)
+            {
+                Effect e = ShaderHelperIntegration.TryGetEffect("PuzzleIslandHelper/Shaders/towerStairs");
+                PianoUtils.DrawUserIndexedPrimitives(PrimitiveType.LineList, matrix, Parent.Vertices, Parent.VertCount, Indices, Primitives, e);
+            }
+            public override void Render()
+            {
+                base.Render();
+                if (Indices == null || Indices.Length == 0 || Primitives <= 0) return;
+                Draw.SpriteBatch.End();
+                RenderVertices(SceneAs<Level>().Camera.Matrix);
+                GameplayRenderer.Begin();
+            }
+        }
+        public bool RenderOnce = true;
+        public bool Enabled = true;
         public int Revolutions;
         public bool RidingPlatform;
         public CustomPlatform TopPlatform;
@@ -106,217 +250,107 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         private float allowDescentTimer;
         public bool DisablePlatform;
         private Vector2 PrevPosition;
-        public Vector3[] Points = [];
-        public Vector3[] OuterPoints = [];
-        public Vector3[] InnerPoints = [];
         public float Radius => Width / 2;
         public float HalfWave => (Height / Revolutions);
-        public float ZThreshHigh => Radius;
-        public float ZThreshLow
-        {
-            get => GetLowThresh(Radius);
-        }
-        public int XFlipScale;
-        public int ZFlipScale;
-        public float GetLowThresh(float radius)
-        {
-            float halfCol = Parent.Col.Width / 2;
-            float dist = (radius + 1) - halfCol;
-            return -(radius + 1) + (dist / 2);
-        }
+        public int XScale;
+        public int ZScale;
+
         public Color BGColor = Color.Black;
         public Color FGColor = Color.White;
         public int? LastRiddenFloor;
+        private string lastRiddenFloor
+        {
+            get
+            {
+                if (LastRiddenFloor.HasValue)
+                {
+                    return '[' + LastRiddenFloor.Value.ToString() + ']';
+                }
+                return "[N/A]";
+            }
+        }
         public int LastFloor;
         private float forceAscentTimer;
         public Vector2 LastSign;
         public bool WaitForUpInput;
-        public VirtualRenderTarget target;
-        private bool Rendered
-        {
-            get => rendered;
-            set
-            {
-                if (!value)
-                {
-                    foreach (var r in Renderers)
-                    {
-                        r.Rendered = false;
-                    }
-                    rendered = value;
-                }
-            }
-        }
-        private bool rendered;
         public int CurrentFloor;
         public float CurrentZ;
-        public bool HidingEnabled;
         public bool Initialized;
-        public int YOffset;
+        public int PlatformYOffset;
         public bool WasRidingPlatform;
         public bool AtTop;
         public bool WasAtTop;
         private bool waitUntilNotCollidingWithTopPlatform;
-        public float ShadeValue;
         public float XMult = 1;
-        public class Renderer : Entity
-        {
-            public VirtualRenderTarget Target;
-            public bool Rendered;
-            public Stairs Parent;
-            public Renderer(Stairs parent, int depth, float width, float height)
-            {
-                Depth = depth;
-                Tag |= Tags.TransitionUpdate;
-                Parent = parent;
-                Target = VirtualContent.CreateRenderTarget("stairsRenderer", (int)width, (int)height);
-                Add(new BeforeRenderHook(BeforeRender));
-            }
-            public void BeforeRender()
-            {
-                if (Rendered || Parent.OuterPoints == null || Parent.InnerPoints == null || Parent.Points == null) return;
-                float radius = Parent.Radius;
-                float flowOffset = Parent.FlowTimer;
-                Rendered = true;
-                Target.SetAsTarget(true);
-                Draw.SpriteBatch.Begin();
-                Vector2 topCenter = new Vector2(radius + 16, 0);
-                float lineWidth = 8;
-                //DrawLines(OuterPoints, topCenter, 1, Radius + lineWidth / 2);
-                //DrawLines(Points, topCenter, 1, Radius);
-                //DrawLines(InnerPoints, topCenter, 1, Radius - lineWidth / 2);
-                if (Depth > 0)
-                {
-                    DrawCurve(Parent.OuterPoints, topCenter, 1, radius + lineWidth / 2, flowOffset);
-                    DrawCurve(Parent.Points, topCenter, 1, radius, flowOffset + 0.33f);
-                    DrawCurve(Parent.InnerPoints, topCenter, 1, radius - lineWidth / 2, flowOffset + 0.66f);
-                }
-                else
-                {
-                    DrawCurve(Parent.InnerPoints, topCenter, 1, radius + lineWidth / 2, flowOffset + 0.66f);
-                    DrawCurve(Parent.Points, topCenter, 1, radius, flowOffset + 0.33f);
-                    DrawCurve(Parent.OuterPoints, topCenter, 1, radius - lineWidth / 2, flowOffset);
-                }
-                Draw.SpriteBatch.End();
-            }
 
-            public void DrawCurve(Vector3[] points, Vector2 topCenter, float scale, float radius, float flowOffset)
-            {
-                float zThreshHigh = radius + 1;
-                float zThreshLow = Parent.GetLowThresh(radius);
-                float flow = flowOffset;
-                int sign = Math.Sign(Depth);
-                Color[] colors = [Color.Magenta, Color.Blue, Color.Cyan, Color.Magenta];
-                for (int i = 1; i < points.Length; i++)
-                {
-                    float currentZ = points[i].Z;
-                    float prevZ = points[i - 1].Z;
-                    if (Math.Sign(currentZ - prevZ) == sign)
-                    {
-                        int index = (int)(flow % (colors.Length - 1));
-                        int indexA = index;
-                        int indexB = index + 1;
-                        if (currentZ < zThreshHigh && currentZ > zThreshLow && prevZ < zThreshHigh && prevZ > zThreshLow)
-                        {
-                            Color fg = Color.Lerp(colors[indexA], colors[indexB], Ease.SineInOut(flow % 1));
-                            float lerp = 0;
-                            if (currentZ < 0)
-                            {
-                                lerp = Math.Abs(currentZ) / radius;
-                            }
-                            Color color = Color.Lerp(fg, Parent.BGColor, lerp);
-                            int thickness = (int)Calc.LerpClamp(1, 3, (currentZ + radius) / (radius * 2));
-                            Draw.Line(points[i - 1].XY() * scale + topCenter, points[i].XY() * scale + topCenter, color, thickness);
-                        }
-                    }
-                    flow += Engine.DeltaTime;
-                }
-            }
-            public override void Render()
-            {
-                base.Render();
-                if (Parent.Parent.OutsideAlpha < 1)
-                {
-                    Draw.SpriteBatch.Draw(Target, Parent.Position - Vector2.UnitX * 16, Color.White * (1 - Parent.Parent.OutsideAlpha));
-                }
-            }
-            public override void Removed(Scene scene)
-            {
-                base.Removed(scene);
-                Target?.Dispose();
-            }
-        }
-        public float FlowTimer
-        {
-            get => flowTimer;
-            set
-            {
-                if (flowTimer != value)
-                {
-                    Rendered = false;
-                    flowTimer = value;
-                }
-            }
-        }
-        private float flowTimer;
-        private Renderer[] Renderers = new Renderer[2];
-        public bool InElevator;
-        public Stairs(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height, data.Int("halfRevolutions", 3), data.Bool("flipX") ? -1 : 1, data.Bool("flipZ") ? -1 : 1)
-        {
+        private FlagList collidableFlag;
 
-        }
-        public Stairs(Vector2 position, float width, float height, int revolutions, int xFlipScale, int zFlipScale) : base(position)
+
+        public Renderer[] Renderers = new Renderer[3];
+        private List<VertexPoint> rimPoints = [];
+        private List<VertexPoint> insidePoints = [];
+
+        public List<Line> Lines = [];
+        public VertexPositionColor[] Vertices;
+        public int[] BGIndices = [];
+        public int[] FGIndices = [];
+        public int BGPrimitives;
+        public int FGPrimitives;
+        public int Primitives => BGPrimitives + FGPrimitives;
+        public int VertCount;
+        public Column Column;
+        public Vector2 AutoMoveDirection;
+        public bool AutoAscend; //wip, automatically moves the player up the spiral staircase without input
+        public bool HidePlayer;
+        public float ShadeAmount;
+        public Vector3[] Points;
+        public Vector3[] RimPoints;
+        private static ILHook speedHook;
+
+        public Stairs(Column column, Vector2 position, float width, float height, int revolutions, int xFlipScale, int zFlipScale, FlagList collidableFlag = default) : base(position)
         {
-            XFlipScale = xFlipScale;
-            ZFlipScale = zFlipScale;
+            Column = column;
+            this.collidableFlag = collidableFlag;
+            XScale = xFlipScale;
+            ZScale = zFlipScale;
             AddTag(Tags.TransitionUpdate);
             Collider = new Hitbox(width, height);
             Revolutions = revolutions;
-            Renderers[0] = new Renderer(this, -1, width + 32, height);
-            Renderers[1] = new Renderer(this, 1, width + 32, height);
+            Renderers[0] = new Renderer(this, Renderer.Types.BG, 4, (int)width, (int)height);
+            Renderers[1] = new Renderer(this, Renderer.Types.JustAbove, 1, (int)width, (int)height);
+            Renderers[2] = new Renderer(this, Renderer.Types.FG, -4, (int)width, (int)height);
             Depth = 2;
+            KeyComponent.Wasd(entity: this, left: () => { testIndex = Math.Max(0, testIndex - 1); }, right: () => { testIndex = Math.Min(testIndex + 1, Lines.Count - 1); });
+
+            KeyComponent.ForKey(this, Keys.S, () =>
+            {
+                matrixTest = !matrixTest;
+            });
         }
+        public bool matrixTest;
+        public float LastActiveTime;
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            //CreateVertices(Column.Radius);
             scene.Add(Renderers);
-        }
-        public float GetY(float y, float x, float radius, float halfWave)
-        {
-            float xPosInCollider = Calc.Clamp(x - CenterX, -radius, radius) * XFlipScale;
-            float yPosInCollider = Calc.Clamp(y - Top, 0, Height);
-            float halfWavesFromTop = (yPosInCollider + halfWave / 2) / halfWave;
-            if ((int)halfWavesFromTop % 2 != 0) xPosInCollider *= -1;
-            y = halfWave * (float)Math.Asin(xPosInCollider / radius) / (float)Math.PI;
-            y += (int)halfWavesFromTop * halfWave;
-            y = Calc.Clamp(y, 0, Height);
-            return y;
-        }
-        public override void DebugRender(Camera camera)
-        {
-            base.DebugRender(camera);
-            if (Scene.GetPlayer() is Player player)
-            {
-                Draw.Rect(X, Bottom - HalfWave / 2, Width, HalfWave / 2, player.Bottom > Bottom  - HalfWave / 2 ? Color.Lime : Color.Red);
-
-            }
         }
         public override void Update()
         {
             if (Scene.GetPlayer() is not Player player || !Initialized) return;
             base.Update();
-            FlowTimer += Engine.DeltaTime * FlowRateMult;
+            int moveX = AutoAscend ? (int)AutoMoveDirection.X : Input.MoveX;
+            int moveY = AutoAscend ? (int)AutoMoveDirection.Y : Input.MoveY;
             if (Enabled)
             {
                 if (PrevPosition.Y != Bottom && Platform.Top == Bottom)
                 {
                     WaitForUpInput = true;
                 }
-                WasRidingPlatform = RidingPlatform;
                 if (WaitForUpInput)
                 {
                     PlatformTo(Bottom, true);
-                    if (Input.MoveY == -1 && player.Bottom > Bottom  - HalfWave / 2)
+                    if (moveY == -1 && player.Bottom > Bottom - HalfWave / 2)
                     {
                         WaitForUpInput = false;
                     }
@@ -325,48 +359,54 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                         return;
                     }
                 }
+                WasRidingPlatform = RidingPlatform;
                 RidingPlatform = player.IsRiding(Platform);
-                if (WasRidingPlatform && RidingPlatform)
-                {
-                    stepOffset = (stepOffset + Math.Sign(Platform.Top - PrevPosition.Y)) % stepSkip;
-                    if (stepOffset < 0) stepOffset = stepSkip - Math.Abs(stepOffset);
-                    RecalculatePoints();
-                }
-                float xPosInCollider = Calc.Clamp(player.X - CenterX, -Radius, Radius) * XFlipScale;
+                UpdateVertices(false);
+
+                float xPosInCollider = Calc.Clamp(player.X - CenterX, -Radius, Radius) * XScale;
                 float yPosInCollider = Calc.Clamp(player.Bottom - Top, 0, Height);
                 float halfWavesFromTop = (yPosInCollider + HalfWave / 2) / HalfWave;
                 float distToInt = Math.Abs(float.Round(halfWavesFromTop) - halfWavesFromTop);
+
                 CurrentFloor = ((int)halfWavesFromTop);
                 if (RidingPlatform)
                 {
                     LastRiddenFloor = ((int)halfWavesFromTop);
                     if (distToInt < (3 / HalfWave))
                     {
-                        if (Input.MoveY == 1 || (LastSign == new Vector2(-1, 1) && player.Facing == Facings.Left)
+                        if (moveY == 1 || (LastSign == new Vector2(-1, 1) && player.Facing == Facings.Left)
                         || (LastSign == Vector2.One && player.Facing == Facings.Right))
                         {
-                            allowDescentTimer = Engine.DeltaTime * 16;
+                            allowDescentTimer = Engine.DeltaTime * 24;
                         }
                         else if (halfWavesFromTop % 1 < 0.01f && ((LastSign == new Vector2(1, -1) && player.Facing == Facings.Right)
                         || (LastSign == -Vector2.One && player.Facing == Facings.Left)))
                         {
-                            forceAscentTimer = Engine.DeltaTime * 16;
+                            forceAscentTimer = Engine.DeltaTime * 24;
                         }
                     }
                 }
-                else if (!Parent.CollideCheck<Player>())
+                else
                 {
-                    LastRiddenFloor = null;
+                    bool outsideColumn = player.Right <= Column.Left || player.Left >= Column.Right;
+                    if (outsideColumn)
+                    {
+                        HidePlayer = false;
+                    }
+                    if (!CollideCheck<Player>())
+                    {
+                        LastRiddenFloor = Revolutions;
+                    }
                 }
-                if (Input.MoveY == -1 || !RidingPlatform)
+                if (moveY == -1 || !RidingPlatform)
                 {
                     allowDescentTimer = 0;
                 }
-                if (Input.MoveY == 1 || !RidingPlatform)
+                if (moveY == 1 || !RidingPlatform)
                 {
                     forceAscentTimer = 0;
                 }
-                if (distToInt < (1 / HalfWave))
+                if (distToInt < (1 / HalfWave)) //used to be 1!!! just testing out 2
                 {
                     if (allowDescentTimer > 0)
                     {
@@ -403,15 +443,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
 
                 if ((int)halfWavesFromTop % 2 != 0) xPosInCollider *= -1;
 
-                float lowThresh = Parent.Col.Width / 2;
+                //Player Speed Manipulation
+                float lowThresh = Column.Width / 2;
                 float topThresh = Width / 2;
                 float distFromCenter = Math.Abs(xPosInCollider);
-                XMult = 1;
                 if (RidingPlatform && distFromCenter > lowThresh)
                 {
                     float percent = 1 - (distFromCenter - lowThresh) / (topThresh - lowThresh);
                     XMult = 0.5f + 0.5f * percent;
                 }
+                else XMult = 1;
+                //
+
                 float y = HalfWave * (float)Math.Asin(xPosInCollider / Radius) / (float)Math.PI;
                 y += (int)halfWavesFromTop * HalfWave;
                 y = Calc.Clamp(y, 0, Height);
@@ -434,56 +477,72 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                         NoCollideTimer = 0;
                     }
                 }
-
                 if (Platform != null)
                 {
-                    Platform.Collidable = !InElevator && Collidable && NoCollideTimer == 0 && !DisablePlatform;
+                    Platform.Collidable = player.Speed.Y >= 0 && Collidable && NoCollideTimer == 0 && !DisablePlatform && collidableFlag;
+                    if (!RidingPlatform)
+                    {
+                        if (distFromCenter < Column.Width / 2)
+                        {
+                            if (LastRiddenFloor.HasValue && LastRiddenFloor.Value % 2 != CurrentFloor % 2)
+                            {
+                                Platform.Collidable = false;
+                            }
+                        }
+                    }
                 }
                 distFromCenter = Math.Abs(player.CenterX - CenterX);
                 CurrentZ = GetZ(y);
+                bool collidingWithStairs = player.CollideCheck(this);
 
-                HidingEnabled = false;
-                ShadeValue = 0;
-                if (player.Bottom >= Top && player.Top <= Bottom)
+                if (player.Bottom >= Bottom || distFromCenter < Column.Width / 2 + 6)
                 {
-                    if (LastRiddenFloor.HasValue && LastRiddenFloor.Value % 2 == CurrentFloor % 2 && CurrentZ < 0)
-                    {
-                        ShadeValue = Math.Abs(CurrentZ) / Radius;
-                    }
-                    HidingEnabled = false;
+                    ShadeAmount = 0;
+                }
+                if (player.Bottom > Top && player.Top <= Bottom)
+                {
                     if (LastRiddenFloor.HasValue)
                     {
-                        if (LastRiddenFloor.Value % 2 != CurrentFloor % 2 && distFromCenter < Parent.Col.Width / 2)
+                        if (LastRiddenFloor.Value % 2 == CurrentFloor % 2)
+                        {
+                            if (CurrentZ < 0) ShadeAmount = Math.Abs(CurrentZ) / Radius;
+                        }
+                        else if (distFromCenter < Column.Width / 2 + 3)
                         {
                             Platform.Collidable = false;
+                            RidingPlatform = false;
                         }
-                        int val = Math.Max(0, XFlipScale);
-                        HidingEnabled = distFromCenter < Parent.Col.Width / 2 + 4 && LastRiddenFloor.Value % 2 == val && !Parent.Col.InElevator;
+                        int val = Math.Clamp(Math.Abs(XScale), 0, 1);
+
+                        //if in column AND last floor would have hidden player
+                        HidePlayer = distFromCenter < Column.Width / 2 + 6 && LastRiddenFloor.Value % 2 != val;
+
                     }
                 }
 
                 float top = float.Floor(Top);
                 float platY = float.Floor(Platform.Top);
                 float prev = float.Floor(PrevPosition.Y);
+
                 if (platY == top && prev != top)
                 {
-                    YOffset = -1;
+                    PlatformYOffset = -1;
                 }
-                else if (YOffset != 0)
+                else if (PlatformYOffset != 0)
                 {
                     if (player.IsRiding(TopPlatform) && !player.IsRiding(Platform))
                     {
-                        YOffset = 0;
+                        PlatformYOffset = 0;
                     }
                 }
                 else
                 {
-                    YOffset = 0;
+                    PlatformYOffset = 0;
                 }
-                Vector2 pos = new Vector2(GetX(y) + CenterX, Calc.Clamp(y + Top + YOffset, Top + YOffset, Bottom));
+                Vector2 pos = new Vector2(GetX(y) + CenterX, Calc.Clamp(y + Top + PlatformYOffset, Top + PlatformYOffset, Bottom));
                 Platform.CenterX = pos.X;
 
-                if (player.CollideCheck(Platform))
+                if (RidingPlatform)
                 {
                     player.Bottom = Platform.Top;
                     //prevents the player from magically falling through the stairs for no apparent reason
@@ -499,7 +558,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 {
                     Platform.MoveToY(pos.Y, 0);
                 }
+                RidingPlatform = Platform.HasPlayerRider();
+                //push the player onto the top platform so they don't fall through it when they reach the top.
+                if (RidingPlatform && PrevPosition.Y != Top && Platform.ExactPosition.Y == Top)
+                {
+                    player.MoveV(TopPlatform.Top - player.Bottom);
+                }
                 LastFloor = CurrentFloor;
+                debuggg = false;
             }
             else
             {
@@ -512,8 +578,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 LastSign.X = Math.Sign(GetX(posInCollider - 1));
                 LastSign.Y = -1;
                 PrevPosition = BottomCenter;
-                ShadeValue = 0;
-                HidingEnabled = false;
+                ShadeAmount = 0;
+                debuggg = true;
+                HidePlayer = false;
             }
             if (Collidable)
             {
@@ -521,12 +588,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 {
                     TopPlatform.Collidable = true;
                 }
-                if ((Input.MoveY == 1 && TopPlatform.HasPlayerRider() && player.CenterX >= CenterX && player.CenterX < CenterX + Platform.Width * 2))
+                //let player descend from top of stairs if they are holding down
+                if ((moveY == 1 && TopPlatform.HasPlayerRider() && player.CenterX >= CenterX && player.CenterX < CenterX + Platform.Width * 2))
                 {
                     Platform.Collidable = true;
                     TopPlatformCollisionTimer = 0.3f;
                 }
 
+                //top platform is intangible until the timer reaches 0 AND the player is no longer colliding with it.
                 if (TopPlatformCollisionTimer > 0)
                 {
                     TopPlatform.Collidable = false;
@@ -550,14 +619,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     }
                 }
             }
-
-            if (RidingPlatform && !player.IsRiding(TopPlatform))
+            if (RidingPlatform && Platform.ExactPosition.Y != Top)
             {
-                FlowRateMult = Calc.Approach(FlowRateMult, 1, Engine.DeltaTime);
+                LastActiveTime = Scene.TimeActive;
             }
-            else
+
+        }
+        private bool debuggg;
+        public override void DebugRender(Camera camera)
+        {
+            base.DebugRender(camera);
+            foreach (Line line in Lines)
             {
-                FlowRateMult = Calc.Approach(FlowRateMult, 0, Engine.DeltaTime);
+                if (line.A.Position.Z == 0 || line.B.Position.Z == 0)
+                {
+                    Draw.Line(line.A.Position.XY(), line.B.Position.XY(), Color.Magenta);
+                }
             }
         }
         public override void Removed(Scene scene)
@@ -565,31 +642,176 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             base.Removed(scene);
             Platform.RemoveSelf();
             TopPlatform.RemoveSelf();
-            target?.Dispose();
             Renderers.RemoveSelves();
         }
+
         public void Initialize(Scene scene)
         {
             if (Initialized) return;
             Initialized = true;
-            RecalculatePoints(Width / 2, 8, Height, Revolutions, 0);
+            RecalculatePoints(Width / 2, Height, Revolutions, 0);
             Platform = new(Points[^1].XY() + TopCenter, 16, true);
-            TopPlatform = new CustomPlatform(new Vector2(Parent.X, Y), (int)(Parent.Width));
+            TopPlatform = new CustomPlatform(new Vector2(Column.X, Y), (int)(Column.Width));
 
             scene.Add(Platform);
             scene.Add(TopPlatform);
         }
-        public void RecalculatePoints(float radius, float width, float height, int revolutions, float rotationalOffset)
+        public void CreateVertices(float columnRadius, float stairsRadiusOffset, int step = 1)
+        {
+            VertCount = 0;
+            rimPoints.Clear();
+            insidePoints.Clear();
+            Lines.Clear();
+            for (int i = 0; i < Points.Length; i += step)
+            {
+                Vector3 rimPoint = Points[i];
+                Vector3 insidePoint = new Vector3(rimPoint.X * (columnRadius / Radius), rimPoint.Y, rimPoint.Z * (columnRadius / Radius));
+                rimPoint.X *= 1.4f;
+                VertexPoint rim = new(rimPoint, VertCount);
+                VertexPoint inside = new(insidePoint, VertCount + 1);
+                rimPoints.Add(rim);
+                insidePoints.Add(inside);
+                VertCount += 2;
+            }
+            for (int i = 0; i < rimPoints.Count; i++)
+            {
+                Line line = new Line(Lines.Count, rimPoints[i], insidePoints[i]) { IsRim = false };
+                Lines.Add(line);
+                if (i > 0)
+                {
+                    Lines.Add(new Line(Lines.Count, rimPoints[i - 1], rimPoints[i]) { IsRim = true });
+                }
+            }
+            Vertices = new VertexPositionColor[VertCount];
+            worldOffset = TopCenter.ToVec3();
+            UpdateVertices(true);
+        }
+        public const int RenderPadX = 8;
+        public Vector3 WorldOffset
+        {
+            get => worldOffset;
+            set
+            {
+                if (worldOffset != value)
+                {
+                    Dirty = true;
+                }
+                worldOffset = value;
+            }
+        }
+        public bool Dirty;
+        private Vector3 worldOffset;
+        private int[] indexTypeCount = new int[3];
+        public void UpdateVertices(bool allowLineSort)
+        {
+            int index = 0;
+            bool dirty = true;
+            for (int i = 0; i < VertCount; i += 2, index++)
+            {
+                VertexPoint rim = rimPoints[index];
+                rim.WorldOffset = worldOffset;
+                rim.Update(Column.Radius, true);
+                if (rim.Dirty)
+                {
+                    Vertices[i].Position = rim.Position + rim.Offset;
+                    Vertices[i].Color = rim.Type switch
+                    {
+                        Renderer.Types.FG => Color.Yellow,
+                        Renderer.Types.BG => Color.Red,
+                        Renderer.Types.JustAbove => Color.Cyan
+                    };
+                    rim.Dirty = false;
+                    dirty = true;
+                }
+                VertexPoint inside = insidePoints[index];
+                inside.WorldOffset = worldOffset;
+                inside.Update(Column.Radius, false);
+                if (inside.Dirty)
+                {
+                    Vertices[i + 1].Position = inside.Position + inside.Offset;
+                    Vertices[i + 1].Color = inside.Type switch
+                    {
+                        Renderer.Types.FG => Color.Yellow,
+                        Renderer.Types.BG => Color.Red,
+                        Renderer.Types.JustAbove => Color.Cyan
+                    };
+                    inside.Dirty = false;
+                    dirty = true;
+                }
+            }
+            if (dirty)
+            {
+                if (allowLineSort) Lines.Sort();
+                UpdateRenderers();
+            }
+        }
+        private string indexInfo
+        {
+            get
+            {
+                string output = "";
+                for (int i = 0; i < 3; i++)
+                {
+                    output += Enum.GetName<Renderer.Types>((Renderer.Types)i) + ": " + indexTypeCount[i] + ", ";
+                }
+                return output;
+            }
+        }
+        public void UpdateRenderers()
+        {
+            indexTypeCount = new int[3];
+            foreach (Line line in Lines)
+            {
+                indexTypeCount[(int)line.Type] += 2;
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                Renderer r = Renderers[i];
+                int indexCount = indexTypeCount[(int)r.Type];
+                if (indexCount <= 0)
+                {
+                    r.Visible = false;
+                }
+                else
+                {
+                    r.Visible = true;
+                    if (r.Indices == null || r.Indices.Length != indexCount)
+                    {
+                        r.Indices = new int[indexCount];
+                    }
+                    r.Primitives = 0;
+                    int index = 0;
+                    foreach (Line line in Lines)
+                    {
+                        if (line.Type == r.Type)
+                        {
+                            int next = line.UpdateIndices(r.Indices, index);
+                            index += next;
+                            if (next > 0)
+                            {
+                                r.Primitives++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        public void RecalculatePoints(float radius, float height, int revolutions, float rotationalOffset)
         {
             Points = GetPoints(radius, height, height / revolutions, rotationalOffset);
-            OuterPoints = GetPoints(radius + width / 2, height, height / revolutions, rotationalOffset);
-            InnerPoints = GetPoints(radius - width / 2, height, height / revolutions, rotationalOffset);
-            Rendered = false;
+            CreateVertices(Column.Radius, Radius, 3);
         }
-        public void RecalculatePoints() => RecalculatePoints(Radius, 8, Height, Revolutions, AngleOffset);
+        public void RecalculatePoints() => RecalculatePoints(Radius, Height, Revolutions, 0);
+
+        public void Enable()
+        {
+            XMult = 1;
+            PlatformYOffset = 0;
+            Enabled = true;
+        }
         public void Disable()
         {
-            YOffset = 0;
+            PlatformYOffset = 0;
             Enabled = false;
             RidingPlatform = false;
             LastRiddenFloor = null;
@@ -599,20 +821,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             LastFloor = 0;
             Platform.Collidable = false;
             TopPlatform.Collidable = true;
-            if (Parent != null && Parent.Col != null)
-            {
-                Parent.Col.HidesPlayer = false;
-                Parent.Col.Collidable = false;
-            }
             forceAscentTimer = 0;
             AtTop = WasAtTop = false;
         }
-        public void Enable()
-        {
-            XMult = 1;
-            YOffset = 0;
-            Enabled = true;
-        }
+
         public void PlatformTo(float y, bool naive = false)
         {
             Platform.CenterX = GetX(y - Top) + CenterX;
@@ -625,115 +837,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 Platform.MoveToY(Calc.Clamp(y, Top, Bottom));
             }
         }
-        public void DrawCurve(Vector3[] points, Vector2 topCenter, float scale, float radius, float flowOffset)
-        {
-            float zThreshHigh = radius + 1;
-            float zThreshLow = GetLowThresh(radius);
-            float flow = flowOffset;
-            Color[] colors = [Color.Magenta, Color.Blue, Color.Cyan, Color.Magenta];
-            for (int i = 1; i < points.Length; i++)
-            {
-                float z1 = points[i].Z;
-                float z2 = points[i - 1].Z;
-                int index = (int)(flow % (colors.Length - 1));
-                int indexA = index;
-                int indexB = index + 1;
-                if (z1 < zThreshHigh && z1 > zThreshLow && z2 < zThreshHigh && z2 > zThreshLow)
-                {
-                    Color fg = Color.Lerp(colors[indexA], colors[indexB], Ease.SineInOut(flow % 1));
-                    Color color = points[i].Z >= 0 ? fg : Color.Lerp(fg, BGColor, Math.Abs(points[i].Z) / radius);
-                    Draw.Line(points[i - 1].XY() * scale + topCenter, points[i].XY() * scale + topCenter, color, 1);
-                    flow += Engine.DeltaTime;
-                }
-            }
-        }
-        public void DrawCurve(Vector3[] points, Vector2 topCenter, float scale, float radius)
-        {
-            float zThreshHigh = radius;
-            float zThreshLow = GetLowThresh(radius);
-            for (int i = 1; i < points.Length; i++)
-            {
-                float z1 = points[i].Z;
-                float z2 = points[i - 1].Z;
-                if (z1 < zThreshHigh && z1 > zThreshLow && z2 < zThreshHigh && z2 > zThreshLow)
-                {
-                    Color color = points[i].Z >= 0 ? FGColor : Color.Lerp(FGColor, BGColor, Math.Abs(points[i].Z) / radius);
-                    Draw.Line(Points[i - 1].XY() * scale + topCenter, points[i].XY() * scale + topCenter, color);
-                }
-            }
-        }
-        public void DrawLines(Vector3[] points, Vector2 topCenter, float scale, float radius)
-        {
-            float zThreshHigh = radius;
-            float zThreshLow = GetLowThresh(radius);
 
-            for (int i = stepOffset % stepSkip; i < points.Length; i += stepSkip)
-            {
-                float z1 = points[i].Z;
-                if (z1 < zThreshHigh && z1 > zThreshLow)
-                {
-                    Color color = points[i].Z >= 0 ? FGColor : Color.Lerp(FGColor, BGColor, Math.Abs(points[i].Z) / radius);
-                    Vector2 pos = points[i].XY() * scale + topCenter;
-                    float lerp = (pos.X - topCenter.X) / Radius;
-                    Vector2 to = new Vector2(topCenter.X + Parent.Col.Width / 2 * lerp, pos.Y + 10);
-                    if (z1 < 0)
-                    {
-                        if (to.X > topCenter.X)
-                        {
-                            if (TryFindIntersection(pos, to, Parent.Col.TopRight - Parent.Position, Parent.Col.BottomRight - Parent.Position, out Vector2 point))
-                            {
-                                to = point;
-                            }
-                        }
-                        else
-                        {
-                            if (TryFindIntersection(pos, to, Parent.Col.Position - Parent.Position, Parent.Col.BottomLeft - Parent.Position, out Vector2 point))
-                            {
-                                to = point;
-                            }
-                        }
-
-                    }
-                    Draw.Line(pos, to, color);
-                }
-            }
-        }
-        public static bool TryFindIntersection(Vector2 line1Start, Vector2 line1End, Vector2 line2Start, Vector2 line2End, out Vector2 intersection)
-        {
-            intersection = Vector2.Zero;
-            double x1 = line1Start.X, y1 = line1Start.Y;
-            double x2 = line1End.X, y2 = line1End.Y;
-            double x3 = line2Start.X, y3 = line2Start.Y;
-            double x4 = line2End.X, y4 = line2End.Y;
-
-            double denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-
-            if (Math.Abs(denominator) < 0.0001)
-            {
-                return false;
-            }
-
-            double x = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denominator;
-            double y = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denominator;
-            intersection = new Vector2((float)x, (float)y);
-            return true;
-        }
-
-        public Vector3 GetPoint(float radius, float y, float halfWavelength, float angleOffset = 0)
-        {
-            return new Vector3(GetX(radius, y, halfWavelength, angleOffset), y, GetZ(radius, y, halfWavelength, angleOffset));
-        }
-        public float GetX(float radius, float y, float halfWavelength, float angleOffset = 0)
-        {
-            return (float)(double)(radius * Math.Sin(angleOffset + y * Math.PI / halfWavelength)) * XFlipScale;
-        }
-        public float GetZ(float radius, float y, float halfWavelength, float angleOffset = 0)
-        {
-            return (float)(double)(radius * Math.Cos(angleOffset + y * Math.PI / halfWavelength)) * ZFlipScale;
-        }
-        public Vector3 GetPoint(float y) => GetPoint(Radius, y, HalfWave, AngleOffset);
-        public float GetX(float y) => GetX(Radius, y, HalfWave, AngleOffset);
-        public float GetZ(float y) => GetZ(Radius, y, HalfWave, AngleOffset);
         public Vector3[] GetPoints(float radius, float height, float halfWave, float angleOffset = 0)
         {
             List<Vector3> points = [];
@@ -748,7 +852,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             return [.. points];
         }
-        private static ILHook speedHook;
+        public Vector3 GetPoint(float radius, float y, float halfWavelength, float angleOffset = 0)
+        {
+            return new Vector3(GetX(radius, y, halfWavelength, angleOffset), y, GetZ(radius, y, halfWavelength, angleOffset));
+        }
+        public Vector3 GetPoint(float y) => GetPoint(Radius, y, HalfWave, 0);
+        public float GetX(float radius, float y, float halfWavelength, float angleOffset = 0)
+        {
+            return (float)(double)(radius * Math.Sin(angleOffset + y * Math.PI / halfWavelength)) * XScale;
+        }
+        public float GetX(float y) => GetX(Radius, y, HalfWave, 0);
+        public float GetY(float y, float x, float radius, float halfWave)
+        {
+            float xPosInCollider = Calc.Clamp(x - CenterX, -radius, radius) * XScale;
+            float yPosInCollider = Calc.Clamp(y - Top, 0, Height);
+            float halfWavesFromTop = (yPosInCollider + halfWave / 2) / halfWave;
+            if ((int)halfWavesFromTop % 2 != 0) xPosInCollider *= -1;
+            y = halfWave * (float)Math.Asin(xPosInCollider / radius) / (float)Math.PI;
+            y += (int)halfWavesFromTop * halfWave;
+            y = Calc.Clamp(y, 0, Height);
+            return y;
+        }
+        public float GetZ(float radius, float y, float halfWavelength, float angleOffset = 0)
+        {
+            return (float)(double)(radius * Math.Cos(angleOffset + y * Math.PI / halfWavelength)) * ZScale;
+        }
+        public float GetZ(float y) => GetZ(Radius, y, HalfWave, 0);
+
         [OnLoad]
         public static void Load()
         {
