@@ -21,7 +21,7 @@ struct VertexShaderOutput
 VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
 {
     VertexShaderOutput output;
-    output.color = float4(1,0,1,1);
+    output.color = input.Color;//float4(1,0,1,1);
     output.position = mul(input.Position, World);
     output.color = lerp(output.color, float4(0,0,0,1),(-output.position.z / 36));
     output.position.z = 0;

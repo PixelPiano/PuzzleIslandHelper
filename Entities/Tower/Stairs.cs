@@ -9,7 +9,9 @@ using Monocle;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
@@ -18,31 +20,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
     [Tracked]
     public class Stairs : Entity
     {
-        public string BGIndicesString
-        {
-            get
-            {
-                int tab = 10;
-                string output = "[" + BGIndices[0];
-                for (int i = 1; i < BGIndices.Length; i++, tab--)
-                {
-                    output += ',';
-                    if (tab <= 0)
-                    {
-                        output += '\n';
-                        tab = 10;
-                    }
-                    else
-                    {
-                        output += ' ';
-                    }
-                    output += BGIndices[i];
-                }
-                return output + ']';
-
-
-            }
-        }
         [CustomEntity("PuzzleIslandHelper/TowerPlatform")]
         [TrackedAs(typeof(JumpThru))]
         [Tracked]
@@ -95,15 +72,30 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
             }
         }
-
-        public class VertexPoint(Vector3 point, int index)
+        public class VertexPoint
         {
-            public Renderer.Types Type;
-            public Vector3 SpiralOffset = point;
-            public int Index = index;
+            public VertexPoint(Vector3 point, int index, Types type)
+            {
+                SpiralOffset = point;
+                Index = index;
+                Type = type;
+            }
+            public enum Types
+            {
+                Rim,
+                Stairs,
+                Inside
+            }
+            public Renderer.Depths Depth;
+            public Types Type;
+            public Vector3 SpiralOffset;
+
+            public int Index;
             public Vector3 WorldOffset;
             public Vector3 SpiralMult = Vector3.One;
             public Color Tint = Color.White;
+            public float LowMultAlpha = 1;
+            public float LowMultLerpMax = 1;
             public float Alpha = 1;
             public Color Color;
             public Vector3 Position;
@@ -112,37 +104,53 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             private Vector3 prevPosition;
             private Color prevColor;
             public bool Dirty = true;
-            public void Update(float columnRadius, bool isRim)
+            public VertexPoint Next;
+            public VertexPoint Prev;
+            public bool Visible = true;
+            public float Expand; //concept to turn lines into double-polygons
+            public bool InColumn, InFront, InLeftHalf;
+            public void PreUpdate(Column column)
             {
                 Vector3 spiralPosition = SpiralOffset * SpiralMult;
                 Position = spiralPosition + WorldOffset;
                 Color = Tint * Alpha;
-                float x = spiralPosition.X;
-                bool inColumn = Math.Abs(x) <= columnRadius;
-                bool inFront = spiralPosition.Z >= 0;
-                bool inLeftHalf = x < 0;
-                if (inFront && !inLeftHalf)
+                InColumn = Math.Abs(spiralPosition.X) <= column.Radius;
+                InFront = spiralPosition.Z >= 0;
+                InLeftHalf = spiralPosition.X < 0;
+                if ((InFront && !InLeftHalf) || (Type == Types.Inside && InFront))
                 {
-                    Type = Renderer.Types.JustAbove;
+                    Depth = Renderer.Depths.JustAbove;
                 }
-                else if (inFront || (inLeftHalf && !inColumn))
+                else if (InFront || (InLeftHalf && !InColumn))
                 {
-                    Type = Renderer.Types.FG;
-                }
-                else
-                {
-                    Type = Renderer.Types.BG;
-                }
-                if (!inFront && inLeftHalf && inColumn)
-                {
-                    float xOffset = (columnRadius - Math.Abs(spiralPosition.X)) * Math.Sign(spiralPosition.X);
-                    if (Offset.X != xOffset) Dirty = true;
-                    Offset.X = xOffset;
+                    Depth = Renderer.Depths.FG;
                 }
                 else
                 {
-                    if (Offset.X != 0) Dirty = true;
-                    Offset.X = 0;
+                    Depth = Renderer.Depths.BG;
+                }
+            }
+            public void Update(Column column)
+            {
+                if (Type == Types.Stairs && InLeftHalf)
+                {
+                    Color = Color.Lerp(Color, Color.Black, 0.5f);
+                }
+                float lerp = (1 - (SpiralMult.X - LowMultThresh) / (1 - LowMultThresh)) * LowMultLerpMax;
+                if (lerp > 0)
+                {
+                    Color = Color.Lerp(Color, Color.Black, lerp);
+                }
+                if (Prev != null && Prev.Depth == Renderer.Depths.FG && Depth == Renderer.Depths.BG)
+                {
+                    if (InLeftHalf && InColumn)
+                    {
+                        Offset.X = column.Left - Position.X;
+                    }
+                    else
+                    {
+                        Offset.X = 0;
+                    }
                 }
                 if (prevColor != Color || prevPosition != Position || prevOffset != Offset)
                 {
@@ -152,16 +160,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 prevPosition = Position;
             }
         }
+        public const float LowMultThresh = 0.4333f;
         public class Line : IComparable<Line>
         {
             public int AddIndex;
             public bool Visible = true;
-            public Renderer.Types Type => A.Type;
+            public Renderer.Depths Type => A.Depth;
             public bool IsRim;
             public float Depth => (A.Position.Z + B.Position.Z) / 2f;
             public VertexPoint A, B;
             public int CompareTo(Line other)
             {
+                if ((A.Type == VertexPoint.Types.Inside || B.Type == VertexPoint.Types.Inside) && !(other.A.Type == VertexPoint.Types.Inside || other.B.Type == VertexPoint.Types.Inside))
+                {
+                    return -1;
+                }
                 int sign = Math.Sign(Depth - other.Depth);
                 if (sign == 0)
                 {
@@ -183,6 +196,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 AddIndex = addIndex;
                 A = a;
                 B = b;
+                A.Next = b;
+                B.Prev = a;
             }
             /// <summary>
             /// Updates the Indices in the passed in <paramref name="array"/>, starting at <paramref name="index"/>.
@@ -193,7 +208,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             /// If the return value is less than or equal to 0, the line will not be rendered.</returns>
             public int UpdateIndices(int[] array, int index)
             {
-                if (Visible)
+                if (Visible && A.Visible && B.Visible)
                 {
                     array[index] = A.Index;
                     array[index + 1] = B.Index;
@@ -206,20 +221,19 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
         }
         private int testIndex;
-
         public class Renderer : Entity
         {
             public int[] Indices;
             public int Primitives;
             public Stairs Parent;
-            public enum Types
+            public enum Depths
             {
                 BG,
                 JustAbove,
                 FG
             }
-            public Types Type;
-            public Renderer(Stairs parent, Types type, int depth, int width, int height)
+            public Depths Type;
+            public Renderer(Stairs parent, Depths type, int depth, int width, int height)
             {
                 Parent = parent;
                 Type = type;
@@ -284,19 +298,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public float XMult = 1;
 
         private FlagList collidableFlag;
-
-
         public Renderer[] Renderers = new Renderer[3];
         private List<VertexPoint> rimPoints = [];
-        private List<VertexPoint> insidePoints = [];
-
+        private List<VertexPoint> stairAPoints = [];
+        private List<VertexPoint> stairBPoints = [];
+        private List<VertexPoint> columnPoints = [];
         public List<Line> Lines = [];
         public VertexPositionColor[] Vertices;
-        public int[] BGIndices = [];
-        public int[] FGIndices = [];
-        public int BGPrimitives;
-        public int FGPrimitives;
-        public int Primitives => BGPrimitives + FGPrimitives;
         public int VertCount;
         public Column Column;
         public Vector2 AutoMoveDirection;
@@ -304,11 +312,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public bool HidePlayer;
         public float ShadeAmount;
         public Vector3[] Points;
-        public Vector3[] RimPoints;
         private static ILHook speedHook;
-
         public Stairs(Column column, Vector2 position, float width, float height, int revolutions, int xFlipScale, int zFlipScale, FlagList collidableFlag = default) : base(position)
         {
+            Add(popCoroutine = new Coroutine(false));
             Column = column;
             this.collidableFlag = collidableFlag;
             XScale = xFlipScale;
@@ -316,15 +323,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             AddTag(Tags.TransitionUpdate);
             Collider = new Hitbox(width, height);
             Revolutions = revolutions;
-            Renderers[0] = new Renderer(this, Renderer.Types.BG, 4, (int)width, (int)height);
-            Renderers[1] = new Renderer(this, Renderer.Types.JustAbove, 1, (int)width, (int)height);
-            Renderers[2] = new Renderer(this, Renderer.Types.FG, -4, (int)width, (int)height);
+            Renderers[0] = new Renderer(this, Renderer.Depths.BG, 4, (int)width, (int)height);
+            Renderers[1] = new Renderer(this, Renderer.Depths.JustAbove, 1, (int)width, (int)height);
+            Renderers[2] = new Renderer(this, Renderer.Depths.FG, -4, (int)width, (int)height);
             Depth = 2;
-            KeyComponent.Wasd(entity: this, left: () => { testIndex = Math.Max(0, testIndex - 1); }, right: () => { testIndex = Math.Min(testIndex + 1, Lines.Count - 1); });
-
-            KeyComponent.ForKey(this, Keys.S, () =>
+            KeyComponent.ForKey(entity: this, Keys.G, () =>
             {
-                matrixTest = !matrixTest;
+                PopStairs(0.5f, 0.4f, 0.05f);
             });
         }
         public bool matrixTest;
@@ -332,7 +337,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            //CreateVertices(Column.Radius);
             scene.Add(Renderers);
         }
         public override void Update()
@@ -565,7 +569,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     player.MoveV(TopPlatform.Top - player.Bottom);
                 }
                 LastFloor = CurrentFloor;
-                debuggg = false;
             }
             else
             {
@@ -579,7 +582,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 LastSign.Y = -1;
                 PrevPosition = BottomCenter;
                 ShadeAmount = 0;
-                debuggg = true;
                 HidePlayer = false;
             }
             if (Collidable)
@@ -625,7 +627,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
 
         }
-        private bool debuggg;
+
         public override void DebugRender(Camera camera)
         {
             base.DebugRender(camera);
@@ -644,7 +646,65 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             TopPlatform.RemoveSelf();
             Renderers.RemoveSelves();
         }
+        public IEnumerator PopStairOut(int index, float time)
+        {
+            VertexPoint rim = rimPoints[index];
+            VertexPoint stair = stairAPoints[index];
+            VertexPoint stairB = stairBPoints[index];
+            VertexPoint inside = columnPoints[index];
+            rim.Visible = true;
+            stair.Visible = true;
+            stairB.Visible = true;
+            inside.Visible = true;
+            for (float i = 0; i < 1; i += Engine.DeltaTime / time)
+            {
+                float ease = Ease.BounceOut(i);
+                float mult = Calc.LerpClamp(LowMultThresh, 1, ease);
+                rim.SpiralMult.X = stair.SpiralMult.X = mult;
+                stairB.Alpha = Calc.LerpClamp(0, 1, i);
+                inside.Alpha = Calc.LerpClamp(1f, 0, i);
+                yield return null;
+            }
+            rim.SpiralMult.X = stair.SpiralMult.X = 1;
+            stairB.Alpha = 1;
+            inside.Alpha = 0;
+            inside.Visible = false;
+        }
+        public IEnumerator PopAllStairsOut(float singleStairDuration, float startDelay, float endDelay, float delayLerpMult = 1)
+        {
+            float delay = startDelay;
+            for (int i = 0; i < rimPoints.Count; i++)
+            {
+                Add(new Coroutine(PopStairOut(i, singleStairDuration)));
+                yield return Calc.LerpClamp(startDelay, endDelay, (float)i / rimPoints.Count * delayLerpMult);
 
+            }
+        }
+        private Coroutine popCoroutine;
+        public void PopStairs(float singleStairDuration, float startDelay, float endDelay)
+        {
+            foreach (VertexPoint p in rimPoints)
+            {
+                p.SpiralMult.X = LowMultThresh;
+                p.Visible = false;
+            }
+            foreach (VertexPoint p in stairAPoints)
+            {
+                p.SpiralMult.X = LowMultThresh;
+                p.Visible = false;
+            }
+            foreach (VertexPoint p in stairBPoints)
+            {
+                p.Alpha = 0;
+                p.Visible = false;
+            }
+            foreach(VertexPoint p in columnPoints)
+            {
+                p.Alpha = 1;
+                p.Visible = true;
+            }
+            popCoroutine.Replace(PopAllStairsOut(singleStairDuration, startDelay, endDelay, 3));
+        }
         public void Initialize(Scene scene)
         {
             if (Initialized) return;
@@ -660,26 +720,33 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         {
             VertCount = 0;
             rimPoints.Clear();
-            insidePoints.Clear();
+            stairAPoints.Clear();
+            stairBPoints.Clear();
+            columnPoints.Clear();
             Lines.Clear();
             for (int i = 0; i < Points.Length; i += step)
             {
                 Vector3 rimPoint = Points[i];
                 Vector3 insidePoint = new Vector3(rimPoint.X * (columnRadius / Radius), rimPoint.Y, rimPoint.Z * (columnRadius / Radius));
                 rimPoint.X *= 1.4f;
-                VertexPoint rim = new(rimPoint, VertCount);
-                VertexPoint inside = new(insidePoint, VertCount + 1);
+                VertexPoint rim = new(rimPoint, VertCount, VertexPoint.Types.Rim);
+                VertexPoint stair = new(rimPoint, VertCount + 1, VertexPoint.Types.Stairs);
+                VertexPoint inside = new(insidePoint, VertCount + 2, VertexPoint.Types.Stairs);
+                VertexPoint column = new(insidePoint, VertCount + 3, VertexPoint.Types.Inside);
                 rimPoints.Add(rim);
-                insidePoints.Add(inside);
-                VertCount += 2;
+                stairAPoints.Add(stair);
+                stairBPoints.Add(inside);
+                columnPoints.Add(column);
+                VertCount += 4;
             }
             for (int i = 0; i < rimPoints.Count; i++)
             {
-                Line line = new Line(Lines.Count, rimPoints[i], insidePoints[i]) { IsRim = false };
+                Line line = new Line(Lines.Count, stairAPoints[i], stairBPoints[i]) { IsRim = false };
                 Lines.Add(line);
                 if (i > 0)
                 {
                     Lines.Add(new Line(Lines.Count, rimPoints[i - 1], rimPoints[i]) { IsRim = true });
+                    Lines.Add(new Line(Lines.Count, columnPoints[i - 1], columnPoints[i]));
                 }
             }
             Vertices = new VertexPositionColor[VertCount];
@@ -705,56 +772,73 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public void UpdateVertices(bool allowLineSort)
         {
             int index = 0;
-            bool dirty = true;
-            for (int i = 0; i < VertCount; i += 2, index++)
+            for (int i = 0; i < VertCount; i += 4, index++)
             {
                 VertexPoint rim = rimPoints[index];
                 rim.WorldOffset = worldOffset;
-                rim.Update(Column.Radius, true);
+                rim.PreUpdate(Column);
+                VertexPoint stair = stairAPoints[index];
+                stair.WorldOffset = worldOffset;
+                stair.PreUpdate(Column);
+                VertexPoint rimToInside = stairBPoints[index];
+                rimToInside.WorldOffset = worldOffset;
+                rimToInside.PreUpdate(Column);
+                VertexPoint columnPoint = columnPoints[index];
+                columnPoint.WorldOffset = worldOffset;
+                columnPoint.PreUpdate(Column);
+            }
+            bool dirty = false;
+            index = 0;
+            for (int i = 0; i < VertCount; i += 4, index++)
+            {
+                VertexPoint rim = rimPoints[index];
+                rim.Update(Column);
                 if (rim.Dirty)
                 {
                     Vertices[i].Position = rim.Position + rim.Offset;
-                    Vertices[i].Color = rim.Type switch
-                    {
-                        Renderer.Types.FG => Color.Yellow,
-                        Renderer.Types.BG => Color.Red,
-                        Renderer.Types.JustAbove => Color.Cyan
-                    };
+                    Vertices[i].Color = rim.Color;
                     rim.Dirty = false;
                     dirty = true;
                 }
-                VertexPoint inside = insidePoints[index];
-                inside.WorldOffset = worldOffset;
-                inside.Update(Column.Radius, false);
-                if (inside.Dirty)
+                VertexPoint stair = stairAPoints[index];
+                stair.Update(Column);
+                if (stair.Dirty)
                 {
-                    Vertices[i + 1].Position = inside.Position + inside.Offset;
-                    Vertices[i + 1].Color = inside.Type switch
+                    Vertices[i + 1].Position = stair.Position + stair.Offset;
+                    Vertices[i + 1].Color = stair.Color;
+                    stair.Dirty = false;
+                    dirty = true;
+                }
+                VertexPoint rimToInside = stairBPoints[index];
+                rimToInside.Update(Column);
+                if (rimToInside.Dirty)
+                {
+                    Vertices[i + 2].Position = rimToInside.Position + rimToInside.Offset;
+                    Vertices[i + 2].Color = rimToInside.Color;
+                    rimToInside.Dirty = false;
+                    dirty = true;
+                }
+                VertexPoint columnPoint = columnPoints[index];
+                columnPoint.Update(Column);
+                if (columnPoint.Dirty)
+                {
+                    Vertices[i + 3].Position = columnPoint.Position + columnPoint.Offset;
+                    Vertices[i + 3].Color = columnPoint.Depth switch
                     {
-                        Renderer.Types.FG => Color.Yellow,
-                        Renderer.Types.BG => Color.Red,
-                        Renderer.Types.JustAbove => Color.Cyan
+                        Renderer.Depths.JustAbove => Color.Black,
+                        _ => Color.Transparent
                     };
-                    inside.Dirty = false;
+                    columnPoint.Dirty = false;
                     dirty = true;
                 }
             }
             if (dirty)
             {
-                if (allowLineSort) Lines.Sort();
-                UpdateRenderers();
-            }
-        }
-        private string indexInfo
-        {
-            get
-            {
-                string output = "";
-                for (int i = 0; i < 3; i++)
+                if (allowLineSort)
                 {
-                    output += Enum.GetName<Renderer.Types>((Renderer.Types)i) + ": " + indexTypeCount[i] + ", ";
+                    Lines.Sort();
                 }
-                return output;
+                UpdateRenderers();
             }
         }
         public void UpdateRenderers()
@@ -795,6 +879,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     }
                 }
             }
+
         }
         public void RecalculatePoints(float radius, float height, int revolutions, float rotationalOffset)
         {
