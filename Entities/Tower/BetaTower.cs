@@ -9,11 +9,11 @@ using System.Collections.Generic;
 using System.Linq;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
 {
-    [CustomEntity("PuzzleIslandHelper/TransitTower")]
+    [CustomEntity("PuzzleIslandHelper/BetaTransitTower")]
     [Tracked]
-    public class Tower : Entity
+    public class BetaTower : Entity
     {
-        [CustomEntity("PuzzleIslandHelper/TowerEntrance")]
+        [CustomEntity("PuzzleIslandHelper/TowerEntranceBeta")]
         [Tracked]
         public class Entrance : Entity
         {
@@ -63,7 +63,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     }
 
                 }));
-                Add(ShakeMod = new LevelShakeModifier(0));
             }
             public override void Added(Scene scene)
             {
@@ -78,7 +77,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     PrePulseFrameOffset = -4,
                     OnPrePulse = () =>
                     {
-                        if (!Flag && PianoModule.Session.CanUseKey)
+                        if (!Flag && PianoModule.Session.FindUnusedTowerKey(false) != null)
                         {
                             pulse(Shine.PulseDelay * 0.6f, 1);
                         }
@@ -107,7 +106,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public override void Update()
             {
                 base.Update();
-                if (!Flag && PianoModule.Session.CanUseKey)
+                if (!Flag && PianoModule.Session.FindUnusedTowerKey(false) != null)
                 {
                     Shine.Alpha = Calc.Approach(Shine.Alpha, (float)(Math.Sin(Scene.TimeActive * 0.9f) + 1) / 2, 15f * Engine.DeltaTime);
                 }
@@ -137,9 +136,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 player.DisableMovement();
                 if (Locked)
                 {
-                    if (PianoModule.Session.CanUseKey)
+                    if (PianoModule.Session.FindUnusedTowerKey(false) is PianoModuleSession.TowerKeyData data)
                     {
-                        PianoModule.Session.KeysUsed++;
+                        data.Used = true;
+
                         Flag.State = true;
                         FlagsToSet.State = true;
                         yield return new SwapImmediately(swap(player));
@@ -158,73 +158,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             private IEnumerator swap(Player player)
             {
-                bool flag = SceneAs<Level>().Session.GetFlag("TowerEarthquake");
-                SceneAs<Level>().Session.SetFlag("TowerEarthquake");
+                /*                bool flag = SceneAs<Level>().Session.GetFlag("TowerEarthquake");
+                                SceneAs<Level>().Session.SetFlag("TowerEarthquake");*/
                 yield return 0.2f;
                 yield return new SwapImmediately(open());
                 yield return 0.3f;
-                if (!flag)
-                {
-                    yield return new SwapImmediately(EarthquakeRoutine(player));
-                }
+                /*                if (!flag)
+                                {
+                                    yield return new SwapImmediately(EarthquakeRoutine(player));
+                                }*/
                 MidSwap(player);
                 yield return 0.7f;
                 yield return new SwapImmediately(close());
-            }
-            private IEnumerator lookAround(Player player)
-            {
-                while (true)
-                {
-                    player.Facing = (Facings)((int)player.Facing * -1);
-                    yield return 0.5f;
-                }
-            }
-            public LevelShakeModifier ShakeMod;
-            public IEnumerator EarthquakeRoutine(Player player)
-            {
-                Camera camera = SceneAs<Level>().Camera;
-                Vector2 position = new Vector2(camera.Right + 40, camera.Top + 90);
-                player.DisableMovement();
-                Coroutine lookingAroundCoroutine;
-                Add(lookingAroundCoroutine = new Coroutine(false));
-                lookingAroundCoroutine.Replace(lookAround(player));
-                //Settings.Instance.DisableScreenShake = false;
-                ShakeMod.Mult = 0.3f;
-                yield return 0.4f;
-                ShakeMod.Mult = 0.7f;
-                yield return 0.4f;
-                ShakeMod.Mult = 1f;
-                lookingAroundCoroutine.Cancel();
-                player.DummyAutoAnimate = false;
-                player.Sprite.Play(PlayerSprite.SitDown);
-                player.Sprite.Rate = 6;
-                yield return 2;
-                if (!SceneAs<Level>().Session.GetFlag("brokeDumbBlock"))
-                {
-                    Audio.Play("event:/game/general/wall_break_stone", position); //dashBlock breaks
-                    yield return 0.5f;
-                }
-                Audio.Play("event:/game/general/fallblock_shake", position); //ledge shakes
-                yield return 0.5f;
-                for (int i = 0; i < 5; i++)
-                {
-                    Audio.Play("event:/game/general/debris_stone", position, "debris-velocity", 80); //ledge snaps
-                    yield return Calc.Random.NextFloat() * 8 * Engine.DeltaTime;
-                }
-                yield return 0.7f;
-                Audio.Play("event:/game/general/fallblock_impact", position + Vector2.UnitY * 48);
-                yield return 2;
-                for (float i = 0; i < 1; i += Engine.DeltaTime / 2)
-                {
-                    ShakeMod.Mult = 1 - i;
-                    yield return null;
-                }
-                ShakeMod.Mult = 0;
-                yield return 1;
-                player.Sprite.Rate = 1;
-                player.Sprite.Reverse(PlayerSprite.SitDown, true);
-                yield return player.Sprite.PlayUtil();
-                player.DummyAutoAnimate = true;
             }
             public void MidSwap(Player player)
             {
@@ -261,8 +206,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public class Bg : Entity
         {
             //public Column.VertexGradient Gradient;
-            public Tower Parent;
-            public Bg(Tower parent, Vector2 position) : base(position)
+            public BetaTower Parent;
+            public Bg(BetaTower parent, Vector2 position) : base(position)
             {
                 Parent = parent;
             }
@@ -279,9 +224,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         public class RodEntity : Solid
         {
-            public Tower Parent;
+            public BetaTower Parent;
             public float Lerp;
-            public RodEntity(Tower parent, Vector2 position, float width, float height) : base(position, width, height, true)
+            public RodEntity(BetaTower parent, Vector2 position, float width, float height) : base(position, width, height, true)
             {
                 Parent = parent;
             }
@@ -313,8 +258,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         {
             public class Cutscene : CutsceneEntity
             {
-                public Tower Parent;
-                public Cutscene(Tower tower) : base(true, true)
+                public BetaTower Parent;
+                public Cutscene(BetaTower tower) : base(true, true)
                 {
                     Parent = tower;
                 }
@@ -372,7 +317,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public TalkComponent Talk;
             public Pulse Pulse;
             public bool InCutscene;
-            public EndingEntity(Tower tower, float yOffset) : base(tower.Position + Vector2.UnitY * yOffset)
+            public EndingEntity(BetaTower tower, float yOffset) : base(tower.Position + Vector2.UnitY * yOffset)
             {
                 Collider = new Hitbox(tower.Width, Math.Abs(yOffset));
                 Rectangle bounds = new Rectangle(0, 0, (int)Width, (int)Height);
@@ -418,7 +363,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public List<Stairs> Stairs = [];
         public Entrance entrance;
         public Entity BgEntity;
-       // public Column.VertexGradient BackWall;
+        // public Column.VertexGradient BackWall;
         public List<Stairs.CustomPlatform> Floors = [];
         private VirtualRenderTarget outsideTarget;
         public Column Col;
@@ -430,11 +375,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public bool Inside => InsideFlag;
         public bool WasInside;
         public bool CanEnter;
-        public Tower(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset - Vector2.UnitX * 8, data.Width + 16, data.Height)
+        public BetaTower(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset - Vector2.UnitX * 8, data.Width + 16, data.Height)
         {
             InsideFlag = new FlagList("insideTower[" + id.Key + ']');
         }
-        public Tower(Vector2 position, float width, float height) : base(position)
+        public BetaTower(Vector2 position, float width, float height) : base(position)
         {
             Collider = new Hitbox(width, height);
             outsideTarget = VirtualContent.CreateRenderTarget("outsideOfTower", (int)Width, (int)Height);
@@ -445,7 +390,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            
+
         }
         public override void Update()
         {
@@ -462,21 +407,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             bool inside = InsideFlag;
             entrance.Alpha = OutsideAlpha;
-/*            if (inside)
-            {
-                Enable();
-                bool hidePlayer = false;
-                float shade = 0;
-                Col.HidesPlayer = hidePlayer;
-                PlayerShade.Amount = Calc.Approach(PlayerShade.Amount, shade, Engine.DeltaTime * 3f);
-                OutsideAlpha = Calc.Approach(OutsideAlpha, 0, Engine.DeltaTime * 3f);
-            }
-            else
-            {
-                Disable();
-                OutsideAlpha = Calc.Approach(OutsideAlpha, 1, Engine.DeltaTime * 3f);
-                PlayerShade.Amount = Calc.Approach(PlayerShade.Amount, 0, Engine.DeltaTime * 3f);
-            }*/
+            /*            if (inside)
+                        {
+                            Enable();
+                            bool hidePlayer = false;
+                            float shade = 0;
+                            Col.HidesPlayer = hidePlayer;
+                            PlayerShade.Amount = Calc.Approach(PlayerShade.Amount, shade, Engine.DeltaTime * 3f);
+                            OutsideAlpha = Calc.Approach(OutsideAlpha, 0, Engine.DeltaTime * 3f);
+                        }
+                        else
+                        {
+                            Disable();
+                            OutsideAlpha = Calc.Approach(OutsideAlpha, 1, Engine.DeltaTime * 3f);
+                            PlayerShade.Amount = Calc.Approach(PlayerShade.Amount, 0, Engine.DeltaTime * 3f);
+                        }*/
             WasInside = inside;
         }
         public void Enable()
@@ -506,13 +451,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         private void BeforeRender()
         {
-/*            if (outsideRendered) return;
-            outsideRendered = true;
-            outsideTarget.SetAsTarget();
-            outsideTarget.DrawThenMask(
-                mask: () => { Draw.Rect(entrance.X - X, entrance.Y - Y, entrance.Width, entrance.Height, Color.White); },
-                render: () => { Column.VertexGradient.DrawGradient(Matrix.Identity, Vector2.Zero, Width, Height, Color.Black, Color.White); },
-                Matrix.Identity);*/
+            /*            if (outsideRendered) return;
+                        outsideRendered = true;
+                        outsideTarget.SetAsTarget();
+                        outsideTarget.DrawThenMask(
+                            mask: () => { Draw.Rect(entrance.X - X, entrance.Y - Y, entrance.Width, entrance.Height, Color.White); },
+                            render: () => { Column.VertexGradient.DrawGradient(Matrix.Identity, Vector2.Zero, Width, Height, Color.Black, Color.White); },
+                            Matrix.Identity);*/
         }
         public override void Render()
         {

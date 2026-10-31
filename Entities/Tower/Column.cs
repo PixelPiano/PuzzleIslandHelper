@@ -41,17 +41,21 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         private float prevPlayerLightAlpha = 1;
         public float TrueBottom;
         public List<Stairs> Stairs = [];
-        public List<Stairs.CustomPlatform> Floors = [];
-
+        public List<StairLock> Locks = [];
+        //public List<Stairs.CustomPlatform> Floors = [];
+        public Vector2 OrigPosition;
         private int floors;
         private int revolutionsPerFloor;
         private float stairsRadius;
         private string[] flags;
-
-
-        public Column(EntityData data, Vector2 offset) : this(data.Position + offset, data.Width, data.Height, data.Float("stairsRadius"), data.Int("floors"), data.Int("revolutionsPerFloor"), data.Attr("flags").Split(',')) { }
-        public Column(Vector2 position, float width, float height, float stairsRadius, int floors, int revolutionsPerFloor, params string[] flags) : base(position)
+        private string lockPrefix;
+        public BetterShaker XShaker;
+        private Vector2 shakeVector;
+        private Vector2 dustPosition;
+        public Column(EntityData data, Vector2 offset) : this(data.Position + offset, data.Attr("lockPrefix"), data.Width, data.Height, data.Float("stairsRadius"), data.Int("floors"), data.Int("revolutionsPerFloor"), data.Attr("flags").Split(',')) { }
+        public Column(Vector2 position, string lockPrefix, float width, float height, float stairsRadius, int floors, int revolutionsPerFloor, params string[] flags) : base(position)
         {
+            this.lockPrefix = lockPrefix;
             this.stairsRadius = stairsRadius;
             this.floors = floors;
             this.revolutionsPerFloor = revolutionsPerFloor;
@@ -62,61 +66,162 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Occlude.Alpha = 0;
             this.flags = flags;
             Depth = 2;
+            Add(new PostUpdateHook(postUpdate));
+            Add(XShaker = new BetterShaker(OnShake));
+        }
+        public void ShakeFor(float time = -1)
+        {
+            XShaker.ShakeFor(time);
+        }
+        public void StopShaking()
+        {
+            XShaker.StopShaking();
+        }
+        public void OnShake(Vector2 shake)
+        {
+            Vector2 vec = shake.XComp();
+            shakeVector += vec;
+            foreach (Stairs s in Stairs)
+            {
+                s.OnShake(vec);
+            }
+            foreach (StairLock l in Locks)
+            {
+                l.OnShake(vec);
+            }
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            float floorHeight = Height / floors;
-            Vector2 p = BottomCenter - new Vector2(stairsRadius, floorHeight);
+            Y += Height;
+            FloorHeight = Height / floors;
+            Vector2 p = BottomCenter - new Vector2(stairsRadius, FloorHeight);
             for (int i = 0; i < floors; i++)
             {
-                Stairs stairs = new Stairs(this, p, stairsRadius * 2, floorHeight, revolutionsPerFloor, 1, -1, flags != null && i < flags.Length ? new FlagList(flags[i]) : default);
+                Stairs stairs = new Stairs(this, lockPrefix + i, p, stairsRadius * 2, FloorHeight, revolutionsPerFloor, 1, -1, flags != null && i < flags.Length ? new FlagList(flags[i]) : default);
                 scene.Add(stairs);
                 Stairs.Add(stairs);
-                p.Y -= floorHeight;
+                p.Y -= FloorHeight;
             }
             bool needsTopFloor = true;
-            foreach (Stairs stairs in Stairs)
-            {
-                Stairs.CustomPlatform floor = new Stairs.CustomPlatform(new Vector2(X, stairs.Bottom), (int)Width);
-                scene.Add(floor);
-                if (stairs.Y == Top)
-                {
-                    needsTopFloor = false;
-                }
-            }
-            if (needsTopFloor)
-            {
-                Stairs.CustomPlatform topFloor = new Stairs.CustomPlatform(new Vector2(X, Top), (int)Width);
-                scene.Add(topFloor);
-            }
+            /*            foreach (Stairs stairs in Stairs)
+                        {
+                            Stairs.CustomPlatform floor = new Stairs.CustomPlatform(new Vector2(X, stairs.Bottom), (int)Width);
+                            scene.Add(floor);
+                            if (stairs.Y == Top)
+                            {
+                                needsTopFloor = false;
+                            }
+                        }
+                        if (needsTopFloor)
+                        {
+                            Stairs.CustomPlatform topFloor = new Stairs.CustomPlatform(new Vector2(X, Top), (int)Width);
+                            scene.Add(topFloor);
+                        }*/
             if (Stairs.Count > 0) ///
             {
                 Stairs = [.. Stairs.OrderByDescending(item => item.Bottom)];
             }
 
             Add(PlayerShade = new PlayerShade(0));
-            Add(PlayerHider = new PlayerHider(Vector2.Zero, (int)Width, (int)Height));
+            Add(PlayerHider = new PlayerHider(Vector2.Zero, (int)Width, Math.Min((int)Height, 40)));
             PlayerHider.Disabled = true;
             foreach (Stairs stairs in Stairs) ///
             {
                 stairs.Initialize(scene);
             }
-            foreach (Stairs.CustomPlatform a in PianoUtils.SeekControllers<Stairs.CustomPlatform>(scene))
+        }
+        public float FloorHeight;
+        private bool canSpawnDust;
+        public int FloorsUnlocked
+        {
+            get
             {
-                Floors.Add(a);
+                int output = 0;
+                for (int i = 0; i < Stairs.Count; i++)
+                {
+                    if (SceneAs<Level>().Session.GetFlag("TowerLock:" + lockPrefix + i))
+                    {
+                        output++;
+                    }
+                }
+                return output;
             }
-            Floors = [.. Floors.OrderBy(item => item.Y)];
+        }
+        public void AssignStairPriorities(int floorsUnlocked)
+        {
+            if (!Stairs[^1].TopStairs)
+            {
+                Stairs[^1].CreateAndAddTopPlatform(Scene);
+            }
+            foreach (Stairs s in Stairs)
+            {
+                s.BottomStairs = false;
+            }
+            Stairs[floorsUnlocked].BottomStairs = true;
         }
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
+            Stairs[^1].CreateAndAddTopPlatform(scene);
+            Collider.Height += 40;
+            Y -= 40;
+            OrigPosition = Position;
+            for (int i = 0; i < Stairs.Count; i++)
+            {
+                StairLock stairLock = new StairLock(Stairs[i].TopCenter - Vector2.UnitY * 20, lockPrefix + i, "", true, StairLock.States.Decayed);
+                Scene.Add(stairLock);
+                Locks.Add(stairLock);
+            }
+            MoveToY(Y - FloorHeight * FloorsUnlocked);
             if (scene.GetPlayer() is Player player)
             {
                 prevPlayerLightAlpha = player.Light.Alpha;
             }
+            Level level = scene as Level;
+            float levelBottom = level.Bounds.Bottom;
+            float y = Top;
+            Vector2 pos = TopCenter;
+            while (pos.Y <= levelBottom && !scene.CollideCheck<Solid>(pos + Vector2.UnitY))
+            {
+                pos.Y++;
+            }
+            if (pos.Y <= levelBottom)
+            {
+                dustPosition = pos;
+                canSpawnDust = true;
+            }
         }
         private float shadeTarget;
+        public void MoveToY(float y)
+        {
+            if (Y != y)
+            {
+                foreach (Stairs s in Stairs)
+                {
+                    s.MoveV(y - Y);
+                }
+                foreach (StairLock l in Locks)
+                {
+                    l.Y += y - Y;
+                }
+                Y = y;
+            }
+        }
+        public IEnumerator MoveRoutine(float to, float speed, int floorsUnlocked)
+        {
+            while (Y != to)
+            {
+                float next = Calc.Approach(Y, to, speed * Engine.DeltaTime);
+                MoveToY(next);
+                yield return null;
+            }
+            foreach (StairLock l in Locks)
+            {
+                l.UpdateTalkBounds();
+            }
+            AssignStairPriorities(floorsUnlocked);
+        }
         public override void Update()
         {
             base.Update();
@@ -153,11 +258,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
 
             if (Scene.GetPlayer() is Player player)
             {
+                PlayerHider.Position.Y = Math.Max(20, player.Y - 20 - Top);
                 player.Light.Alpha = Calc.Approach(player.Light.Alpha, prevPlayerLightAlpha, Engine.DeltaTime);
                 Occlude.Visible = !PlayerHider.Disabled;
             }
+
+            if (canSpawnDust && XShaker.Shaking && Scene.OnInterval(0.1f))
+            {
+                SceneAs<Level>().ParticlesFG.Emit(ParticleTypes.Dust, 4, dustPosition, Vector2.UnitX * (Width / 2 + 8), Color.White);
+            }
+
+        }
+        public void postUpdate()
+        {
             Camera camera = SceneAs<Level>().Camera;
-            UpdateVertices(Position, Width, Height, Color.Black, Color.White, Alpha);
+            Vector2 p = Position + shakeVector;
+            p.Y = Math.Max(camera.Y - 16, p.Y);
+            float height = Math.Min(212, Bottom - Math.Max(camera.Y, Top) + 32);
+            UpdateVertices(p, Width, height, Color.Black, Color.White, Alpha);
+            //update vertices to only render a segment that covers the camera height + some padding
         }
         public override void Render()
         {
@@ -177,7 +296,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 player.Light.Alpha = prevPlayerLightAlpha;
             }
             Stairs.RemoveSelves();
-            Floors.RemoveSelves();
+            Locks.RemoveSelves();
         }
         public void UpdateVertices(Vector2 position, float width, float height, Color edge, Color middle, float alpha)
         {

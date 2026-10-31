@@ -19,9 +19,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private bool removeSelfOnLerpFinish;
         private float lerpTimeRemaining;
         public bool UseRawDeltaTime;
-        public PlayerShade(float shade) : base(false, true)
+        public PlayerShade(float shade) : this()
         {
             Amount = shade;
+        }
+        public PlayerShade() : base(false, true)
+        {
+
         }
         public void StopLerp()
         {

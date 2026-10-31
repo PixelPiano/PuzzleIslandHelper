@@ -42,7 +42,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         {
             base.Update();
             Eye eye = Scene.Tracker.GetEntity<Eye>();
-            Talk.Enabled = eye != null && !(eye.Type == Eye.Types.Backend && OrbFlags.BlueCollected) && !(eye.Type == Eye.Types.Transit && OrbFlags.GreenCollected);
+            Talk.Enabled = eye != null && eye.Type switch
+            {
+                Eye.Types.Backend => !OrbFlags.BlueCollected,
+                Eye.Types.Transit => !OrbFlags.GreenCollected,
+                _ => false
+            };
         }
     }
 }

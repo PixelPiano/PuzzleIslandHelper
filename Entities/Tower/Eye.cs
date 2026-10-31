@@ -7,7 +7,7 @@ using System.Collections;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
 {
-    [CustomEntity("PuzzleIslandHelper/BackendTowerEye")]
+    [CustomEntity("PuzzleIslandHelper/TowerEye")]
     [Tracked]
     public class Eye : Entity
     {
@@ -23,7 +23,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         private Coroutine testCoroutine;
         public Vector3 ModelScale = Vector3.One;
         public float Size;
-        public FlagData PortalFlag;
         public enum Types
         {
             Backend,
@@ -32,8 +31,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public Types Type;
         public Eye(EntityData data, Vector2 offset) : base(data.Position + offset)
         {
-            Type = data.Enum("type", Types.Transit);
-            PortalFlag = data.Flag("portalFlag");
+            Type = data.Enum("type", Types.Backend);
             string textData = data.Attr("textData");
             string[] array = textData.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             TextData = new HeavenlyText.Data[array.Length];
@@ -45,37 +43,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Size = Math.Min(data.Width, data.Height);
             testCoroutine = new Coroutine(false);
             Add(testCoroutine);
-            KeyComponent.ForKey(this, Microsoft.Xna.Framework.Input.Keys.Q, () =>
-            {
-                if (!gate.StateTransitioning)
-                {
-                    gate.StateTransitioning = true;
-                }
-                else
-                {
-                    gate.State = (gate.State + 1) % 4;
-                }
-            });
-
-            KeyComponent.ForKey(this, Microsoft.Xna.Framework.Input.Keys.S, () =>
-            {
-                Player player = Scene.GetPlayer();
-                if (player != null)
-                {
-                    player.MoveToY(player.Y + debug);
-                }
-            });
-            KeyComponent.ForKey(this, Microsoft.Xna.Framework.Input.Keys.A, () =>
-            {
-                debug--;
-            });
-            KeyComponent.ForKey(this, Microsoft.Xna.Framework.Input.Keys.D, () =>
-            {
-                debug++;
-            });
         }
-        private int debug;
-
         public override void Added(Scene scene)
         {
             base.Added(scene);
@@ -124,16 +92,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                         gate = new Portal(Center, Width);
                         Scene.Add(gate);
                         yield return gate.Intro();*/
-            yield return null;
-        }
-        public IEnumerator HeavenlyVoicesRoutine(HeavenlyText.Data data)
-        {
-            HeavenlyText text = new HeavenlyText(data.Main, data.Red, data.Green, data.Blue);
-            Scene.Add(text);
-            while (!text.Finished)
-            {
-                yield return null;
-            }
             yield return null;
         }
     }

@@ -158,7 +158,24 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public int Index;
         public string FullID => $"{ID}+{ParentID}";
         public MapData MapData;
-        public Vector2 WorldPosition => RoomOffset + PositionInRoom + CenterOffset;
+        public Vector2 WorldPosition
+        {
+            get
+            {
+                try
+                {
+                    return RoomOffset + PositionInRoom + CenterOffset;
+                }
+                catch
+                {
+                    bool mapDataNull = MapData == null;
+                    bool roomIsEmpty = string.IsNullOrEmpty(Room);
+                    bool levelDoesntExist = MapData.Get(Room) == null;
+                    Logger.Log("puzzle", "Node: true, MapDataNull: " + mapDataNull + ", roomEmpty: " + roomIsEmpty + ", levelExists: " + !levelDoesntExist);
+                    throw;
+                }
+            }
+        }
         public Vector2 RoomOffset => MapData.Get(Room).Position;
         public string Room;
         public CompassData ParentData;
@@ -183,7 +200,24 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public string ID;
         public string Room;
         public MapData MapData;
-        public Vector2 WorldPosition => RoomOffset + PositionInRoom + CenterOffset;
+        public Vector2 WorldPosition
+        {
+            get
+            {
+                try
+                {
+                    return RoomOffset + PositionInRoom + CenterOffset;
+                }
+                catch
+                {
+                    bool mapDataNull = MapData == null;
+                    bool roomIsEmpty = string.IsNullOrEmpty(Room);
+                    bool levelDoesntExist = MapData.Get(Room) == null;
+                    Logger.Log("puzzle", "Node: false, MapDataNull: " + mapDataNull + ", roomEmpty: " + roomIsEmpty + ", levelExists: " + !levelDoesntExist);
+                    throw;
+                }
+            }
+        }
         public Vector2 RoomOffset => MapData.Get(Room).Position;
         public Dictionary<Directions, HashSet<CompassNodeData>> Nodes = []; //sorted by distance to node
         public CompassData(string id, Vector2 positionInRoom, string room, MapData mapData)
@@ -290,9 +324,18 @@ namespace Celeste.Mod.PuzzleIslandHelper
             }
         }
     }
+    public class TowerEntranceData
+    {
+        public string ID;
+        public string Room;
+        public Vector2 PositionInRoom;
+        public Facings Facing;
+        public int Height;
+    }
     public class PianoMapDataProcessor : EverestMapDataProcessor
     {
         private string levelName;
+        public static readonly Dictionary<string, Dictionary<string, TowerEntranceData>> TowerEntrances = [];
         public static readonly Dictionary<string, Dictionary<string, string>> IPAddressTeleports = [];
         public static readonly Dictionary<string, List<PortalNodeData>> PortalNodes = [];
         public static readonly Dictionary<string, List<BitrailData>> Bitrails = [];
@@ -342,6 +385,7 @@ namespace Celeste.Mod.PuzzleIslandHelper
             Reset(CompassData, key);
             Reset(AscwiitCodes, key);
             Reset(FrequencyDecalTargets, key);
+            Reset(TowerEntrances, key);
         }
         [Command("print_markers", "")]
         public static void PrintMarkers()
@@ -357,6 +401,32 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public override Dictionary<string, Action<BinaryPacker.Element>> Init()
         {
             string key = AreaKey.GetFullID();
+            Action<BinaryPacker.Element> towerEntranceData = data =>
+            {
+                if (TowerEntrances[key] == null)
+                {
+                    TowerEntrances[key] = [];
+                }
+                string id = data.Attr("entranceID");
+                if (!TowerEntrances[key].ContainsKey(id))
+                {
+                    string facing = data.Attr("facing");
+                    Facings facings = default;
+                    if(facing == "Left")
+                    {
+                        facings = Facings.Left;
+                    }
+                    TowerEntranceData data2 = new()
+                    {
+                        ID = id,
+                        Room = levelName,
+                        PositionInRoom = new Vector2(data.AttrFloat("x"), data.AttrFloat("y")),
+                        Facing = facings,
+                        Height = (int)data.AttrFloat("height")
+                    };
+                    TowerEntrances[key].Add(id, data2);
+                }
+            };
             Action<BinaryPacker.Element> frequencyDecalTargetData = data =>
             {
                 if (FrequencyDecalTargets[key] == null)
@@ -615,6 +685,12 @@ namespace Celeste.Mod.PuzzleIslandHelper
                         if (levelName.StartsWith("lvl_")) {
                             levelName = levelName.Substring(4);
                         }
+                    }
+                },
+                {
+                    "entity:PuzzleIslandHelper/TowerEntrance", entrance =>
+                    {
+                        towerEntranceData(entrance);
                     }
                 },
                 {

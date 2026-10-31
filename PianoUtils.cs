@@ -2854,6 +2854,7 @@ public static class PianoUtils
             player.Hair.MoveHairBy(val);
             return;
         }
+        
         level.OnEndOfFrame += delegate
         {
             Facings facing = player.Facing;

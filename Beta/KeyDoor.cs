@@ -1,13 +1,16 @@
 using Celeste.Mod.Entities;
 using Celeste.Mod.PuzzleIslandHelper.Components;
+using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
 using System.Collections;
 
 // PuzzleIslandHelper.LabDoor
-namespace Celeste.Mod.PuzzleIslandHelper.Entities
+namespace Celeste.Mod.PuzzleIslandHelper.Beta
 {
-    [CustomEntity("PuzzleIslandHelper/KeyDoor")]
+    //version 2 of the tower key barriers
+    //scrapped after the towers were redesigned to be climbed in a single room
+    //[CustomEntity("PuzzleIslandHelper/KeyDoor")]
     [Tracked]
     public class KeyDoor : Entity
     {
@@ -30,7 +33,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private DotX3 Talk;
         private float limit = 0.7f;
 
-        public static int KeysLeft => PianoModule.Session.KeysObtained - PianoModule.Session.KeysUsed;
+        //public static int KeysLeft => PianoModule.Session.KeysObtained - PianoModule.Session.KeysUsed;
         public bool Registered => SceneAs<Level>().Session.GetFlag("KeyDoor:" + MarkerID);
         public KeyDoor(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset)
         {
@@ -71,12 +74,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Removed(scene);
             target?.Dispose();
         }
-        public bool HasKey => KeysLeft != 0;
+        //public bool HasKey => KeysLeft != 0;
         public bool RequiresFlag => Mode == Modes.Flag;
         public bool RequiresKey => Mode == Modes.Keys;
-        public bool LoadOpened => (RequiresFlag && Flag) || Registered;
-        public bool CanTalk => !opening && (!Closed || (HasKey && RequiresKey) || (Flag && RequiresFlag));
-        public bool CanFade => !Closed || (HasKey && RequiresKey) || (Flag && RequiresFlag);
+        public bool LoadOpened => RequiresFlag && Flag || Registered;
+        public bool CanTalk => !opening && (!Closed || /*HasKey && */RequiresKey || Flag && RequiresFlag);
+        public bool CanFade => !Closed || /*HasKey && */RequiresKey || Flag && RequiresFlag;
         public bool Closed => YLerp == 0;
         private float masterFade;
         public override void Update()
@@ -130,9 +133,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                     {
                         if (!Registered)
                         {
-                            if (KeysLeft > 0)
+                            if (true)//KeysLeft > 0)
                             {
-                                PianoModule.Session.KeysUsed++;
+                                //PianoModule.Session.KeysUsed++;
                                 SceneAs<Level>().Session.SetFlag("KeyDoor:" + MarkerID);
                                 Input.Dash.ConsumePress();
                                 Open(false);
@@ -152,15 +155,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             while (true)
             {
                 yield return 0.5f;
-                yield return PianoUtils.Lerp(Ease.SineInOut, 1.5f, f => FlashLerp = f, true);
+                yield return Ease.SineInOut.Lerp(1.5f, f => FlashLerp = f, true);
                 yield return 0.5f;
-                yield return PianoUtils.ReverseLerp(Ease.SineInOut, 1.5f, f => FlashLerp = f, true);
+                yield return Ease.SineInOut.ReverseLerp(1.5f, f => FlashLerp = f, true);
             }
         }
         [Command("give_pi_key", "")]
         public static void GiveKey(int num = 1)
         {
-            PianoModule.Session.KeysObtained+= num;
+            //PianoModule.Session.KeysObtained+= num;
         }
         public class WipeTeleport : Entity
         {
@@ -214,12 +217,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private IEnumerator openRoutine()
         {
             opening = true;
-            yield return new SwapImmediately(PianoUtils.Lerp(Ease.Linear, 0.2f, f =>
+            yield return new SwapImmediately(Ease.Linear.Lerp(0.2f, f =>
             {
                 YLerp = f * 0.1f;
             }));
             yield return 0.2f;
-            yield return new SwapImmediately(PianoUtils.Lerp(Ease.SineInOut, 1, f =>
+            yield return new SwapImmediately(Ease.SineInOut.Lerp(1, f =>
             {
                 YLerp = Calc.LerpClamp(0.1f, limit, f);
             }));

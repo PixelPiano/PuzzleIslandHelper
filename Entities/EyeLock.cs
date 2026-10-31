@@ -139,10 +139,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
                 talked = true;
                 Input.Dash.ConsumePress();
                 LockActor?.Drop();
-                if (UnlockMode == UnlockModes.Key)
-                {
-                    PianoModule.Session.KeysUsed++;
-                }
                 if (flagDelay > 0)
                 {
                     delayAlarm = Alarm.Set(this, flagDelay, () =>
@@ -225,7 +221,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             return UnlockMode switch
             {
-                UnlockModes.Key => PianoModule.Session.KeysObtained - PianoModule.Session.KeysUsed > 0,
                 UnlockModes.Flag => (bool)RequiredFlags,
                 _ => true,
             };

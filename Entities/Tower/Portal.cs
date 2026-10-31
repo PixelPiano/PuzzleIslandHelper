@@ -37,7 +37,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public VertexOrb[] Capsules = new VertexOrb[3];
         public VertexOrb CenterHole, GlowOrb;
         public VertexLine[] CenterLines = new VertexLine[3];
-        public SpikeVertexLine[] SpikeLines;
+        //public SpikeVertexLine[] SpikeLines;
         public Vector2[] CornerOffsets = new Vector2[3];
         public VertexOffsetComponent[] TriOffsets = new VertexOffsetComponent[6];
         public VertexOffsetComponent[] OutlineOrbAlphaOffsets = new VertexOffsetComponent[MaxOrbCorners * 3];
@@ -60,7 +60,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         public float TriOffsetMult;
         private bool afterImagesActive;
-        private SpikeVertexLine testLine;
+        //private SpikeVertexLine testLine;
         public int State
         {
             get => StateMachine.State;
@@ -94,18 +94,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             StateMachine.SetCallbacks(StTwoOrb, TwoOrbUpdate, TwoOrbTransition, TwoOrbBegin, TwoOrbEnd);
             StateMachine.SetCallbacks(StDead, DeadUpdate, null, DeadBegin, DeadEnd);
             this.startState = startState;
-            KeyComponent.ForKey(this, Microsoft.Xna.Framework.Input.Keys.T, () =>
-            {
-                State = StTwoOrb;
-                if (Scene.Tracker.GetEntity<PortalAttackCutscene>() is PortalAttackCutscene entity)
-                {
-                    entity.RemoveSelf();
-                }
-                else
-                {
-                    Scene.Add(new PortalAttackCutscene(this, true));
-                }
-            });
+            /*            KeyComponent.ForKey(this, Microsoft.Xna.Framework.Input.Keys.T, () =>
+                        {
+                            State = StTwoOrb;
+                            if (Scene.Tracker.GetEntity<PortalAttackCutscene>() is PortalAttackCutscene entity)
+                            {
+                                entity.RemoveSelf();
+                            }
+                            else
+                            {
+                                Scene.Add(new PortalAttackCutscene(this, true));
+                            }
+                        });*/
         }
         public void InactiveBegin()
         {
@@ -187,19 +187,27 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             OutlineLengthPercent = 1;
             if (!doFlicker) StartFlicker();
-
-            if (OrbFlags.BlueCollected) EnsureOrbIsAttaching(OrbColors.BFill, OrbColors.BCenter, OrbColors.BEdge, () => new BlueMemoryOrb(Vector2.Zero));
-            else EnsureOrbIsAttaching(OrbColors.GFill, OrbColors.GCenter, OrbColors.GEdge, () => new GreenMemoryOrb(Vector2.Zero));
-
-
+            if (OrbFlags.BlueCollected) //if blue has already been set in the portal
+            {
+                EnsureOrbIsAttaching(OrbColors.BFill, OrbColors.BCenter, OrbColors.BEdge, () => new BlueMemoryOrb(Vector2.Zero));
+            }
+            else if (OrbFlags.GreenCollected)
+            {
+                EnsureOrbIsAttaching(OrbColors.GFill, OrbColors.GCenter, OrbColors.GEdge, () => new GreenMemoryOrb(Vector2.Zero));
+            }
+            else if (!EnsureOrbIsAttaching<BlueMemoryOrb>(OrbColors.BFill, OrbColors.BCenter, OrbColors.BEdge, null))
+            {
+                EnsureOrbIsAttaching<GreenMemoryOrb>(OrbColors.GFill, OrbColors.GCenter, OrbColors.GEdge, null);
+            }
             UpdateVertices();
         }
-        public void EnsureOrbIsAttaching<T>(Color fill, Color center, Color edge, Func<T> factory) where T : MemoryOrb
+        public bool EnsureOrbIsAttaching<T>(Color fill, Color center, Color edge, Func<T> factory) where T : MemoryOrb
         {
             T orb = Scene.Tracker.GetEntity<T>();
             if (orb == null)
             {
-                Scene.Add(orb = factory.Invoke());
+                if (factory != null) Scene.Add(orb = factory.Invoke());
+                else return false;
             }
             orb.AttachToPortal(this);
             orb.CenterColor = center;
@@ -207,6 +215,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             orb.EdgeColor = edge;
             orb.Orb.FillColorLerp = orb.Orb.EdgeColorLerp = orb.Orb.CenterColorLerp = 0;
             orb.Orb.Visible = true;
+            return true;
 
         }
         public int OneOrbUpdate()
@@ -381,6 +390,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         private float[] capsuleColorLerps = new float[3];
         private readonly Color[] capsuleAltColors = [Color.Red, Color.Lime, Color.Blue];
 
+        private float[] capsuleRotations = new float[3];
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
@@ -914,122 +924,122 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         {
             Tween.Set(this, Tween.TweenMode.Oneshot, inDuration, ease, t => TriOffsetMult = t.Eased, t => TriOffsetMult = 1);
         }
-        public class SpikeVertexLine : GraphicsComponent
-        {
-            public VertexPositionColor[] Vertices;
-            public class Data
-            {
-                public float SinTimeOffset;
-                public Vector2 Offset;
-                public float Target;
-            }
-            public float Angle;
-            public float Length;
-            public int Spikes;
-            public float MaxHeight;
-            private SineWave wave;
-            public List<Data> WobbleData = [];
-            public double FactorMult = 1;
-            public float CenterOffsetAmount;
-            public bool MethodA;
-            public SpikeVertexLine(Vector2 position, float angle, float length, float maxHeight, int spikes) : base(true)
-            {
-                wave = new SineWave(2);
-                wave.StartUp();
-                Position = position;
-                Angle = angle;
-                Length = length;
-                Spikes = spikes;
-                MaxHeight = maxHeight;
-                Vertices = new VertexPositionColor[Spikes + 2];
-                for (int i = 0; i < Vertices.Length; i++)
+        /*        public class SpikeVertexLine : GraphicsComponent
                 {
-                    Vertices[i].Color = Color.White;
-                }
-            }
-            public override void Added(Entity entity)
-            {
-                base.Added(entity);
-                for (int i = 0; i < Spikes; i++)
-                {
-                    var d = new Data();
-                    d.SinTimeOffset = Calc.Random.Range(0, 1f);
-                    WobbleData.Add(d);
-                }
-
-                UpdateVertices();
-            }
-            public override void Update()
-            {
-                base.Update();
-                wave.Update();
-                UpdateVertices();
-            }
-            public override void DebugRender(Camera camera)
-            {
-                base.DebugRender(camera);
-                Vector2 prev = Vertices[0].Position.XY();
-                for (int i = 1; i < Vertices.Length; i++)
-                {
-                    Vector2 current = Vertices[i].Position.XY();
-                    Draw.Line(prev, current, Color.White * 0.5f);
-                    prev = current;
-                }
-            }
-            public void DrawLines()
-            {
-                Matrix matrix = SceneAs<Level>().Camera.Matrix;
-                PianoUtils.DrawUserPrimitives(PrimitiveType.LineStrip, matrix, Vertices, Spikes + 2);
-            }
-            public void DirectRenderVertices()
-            {
-                if (CenterOffsetAmount < Spikes / 2)
-                {
-                    Engine.Instance.GraphicsDevice.DrawUserPrimitives(PrimitiveType.LineStrip, Vertices, 0, Spikes);
-                }
-            }
-            public void UpdateVertices()
-            {
-                Vector2 lineAngleOffset = Calc.AngleToVector(Angle, Length / 2);
-                Vector2 from = RenderPosition + lineAngleOffset;
-                Vector2 to = RenderPosition - lineAngleOffset;
-
-                Vertices[0].Position = from.ToVec3();
-                Vertices[^1].Position = to.ToVec3();
-
-
-                int dir = 1;
-                double factor = 0.0099999997764825821 * FactorMult;
-                for (int i = 0; i < Spikes; i++)
-                {
-                    float sin = (wave.ValueOffset(WobbleData[i].SinTimeOffset) + 1) / 2f;
-                    float percent = Ease.SineInOut((float)i / Spikes);
-                    float amp = (percent > 0.5f ? 0.5f - (percent - 0.5f) : percent) / 0.5f;
-                    if (MethodA)
+                    public VertexPositionColor[] Vertices;
+                    public class Data
                     {
-                        float length = (amp / 2) * MaxHeight + (amp / 2) * sin * MaxHeight;
-                        Vector2 pointAngleOffset = Calc.AngleToVector(Angle, length * dir);
-                        WobbleData[i].Offset = PianoUtils.RubberbandApproach(WobbleData[i].Offset, pointAngleOffset, 0.05f, factor);
-                        Vertices[i + 1].Position = (Vector2.Lerp(from, to, percent) + WobbleData[i].Offset).ToVec3();
-                        dir *= -1;
+                        public float SinTimeOffset;
+                        public Vector2 Offset;
+                        public float Target;
                     }
-                    else
+                    public float Angle;
+                    public float Length;
+                    public int Spikes;
+                    public float MaxHeight;
+                    private SineWave wave;
+                    public List<Data> WobbleData = [];
+                    public double FactorMult = 1;
+                    public float CenterOffsetAmount;
+                    public bool MethodA;
+                    public SpikeVertexLine(Vector2 position, float angle, float length, float maxHeight, int spikes) : base(true)
                     {
-                        Vector2 pointAngleOffset = Calc.AngleToVector(Angle, WobbleData[i].Target);
-                        WobbleData[i].Offset = PianoUtils.RubberbandApproach(WobbleData[i].Offset, pointAngleOffset, 0.05f, factor);
-                        if (WobbleData[i].Offset == pointAngleOffset)
+                        wave = new SineWave(2);
+                        wave.StartUp();
+                        Position = position;
+                        Angle = angle;
+                        Length = length;
+                        Spikes = spikes;
+                        MaxHeight = maxHeight;
+                        Vertices = new VertexPositionColor[Spikes + 2];
+                        for (int i = 0; i < Vertices.Length; i++)
                         {
-                            WobbleData[i].Target = amp * Calc.Random.Range(MaxHeight / 2, MaxHeight) * -Math.Sign(WobbleData[i].Target);
+                            Vertices[i].Color = Color.White;
                         }
-                        Vertices[i + 1].Position = (Vector2.Lerp(from, to, percent) + WobbleData[i].Offset).ToVec3();
                     }
-                }
+                    public override void Added(Entity entity)
+                    {
+                        base.Added(entity);
+                        for (int i = 0; i < Spikes; i++)
+                        {
+                            var d = new Data();
+                            d.SinTimeOffset = Calc.Random.Range(0, 1f);
+                            WobbleData.Add(d);
+                        }
+
+                        UpdateVertices();
+                    }
+                    public override void Update()
+                    {
+                        base.Update();
+                        wave.Update();
+                        UpdateVertices();
+                    }
+                    public override void DebugRender(Camera camera)
+                    {
+                        base.DebugRender(camera);
+                        Vector2 prev = Vertices[0].Position.XY();
+                        for (int i = 1; i < Vertices.Length; i++)
+                        {
+                            Vector2 current = Vertices[i].Position.XY();
+                            Draw.Line(prev, current, Color.White * 0.5f);
+                            prev = current;
+                        }
+                    }
+                    public void DrawLines()
+                    {
+                        Matrix matrix = SceneAs<Level>().Camera.Matrix;
+                        PianoUtils.DrawUserPrimitives(PrimitiveType.LineStrip, matrix, Vertices, Spikes + 2);
+                    }
+                    public void DirectRenderVertices()
+                    {
+                        if (CenterOffsetAmount < Spikes / 2)
+                        {
+                            Engine.Instance.GraphicsDevice.DrawUserPrimitives(PrimitiveType.LineStrip, Vertices, 0, Spikes);
+                        }
+                    }
+                    public void UpdateVertices()
+                    {
+                        Vector2 lineAngleOffset = Calc.AngleToVector(Angle, Length / 2);
+                        Vector2 from = RenderPosition + lineAngleOffset;
+                        Vector2 to = RenderPosition - lineAngleOffset;
+
+                        Vertices[0].Position = from.ToVec3();
+                        Vertices[^1].Position = to.ToVec3();
 
 
-            }
-            #region spike lines spring to life. each spike line begins at both ends approaching the center of the line. once the two ends meet, the spike line gains a temporary burst of energy that's applied as a multiplier to the spike amplitude.
-            #endregion
-        }
+                        int dir = 1;
+                        double factor = 0.0099999997764825821 * FactorMult;
+                        for (int i = 0; i < Spikes; i++)
+                        {
+                            float sin = (wave.ValueOffset(WobbleData[i].SinTimeOffset) + 1) / 2f;
+                            float percent = Ease.SineInOut((float)i / Spikes);
+                            float amp = (percent > 0.5f ? 0.5f - (percent - 0.5f) : percent) / 0.5f;
+                            if (MethodA)
+                            {
+                                float length = (amp / 2) * MaxHeight + (amp / 2) * sin * MaxHeight;
+                                Vector2 pointAngleOffset = Calc.AngleToVector(Angle, length * dir);
+                                WobbleData[i].Offset = PianoUtils.RubberbandApproach(WobbleData[i].Offset, pointAngleOffset, 0.05f, factor);
+                                Vertices[i + 1].Position = (Vector2.Lerp(from, to, percent) + WobbleData[i].Offset).ToVec3();
+                                dir *= -1;
+                            }
+                            else
+                            {
+                                Vector2 pointAngleOffset = Calc.AngleToVector(Angle, WobbleData[i].Target);
+                                WobbleData[i].Offset = PianoUtils.RubberbandApproach(WobbleData[i].Offset, pointAngleOffset, 0.05f, factor);
+                                if (WobbleData[i].Offset == pointAngleOffset)
+                                {
+                                    WobbleData[i].Target = amp * Calc.Random.Range(MaxHeight / 2, MaxHeight) * -Math.Sign(WobbleData[i].Target);
+                                }
+                                Vertices[i + 1].Position = (Vector2.Lerp(from, to, percent) + WobbleData[i].Offset).ToVec3();
+                            }
+                        }
+
+
+                    }
+                    #region spike lines spring to life. each spike line begins at both ends approaching the center of the line. once the two ends meet, the spike line gains a temporary burst of energy that's applied as a multiplier to the spike amplitude.
+                    #endregion
+                }*/
         public class VertexLine : GraphicsComponent
         {
             public Vector2 From, To;
@@ -1041,12 +1051,20 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             private Color origColor, origColorB;
             private float origFromTo, origToFrom, origColorLerp;
             private Vector2 origFrom, origTo;
+            public Vector2 WobbleOffset;
+            private bool wobbling;
+            private float wobbleTimer;
             public VertexLine(Vector2 from, Vector2 to) : base(true)
             {
                 From = from;
                 To = to;
                 Vertices = new VertexPositionColor[2];
                 Visible = false;
+            }
+            public void StartWobbling(float time = -1)
+            {
+                wobbleTimer = time;
+                wobbling = true;
             }
             public override void Added(Entity entity)
             {
@@ -1076,18 +1094,32 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             {
                 finalColor = Color.Lerp(Color, ColorB, ColorLerp);
                 Vector2 p = RenderPosition;
-                Vertices[0].Position = (p + Vector2.Lerp(From, To, FromToLerp)).ToVec3();
-                Vertices[1].Position = (p + Vector2.Lerp(To, From, ToFromLerp)).ToVec3();
+                Vertices[0].Position = (p + WobbleOffset + Vector2.Lerp(From, To, FromToLerp)).ToVec3();
+                Vertices[1].Position = (p - WobbleOffset + Vector2.Lerp(To, From, ToFromLerp)).ToVec3();
                 Vertices[0].Color = Vertices[1].Color = finalColor;
             }
             public override void Update()
             {
                 base.Update();
-                finalColor = Color.Lerp(Color, ColorB, ColorLerp);
-                Vector2 p = RenderPosition;
-                Vertices[0].Position = (p + Vector2.Lerp(From, To, FromToLerp)).ToVec3();
-                Vertices[1].Position = (p + Vector2.Lerp(To, From, ToFromLerp)).ToVec3();
-                Vertices[0].Color = Vertices[1].Color = finalColor;
+
+                if (wobbleTimer > 0)
+                {
+                    wobbleTimer -= Engine.DeltaTime;
+                    if (wobbleTimer <= 0)
+                    {
+                        wobbleTimer = 0;
+                        wobbling = false;
+                        WobbleOffset = default;
+                    }
+                }
+                if (wobbling)
+                {
+                    if (Scene.OnInterval(0.04f))
+                    {
+                        WobbleOffset = Calc.Random.ShakeVector() * 0.6f;
+                    }
+                }
+                UpdateVertices();
             }
             public void RenderVertices()
             {

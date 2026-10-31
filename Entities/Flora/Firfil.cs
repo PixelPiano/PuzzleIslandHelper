@@ -747,10 +747,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         public static void RestoreFollowers(Leader leader)
         {
             leader.PastPoints.Clear();
-/*            for(int i = 0; i<10; i++)
-            {
-                leader.PastPoints.Add(leader.Entity.Position);
-            }*/
+            /*            for(int i = 0; i<10; i++)
+                        {
+                            leader.PastPoints.Add(leader.Entity.Position);
+                        }*/
             for (int i = 0; i < storedFollowers.Count; i++)
             {
                 Firfil firfil = storedFollowers[i];
@@ -968,7 +968,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Flora
         }
         public void SpawnKey(bool instant)
         {
-            CutsceneHeart key = new(TopCenter - Vector2.UnitY * 32 - Vector2.One * 16, new EntityID(Guid.NewGuid().ToString(), 0), "", false, "", "", KeyID, Color.White, !instant);
+            CutsceneHeart key = new(TopCenter - Vector2.UnitY * 32 - Vector2.One * 16, new EntityID(Guid.NewGuid().ToString(), 0), false, "", false, "", "", KeyID, Color.White, !instant);
             Scene.Add(key);
             KeySpawned = true;
         }

@@ -259,9 +259,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         {
             if (!Reflection)
             {
-                if (PlayerFollowing != null)
+                if (PreviousPlayerFollowing != null)
                 {
-                    float dist = Vector2.Distance(PlayerFollowing.Center, Portal.Center);
+                    float dist = Vector2.Distance(PreviousPlayerFollowing.Center, Portal.Center);
                     if (dist > Portal.RedOrbDetectRadius)
                     {
                         TargetAlpha = HiddenAlpha;
@@ -618,6 +618,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public float Pitch;
         public Matrix YawRollPitch;
         public float YawRate, RollRate, PitchRate;
+        public float WobbleOffset => Orb.WobbleOffset;
+        public float WobbleMult => Orb.WobbleMult;
+        public bool Wobble => Orb.Wobble;
         public enum OrbTypes
         {
             Red,
@@ -673,7 +676,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             {
                 VertexOrb p = Portal.Capsules[(int)OrbType];
                 Position = p.RenderPosition;
-                Orb.UpdateVertices(Position, p.Rotation, Orb.Radius);
+                Orb.UpdateVertices(Position, p.Rotation + Orb.WobbleOffset, Orb.Radius);
             }
         }
         public virtual void OnPortalRenderAfterImages(Portal portal)
@@ -702,6 +705,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         }
         public bool AtPlayer;
         public Player PlayerFollowing;
+        public Player PreviousPlayerFollowing;
         public virtual void FollowPlayerBegin()
         {
             PlayerFollowing = Scene.GetPlayer();
@@ -726,7 +730,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         public virtual void FollowPlayerEnd()
         {
             AtPlayer = false;
+            PreviousPlayerFollowing = PlayerFollowing;
             PlayerFollowing = null;
+
         }
         public void ShakeFor(float time = -1)
         {
@@ -972,22 +978,22 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
             return ShiverMult * lerp * Calc.AngleToVector(angle, Calc.LerpClamp(shiver.CurrentMinIntensity, shiver.CurrentMaxIntensity, indexLerp));
         }
-/*        public Vector2 GetVertexOffset(VertexOrb.VertexType type, int index, float angle)
-        {
-            Vector2 offset = Vector2.Zero;
-            if (type != VertexOrb.VertexType.Center)
-            {
-                if (ShiverMult > 0)
+        /*        public Vector2 GetVertexOffset(VertexOrb.VertexType type, int index, float angle)
                 {
-                    foreach (VertexOrb.Shiver shiver in Orb.Shivers)
+                    Vector2 offset = Vector2.Zero;
+                    if (type != VertexOrb.VertexType.Center)
                     {
-                        offset += GetShiverOffset(shiver, type, index, angle);
+                        if (ShiverMult > 0)
+                        {
+                            foreach (VertexOrb.Shiver shiver in Orb.Shivers)
+                            {
+                                offset += GetShiverOffset(shiver, type, index, angle);
+                            }
+                        }
                     }
+                    return offset;
                 }
-            }
-            return offset;
-        }
-*/
+        */
         public override void Awake(Scene scene)
         {
             base.Awake(scene);
@@ -1089,12 +1095,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             }
         }
         public VertexOrb.Shiver AddShiver(float duration, float startAngle, float maxIntensity, float minIntensity, float angleArea, Ease.Easer ease, Tween.TweenMode tweenMode, float intensityLerpDuration = 0, Ease.Easer vertexEase = null, Ease.Easer intensityLerpEase = null, Action<VertexOrb.Shiver> onEnd = null, Ease.Easer afterLoopEase = null) => Orb.AddShiver(duration, startAngle, maxIntensity, minIntensity, angleArea, ease, tweenMode, intensityLerpDuration, vertexEase, intensityLerpEase, onEnd, afterLoopEase);
-        
+
         public void AddShiver(VertexOrb.Shiver shiver) => Orb.AddShiver(shiver);
         public void RemoveShivers() => Orb.RemoveShivers();
-        
+
         public void FadeShiver(VertexOrb.Shiver shiver, float duration, bool removeOnComplete = true) => Orb.FadeShiver(shiver, duration, removeOnComplete);
         public void FadeAllShivers(float duration, bool removeOnComplete = true) => Orb.FadeAllShivers(duration, removeOnComplete);
         #endregion
+        public float lastUpdatedRotation => Orb.lastUpdatedRotation;
     }
 }

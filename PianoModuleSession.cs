@@ -25,65 +25,55 @@ namespace Celeste.Mod.PuzzleIslandHelper
         Barely,
         Restored
     }
-    public enum Routes
-    {
-        A,
-        B,
-        C
-    }
     public class PianoModuleSession : EverestModuleSession
     {
-        public Routes Route { get; set; }
         public bool RescuedRedOrb { get; set; }
-        [Obsolete("Beta prologue not currently in use")]
-        public List<PrologueGlitchBlock> ActiveGlitchBlocks = new();
-        [Obsolete("Chained Monitors not part of active map")]
-        public List<string> ChainedMonitorsActivated = new();
-        [Obsolete("Potion effects not implemented")]
-        public List<Vector2> PotionTiles { get; set; } = new();
-        [Obsolete("Potion effects not implemented")]
-        public Dictionary<FluidBottle.Side, List<Vector2>> Tiles = new();
-        [Obsolete("Lights icon puzzle deprecated")]
-        public Dictionary<string, List<LightsIcon.LightsIconData>> IconDictionary { get; set; } = new();
-        [Obsolete("Additional transit sub areas not in use")]
-        public Dictionary<EntityID, Vector2> PressedTSwitches = new();
-        [Obsolete("Drill replaced with lasers")]
-        public List<string> DrillBatteryIds = new();
-        [Obsolete("Gameshow scrapped from mod")]
-        public int WasherSwitchAttempts;
-        [Obsolete("Gameshow scrapped from mod")]
-        public int GameshowLivesLost;
-        [Obsolete("Calidus actor scrapped from mod")]
-        public int TimesMetWithCalidus;
-        [Obsolete("Gameshow scrapped from mod")]
-        public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
-        [Obsolete("Doctor office scrapped")]
-        public bool BathroomStallOpened { get; set; }
-
         public HashSet<string> ActivatedBatterySwitches = [];
         public HashSet<string> ActivatedBatteryLines = [];
         public HashSet<string> WorldShifterToStabilizerConnections = [];
         public Dictionary<EntityID, string> StabilizerGroupCombos = [];
         public Dictionary<EntityID, string> StabilizersLastValidCombo = [];
         public TrapdoorChandelier LeaderTimer;
-        public int KeysObtained;
-        public int KeysUsed;
-        public bool CanUseKey => KeysObtained > KeysUsed;
+
+        public class TowerKeyData
+        {
+            public bool Heart;
+            public Color Color = Color.Red;
+            public bool Used;
+            public HashSet<EntityID> LinkedEntityIDs = [];
+        }
+        public List<TowerKeyData> TowerKeys = [];
+        public TowerKeyData FindUnusedTowerKey(bool heart)
+        {
+            foreach (var d in TowerKeys)
+            {
+                if (heart == d.Heart && !d.Used)
+                {
+                    return d;
+                }
+            }
+            return null;
+        }
+        public TowerKeyData FindTowerKeyLinkedToId(EntityID id)
+        {
+            foreach (TowerKeyData data in TowerKeys)
+            {
+                foreach (EntityID entityID in data.LinkedEntityIDs)
+                {
+                    if (entityID.ToString() == id.ToString())
+                    {
+                        return data;
+                    }
+                }
+            }
+            return null;
+        }
         public bool OrbsMerged
         {
             get => orbsMergedFlag;
             set => orbsMergedFlag.State = value;
         }
         private FlagData orbsMergedFlag = new FlagData("PuzzleIsland: OrbsMerged");
-        public bool TryUseKey()
-        {
-            if (CanUseKey)
-            {
-                KeysUsed++;
-                return true;
-            }
-            return false;
-        }
         public HashSet<string> CompletedFrequencyCodeIDs = [];
         public Dictionary<EntityID, List<Statid.Data>> StatidPatchData = [];
         public HashSet<EntityID> AscwiitsWithFirfils = [];
@@ -324,5 +314,29 @@ namespace Celeste.Mod.PuzzleIslandHelper
         public float PotionJumpMult { get; set; } = 1;
         public Vector2 PotionSpeedMult = Vector2.One;
 
+        [Obsolete("Beta prologue not currently in use")]
+        public List<PrologueGlitchBlock> ActiveGlitchBlocks = new();
+        [Obsolete("Chained Monitors not part of active map")]
+        public List<string> ChainedMonitorsActivated = new();
+        [Obsolete("Potion effects not implemented")]
+        public List<Vector2> PotionTiles { get; set; } = new();
+        [Obsolete("Potion effects not implemented")]
+        public Dictionary<FluidBottle.Side, List<Vector2>> Tiles = new();
+        [Obsolete("Lights icon puzzle deprecated")]
+        public Dictionary<string, List<LightsIcon.LightsIconData>> IconDictionary { get; set; } = new();
+        [Obsolete("Additional transit sub areas not in use")]
+        public Dictionary<EntityID, Vector2> PressedTSwitches = new();
+        [Obsolete("Drill replaced with lasers")]
+        public List<string> DrillBatteryIds = new();
+        [Obsolete("Gameshow scrapped from mod")]
+        public int WasherSwitchAttempts;
+        [Obsolete("Gameshow scrapped from mod")]
+        public int GameshowLivesLost;
+        [Obsolete("Calidus actor scrapped from mod")]
+        public int TimesMetWithCalidus;
+        [Obsolete("Gameshow scrapped from mod")]
+        public AltCalidus.AltCalidusScene.States AltCalidusSceneState;
+        [Obsolete("Doctor office scrapped")]
+        public bool BathroomStallOpened { get; set; }
     }
 }

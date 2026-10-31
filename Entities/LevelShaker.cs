@@ -8,9 +8,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     [Tracked]
     public class LevelShakeModifier : BetterShaker
     {
+        public bool SkipIfInactive;
         public float Mult = 1;
+        public Vector2 DirectionalMult = Vector2.One;
         public Vector2 ShakeVector;
         public static Vector2 totalAdditionalShake;
+        public enum Types
+        {
+            AddToValue,
+            MultiplyFinalModifierValue,
+            MultiplyFinalGlobalValue
+        }
+        public Types Type;
         public LevelShakeModifier(float mult = 1) : base(null)
         {
             Mult = mult;
@@ -19,10 +28,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private void onShake(Vector2 amount)
         {
             ShakeVector += amount;
-        }
-        public override void Update()
-        {
-            base.Update();
         }
         [OnLoad]
         public static void Load()
@@ -38,13 +43,36 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private static void Level_BeforeRender(On.Celeste.Level.orig_BeforeRender orig, Level self)
         {
             Vector2 vector = default;
+            Vector2 finalMult = Vector2.One;
+            Vector2 finalGlobalMult = Vector2.One;
             foreach (LevelShakeModifier modifier in self.Tracker.GetComponents<LevelShakeModifier>())
             {
-                vector += modifier.ShakeVector * modifier.Mult;
+                if (modifier.Active || !modifier.SkipIfInactive)
+                {
+                    switch (modifier.Type)
+                    {
+                        case Types.AddToValue:
+                            vector += modifier.ShakeVector * (modifier.DirectionalMult * modifier.Mult);
+                            break;
+                        case Types.MultiplyFinalModifierValue:
+                            finalMult *= modifier.DirectionalMult * modifier.Mult;
+                            break;
+                        case Types.MultiplyFinalGlobalValue:
+                            finalGlobalMult *= modifier.DirectionalMult * modifier.Mult;
+                            break;
+                    }
+                }
             }
+            if (Settings.Instance.ScreenShake == ScreenshakeAmount.Half)
+            {
+                finalMult *= 0.5f;
+            }
+            Vector2 prev = self.ShakeVector;
+            vector *= finalMult;
             self.ShakeVector += vector;
+            self.ShakeVector *= finalGlobalMult;
             orig(self);
-            self.ShakeVector -= vector;
+            self.ShakeVector = prev;
             totalAdditionalShake = vector;
         }
     }

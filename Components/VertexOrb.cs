@@ -1,25 +1,19 @@
-using Celeste.Mod.PuzzleIslandHelper.Entities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Monocle;
-using MonoMod.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.FlowTexture;
-using static Celeste.Mod.PuzzleIslandHelper.Entities.Tower.Portal;
 
 namespace Celeste.Mod.PuzzleIslandHelper.Components
 {
     [Tracked]
     public class VertexOrb : GraphicsComponent
     {
-        public const float WobbleRotationRate = (MathF.PI / 180f);
+        public const float WobbleRotationRate = MathF.PI / 180f;
         public bool Wobble = true;
         public float WobbleMult = 1;
-        private float wobbleOffset;
+        public float WobbleOffset { get; private set; }
         public bool UseRawDeltaTime;
         public float Delta => UseRawDeltaTime ? Engine.RawDeltaTime : Engine.DeltaTime;
         public static BlendState SquashAlphaBlend;
@@ -114,7 +108,8 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         {
             Fill,
             Edge,
-            Center
+            Center,
+            //HalfFill //idea to allow more dynamic "inside" patterns
         }
         public Vector2 RenderOffset;
         /// <summary>
@@ -203,7 +198,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         public List<Func<Color, int, Color>> ogCustomGetFillColor = [];
         public List<Func<Color, int, Color>> ogCustomGetEdgeColor = [];
         public List<Func<Color, Color>> ogCustomGetCenterColor = [];
-
+        
         public Matrix RotationMatrix = Matrix.Identity;
         public float Yaw, Pitch, Roll;
         public VertexOrb(Vector2 position, float radius, int corners, Color color, Color edgeColor = default, float edgeRadiusOffset = 0) : base(true)
@@ -238,7 +233,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         }
         public VertexOrb(VertexOrb c, bool resetPosition = true) : this(resetPosition ? Vector2.Zero : c.Position, c.Radius, c.Corners, c.Color, c.EdgeColor, c.EdgeRadiusOffset)
         {
-            
+
             Wobble = c.Wobble;
             Indices = new int[c.Indices.Length];
             Vertices = new VertexPositionColor[c.Vertices.Length];
@@ -437,10 +432,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
                 }
                 ColorModsToRemove.Clear();
             }
-
-            wobbleOffset = Wobble ? WobbleRotationRate * WobbleMult : 0;
-            float rate = RotationRate;
-            Rotation = (Rotation + rate) % MathHelper.TwoPi;
+            if (Wobble)
+            {
+                WobbleOffset = (WobbleOffset + WobbleRotationRate * WobbleMult) % MathHelper.TwoPi;
+            }
+            else
+            {
+                WobbleOffset = 0;
+            }
+            Rotation = (Rotation + RotationRate) % MathHelper.TwoPi;
             if (AutoUpdateVertices)
             {
                 UpdateVertices();
@@ -503,7 +503,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
         //DO NOT CHANGE ANYTHING ABOUT THE LOOP LOGIC
         //DO NOT CHANGE ANYTHING INVOLVING Corners OR IgnoredLines
         //PLEASE DON'T, JUST LET IT BE
-        public void UpdateVertices() => UpdateVertices(RenderPosition + RenderOffset + Shake * ShakeMult, Rotation + wobbleOffset, Radius);
+        public void UpdateVertices() => UpdateVertices(RenderPosition + RenderOffset + Shake * ShakeMult, Rotation + WobbleOffset, Radius);
         public void OffsetVertices(Vector2 offset)
         {
             Vector3 offset3 = offset.ToVec3();
@@ -517,10 +517,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Components
             }
 
         }
+        public float lastUpdatedRotation;
         public void UpdateVertices(Vector2 renderPosition, float rotation, float radius)
         {
             if (Baked)
             {
+                lastUpdatedRotation = rotation;
                 Vector3 position = new Vector3(renderPosition, 0);
                 RotationMatrix = Matrix.CreateFromYawPitchRoll(Yaw, Pitch, Roll);
                 Color fillColor = Color.Lerp(Color, ColorB, FillColorLerp);

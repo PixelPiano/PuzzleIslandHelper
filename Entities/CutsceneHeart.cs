@@ -13,9 +13,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
     public class CutsceneHeart : Entity
     {
         [TrackedAs(typeof(HeartGem))]
-        internal class Heart : Model3D
+        internal class TowerKeyModel : Model3D
         {
-            public Heart(Vector2 position, MTexture texture) : base("Models/PuzzleIslandHelper/sigil", position)
+            public TowerKeyModel(Vector2 position, MTexture texture) : base("Models/PuzzleIslandHelper/sigil", position)
             {
                 Collider = new Hitbox(24, 24);
                 Texture = texture.Texture.Texture_Safe;
@@ -29,7 +29,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Wiggler scaleWiggler;
         private Wiggler moveWiggler;
         public string flag;
-        internal Heart heart;
+        internal TowerKeyModel key;
         private bool Collected;
         private string room;
         private string returnRoom;
@@ -37,8 +37,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
         private Cutscene cutscene;
         private bool startPulse;
         public Action OnAwakePulse;
-        public CutsceneHeart(Vector2 position, EntityID id, string sprite, bool teleportsPlayer, string room, string returnRoom, string flag, Color color, bool startPulse) : base(position)
+        public bool IsHeart;
+        public Color Color;
+        public CutsceneHeart(Vector2 position, EntityID id, bool heart, string sprite, bool teleportsPlayer, string room, string returnRoom, string flag, Color color, bool startPulse) : base(position)
         {
+            IsHeart = heart;
             ID = id;
             spriteName = sprite;
             TeleportsPlayer = teleportsPlayer;
@@ -46,31 +49,31 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             this.returnRoom = returnRoom;
             this.flag = flag;
             Tag = Tags.TransitionUpdate;
-            heart = new Heart(Position, GFX.Game["objects/PuzzleIslandHelper/white"]);
-            heart.Color = color;
+            key = new TowerKeyModel(Position, GFX.Game["objects/PuzzleIslandHelper/white"]);
+            key.Color = color;
             Add(scaleWiggler = Wiggler.Create(0.5f, 4f, delegate (float f)
             {
-                heart.Scale = Vector3.One * (1f + f * 0.3f);
+                key.Scale = Vector3.One * (1f + f * 0.3f);
             }));
-            heart.Add(moveWiggler = Wiggler.Create(0.8f, 2, delegate (float f)
+            key.Add(moveWiggler = Wiggler.Create(0.8f, 2, delegate (float f)
             {
                 if (!Collected)
                 {
-                    heart.Position = Position + (moveWiggleDir * f * -8f);
+                    key.Position = Position + (moveWiggleDir * f * -8f);
                 }
             }));
             moveWiggler.StartZero = true;
-            heart.Add(new PlayerCollider(OnPlayer));
+            key.Add(new PlayerCollider(OnPlayer));
             this.startPulse = startPulse;
         }
-        public CutsceneHeart(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Attr("sprite"), data.Bool("teleportsPlayer"), data.Attr("room")
+        public CutsceneHeart(EntityData data, Vector2 offset, EntityID id) : this(data.Position + offset, id, data.Bool("heart"), data.Attr("sprite"), data.Bool("teleportsPlayer"), data.Attr("room")
             , data.Attr("returnRoom"), data.Attr("flag"), data.HexColor("color", Color.White), false)
         {
         }
         public override void Added(Scene scene)
         {
             base.Added(scene);
-            scene.Add(heart);
+            scene.Add(key);
         }
         public override void Awake(Scene scene)
         {
@@ -88,7 +91,12 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             if (player.DashAttacking)
             {
                 Add(new Coroutine(Collect(player, level)));
-                PianoModule.Session.KeysObtained++;
+                PianoModule.Session.TowerKeys.Add(new PianoModuleSession.TowerKeyData()
+                {
+                    Heart = IsHeart,
+                    Used = false,
+                    Color = key.Color
+                });
                 Collected = true;
             }
             else
@@ -101,14 +109,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             scaleWiggler.Start();
             if (player != null)
             {
-                player.PointBounce(heart.Center);
+                player.PointBounce(key.Center);
                 moveWiggler.Start();
-                moveWiggleDir = (heart.Center - player.Center).SafeNormalize(Vector2.UnitY);
+                moveWiggleDir = (key.Center - player.Center).SafeNormalize(Vector2.UnitY);
             }
             Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
             if (sfx && bounceSfxDelay <= 0f)
             {
-                Audio.Play("event:/game/general/crystalheart_bounce", heart.Position);
+                Audio.Play("event:/game/general/crystalheart_bounce", key.Position);
                 bounceSfxDelay = 0.1f;
             }
         }
@@ -147,11 +155,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             level.Session.SetFlag("InCutsceneHeartCutscene");
             level.Session.SetFlag(flag);
             Visible = false;
-            heart.Visible = false;
-            heart.Collidable = false;
+            key.Visible = false;
+            key.Collidable = false;
             Collidable = false;
             level.Shake();
-            SoundEmitter.Play(collectSound, heart);
+            SoundEmitter.Play(collectSound, key);
             Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
 
             level.Flash(Color.White, drawPlayerOver: true);
@@ -272,7 +280,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities
             base.Update();
             if (!Collected)
             {
-                heart.Pitch += Engine.DeltaTime;
+                key.Pitch += Engine.DeltaTime;
                 bounceSfxDelay = Math.Max(0, bounceSfxDelay - Engine.DeltaTime);
             }
         }

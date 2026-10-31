@@ -11,7 +11,6 @@ using MonoMod.RuntimeDetour;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
@@ -21,13 +20,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
     public class Stairs : Entity
     {
         [CustomEntity("PuzzleIslandHelper/TowerPlatform")]
-        [TrackedAs(typeof(JumpThru))]
         [Tracked]
+        [TrackedAs(typeof(JumpThru))]
         public class CustomPlatform : JumpThru
         {
             public float NoCollideTimer;
             public bool Disabled;
             private bool timerBlocked;
+            public Vector2 RenderOffset;
             public CustomPlatform(Vector2 position, int width) : base(position, width, true)
             {
             }
@@ -38,7 +38,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             public override void Render()
             {
                 base.Render();
-                Draw.Rect(Collider, Color.LightGray);
+                Draw.Rect(Collider.AbsoluteLeft + RenderOffset.X, Collider.AbsoluteTop + RenderOffset.Y, Collider.Width, Collider.Height, Color.LightGray);
             }
             public override void Update()
             {
@@ -88,33 +88,35 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
             public Renderer.Depths Depth;
             public Types Type;
+            public Vector3 Position;
+            private Vector3 prevPosition;
+            public Vector3 Offset;
+            private Vector3 prevOffset;
             public Vector3 SpiralOffset;
-
-            public int Index;
             public Vector3 WorldOffset;
             public Vector3 SpiralMult = Vector3.One;
+
+            public int Index;
             public Color Tint = Color.White;
+            public Color Color;
+            private Color prevColor;
             public float LowMultAlpha = 1;
             public float LowMultLerpMax = 1;
             public float Alpha = 1;
-            public Color Color;
-            public Vector3 Position;
-            public Vector3 Offset;
-            private Vector3 prevOffset;
-            private Vector3 prevPosition;
-            private Color prevColor;
             public bool Dirty = true;
             public VertexPoint Next;
             public VertexPoint Prev;
             public bool Visible = true;
             public float Expand; //concept to turn lines into double-polygons
             public bool InColumn, InFront, InLeftHalf;
+            public bool DepthFlip = true;
             public void PreUpdate(Column column)
             {
                 Vector3 spiralPosition = SpiralOffset * SpiralMult;
                 Position = spiralPosition + WorldOffset;
                 Color = Tint * Alpha;
                 InColumn = Math.Abs(spiralPosition.X) <= column.Radius;
+                if (DepthFlip) spiralPosition.X *= -1;
                 InFront = spiralPosition.Z >= 0;
                 InLeftHalf = spiralPosition.X < 0;
                 if ((InFront && !InLeftHalf) || (Type == Types.Inside && InFront))
@@ -145,7 +147,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 {
                     if (InLeftHalf && InColumn)
                     {
-                        Offset.X = column.Left - Position.X;
+                        if (DepthFlip)
+                        {
+                            Offset.X = column.Right - Position.X;
+                        }
+                        else
+                        {
+                            Offset.X = column.Left - Position.X;
+                        }
                     }
                     else
                     {
@@ -158,6 +167,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
                 prevColor = Color;
                 prevPosition = Position;
+            }
+        }
+        [Tracked]
+        [TrackedAs(typeof(JumpThru))]
+        public class StairsPlatform : JumpThru
+        {
+            public StairsPlatform(Vector2 position, int width, bool safe) : base(position, width, safe)
+            {
             }
         }
         public const float LowMultThresh = 0.4333f;
@@ -254,18 +271,16 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             }
         }
         public bool RenderOnce = true;
-        public bool Enabled = true;
+        public bool Enabled;
         public int Revolutions;
         public bool RidingPlatform;
-        public CustomPlatform TopPlatform;
-        public float TopPlatformCollisionTimer;
-        public JumpThru Platform;
+        public StairsPlatform Platform;
         private float NoCollideTimer;
         private float allowDescentTimer;
         public bool DisablePlatform;
         private Vector2 PrevPosition;
         public float Radius => Width / 2;
-        public float HalfWave => (Height / Revolutions);
+        public float HalfWave => (Height / Revolutions / 2);
         public int XScale;
         public int ZScale;
 
@@ -287,16 +302,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         private float forceAscentTimer;
         public Vector2 LastSign;
         public bool WaitForUpInput;
+        public bool WaitForDownInput;
         public int CurrentFloor;
-        public float CurrentZ;
+        public float PlayerZ;
         public bool Initialized;
         public int PlatformYOffset;
         public bool WasRidingPlatform;
-        public bool AtTop;
-        public bool WasAtTop;
+        public bool AtTop => Platform.Top == Top;
+        public bool AtBottom => Platform.Top == Bottom;
         private bool waitUntilNotCollidingWithTopPlatform;
         public float XMult = 1;
-
+        public bool Animating => !stairsCoroutine.Finished;
         private FlagList collidableFlag;
         public Renderer[] Renderers = new Renderer[3];
         private List<VertexPoint> rimPoints = [];
@@ -307,19 +323,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public VertexPositionColor[] Vertices;
         public int VertCount;
         public Column Column;
+        public CustomPlatform TopPlatform;
+        public float TopPlatformNoCollideTimer;
         public Vector2 AutoMoveDirection;
         public bool AutoAscend; //wip, automatically moves the player up the spiral staircase without input
         public bool HidePlayer;
         public float ShadeAmount;
         public Vector3[] Points;
         private static ILHook speedHook;
-        public Stairs(Column column, Vector2 position, float width, float height, int revolutions, int xFlipScale, int zFlipScale, FlagList collidableFlag = default) : base(position)
+        public string LockID;
+
+        public Stairs(Column column, string lockID, Vector2 position, float width, float height, int revolutions, int xFlipScale, int zFlipScale, FlagList collidableFlag = default) : base(position)
         {
-            Add(popCoroutine = new Coroutine(false));
+            LockID = lockID;
+            Add(stairsCoroutine = new Coroutine(false));
             Column = column;
             this.collidableFlag = collidableFlag;
             XScale = xFlipScale;
-            ZScale = zFlipScale;
+            //ZScale = zFlipScale;
+            ZScale = -1;
             AddTag(Tags.TransitionUpdate);
             Collider = new Hitbox(width, height);
             Revolutions = revolutions;
@@ -327,17 +349,71 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Renderers[1] = new Renderer(this, Renderer.Depths.JustAbove, 1, (int)width, (int)height);
             Renderers[2] = new Renderer(this, Renderer.Depths.FG, -4, (int)width, (int)height);
             Depth = 2;
-            KeyComponent.ForKey(entity: this, Keys.G, () =>
+            Add(new PostUpdateHook(() =>
             {
-                PopStairs(0.5f, 0.4f, 0.05f);
-            });
+                if (Enabled || Animating) UpdateVertices(false);
+
+                if (!AtTop && MathHelper.Distance(Platform.Top, Top) < 0.5f)
+                {
+                    Platform.MoveToY(Top, 0);
+                    Platform.Y = Top;
+                    //idk, this took me so long this stoopid booty fart chud entity needs to get a job
+                }
+                if (!AtBottom && MathHelper.Distance(Platform.Top, Bottom) < 0.5f)
+                {
+                    Platform.Y = Bottom;
+                }
+                if (AtTop && !TopStairs && Platform.GetPlayerRider() is Player player)
+                {
+                    if (CollideFirst<Stairs>(Position - Vector2.UnitY) is Stairs stairs)
+                    {
+                        if (stairs.Enabled)
+                        {
+                            stairs.Platform.Top = stairs.Bottom;
+                            player.Bottom = stairs.Platform.Top;
+                            stairs.Platform.Collidable = true;
+                            stairs.NoCollideTimer = 0;
+                            player.MuffleLanding = true;
+                            Alarm.Set(this, Engine.DeltaTime * 3, () => { player.MuffleLanding = false; });
+                        }
+                    }
+                }
+            }));
         }
         public bool matrixTest;
         public float LastActiveTime;
+        public bool Rising;
+        public Vector2 OrigPosition;
+        public bool TopStairs;
+        public bool BottomStairs;
+        private Vector2 shakeOffset;
+        public void OnShake(Vector2 shake)
+        {
+            shakeOffset += shake;
+            if (TopStairs)
+            {
+                TopPlatform.RenderOffset = shakeOffset;
+            }
+
+        }
         public override void Added(Scene scene)
         {
             base.Added(scene);
+            OrigPosition = Position;
+            if (string.IsNullOrEmpty(LockID) || SceneAs<Level>().Session.GetFlag("TowerLock:" + LockID))
+            {
+                Enabled = true;
+            }
             scene.Add(Renderers);
+            SnapStairs(Enabled);
+        }
+        public void MoveV(float amount)
+        {
+            Y += amount;
+            if (TopPlatform != null)
+            {
+                TopPlatform.MoveV(amount, 0);
+            }
         }
         public override void Update()
         {
@@ -345,28 +421,41 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             base.Update();
             int moveX = AutoAscend ? (int)AutoMoveDirection.X : Input.MoveX;
             int moveY = AutoAscend ? (int)AutoMoveDirection.Y : Input.MoveY;
-            if (Enabled)
+            if (Enabled && !Animating)
             {
-                if (PrevPosition.Y != Bottom && Platform.Top == Bottom)
+                Vector2 stairCheckDir = AtTop ? -Vector2.UnitY : AtBottom ? Vector2.UnitY : Vector2.Zero;
+                if (BottomStairs)
                 {
-                    WaitForUpInput = true;
+                    if (AtBottom)
+                    {
+                        WaitForUpInput = true;
+                    }
+                    if (WaitForUpInput)
+                    {
+                        LastRiddenFloor = null;
+                        PlatformTo(Bottom, true);
+                        if (moveY == -1 && player.Bottom > Bottom - HalfWave / 2)
+                        {
+                            if (player.CollideCheck(Platform) && player.CollideCheck<Column>())
+                            {
+                                player.Bottom = Platform.Top;
+                            }
+                            WaitForUpInput = false;
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
                 }
-                if (WaitForUpInput)
+                else if (RidingPlatform && stairCheckDir != Vector2.Zero && CollideFirst<Stairs>(Position + stairCheckDir) is Stairs stairs && stairs.Enabled && !stairs.Animating)
                 {
-                    PlatformTo(Bottom, true);
-                    if (moveY == -1 && player.Bottom > Bottom - HalfWave / 2)
-                    {
-                        WaitForUpInput = false;
-                    }
-                    else
-                    {
-                        return;
-                    }
+                    player.Bottom = stairs.Platform.Top;
+                    stairs.Platform.Collidable = true;
+                    stairs.NoCollideTimer = 0;
                 }
                 WasRidingPlatform = RidingPlatform;
                 RidingPlatform = player.IsRiding(Platform);
-                UpdateVertices(false);
-
                 float xPosInCollider = Calc.Clamp(player.X - CenterX, -Radius, Radius) * XScale;
                 float yPosInCollider = Calc.Clamp(player.Bottom - Top, 0, Height);
                 float halfWavesFromTop = (yPosInCollider + HalfWave / 2) / HalfWave;
@@ -392,14 +481,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
                 else
                 {
-                    bool outsideColumn = player.Right <= Column.Left || player.Left >= Column.Right;
-                    if (outsideColumn)
+                    bool outsideColumnX = player.Right <= Column.Left || player.Left >= Column.Right;
+                    if (outsideColumnX)
                     {
                         HidePlayer = false;
                     }
                     if (!CollideCheck<Player>())
                     {
-                        LastRiddenFloor = Revolutions;
+                        LastRiddenFloor = Revolutions * 2;
                     }
                 }
                 if (moveY == -1 || !RidingPlatform)
@@ -484,7 +573,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 if (Platform != null)
                 {
                     Platform.Collidable = player.Speed.Y >= 0 && Collidable && NoCollideTimer == 0 && !DisablePlatform && collidableFlag;
-                    if (!RidingPlatform)
+                    if (!RidingPlatform && Platform.Collidable)
                     {
                         if (distFromCenter < Column.Width / 2)
                         {
@@ -496,8 +585,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                     }
                 }
                 distFromCenter = Math.Abs(player.CenterX - CenterX);
-                CurrentZ = GetZ(y);
-                bool collidingWithStairs = player.CollideCheck(this);
+                PlayerZ = GetZ(y);// * ZScale;
 
                 if (player.Bottom >= Bottom || distFromCenter < Column.Width / 2 + 6)
                 {
@@ -505,11 +593,15 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
                 if (player.Bottom > Top && player.Top <= Bottom)
                 {
+                    if (player.OnGround(1, true))
+                    {
+                        LastRiddenFloor = null;
+                    }
                     if (LastRiddenFloor.HasValue)
                     {
                         if (LastRiddenFloor.Value % 2 == CurrentFloor % 2)
                         {
-                            if (CurrentZ < 0) ShadeAmount = Math.Abs(CurrentZ) / Radius;
+                            if (PlayerZ < 0) ShadeAmount = Math.Abs(PlayerZ) / Radius;
                         }
                         else if (distFromCenter < Column.Width / 2 + 3)
                         {
@@ -519,8 +611,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                         int val = Math.Clamp(Math.Abs(XScale), 0, 1);
 
                         //if in column AND last floor would have hidden player
-                        HidePlayer = distFromCenter < Column.Width / 2 + 6 && LastRiddenFloor.Value % 2 != val;
-
+                        HidePlayer = distFromCenter < Column.Width / 2 + 6 && (LastRiddenFloor.Value % 2 != val) != DepthFlip;
                     }
                 }
 
@@ -534,7 +625,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
                 else if (PlatformYOffset != 0)
                 {
-                    if (player.IsRiding(TopPlatform) && !player.IsRiding(Platform))
+                    if (TopStairs && player.IsRiding(TopPlatform) && !player.IsRiding(Platform))
                     {
                         PlatformYOffset = 0;
                     }
@@ -550,7 +641,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 {
                     player.Bottom = Platform.Top;
                     //prevents the player from magically falling through the stairs for no apparent reason
-                    //it's sloppy but i genuinely tried my best to fix it intuitively and I couldn't figure that shit out
+                    //it's sloppy but i genuinely tried my best to fix it intuitively and I couldn't figure it out
                 }
                 if (LastFloor != CurrentFloor && Platform.Collidable && !RidingPlatform)
                 {
@@ -564,9 +655,9 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 }
                 RidingPlatform = Platform.HasPlayerRider();
                 //push the player onto the top platform so they don't fall through it when they reach the top.
-                if (RidingPlatform && PrevPosition.Y != Top && Platform.ExactPosition.Y == Top)
+                if (TopStairs && RidingPlatform && PrevPosition.Y != Top && Platform.ExactPosition.Y == Top)
                 {
-                    player.MoveV(TopPlatform.Top - player.Bottom);
+                    player.Bottom = TopPlatform.Top;
                 }
                 LastFloor = CurrentFloor;
             }
@@ -577,34 +668,40 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 LastRiddenFloor = LastFloor;
                 WasRidingPlatform = false;
                 RidingPlatform = false;
-                CurrentZ = GetZ(posInCollider);
+                PlayerZ = GetZ(posInCollider);
                 LastSign.X = Math.Sign(GetX(posInCollider - 1));
                 LastSign.Y = -1;
                 PrevPosition = BottomCenter;
                 ShadeAmount = 0;
                 HidePlayer = false;
             }
-            if (Collidable)
+            /*            if (Animating)
+                        {
+                            UpdateVertices(false);
+                        }*/
+            if (Collidable && TopStairs)
             {
-                if (player.Y < Top)
+                if (player.Y <= Top)
                 {
                     TopPlatform.Collidable = true;
+                    Platform.Collidable = false;
                 }
+
                 //let player descend from top of stairs if they are holding down
-                if ((moveY == 1 && TopPlatform.HasPlayerRider() && player.CenterX >= CenterX && player.CenterX < CenterX + Platform.Width * 2))
+                if (moveY == 1 && TopPlatform.HasPlayerRider() && player.CenterX >= CenterX && player.CenterX < CenterX + Platform.Width * 2)
                 {
                     Platform.Collidable = true;
-                    TopPlatformCollisionTimer = 0.3f;
+                    TopPlatformNoCollideTimer = 0.3f;
                 }
 
                 //top platform is intangible until the timer reaches 0 AND the player is no longer colliding with it.
-                if (TopPlatformCollisionTimer > 0)
+                if (TopPlatformNoCollideTimer > 0)
                 {
                     TopPlatform.Collidable = false;
-                    TopPlatformCollisionTimer -= Engine.DeltaTime;
-                    if (TopPlatformCollisionTimer < 0)
+                    TopPlatformNoCollideTimer -= Engine.DeltaTime;
+                    if (TopPlatformNoCollideTimer < 0)
                     {
-                        TopPlatformCollisionTimer = 0;
+                        TopPlatformNoCollideTimer = 0;
                         waitUntilNotCollidingWithTopPlatform = true;
                     }
                 }
@@ -619,13 +716,13 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                         TopPlatform.Collidable = true;
                         waitUntilNotCollidingWithTopPlatform = false;
                     }
+
                 }
             }
             if (RidingPlatform && Platform.ExactPosition.Y != Top)
             {
                 LastActiveTime = Scene.TimeActive;
             }
-
         }
 
         public override void DebugRender(Camera camera)
@@ -643,77 +740,115 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         {
             base.Removed(scene);
             Platform.RemoveSelf();
-            TopPlatform.RemoveSelf();
+            TopPlatform?.RemoveSelf();
             Renderers.RemoveSelves();
         }
-        public IEnumerator PopStairOut(int index, float time)
+        private Coroutine stairsCoroutine;
+        public void SnapStair(int index, bool extended)
         {
             VertexPoint rim = rimPoints[index];
             VertexPoint stair = stairAPoints[index];
             VertexPoint stairB = stairBPoints[index];
             VertexPoint inside = columnPoints[index];
+            if (extended)
+            {
+                rim.Visible = stair.Visible = stairB.Visible = inside.Visible = true;
+                rim.SpiralMult.X = stair.SpiralMult.X = 1;
+                stairB.Alpha = inside.Alpha = 1;
+            }
+            else
+            {
+                rim.Visible = stair.Visible = stairB.Visible = false;
+                inside.Visible = true;
+                rim.SpiralMult.X = stair.SpiralMult.X = LowMultThresh;
+                stairB.Alpha = 0;
+                inside.Alpha = 1;
+            }
+        }
+        public void SnapStairs(bool extended)
+        {
+            stairsCoroutine.Cancel();
+            for (int i = 0; i < rimPoints.Count; i++)
+            {
+                SnapStair(i, extended);
+            }
+        }
+        public void ExtendStairs(float singleStairDuration, float startDelay, float endDelay)
+        {
+            SnapStairs(false);
+            stairsCoroutine.Replace(ExtendStairsRoutine(singleStairDuration, startDelay, endDelay, 3));
+        }
+        public IEnumerator ExtendSingleStairRoutine(int index, float time)
+        {
+            VertexPoint rim = rimPoints[index];
+            VertexPoint stairA = stairAPoints[index];
+            VertexPoint stairB = stairBPoints[index];
+            VertexPoint column = columnPoints[index];
             rim.Visible = true;
-            stair.Visible = true;
+            stairA.Visible = true;
             stairB.Visible = true;
-            inside.Visible = true;
+            column.Visible = true;
             for (float i = 0; i < 1; i += Engine.DeltaTime / time)
             {
                 float ease = Ease.BounceOut(i);
                 float mult = Calc.LerpClamp(LowMultThresh, 1, ease);
-                rim.SpiralMult.X = stair.SpiralMult.X = mult;
+                rim.SpiralMult.X = stairA.SpiralMult.X = mult;
                 stairB.Alpha = Calc.LerpClamp(0, 1, i);
-                inside.Alpha = Calc.LerpClamp(1f, 0, i);
+                column.Alpha = Calc.LerpClamp(1f, 0, Ease.UpDown(ease));
                 yield return null;
             }
-            rim.SpiralMult.X = stair.SpiralMult.X = 1;
+            rim.SpiralMult.X = stairA.SpiralMult.X = 1;
             stairB.Alpha = 1;
-            inside.Alpha = 0;
-            inside.Visible = false;
+            column.Alpha = 1;
         }
-        public IEnumerator PopAllStairsOut(float singleStairDuration, float startDelay, float endDelay, float delayLerpMult = 1)
+        public float StairsExtendCameraOffsetY;
+        public IEnumerator ExtendStairsRoutine(float singleStairDuration, float startDelay, float endDelay, float delayLerpMult = 1)
         {
-            float delay = startDelay;
+            StairsExtendCameraOffsetY = 0;
+            List<Coroutine> coroutines = [];
             for (int i = 0; i < rimPoints.Count; i++)
             {
-                Add(new Coroutine(PopStairOut(i, singleStairDuration)));
-                yield return Calc.LerpClamp(startDelay, endDelay, (float)i / rimPoints.Count * delayLerpMult);
+                Coroutine coroutine = new Coroutine(ExtendSingleStairRoutine(i, singleStairDuration));
+                Add(coroutine);
+                coroutines.Add(coroutine);
+                float delay = Calc.LerpClamp(startDelay, endDelay, (float)i / rimPoints.Count * delayLerpMult);
+                if (i < rimPoints.Count - 1)
+                {
+                    float currentY = rimPoints[i].Position.Y;
+                    float nextY = rimPoints[i + 1].Position.Y;
+                    float from = StairsExtendCameraOffsetY;
+                    Ease.Easer easer = i == 0 ? Ease.SineIn : i == rimPoints.Count - 2 ? Ease.SineOut : Ease.Linear;
+                    for (float j = 0; j < 1; j += Engine.DeltaTime / delay)
+                    {
+                        StairsExtendCameraOffsetY = Calc.LerpClamp(from, from + (nextY - currentY), easer(j));
+                        yield return null;
+                    }
+                    StairsExtendCameraOffsetY = from + (nextY - currentY);
+                }
+                else
+                {
+                    yield return delay;
+                }
 
             }
-        }
-        private Coroutine popCoroutine;
-        public void PopStairs(float singleStairDuration, float startDelay, float endDelay)
-        {
-            foreach (VertexPoint p in rimPoints)
+            foreach (var c in coroutines)
             {
-                p.SpiralMult.X = LowMultThresh;
-                p.Visible = false;
+                while (!c.Finished) yield return null;
             }
-            foreach (VertexPoint p in stairAPoints)
-            {
-                p.SpiralMult.X = LowMultThresh;
-                p.Visible = false;
-            }
-            foreach (VertexPoint p in stairBPoints)
-            {
-                p.Alpha = 0;
-                p.Visible = false;
-            }
-            foreach(VertexPoint p in columnPoints)
-            {
-                p.Alpha = 1;
-                p.Visible = true;
-            }
-            popCoroutine.Replace(PopAllStairsOut(singleStairDuration, startDelay, endDelay, 3));
+            SnapStairs(true);
         }
         public void Initialize(Scene scene)
         {
             if (Initialized) return;
             Initialized = true;
-            RecalculatePoints(Width / 2, Height, Revolutions, 0);
-            Platform = new(Points[^1].XY() + TopCenter, 16, true);
-            TopPlatform = new CustomPlatform(new Vector2(Column.X, Y), (int)(Column.Width));
-
+            RecalculatePoints(Width / 2, Height, Revolutions * 2, 0);
+            Platform = new(Points.Last().XY() + TopCenter, 32, true);
             scene.Add(Platform);
+        }
+        public void CreateAndAddTopPlatform(Scene scene)
+        {
+            TopStairs = true;
+            TopPlatform = new CustomPlatform(new Vector2(Column.X, Y), (int)(Column.Width));
             scene.Add(TopPlatform);
         }
         public void CreateVertices(float columnRadius, float stairsRadiusOffset, int step = 1)
@@ -737,6 +872,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 stairAPoints.Add(stair);
                 stairBPoints.Add(inside);
                 columnPoints.Add(column);
+                rim.DepthFlip = stair.DepthFlip = inside.DepthFlip = column.DepthFlip = DepthFlip;
                 VertCount += 4;
             }
             for (int i = 0; i < rimPoints.Count; i++)
@@ -772,6 +908,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         public void UpdateVertices(bool allowLineSort)
         {
             int index = 0;
+            worldOffset = (TopCenter + shakeOffset).ToVec3();
             for (int i = 0; i < VertCount; i += 4, index++)
             {
                 VertexPoint rim = rimPoints[index];
@@ -886,7 +1023,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Points = GetPoints(radius, height, height / revolutions, rotationalOffset);
             CreateVertices(Column.Radius, Radius, 3);
         }
-        public void RecalculatePoints() => RecalculatePoints(Radius, Height, Revolutions, 0);
 
         public void Enable()
         {
@@ -907,7 +1043,6 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             Platform.Collidable = false;
             TopPlatform.Collidable = true;
             forceAscentTimer = 0;
-            AtTop = WasAtTop = false;
         }
 
         public void PlatformTo(float y, bool naive = false)
@@ -922,7 +1057,7 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 Platform.MoveToY(Calc.Clamp(y, Top, Bottom));
             }
         }
-
+        public bool DepthFlip = true;
         public Vector3[] GetPoints(float radius, float height, float halfWave, float angleOffset = 0)
         {
             List<Vector3> points = [];
@@ -931,10 +1066,17 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             {
                 for (int j = 0; j < halfWave; j++)
                 {
-                    Vector3 point = GetPoint(radius, i * halfWave + j, halfWave, angleOffset);
+                    float y = i * halfWave + j;
+                    Vector3 point = GetPoint(radius, y, halfWave, angleOffset);
+                    //if(FlipDepth) point.Z *= -1;
                     points.Add(point);
                 }
             }
+            /*            for (int j = 0; j < halfWave; j++)
+                        {
+                            Vector3 point = GetPoint(radius, y: floors * halfWave + j, halfWave, angleOffset);
+                            points.Add(point);
+                        }*/
             return [.. points];
         }
         public Vector3 GetPoint(float radius, float y, float halfWavelength, float angleOffset = 0)
@@ -953,14 +1095,14 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             float yPosInCollider = Calc.Clamp(y - Top, 0, Height);
             float halfWavesFromTop = (yPosInCollider + halfWave / 2) / halfWave;
             if ((int)halfWavesFromTop % 2 != 0) xPosInCollider *= -1;
-            y = halfWave * (float)Math.Asin(xPosInCollider / radius) / (float)Math.PI;
+            y = halfWave * (float)Math.Asin(xPosInCollider / radius) / (float)MathHelper.PiOver2;
             y += (int)halfWavesFromTop * halfWave;
             y = Calc.Clamp(y, 0, Height);
             return y;
         }
         public float GetZ(float radius, float y, float halfWavelength, float angleOffset = 0)
         {
-            return (float)(double)(radius * Math.Cos(angleOffset + y * Math.PI / halfWavelength)) * ZScale;
+            return (float)(double)(radius * Math.Cos(angleOffset + y * Math.PI / halfWavelength));
         }
         public float GetZ(float y) => GetZ(Radius, y, HalfWave, 0);
 

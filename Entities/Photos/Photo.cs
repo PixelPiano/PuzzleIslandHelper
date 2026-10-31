@@ -15,6 +15,7 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 namespace Celeste.Mod.PuzzleIslandHelper.Entities.Photos
 {
+    //wip
     public class PhotoData
     {
         public HashSet<string> Tags { get; set; } = [];

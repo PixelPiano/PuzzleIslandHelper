@@ -15,6 +15,25 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
     [Tracked]
     public class OrbGetCutscene : CutsceneEntity
     {
+        [Command("th", "")]
+        public static void TestHeavenlyText()
+        {
+            if (Engine.Scene is Level level)
+            {
+                Entity e = new Entity();
+                IEnumerator routine()
+                {
+                    HeavenlyText t = new(true);
+                    Engine.Scene.Add(t);
+                    while (!t.Finished)
+                    {
+                        yield return null;
+                    }
+                }
+                e.Add(new Coroutine(routine()));
+                Engine.Scene.Add(e);
+            }
+        }
         private bool advancePortalAtEnd = true;
         public MemoryOrb Orb;
         public Player Player;
@@ -52,6 +71,11 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             //yield return 0.4f;
             //eye shakes
             ////////
+            Vector2 camPos = new Vector2(Orb.X - 160, Level.Camera.Y);
+            if (Level.Camera.Position != camPos)
+            {
+                Add(new Coroutine(CameraTo(camPos, 1)));
+            }
 
             yield return Player.DummyWalkTo(Eye.CenterX);
             //orb flies up
@@ -211,12 +235,18 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
                 Orb.Depth = int.MinValue + 3;
                 Player.Depth = int.MinValue + 2;
             });
+            MovePlayerAndOrbToCenter();
             updateShiverIntensities(prevRadius);
             //heavenlytext sequence
-            ///HeavenlyText t = new();
-            ///yield return t.Sequence();
-            ///t.RemoveSelf();
 
+            HeavenlyText t = new(Eye.Type == Eye.Types.Backend);
+            Scene.Add(t);
+            while (!t.Finished)
+            {
+                yield return null;
+            }
+            ///t.RemoveSelf();
+            yield return 2;
             //orb shrinks back to regular size
             yield return new SwapImmediately(OrbShrink(Orb, prevRadius, f =>
             {
@@ -232,12 +262,39 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
             updateShiverIntensities(prevRadius);
             Orb.Depth = prevOrbDepth;
             Player.Depth = 0;
+            //todo:
             //remains of eye collapse into itself
             //yield return Eye.CollapseIntoPortal();
             //portal updates and orb flies into it
             yield return Eye.AdvancePortalState();
             advancePortalAtEnd = false;
             EndCutscene(Level);
+        }
+        private Tween movePlayerAndOrbTween;
+        private bool movePlayerAndOrbToCenter;
+        public override void Update()
+        {
+            base.Update();
+            if (movePlayerAndOrbToCenter)
+            {
+                Player.CenterX = Calc.Approach(Player.CenterX, Eye.CenterX, 10 * Engine.DeltaTime);
+                Orb.X = Player.CenterX;
+            }
+        }
+        public void MovePlayerAndOrbToCenter()
+        {
+            movePlayerAndOrbToCenter = true;
+            float origPlayerX = Player.CenterX;
+/*
+            movePlayerAndOrbTween = Tween.Set(this, Tween.TweenMode.Oneshot, 1, Ease.SineInOut, t =>
+            {
+                Player.CenterX = Calc.LerpClamp(origPlayerX, Eye.CenterX, t.Eased);
+                Orb.X = Player.CenterX;
+            },
+            t =>
+            {
+                Player.CenterX = Orb.X = Eye.CenterX;
+            });*/
         }
         public IEnumerator OrbGrow(MemoryOrb orb, float targetRadius, Action<float> onGrowUpdate, Action onShrinkEnd = null)
         {
@@ -276,6 +333,10 @@ namespace Celeste.Mod.PuzzleIslandHelper.Entities.Tower
         }
         public override void OnEnd(Level level)
         {
+            if (WasSkipped)
+            {
+                movePlayerAndOrbTween?.Stop();
+            }
             level.EnableMovement();
             if (Scene.Tracker.GetEntity<BlueMemoryOrb>() is BlueMemoryOrb blue)
             {
